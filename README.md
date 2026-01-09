@@ -15,45 +15,37 @@ Progetto in configurazione iniziale con landing page "Benvenuto Gattilio" per te
 
 ## Configurazione Deploy Automatico su Vercel
 
-✅ **DEPLOY AUTOMATICO ATTIVO**: Ogni push su `master` attiva automaticamente il deploy su Vercel.
+✅ **DEPLOY AUTOMATICO ATTIVO**: Ogni push su `master` attiva automaticamente il deploy su Vercel tramite l'integrazione nativa GitHub.
 
-### Setup Secrets su GitHub (REQUIRED)
+### Setup Vercel (UNA VOLTA SOLA)
 
-Per attivare il deploy automatico, configura questi secrets nel repository GitHub:
+1. **Collega il repository GitHub a Vercel**:
+   - Vai su [Vercel Dashboard](https://vercel.com/new)
+   - Seleziona "Import Git Repository"
+   - Autorizza Vercel ad accedere a `aifootballab/Gattilio27`
+   - Vercel rileverà automaticamente Vite e configurerà il progetto
 
-1. **Vai su**: `https://github.com/aifootballab/Gattilio27/settings/secrets/actions`
-2. **Clicca su "New repository secret"** e aggiungi:
-
-   - **`VERCEL_TOKEN`**: 
-     - Vai su [Vercel Dashboard](https://vercel.com/account/tokens)
-     - Crea un nuovo token (es: `github-actions-token`)
-     - Copia il token e incollalo come secret
-   
-   - **`VERCEL_ORG_ID`**: 
-     - Vai su [Vercel Settings](https://vercel.com/account/settings)
-     - Copia il "Organization ID"
-   
-   - **`VERCEL_PROJECT_ID`**: 
-     - Vai sul tuo progetto Vercel → Settings → General
-     - Copia il "Project ID"
+2. **Verifica le impostazioni**:
+   - Framework: Vite (auto-rilevato)
+   - Root Directory: `./`
+   - Build Command: `npm run build`
+   - Output Directory: `dist`
 
 ### Workflow Automatico
 
 ```
 Push su GitHub (master) 
   ↓
-GitHub Actions (trigger automatico)
+Vercel rileva il commit automaticamente
   ↓
-Build e Deploy su Vercel (produzione)
+Build e Deploy automatico su Vercel (produzione)
 ```
-
-Il workflow è configurato in `.github/workflows/deploy-vercel.yml` e si attiva **automaticamente** ad ogni push.
 
 ### Verifica Deploy
 
 Dopo ogni push, controlla:
-- **GitHub Actions**: `https://github.com/aifootballab/Gattilio27/actions`
 - **Vercel Dashboard**: Vedi i deployment in tempo reale
+- I deployment vengono creati automaticamente per ogni push su `master`
 
 ## Sviluppo Locale
 
