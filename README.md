@@ -4,13 +4,14 @@ Plattaforma eFootball con integrazione Vercel, Supabase e GitHub.
 
 ## Setup
 
-Progetto in configurazione iniziale.
+Progetto in configurazione iniziale con landing page "Benvenuto Gattilio" per test di configurazione.
 
 ## Tech Stack
 
+- **React + Vite**: Frontend framework e build tool
 - **GitHub**: Version control e CI/CD
 - **Vercel**: Hosting e deployment automatico
-- **Supabase**: Database e autenticazione
+- **Supabase**: Database e autenticazione (configurato tramite MCP)
 
 ## Configurazione Deploy Automatico su Vercel
 
