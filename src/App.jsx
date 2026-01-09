@@ -16,6 +16,7 @@ function App() {
             <div className="logo">⚽</div>
             <h1 className="title">eFootball Platform</h1>
             <p className="subtitle">La piattaforma moderna per il calcio digitale</p>
+            <p className="greeting">Ciao</p>
           </div>
 
           <div className="features-grid">
