@@ -17,6 +17,11 @@ Progetto in configurazione iniziale con landing page "Benvenuto Gattilio" per te
 
 ✅ **DEPLOY AUTOMATICO ATTIVO**: Ogni push su `master` attiva automaticamente il deploy su Vercel tramite l'integrazione nativa GitHub.
 
+⚠️ **IMPORTANTE**: Se Vercel sta deployando commit vecchi (es. `cd5c308`), verifica su Vercel Dashboard:
+1. Settings → Git → Disconnect e riconnetti il repository
+2. Cancella i deploy falliti vecchi
+3. Vai su Deployments → "Redeploy" del commit più recente (`845a3b5` o successivo)
+
 ### Setup Vercel (UNA VOLTA SOLA)
 
 1. **Collega il repository GitHub a Vercel**:
