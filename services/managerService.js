@@ -208,3 +208,29 @@ export async function getPlayingStylesForPosition(position) {
 
   return data || []
 }
+
+/**
+ * Scraping allenatori da efootballhub.net
+ * Chiama Edge Function per scraping e salvataggio in database
+ */
+export async function scrapeManagers(options = {}) {
+  if (!supabase) {
+    throw new Error('Supabase non configurato')
+  }
+
+  const { manager_name, batch_size = 10, test_mode = false } = options
+
+  const { data, error } = await supabase.functions.invoke('scrape-managers', {
+    body: JSON.stringify({
+      manager_name: manager_name || null,
+      batch_size: batch_size || 10,
+      test_mode: test_mode || false
+    })
+  })
+
+  if (error) {
+    throw new Error(`Errore scraping allenatori: ${error.message}`)
+  }
+
+  return data
+}
