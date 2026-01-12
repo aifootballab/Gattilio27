@@ -297,8 +297,8 @@ function RosaManualInput({ onBack, onRosaCreated }) {
         <button className={activeTab === 'defending' ? 'active' : ''} onClick={() => setActiveTab('defending')}><Shield size={16} />Dif</button>
         <button className={activeTab === 'athleticism' ? 'active' : ''} onClick={() => setActiveTab('athleticism')}><Zap size={16} />Fis</button>
         <button className={activeTab === 'skills' ? 'active' : ''} onClick={() => setActiveTab('skills')}><Award size={16} />Skill</button>
-        <button className={activeTab === 'build' ? 'active' : ''} onClick={() => setActiveTab('build')}><Settings size={16} />Build</button>
-        <button className={activeTab === 'devpoints' ? 'active' : ''} onClick={() => setActiveTab('devpoints')}><TrendingUp size={16} />Dev</button>
+        <button className={activeTab === 'build' ? 'active' : ''} onClick={() => setActiveTab('build')}><Settings size={16} />Sviluppo</button>
+        <button className={activeTab === 'devpoints' ? 'active' : ''} onClick={() => setActiveTab('devpoints')}><TrendingUp size={16} />Punti Sviluppo</button>
       </div>
 
       <div className="tab-panel">
