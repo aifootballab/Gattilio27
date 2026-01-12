@@ -163,12 +163,12 @@ function RosaManualInput({ onBack, onRosaCreated }) {
       const result = await playerService.createPlayerWithBuild(playerCompleteData)
 
       // Aggiungi alla rosa corrente
+      // addPlayer si aspetta build_id, quindi passiamo direttamente l'ID del build creato
       const playerForRosa = {
+        build_id: result.build.id,
         player_name: playerData.player_name,
         position: playerData.position,
         overall_rating: overallRating,
-        build_id: result.build.id,
-        player_base_id: result.player_base.id,
         source: 'manual'
       }
 

@@ -32,7 +32,7 @@ function RosaPage() {
               >
                 ×
               </button>
-              <RosaInputSelector onClose={() => setShowInputSelector(false)} />
+              <RosaInputSelector onRosaCreated={() => setShowInputSelector(false)} />
             </div>
           </div>
         )}
