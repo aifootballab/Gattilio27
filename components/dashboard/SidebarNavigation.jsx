@@ -48,6 +48,12 @@ function SidebarNavigation() {
       icon: '⚔️',
       label: 'Formazione Avversaria',
       badge: null
+    },
+    {
+      path: '/admin',
+      icon: '⚙️',
+      label: 'Admin',
+      badge: null
     }
     // TODO: Aggiungere pagina impostazioni quando necessaria
     // {
