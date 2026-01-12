@@ -1,16 +1,16 @@
-import React from 'react'
 'use client'
 
+import React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useRosa } from '../../contexts/RosaContext'
+import { useRosa } from '@/contexts/RosaContext'
 import './SidebarNavigation.css'
 
 function SidebarNavigation() {
-  const location = useLocation()
+  const pathname = usePathname()
   const { hasRosa, playerCount } = useRosa()
 
-  const isActive = (path) => location.pathname === path
+  const isActive = (path: string) => pathname === path
 
   const menuItems = [
     {
@@ -71,7 +71,7 @@ function SidebarNavigation() {
         {menuItems.map((item) => (
           <Link
             key={item.path}
-            to={item.path}
+            href={item.path}
             className={`nav-item ${isActive(item.path) ? 'active' : ''}`}
           >
             <span className="nav-icon">{item.icon}</span>

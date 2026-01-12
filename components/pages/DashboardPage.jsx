@@ -1,10 +1,11 @@
+'use client'
+
 import React from 'react'
-import { Link } from 'react-router-dom'
-import { useRosa } from '../contexts/RosaContext'
-import DashboardLayout from '../components/dashboard/DashboardLayout'
-import MatchCenterPanel from '../components/match-center/MatchCenterPanel'
-import TacticalPitch from '../components/match-center/TacticalPitch'
-import UserInfoPanel from '../components/dashboard/UserInfoPanel'
+import { useRosa } from '@/contexts/RosaContext'
+import DashboardLayout from '@/components/dashboard/DashboardLayout'
+import MatchCenterPanel from '@/components/match-center/MatchCenterPanel'
+import TacticalPitch from '@/components/match-center/TacticalPitch'
+import UserInfoPanel from '@/components/dashboard/UserInfoPanel'
 import './DashboardPage.css'
 
 function DashboardPage() {
