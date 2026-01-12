@@ -498,19 +498,30 @@
   font-weight: 500;
 }
 
-.dev-points-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 1rem;
-}
-
-.dev-point-field {
+/* Dev Points - Card Layout like stats */
+.dev-points-list {
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 1rem;
+  padding: 0;
 }
 
-.dev-point-field .number-input {
+.dev-point-card {
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  border-radius: 12px;
+  padding: 1rem;
+  transition: background 0.2s ease, border-color 0.2s ease;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.dev-point-card:hover {
+  background: rgba(30, 41, 59, 0.8);
+  border-color: rgba(148, 163, 184, 0.3);
+}
+
+.dev-point-card .number-input {
   width: 100%;
 }
 
