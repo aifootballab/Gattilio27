@@ -68,16 +68,21 @@ serve(async (req) => {
           }
 
           // Cerca esistente
-          const { data: existing } = await supabase
+          const { data: existing, error: searchError } = await supabase
             .from('players_base')
             .select('id')
             .ilike('player_name', mappedData.player_name)
             .limit(1)
             .maybeSingle()
 
+          if (searchError && searchError.code !== 'PGRST116') {
+            console.error(`Search error for ${mappedData.player_name}:`, searchError)
+            throw searchError
+          }
+
           if (existing) {
             // Aggiorna
-            const { error } = await supabase
+            const { error: updateError } = await supabase
               .from('players_base')
               .update({
                 ...mappedData,
@@ -85,15 +90,22 @@ serve(async (req) => {
               })
               .eq('id', existing.id)
 
-            if (error) throw error
+            if (updateError) {
+              console.error(`Update error for ${mappedData.player_name}:`, updateError)
+              throw updateError
+            }
             return { action: 'updated', name: mappedData.player_name }
           } else {
             // Crea nuovo
-            const { error } = await supabase
+            const { error: insertError, data: inserted } = await supabase
               .from('players_base')
               .insert(mappedData)
+              .select()
 
-            if (error) throw error
+            if (insertError) {
+              console.error(`Insert error for ${mappedData.player_name}:`, insertError)
+              throw insertError
+            }
             return { action: 'created', name: mappedData.player_name }
           }
         })
