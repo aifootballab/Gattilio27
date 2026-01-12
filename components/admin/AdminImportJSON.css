@@ -1,9 +1,9 @@
-.import-players-button {
+.admin-import-json {
   padding: 1.5rem;
   background: #0a1628;
   border: 1px solid #1e3a5a;
   border-radius: 8px;
-  max-width: 600px;
+  max-width: 800px;
   margin: 2rem auto;
 }
 
@@ -31,43 +31,82 @@
   gap: 1rem;
 }
 
-.import-form .input-field {
+.import-actions {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.file-upload-btn,
+.paste-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: #1a2332;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  color: #e2e8f0;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.file-upload-btn:hover:not(:disabled),
+.paste-btn:hover:not(:disabled) {
+  background: #2563eb;
+  border-color: #3b82f6;
+  color: #fff;
+}
+
+.file-upload-btn:disabled,
+.paste-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.textarea-field {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
 
-.import-form label {
+.textarea-field label {
   color: #e2e8f0;
   font-size: 0.875rem;
   font-weight: 500;
 }
 
-.import-form input {
+.textarea-field textarea {
+  width: 100%;
   padding: 0.75rem;
   background: #1a2332;
   border: 1px solid #334155;
   border-radius: 6px;
   color: #fff;
   font-size: 0.875rem;
+  font-family: 'Courier New', monospace;
+  resize: vertical;
+  min-height: 200px;
   transition: all 0.2s;
 }
 
-.import-form input:focus {
+.textarea-field textarea:focus {
   outline: none;
   border-color: #3b82f6;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
-.import-form input:disabled {
+.textarea-field textarea:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-.import-form small {
+.textarea-field small {
   color: #64748b;
   font-size: 0.75rem;
-  line-height: 1.4;
 }
 
 .import-btn {

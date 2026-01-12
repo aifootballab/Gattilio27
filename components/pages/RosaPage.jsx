@@ -5,7 +5,6 @@ import DashboardLayout from '../dashboard/DashboardLayout'
 import RosaTitolari from '../rosa/RosaTitolari'
 import RosaPanchina from '../rosa/RosaPanchina'
 import RosaInputSelector from '../rosa/RosaInputSelector'
-import ImportPlayersButton from '../admin/ImportPlayersButton'
 import './RosaPage.css'
 
 function RosaPage() {
@@ -47,13 +46,6 @@ function RosaPage() {
             <RosaPanchina />
           </div>
         </div>
-
-        {/* Import Players Section (solo per sviluppo/admin) */}
-        {process.env.NODE_ENV === 'development' && (
-          <div style={{ marginTop: '2rem', padding: '0 1rem' }}>
-            <ImportPlayersButton />
-          </div>
-        )}
       </div>
     </DashboardLayout>
   )

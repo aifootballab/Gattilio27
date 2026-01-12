@@ -1,38 +1,16 @@
-// Service per importare giocatori da Google Drive o JSON
+// Service per importare giocatori da JSON
 
 import { supabase } from '@/lib/supabase'
 
 /**
- * Importa giocatori da Google Drive usando Edge Function
- */
-export async function importPlayersFromDrive(googleDriveUrl, options = {}) {
-  if (!supabase) {
-    throw new Error('Supabase non configurato')
-  }
-
-  const { data, error } = await supabase.functions.invoke('import-players-from-drive', {
-    body: JSON.stringify({
-      google_drive_url: googleDriveUrl,
-      batch_size: options.batchSize || 50
-    }),
-  })
-
-  if (error) {
-    throw new Error(`Errore import: ${error.message}`)
-  }
-
-  return data
-}
-
-/**
- * Importa giocatori da JSON diretto (per test o file locale)
+ * Importa giocatori da JSON diretto
  */
 export async function importPlayersFromJSON(jsonData, options = {}) {
   if (!supabase) {
     throw new Error('Supabase non configurato')
   }
 
-  const { data, error } = await supabase.functions.invoke('import-players-from-drive', {
+  const { data, error } = await supabase.functions.invoke('import-players-json', {
     body: JSON.stringify({
       json_data: jsonData,
       batch_size: options.batchSize || 50
