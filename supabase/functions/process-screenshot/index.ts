@@ -161,26 +161,68 @@ serve(async (req) => {
       image_type
     )
 
+    // Check if data is in Google Drive format and parse accordingly
+    let parsedData: ParsedPlayerData | null = null
+    if (extractedData["Giocatori"] || extractedData["Complessivamente"]) {
+      // Formato Google Drive - parse con helper
+      try {
+        parsedData = parseGoogleDriveData(extractedData as any)
+      } catch (err) {
+        console.warn('Errore parsing Google Drive data:', err)
+        // Fallback a formato OCR tradizionale
+      }
+    }
+
+    // Se non è formato Google Drive, converti formato OCR
+    if (!parsedData) {
+      parsedData = {
+        player_name: extractedData.player_name || 'Unknown Player',
+        position: extractedData.position || 'CF',
+        role: extractedData.role || null,
+        overall_rating: extractedData.overall_rating || 0,
+        height: extractedData.height || null,
+        weight: extractedData.weight || null,
+        age: extractedData.age || null,
+        nationality: extractedData.nationality || null,
+        club_name: extractedData.club_name || null,
+        potential_max: extractedData.potential_max || null,
+        cost: extractedData.cost || null,
+        form: extractedData.form || null,
+        level_cap: extractedData.build?.levelCap || null,
+        base_stats: {
+          overall_rating: extractedData.overall_rating || 0,
+          attacking: extractedData.attacking || {},
+          defending: extractedData.defending || {},
+          athleticism: extractedData.athleticism || {}
+        }
+      }
+    }
+
     // Match player with database
-    const matchedPlayer = await matchPlayer(extractedData.player_name, supabase)
+    const matchedPlayer = await matchPlayer(parsedData.player_name, supabase)
 
     // Save/update players_base (if new player)
     let playerBaseId = matchedPlayer?.id
-    if (!playerBaseId && extractedData.player_name) {
+    if (!playerBaseId && parsedData.player_name) {
       const { data: newPlayer, error: playerError } = await supabase
         .from('players_base')
         .insert({
-          player_name: extractedData.player_name,
-          position: extractedData.position,
-          base_stats: extractedData.attacking ? {
-            attacking: extractedData.attacking,
-            defending: extractedData.defending,
-            athleticism: extractedData.athleticism
-          } : {},
+          player_name: parsedData.player_name,
+          position: parsedData.position,
+          role: parsedData.role,
+          height: parsedData.height,
+          weight: parsedData.weight,
+          age: parsedData.age,
+          nationality: parsedData.nationality,
+          team: parsedData.club_name,
+          potential_max: parsedData.potential_max,
+          cost: parsedData.cost,
+          form: parsedData.form,
+          base_stats: parsedData.base_stats,
           skills: extractedData.skills || [],
           com_skills: extractedData.comSkills || [],
           position_ratings: extractedData.positionRatings || {},
-          source: 'user_upload'
+          source: parsedData && (extractedData["Giocatori"] || extractedData["Complessivamente"]) ? 'google_drive' : 'user_upload'
         })
         .select()
         .single()
@@ -203,7 +245,7 @@ serve(async (req) => {
           active_booster_name: extractedData.build?.activeBooster || null,
           final_overall_rating: parsedData.overall_rating,
           final_stats: parsedData.base_stats,
-          source: parsedData ? 'google_drive' : 'screenshot',
+          source: parsedData && (extractedData["Giocatori"] || extractedData["Complessivamente"]) ? 'google_drive' : 'screenshot',
           source_data: {
             screenshot_id: logEntry.id,
             confidence: extractedData.confidence || 0.8,
