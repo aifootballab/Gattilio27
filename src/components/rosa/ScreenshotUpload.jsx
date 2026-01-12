@@ -295,25 +295,129 @@ export default function ScreenshotUpload({ onPlayerExtracted }) {
             <div className="extracted-data">
               <h3>Dati Estratti</h3>
               <div className="data-preview">
-                <div className="data-row">
-                  <strong>Nome:</strong>
-                  <span>{extractedData.player_name}</span>
+                {/* Dati Base */}
+                <div className="data-section">
+                  <strong>Informazioni Base</strong>
+                  <div className="data-grid">
+                    <div className="data-row">
+                      <strong>Nome:</strong>
+                      <span>{extractedData.player_name || extractedData.parsed_data?.player_name || 'N/A'}</span>
+                    </div>
+                    <div className="data-row">
+                      <strong>Rating:</strong>
+                      <span>{extractedData.overall_rating || extractedData.parsed_data?.overall_rating || 'N/A'}</span>
+                    </div>
+                    <div className="data-row">
+                      <strong>Posizione:</strong>
+                      <span>{extractedData.position || extractedData.parsed_data?.position || 'N/A'}</span>
+                    </div>
+                    {extractedData.parsed_data?.role && (
+                      <div className="data-row">
+                        <strong>Ruolo:</strong>
+                        <span>{extractedData.parsed_data.role}</span>
+                      </div>
+                    )}
+                    {extractedData.parsed_data?.height && (
+                      <div className="data-row">
+                        <strong>Altezza:</strong>
+                        <span>{extractedData.parsed_data.height} cm</span>
+                      </div>
+                    )}
+                    {extractedData.parsed_data?.weight && (
+                      <div className="data-row">
+                        <strong>Peso:</strong>
+                        <span>{extractedData.parsed_data.weight} kg</span>
+                      </div>
+                    )}
+                    {extractedData.parsed_data?.age && (
+                      <div className="data-row">
+                        <strong>Età:</strong>
+                        <span>{extractedData.parsed_data.age}</span>
+                      </div>
+                    )}
+                    {extractedData.parsed_data?.nationality && (
+                      <div className="data-row">
+                        <strong>Nazionalità:</strong>
+                        <span>{extractedData.parsed_data.nationality}</span>
+                      </div>
+                    )}
+                    {extractedData.parsed_data?.club_name && (
+                      <div className="data-row">
+                        <strong>Squadra:</strong>
+                        <span>{extractedData.parsed_data.club_name}</span>
+                      </div>
+                    )}
+                    {extractedData.parsed_data?.potential_max && (
+                      <div className="data-row">
+                        <strong>Potenziale:</strong>
+                        <span>{extractedData.parsed_data.potential_max}</span>
+                      </div>
+                    )}
+                    {extractedData.parsed_data?.form && (
+                      <div className="data-row">
+                        <strong>Condizione:</strong>
+                        <span>{extractedData.parsed_data.form}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="data-row">
-                  <strong>Rating:</strong>
-                  <span>{extractedData.overall_rating}</span>
-                </div>
-                <div className="data-row">
-                  <strong>Posizione:</strong>
-                  <span>{extractedData.position}</span>
-                </div>
-                {extractedData.attacking && (
+
+                {/* Statistiche Attacco */}
+                {(extractedData.attacking || extractedData.parsed_data?.base_stats?.attacking) && (
                   <div className="data-section">
-                    <strong>Attacco:</strong>
+                    <strong>Attacco</strong>
                     <div className="stats-grid">
-                      <span>Offensive Awareness: {extractedData.attacking.offensiveAwareness}</span>
-                      <span>Finishing: {extractedData.attacking.finishing}</span>
-                      <span>Dribbling: {extractedData.attacking.dribbling}</span>
+                      {Object.entries(extractedData.parsed_data?.base_stats?.attacking || extractedData.attacking || {}).map(([key, value]) => (
+                        value !== null && value !== undefined && (
+                          <span key={key}>
+                            {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}: {value}
+                          </span>
+                        )
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Statistiche Difesa */}
+                {(extractedData.defending || extractedData.parsed_data?.base_stats?.defending) && (
+                  <div className="data-section">
+                    <strong>Difesa</strong>
+                    <div className="stats-grid">
+                      {Object.entries(extractedData.parsed_data?.base_stats?.defending || extractedData.defending || {}).map(([key, value]) => (
+                        value !== null && value !== undefined && (
+                          <span key={key}>
+                            {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}: {value}
+                          </span>
+                        )
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Statistiche Atletiche */}
+                {(extractedData.athleticism || extractedData.parsed_data?.base_stats?.athleticism) && (
+                  <div className="data-section">
+                    <strong>Atletica</strong>
+                    <div className="stats-grid">
+                      {Object.entries(extractedData.parsed_data?.base_stats?.athleticism || extractedData.athleticism || {}).map(([key, value]) => (
+                        value !== null && value !== undefined && (
+                          <span key={key}>
+                            {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}: {value}
+                          </span>
+                        )
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Skills */}
+                {extractedData.skills && extractedData.skills.length > 0 && (
+                  <div className="data-section">
+                    <strong>Abilità ({extractedData.skills.length})</strong>
+                    <div className="skills-list">
+                      {extractedData.skills.map((skill, idx) => (
+                        <span key={idx} className="skill-badge">{skill}</span>
+                      ))}
                     </div>
                   </div>
                 )}

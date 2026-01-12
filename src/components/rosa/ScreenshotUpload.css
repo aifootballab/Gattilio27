@@ -178,16 +178,42 @@
   margin-bottom: 0.5rem;
 }
 
+.data-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 0.5rem;
   margin-top: 0.5rem;
 }
 
 .stats-grid span {
   color: #cbd5e0;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
+  padding: 0.25rem 0.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.skills-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.skill-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  background: rgba(102, 126, 234, 0.2);
+  border: 1px solid rgba(102, 126, 234, 0.3);
+  border-radius: 12px;
+  font-size: 0.75rem;
+  color: #a0aec0;
 }
 
 .actions {

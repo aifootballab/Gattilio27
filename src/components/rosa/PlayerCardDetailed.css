@@ -1,15 +1,15 @@
 .player-card-detailed {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
+  background: rgba(26, 31, 58, 0.7);
+  border-radius: 12px;
   padding: 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  transition: all 0.3s ease;
+  border: 1px solid rgba(102, 126, 234, 0.3);
+  transition: all 0.2s ease;
 }
 
 .player-card-detailed:hover {
-  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(102, 126, 234, 0.5);
+  background: rgba(26, 31, 58, 0.9);
   transform: translateY(-2px);
-  border-color: rgba(255, 107, 53, 0.3);
 }
 
 .player-card-detailed.compact {
@@ -24,23 +24,11 @@
 }
 
 .player-rating {
-  width: 50px;
-  height: 50px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
+  font-size: 1.5rem;
   font-weight: 700;
-  font-size: 1.25rem;
-  flex-shrink: 0;
-}
-
-.compact .player-rating {
-  width: 40px;
-  height: 40px;
-  font-size: 1rem;
+  color: #667eea;
+  min-width: 50px;
+  text-align: center;
 }
 
 .player-info {
@@ -48,63 +36,95 @@
 }
 
 .player-name {
-  font-size: 1rem;
-  color: white;
+  font-size: 1.1rem;
   font-weight: 600;
-  margin-bottom: 0.25rem;
-}
-
-.compact .player-name {
-  font-size: 0.9rem;
+  color: white;
+  margin: 0 0 0.25rem 0;
 }
 
 .player-position {
-  font-size: 0.875rem;
-  color: #a0a0a0;
+  font-size: 0.85rem;
+  color: #a0aec0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.player-physical-info {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  padding: 0.5rem 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.player-physical-info span {
+  font-size: 0.8rem;
+  color: #cbd5e0;
 }
 
 .player-stats-preview {
   display: flex;
   gap: 1rem;
-  margin-top: 0.75rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 0.75rem;
+  padding: 0.75rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
 }
 
 .stat-item {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 0.25rem;
+  flex: 1;
 }
 
 .stat-label {
   font-size: 0.75rem;
-  color: #a0a0a0;
+  color: #a0aec0;
   text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .stat-value {
-  font-size: 0.9rem;
-  color: white;
-  font-weight: 600;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #667eea;
 }
 
 .player-abilities-preview {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  margin-top: 0.75rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
 }
 
 .abilities-label {
-  font-size: 0.875rem;
-  color: #a0a0a0;
+  color: #a0aec0;
 }
 
 .abilities-count {
-  font-size: 0.875rem;
-  color: #ff6b35;
+  color: #667eea;
   font-weight: 600;
+}
+
+.player-build-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 0.8rem;
+  color: #cbd5e0;
+}
+
+.booster-badge {
+  padding: 0.25rem 0.5rem;
+  background: rgba(102, 126, 234, 0.2);
+  border: 1px solid rgba(102, 126, 234, 0.3);
+  border-radius: 8px;
+  font-size: 0.75rem;
+  color: #a0aec0;
 }

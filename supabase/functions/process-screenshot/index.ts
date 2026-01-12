@@ -3,6 +3,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { parseGoogleDriveData, type ParsedPlayerData } from './parseGoogleDriveData.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -190,34 +191,40 @@ serve(async (req) => {
     }
 
     // Save build (if build data exists)
-    if (playerBaseId && extractedData.build) {
+    if (playerBaseId) {
       await supabase
         .from('player_builds')
         .upsert({
           user_id,
           player_base_id: playerBaseId,
-          development_points: extractedData.build.developmentPoints || {},
-          current_level: extractedData.build.currentLevel,
-          level_cap: extractedData.build.levelCap,
-          active_booster_name: extractedData.build.activeBooster,
-          source: 'screenshot',
+          development_points: extractedData.build?.developmentPoints || {},
+          current_level: extractedData.build?.currentLevel || null,
+          level_cap: parsedData.level_cap || extractedData.build?.levelCap || null,
+          active_booster_name: extractedData.build?.activeBooster || null,
+          final_overall_rating: parsedData.overall_rating,
+          final_stats: parsedData.base_stats,
+          source: parsedData ? 'google_drive' : 'screenshot',
           source_data: {
             screenshot_id: logEntry.id,
-            confidence: extractedData.confidence || 0.8
+            confidence: extractedData.confidence || 0.8,
+            form: parsedData.form
           }
         }, {
           onConflict: 'user_id,player_base_id'
         })
     }
 
-    // Update log
+    // Update log - salva sia extractedData (OCR) che parsedData (formato finale)
     await supabase
       .from('screenshot_processing_log')
       .update({
         processing_status: 'completed',
         processing_completed_at: new Date().toISOString(),
         raw_ocr_data: annotations,
-        extracted_data: extractedData,
+        extracted_data: {
+          ...extractedData,
+          parsed_data: parsedData // Aggiungi dati parsati
+        },
         confidence_score: extractedData.confidence || 0.8,
         matched_player_id: playerBaseId,
         matching_confidence: matchedPlayer?.confidence || 1.0
@@ -228,7 +235,10 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         log_id: logEntry.id,
-        extracted_data: extractedData,
+        extracted_data: {
+          ...extractedData,
+          parsed_data: parsedData // Includi dati parsati nella risposta
+        },
         matched_player_id: playerBaseId
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
