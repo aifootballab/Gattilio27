@@ -203,20 +203,60 @@ export async function upsertPlayerBase(playerBaseData) {
     throw new Error('Supabase non configurato')
   }
 
+  // Estrai campi separati e base_stats
+  const {
+    player_name,
+    position,
+    height,
+    weight,
+    age,
+    nationality,
+    club_name,
+    card_type,
+    era,
+    team,
+    base_stats,
+    skills,
+    com_skills,
+    position_ratings,
+    metadata,
+    source
+  } = playerBaseData
+
+  // Prepara oggetto per insert/update
+  const playerData = {
+    player_name,
+    position: position || null,
+    height: height || null,
+    weight: weight || null,
+    age: age || null,
+    nationality: nationality || null,
+    club_name: club_name || null,
+    card_type: card_type || null,
+    era: era || null,
+    team: team || null,
+    base_stats: base_stats || {},
+    skills: skills || [],
+    com_skills: com_skills || [],
+    position_ratings: position_ratings || {},
+    metadata: metadata || {},
+    source: source || 'manual'
+  }
+
   // Cerca se esiste già un player con lo stesso nome
   const { data: existing } = await supabase
     .from('players_base')
     .select('id')
-    .ilike('player_name', playerBaseData.player_name)
+    .ilike('player_name', player_name)
     .limit(1)
-    .single()
+    .maybeSingle()
 
   if (existing) {
     // Aggiorna player esistente
     const { data, error } = await supabase
       .from('players_base')
       .update({
-        ...playerBaseData,
+        ...playerData,
         updated_at: new Date().toISOString()
       })
       .eq('id', existing.id)
@@ -232,7 +272,7 @@ export async function upsertPlayerBase(playerBaseData) {
     // Crea nuovo player
     const { data, error } = await supabase
       .from('players_base')
-      .insert(playerBaseData)
+      .insert(playerData)
       .select()
       .single()
 
@@ -258,10 +298,19 @@ export async function createPlayerWithBuild(playerData) {
   const playerBase = await upsertPlayerBase({
     player_name: playerData.player_name,
     position: playerData.position,
+    height: playerData.height,
+    weight: playerData.weight,
+    age: playerData.age,
+    nationality: playerData.nationality,
+    club_name: playerData.club_name,
+    card_type: playerData.card_type,
+    era: playerData.era,
+    team: playerData.team,
     base_stats: playerData.base_stats || {},
     skills: playerData.skills || [],
     com_skills: playerData.com_skills || [],
     position_ratings: playerData.position_ratings || {},
+    metadata: playerData.metadata || {},
     source: playerData.source || 'manual'
   })
 
@@ -271,6 +320,7 @@ export async function createPlayerWithBuild(playerData) {
     development_points: playerData.development_points || {},
     current_level: playerData.current_level,
     level_cap: playerData.level_cap,
+    active_booster_id: playerData.active_booster_id,
     active_booster_name: playerData.active_booster_name,
     final_stats: playerData.final_stats || {},
     final_overall_rating: playerData.final_overall_rating,
