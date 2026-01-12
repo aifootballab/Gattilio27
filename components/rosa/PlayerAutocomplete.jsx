@@ -35,12 +35,12 @@ function PlayerAutocomplete({ value, onSelect, onInputChange, placeholder = "Cer
       try {
         const players = await searchPlayer(query)
         setResults(players)
-        setShowDropdown(players.length > 0)
+        setShowDropdown(true) // Mostra dropdown sempre (anche se vuoto) per mostrare "Nessun giocatore trovato"
         setSelectedIndex(-1)
       } catch (error) {
         console.error('Errore ricerca:', error)
         setResults([])
-        setShowDropdown(false)
+        setShowDropdown(true) // Mostra dropdown anche in caso di errore per feedback
       } finally {
         setIsLoading(false)
       }
