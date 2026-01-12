@@ -255,19 +255,296 @@ serve(async (req) => {
 })
 
 /**
- * Parse HTML and extract managers data
- * TODO: Implement based on actual efootballhub.net structure
+ * Parse HTML and extract managers data from efootballhub.net/coaches
+ * Estrae dati managers dalla pagina HTML usando regex/pattern matching
  */
 function parseManagersHTML(html: string, filterName?: string): any[] {
-  // Placeholder - actual parsing needs to be implemented
-  // This should:
-  // 1. Parse HTML structure of efootballhub.net/managers
-  // 2. Extract manager data (name, rating, formation, tactics, styles, skills)
-  // 3. Filter by name if provided
-  // 4. Return array of manager objects
+  const managers: any[] = []
+  
+  try {
+    // Rimuovi spazi e newline per facilitare regex
+    const cleanHtml = html.replace(/\s+/g, ' ').toLowerCase()
+    
+    // Pattern per trovare card/entry di managers
+    // efootballhub.net probabilmente ha una struttura con div/card per ogni manager
+    // Cerca pattern comuni come link, card, o tabelle
+    
+    // Pattern 1: Cerca link a dettagli manager (es: /coaches/{id} o /manager/{name})
+    const managerLinkPattern = /href=["']([^"']*\/coaches?\/[^"']*|/[^"']*manager[^"']*)["']/gi
+    const managerLinks = [...html.matchAll(managerLinkPattern)]
+    
+    // Se troviamo link managers, processiamo quelli
+    if (managerLinks.length > 0) {
+      // Estrai ID/nome da ogni link
+      for (const link of managerLinks.slice(0, 50)) { // Limita a 50 per performance
+        const href = link[1]
+        const managerId = extractManagerId(href)
+        
+        if (managerId) {
+          // Cerca dati manager nel contesto del link
+          const contextStart = Math.max(0, link.index! - 500)
+          const contextEnd = Math.min(html.length, link.index! + 500)
+          const context = html.substring(contextStart, contextEnd)
+          
+          const managerData = extractManagerFromContext(context, managerId, filterName)
+          if (managerData) {
+            managers.push(managerData)
+          }
+        }
+      }
+    } else {
+      // Fallback: cerca pattern alternativi nell'HTML
+      // Cerca tabelle o liste di managers
+      const tablePattern = /<table[^>]*>[\s\S]*?<\/table>/gi
+      const tables = html.match(tablePattern)
+      
+      if (tables && tables.length > 0) {
+        // Processa tabelle per estrarre managers
+        for (const table of tables) {
+          const tableManagers = extractManagersFromTable(table, filterName)
+          managers.push(...tableManagers)
+        }
+      } else {
+        // Ultimo fallback: cerca pattern generici di card/div con dati manager
+        const cardPattern = /<div[^>]*(?:class|data-type)=["'][^"']*(?:manager|coach|card)[^"']*["'][^>]*>[\s\S]{0,2000}?<\/div>/gi
+        const cards = html.match(cardPattern)
+        
+        if (cards && cards.length > 0) {
+          for (const card of cards.slice(0, 50)) {
+            const managerData = extractManagerFromCard(card, filterName)
+            if (managerData) {
+              managers.push(managerData)
+            }
+          }
+        }
+      }
+    }
+    
+    // Rimuovi duplicati basati su nome o ID
+    const uniqueManagers = removeDuplicates(managers)
+    
+    console.log(`Parsed ${uniqueManagers.length} managers from HTML`)
+    
+    return uniqueManagers
+    
+  } catch (error) {
+    console.error('Error parsing HTML:', error)
+    return []
+  }
+}
 
-  console.log('HTML parsing not yet implemented - returning empty array')
-  return []
+/**
+ * Estrae ID manager da un link
+ */
+function extractManagerId(href: string): string | null {
+  // Pattern: /coaches/123, /coaches/john-doe, /manager/456
+  const idMatch = href.match(/\/(?:coaches?|manager)\/([^\/\?]+)/i)
+  return idMatch ? idMatch[1] : null
+}
+
+/**
+ * Estrae dati manager da un contesto HTML
+ */
+function extractManagerFromContext(context: string, managerId: string, filterName?: string): any | null {
+  // Estrai nome
+  const nameMatch = context.match(/<[^>]*>([A-Z][A-Za-z\s\.]+(?:[A-Z][A-Za-z\s\.]+)*)<\/[^>]*>/)
+  const name = nameMatch ? nameMatch[1].trim() : null
+  
+  if (!name) return null
+  
+  // Filtra per nome se richiesto
+  if (filterName && !name.toLowerCase().includes(filterName.toLowerCase())) {
+    return null
+  }
+  
+  // Estrai rating
+  const ratingMatch = context.match(/(\d{2,3})(?:\s*<\/[^>]*>)?[^<]*(?:rating|overall|ovr)/i)
+  const rating = ratingMatch ? parseInt(ratingMatch[1]) : null
+  
+  // Estrai formazione
+  const formationMatch = context.match(/(\d+-\d+(?:-\d+)*)/)
+  const formation = formationMatch ? formationMatch[1] : null
+  
+  // Estrai stili di gioco
+  const styles = extractStylesFromContext(context)
+  
+  // Estrai skills/tactics
+  const skills = extractSkillsFromContext(context)
+  const tactics = extractTacticsFromContext(context)
+  
+  return {
+    name: name,
+    efootballhub_id: managerId,
+    overall_rating: rating,
+    preferred_formation: formation,
+    tactics: tactics,
+    skills: skills,
+    team_playing_styles: styles,
+    metadata: {
+      source_url: `https://efootballhub.net/efootball23/search/coaches`
+    }
+  }
+}
+
+/**
+ * Estrae stili di gioco da un contesto HTML
+ */
+function extractStylesFromContext(context: string): string[] {
+  const styles: string[] = []
+  
+  // Stili comuni efootball
+  const commonStyles = [
+    'possession game', 'long ball counter', 'out wide', 'long ball',
+    'frontline pressure', 'all-out defence', 'possession', 'counter',
+    'quick counter', 'tiki-taka', 'gegenpress', 'park the bus'
+  ]
+  
+  const lowerContext = context.toLowerCase()
+  for (const style of commonStyles) {
+    if (lowerContext.includes(style)) {
+      styles.push(style)
+    }
+  }
+  
+  return styles
+}
+
+/**
+ * Estrae skills da un contesto HTML
+ */
+function extractSkillsFromContext(context: string): string[] {
+  const skills: string[] = []
+  
+  // Skills comuni managers
+  const commonSkills = [
+    'attacking fullback', 'counter target', 'defensive line',
+    'build up', 'compactness', 'support range'
+  ]
+  
+  const lowerContext = context.toLowerCase()
+  for (const skill of commonSkills) {
+    if (lowerContext.includes(skill)) {
+      skills.push(skill)
+    }
+  }
+  
+  return skills
+}
+
+/**
+ * Estrae tactics da un contesto HTML
+ */
+function extractTacticsFromContext(context: string): any {
+  const tactics: any = {}
+  
+  // Cerca pattern per tactics comuni
+  const defensiveLineMatch = context.match(/defensive[^>]*line[^>]*>([^<]+)/i)
+  if (defensiveLineMatch) tactics.defensive_line = defensiveLineMatch[1].trim()
+  
+  const compactnessMatch = context.match(/compactness[^>]*>(\d+)/i)
+  if (compactnessMatch) tactics.compactness = parseInt(compactnessMatch[1])
+  
+  const buildUpMatch = context.match(/build[^>]*up[^>]*>([^<]+)/i)
+  if (buildUpMatch) tactics.build_up = buildUpMatch[1].trim()
+  
+  const attackingAreaMatch = context.match(/attacking[^>]*area[^>]*>([^<]+)/i)
+  if (attackingAreaMatch) tactics.attacking_area = attackingAreaMatch[1].trim()
+  
+  return tactics
+}
+
+/**
+ * Estrae managers da una tabella HTML
+ */
+function extractManagersFromTable(tableHtml: string, filterName?: string): any[] {
+  const managers: any[] = []
+  
+  // Cerca righe (<tr>)
+  const rowPattern = /<tr[^>]*>([\s\S]*?)<\/tr>/gi
+  const rows = [...tableHtml.matchAll(rowPattern)]
+  
+  for (const row of rows) {
+    const rowHtml = row[1]
+    const managerData = extractManagerFromCard(rowHtml, filterName)
+    if (managerData) {
+      managers.push(managerData)
+    }
+  }
+  
+  return managers
+}
+
+/**
+ * Estrae dati manager da una card/div HTML
+ */
+function extractManagerFromCard(cardHtml: string, filterName?: string): any | null {
+  // Estrai nome (cerca in link, heading, o span/div con class specifiche)
+  const namePatterns = [
+    /<h[1-6][^>]*>([A-Z][A-Za-z\s\.]+(?:[A-Z][A-Za-z\s\.]+)*)<\/h[1-6]>/,
+    /<a[^>]*>([A-Z][A-Za-z\s\.]+(?:[A-Z][A-Za-z\s\.]+)*)<\/a>/,
+    /<[^>]*(?:name|title|manager)[^>]*>([A-Z][A-Za-z\s\.]+(?:[A-Z][A-Za-z\s\.]+)*)<\/[^>]*>/
+  ]
+  
+  let name: string | null = null
+  for (const pattern of namePatterns) {
+    const match = cardHtml.match(pattern)
+    if (match && match[1].length > 3) {
+      name = match[1].trim()
+      break
+    }
+  }
+  
+  if (!name) return null
+  
+  // Filtra per nome se richiesto
+  if (filterName && !name.toLowerCase().includes(filterName.toLowerCase())) {
+    return null
+  }
+  
+  // Estrai altri dati
+  const ratingMatch = cardHtml.match(/(\d{2,3})(?:\s*<\/[^>]*>)?[^<]*(?:rating|overall|ovr)/i)
+  const rating = ratingMatch ? parseInt(ratingMatch[1]) : null
+  
+  const formationMatch = cardHtml.match(/(\d+-\d+(?:-\d+)*)/)
+  const formation = formationMatch ? formationMatch[1] : null
+  
+  const styles = extractStylesFromContext(cardHtml)
+  const skills = extractSkillsFromContext(cardHtml)
+  const tactics = extractTacticsFromContext(cardHtml)
+  
+  // Genera ID fittizio se non trovato
+  const managerId = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+  
+  return {
+    name: name,
+    efootballhub_id: managerId,
+    overall_rating: rating,
+    preferred_formation: formation,
+    tactics: tactics,
+    skills: skills,
+    team_playing_styles: styles,
+    metadata: {
+      source_url: `https://efootballhub.net/efootball23/search/coaches`
+    }
+  }
+}
+
+/**
+ * Rimuove duplicati da array managers
+ */
+function removeDuplicates(managers: any[]): any[] {
+  const seen = new Set<string>()
+  const unique: any[] = []
+  
+  for (const manager of managers) {
+    const key = manager.efootballhub_id || manager.name.toLowerCase()
+    if (!seen.has(key)) {
+      seen.add(key)
+      unique.push(manager)
+    }
+  }
+  
+  return unique
 }
 
 /**
