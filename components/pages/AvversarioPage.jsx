@@ -1,8 +1,8 @@
 import React from 'react'
-import DashboardLayout from '../components/dashboard/DashboardLayout'
-import OpponentFormation2D from '../components/avversario/OpponentFormation2D'
-import CounterMeasures from '../components/avversario/CounterMeasures'
-import OpponentAnalysis from '../components/avversario/OpponentAnalysis'
+import DashboardLayout from '../dashboard/DashboardLayout'
+import OpponentFormation2D from '../avversario/OpponentFormation2D'
+import CounterMeasures from '../avversario/CounterMeasures'
+import OpponentAnalysis from '../avversario/OpponentAnalysis'
 import './AvversarioPage.css'
 
 function AvversarioPage() {

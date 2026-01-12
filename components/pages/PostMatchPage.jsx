@@ -1,6 +1,6 @@
 import React from 'react'
-import DashboardLayout from '../components/dashboard/DashboardLayout'
-import PostMatchStats from '../components/post-match/PostMatchStats'
+import DashboardLayout from '../dashboard/DashboardLayout'
+import PostMatchStats from '../post-match/PostMatchStats'
 import './PostMatchPage.css'
 
 function PostMatchPage() {

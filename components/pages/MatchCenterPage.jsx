@@ -1,8 +1,8 @@
 import React from 'react'
-import DashboardLayout from '../components/dashboard/DashboardLayout'
-import MatchCenterPanel from '../components/match-center/MatchCenterPanel'
-import TacticalPitch from '../components/match-center/TacticalPitch'
-import UserInfoPanel from '../components/dashboard/UserInfoPanel'
+import DashboardLayout from '../dashboard/DashboardLayout'
+import MatchCenterPanel from '../match-center/MatchCenterPanel'
+import TacticalPitch from '../match-center/TacticalPitch'
+import UserInfoPanel from '../dashboard/UserInfoPanel'
 import './MatchCenterPage.css'
 
 function MatchCenterPage() {

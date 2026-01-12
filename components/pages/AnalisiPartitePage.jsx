@@ -1,8 +1,8 @@
 import React from 'react'
-import DashboardLayout from '../components/dashboard/DashboardLayout'
-import MatchOverview from '../components/analisi/MatchOverview'
-import LiveMatchData from '../components/analisi/LiveMatchData'
-import PostMatchAnalysis from '../components/analisi/PostMatchAnalysis'
+import DashboardLayout from '../dashboard/DashboardLayout'
+import MatchOverview from '../analisi/MatchOverview'
+import LiveMatchData from '../analisi/LiveMatchData'
+import PostMatchAnalysis from '../analisi/PostMatchAnalysis'
 import './AnalisiPartitePage.css'
 
 function AnalisiPartitePage() {

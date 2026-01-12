@@ -1,8 +1,8 @@
 import React, { useState } from 'react'
-import DashboardLayout from '../components/dashboard/DashboardLayout'
-import RosaTitolari from '../components/rosa/RosaTitolari'
-import RosaPanchina from '../components/rosa/RosaPanchina'
-import RosaInputSelector from '../components/rosa/RosaInputSelector'
+import DashboardLayout from '../dashboard/DashboardLayout'
+import RosaTitolari from '../rosa/RosaTitolari'
+import RosaPanchina from '../rosa/RosaPanchina'
+import RosaInputSelector from '../rosa/RosaInputSelector'
 import './RosaPage.css'
 
 function RosaPage() {

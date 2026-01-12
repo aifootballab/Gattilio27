@@ -1,8 +1,8 @@
 import React from 'react'
-import DashboardLayout from '../components/dashboard/DashboardLayout'
-import SinergieAnalysis from '../components/sinergie/SinergieAnalysis'
-import BuildOptimizer from '../components/sinergie/BuildOptimizer'
-import TeamStats from '../components/sinergie/TeamStats'
+import DashboardLayout from '../dashboard/DashboardLayout'
+import SinergieAnalysis from '../sinergie/SinergieAnalysis'
+import BuildOptimizer from '../sinergie/BuildOptimizer'
+import TeamStats from '../sinergie/TeamStats'
 import './SinergiePage.css'
 
 function SinergiePage() {
