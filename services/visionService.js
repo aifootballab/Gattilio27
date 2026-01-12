@@ -65,18 +65,18 @@ export async function processScreenshot(imageUrl, imageType, userId) {
     throw new Error('Supabase non configurato')
   }
 
-  // Chiama Edge Function
-  const { data: { session } } = await supabase.auth.getSession()
-  
-  if (!session) {
-    throw new Error('Utente non autenticato')
-  }
+  // TEMPORANEO: Login disabilitato per sviluppo
+  // const { data: { session } } = await supabase.auth.getSession()
+  // if (!session) {
+  //   throw new Error('Utente non autenticato')
+  // }
+  const tempUserId = 'dev-user-temp' // User ID temporaneo per sviluppo
 
   const { data, error } = await supabase.functions.invoke('process-screenshot', {
     body: {
       image_url: imageUrl,
       image_type: imageType,
-      user_id: userId || session.user.id
+      user_id: userId || tempUserId // session.user.id
     }
   })
 
