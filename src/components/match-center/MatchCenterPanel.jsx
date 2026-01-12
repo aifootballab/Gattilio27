@@ -1,4 +1,5 @@
 import React from 'react'
+import OpponentFormation from '../opponent/OpponentFormation'
 import './MatchCenterPanel.css'
 
 function MatchCenterPanel() {
@@ -11,6 +12,11 @@ function MatchCenterPanel() {
           <span className="btn-icon">🎤</span>
           <span>START VOICE COACHING</span>
         </button>
+      </div>
+
+      {/* Opponent Formation */}
+      <div className="panel-section">
+        <OpponentFormation />
       </div>
 
       {/* Live Game Data */}

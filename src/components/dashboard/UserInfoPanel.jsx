@@ -1,5 +1,6 @@
 import React from 'react'
 import { useRosa } from '../../contexts/RosaContext'
+import PostMatchStats from '../post-match/PostMatchStats'
 import './UserInfoPanel.css'
 
 function UserInfoPanel() {
@@ -27,6 +28,11 @@ function UserInfoPanel() {
         <div className="voice-minutes-display">
           <span className="minutes-large">07</span>
         </div>
+      </div>
+
+      {/* Post-Match Statistics */}
+      <div className="panel-section">
+        <PostMatchStats />
       </div>
 
       {/* Weaknesses */}

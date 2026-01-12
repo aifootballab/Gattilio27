@@ -8,6 +8,7 @@ import DashboardPage from './pages/DashboardPage'
 import RosaPage from './pages/RosaPage'
 import CoachingPage from './pages/CoachingPage'
 import MatchCenterPage from './pages/MatchCenterPage'
+import PostMatchPage from './pages/PostMatchPage'
 import NotFoundPage from './pages/NotFoundPage'
 
 function App() {
@@ -21,6 +22,7 @@ function App() {
           <Route path="/match-center" element={<MatchCenterPage />} />
           <Route path="/coaching" element={<CoachingPage />} />
           <Route path="/analisi" element={<DashboardPage />} />
+          <Route path="/post-match" element={<PostMatchPage />} />
           <Route path="/impostazioni" element={<DashboardPage />} />
           <Route path="/404" element={<NotFoundPage />} />
           <Route path="*" element={<Navigate to="/404" replace />} />

@@ -41,6 +41,12 @@ function SidebarNavigation() {
       badge: null
     },
     {
+      path: '/post-match',
+      icon: '📈',
+      label: 'Post-Match',
+      badge: null
+    },
+    {
       path: '/impostazioni',
       icon: '⚙️',
       label: 'Impostazioni',
