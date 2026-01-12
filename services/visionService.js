@@ -70,7 +70,7 @@ export async function processScreenshot(imageUrl, imageType, userId) {
   // if (!session) {
   //   throw new Error('Utente non autenticato')
   // }
-  const tempUserId = 'dev-user-temp' // User ID temporaneo per sviluppo
+  const tempUserId = '00000000-0000-0000-0000-000000000001' // UUID fisso per sviluppo (user_id deve essere UUID)
 
   const { data, error } = await supabase.functions.invoke('process-screenshot', {
     body: {

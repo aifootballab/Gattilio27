@@ -70,17 +70,18 @@ export default function ScreenshotUpload({ onPlayerExtracted }) {
     try {
       setIsUploading(true)
 
-      // Ottieni userId da Supabase Auth
+      // TEMPORANEO: Login disabilitato per sviluppo
       if (!supabase) {
         throw new Error('Supabase non configurato')
       }
 
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) {
-        throw new Error('Utente non autenticato. Effettua il login.')
-      }
-
-      const userId = session.user.id
+      // TEMPORANEO: Login disabilitato per sviluppo - usa UUID fisso
+      // const { data: { session } } = await supabase.auth.getSession()
+      // if (!session) {
+      //   throw new Error('Utente non autenticato. Effettua il login.')
+      // }
+      // UUID fisso per sviluppo (user_id deve essere UUID nel database)
+      const userId = '00000000-0000-0000-0000-000000000001' // session.user.id
 
       // Upload e processa
       const result = await uploadAndProcessScreenshot(

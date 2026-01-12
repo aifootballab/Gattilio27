@@ -133,7 +133,7 @@ export function RosaProvider({ children }: { children: React.ReactNode }) {
         // TEMPORANEO: Login disabilitato per sviluppo
         // const { data: { session } } = await supabase.auth.getSession()
         // if (!session) throw new Error('Utente non autenticato')
-        const tempUserId = 'dev-user-temp' // User ID temporaneo per sviluppo
+        const tempUserId = '00000000-0000-0000-0000-000000000001' // UUID fisso per sviluppo (user_id deve essere UUID)
 
         const buildData = {
           user_id: tempUserId, // session.user.id,
@@ -210,7 +210,7 @@ export function RosaProvider({ children }: { children: React.ReactNode }) {
       // TEMPORANEO: Login disabilitato per sviluppo
       // const { data: { session } } = await supabase.auth.getSession()
       // if (!session) throw new Error("Utente non autenticato.")
-      const tempUserId = 'dev-user-temp' // User ID temporaneo per sviluppo
+      const tempUserId = '00000000-0000-0000-0000-000000000001' // UUID fisso per sviluppo (user_id deve essere UUID)
 
       const analysisResult = await rosaService.analyzeRosa(rosa.id, tempUserId) // session.user.id
       setRosa(prev => ({ ...prev, squad_analysis: analysisResult.analysis }))

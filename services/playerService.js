@@ -58,7 +58,7 @@ export async function upsertPlayerBuild(buildData) {
   // if (!session) {
   //   throw new Error('Utente non autenticato')
   // }
-  const tempUserId = 'dev-user-temp' // User ID temporaneo per sviluppo
+  const tempUserId = '00000000-0000-0000-0000-000000000001' // UUID fisso per sviluppo (user_id deve essere UUID)
 
   const { data, error } = await supabase
     .from('player_builds')
@@ -101,7 +101,7 @@ export async function getPlayerBuild(playerBaseId) {
   // if (!session) {
   //   throw new Error('Utente non autenticato')
   // }
-  const tempUserId = 'dev-user-temp' // User ID temporaneo per sviluppo
+  const tempUserId = '00000000-0000-0000-0000-000000000001' // UUID fisso per sviluppo (user_id deve essere UUID)
 
   const { data, error } = await supabase
     .from('player_builds')
@@ -141,7 +141,7 @@ export async function getUserBuilds() {
   // if (!session) {
   //   throw new Error('Utente non autenticato')
   // }
-  const tempUserId = 'dev-user-temp' // User ID temporaneo per sviluppo
+  const tempUserId = '00000000-0000-0000-0000-000000000001' // UUID fisso per sviluppo (user_id deve essere UUID)
 
   const { data, error } = await supabase
     .from('player_builds')
@@ -180,7 +180,7 @@ export async function deletePlayerBuild(buildId) {
   // if (!session) {
   //   throw new Error('Utente non autenticato')
   // }
-  const tempUserId = 'dev-user-temp' // User ID temporaneo per sviluppo
+  const tempUserId = '00000000-0000-0000-0000-000000000001' // UUID fisso per sviluppo (user_id deve essere UUID)
 
   const { error } = await supabase
     .from('player_builds')

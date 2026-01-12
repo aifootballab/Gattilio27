@@ -16,7 +16,7 @@ export async function createRosa(rosaData) {
   // if (!session) {
   //   throw new Error('Utente non autenticato')
   // }
-  const tempUserId = 'dev-user-temp' // User ID temporaneo per sviluppo
+  const tempUserId = '00000000-0000-0000-0000-000000000001' // UUID fisso per sviluppo (user_id deve essere UUID)
 
   const { data, error } = await supabase
     .from('user_rosa')
@@ -51,7 +51,7 @@ export async function getUserRosas() {
   // if (!session) {
   //   throw new Error('Utente non autenticato')
   // }
-  const tempUserId = 'dev-user-temp' // User ID temporaneo per sviluppo
+  const tempUserId = '00000000-0000-0000-0000-000000000001' // UUID fisso per sviluppo (user_id deve essere UUID)
 
   const { data, error } = await supabase
     .from('user_rosa')
@@ -79,7 +79,7 @@ export async function getRosaById(rosaId) {
   // if (!session) {
   //   throw new Error('Utente non autenticato')
   // }
-  const tempUserId = 'dev-user-temp' // User ID temporaneo per sviluppo
+  const tempUserId = '00000000-0000-0000-0000-000000000001' // UUID fisso per sviluppo (user_id deve essere UUID)
 
   // Ottieni rosa
   const { data: rosa, error: rosaError } = await supabase
@@ -178,7 +178,7 @@ export async function updateRosa(rosaId, updates) {
   // if (!session) {
   //   throw new Error('Utente non autenticato')
   // }
-  const tempUserId = 'dev-user-temp' // User ID temporaneo per sviluppo
+  const tempUserId = '00000000-0000-0000-0000-000000000001' // UUID fisso per sviluppo (user_id deve essere UUID)
 
   const { data, error } = await supabase
     .from('user_rosa')
@@ -211,7 +211,7 @@ export async function deleteRosa(rosaId) {
   // if (!session) {
   //   throw new Error('Utente non autenticato')
   // }
-  const tempUserId = 'dev-user-temp' // User ID temporaneo per sviluppo
+  const tempUserId = '00000000-0000-0000-0000-000000000001' // UUID fisso per sviluppo (user_id deve essere UUID)
 
   const { error } = await supabase
     .from('user_rosa')
@@ -239,7 +239,7 @@ export async function addPlayerToRosa(rosaId, playerBuildId) {
   // if (!session) {
   //   throw new Error('Utente non autenticato')
   // }
-  const tempUserId = 'dev-user-temp' // User ID temporaneo per sviluppo
+  const tempUserId = '00000000-0000-0000-0000-000000000001' // UUID fisso per sviluppo (user_id deve essere UUID)
 
   // Ottieni rosa corrente
   const { data: rosa, error: rosaError } = await supabase
@@ -292,7 +292,7 @@ export async function removePlayerFromRosa(rosaId, playerBuildId) {
   // if (!session) {
   //   throw new Error('Utente non autenticato')
   // }
-  const tempUserId = 'dev-user-temp' // User ID temporaneo per sviluppo
+  const tempUserId = '00000000-0000-0000-0000-000000000001' // UUID fisso per sviluppo (user_id deve essere UUID)
 
   // Ottieni rosa corrente
   const { data: rosa, error: rosaError } = await supabase
@@ -345,7 +345,7 @@ export async function addPlayerToRosaInSlot(rosaId, playerBuildId, destination, 
   // if (!session) {
   //   throw new Error('Utente non autenticato')
   // }
-  const tempUserId = 'dev-user-temp' // User ID temporaneo per sviluppo
+  const tempUserId = '00000000-0000-0000-0000-000000000001' // UUID fisso per sviluppo (user_id deve essere UUID)
 
   // Ottieni rosa corrente
   const { data: rosa, error: rosaError } = await supabase
@@ -447,7 +447,7 @@ export async function analyzeRosa(rosaId, userId) {
   // if (!session) {
   //   throw new Error('Utente non autenticato')
   // }
-  const tempUserId = 'dev-user-temp' // User ID temporaneo per sviluppo
+  const tempUserId = '00000000-0000-0000-0000-000000000001' // UUID fisso per sviluppo (user_id deve essere UUID)
 
   // Chiama Edge Function analyze-rosa
   const { data, error } = await supabase.functions.invoke('analyze-rosa', {
