@@ -529,14 +529,19 @@ function RosaManualInput({ onBack, onRosaCreated }) {
                 <span>Livello: {playerData.build.currentLevel || 1} / {playerData.build.levelCap || 1}</span>
               </div>
             </div>
-            <div className="dev-points-grid">
+            <div className="dev-points-list">
               {DEV_POINT_CATEGORIES.map(cat => {
                 if (playerData.position !== 'GK' && cat.startsWith('gk')) return null
                 if (playerData.position === 'GK' && !cat.startsWith('gk') && cat !== 'defending') return null
                 return (
-                  <div key={cat} className="dev-point-field">
-                    <label>{cat.replace(/([A-Z])/g, ' $1').trim().replace('Gk', 'GK')}</label>
-                    <input type="number" min="0" max="99" value={playerData.build.developmentPoints[cat] || 0} onChange={(e) => updateDevPoint(cat, e.target.value)} />
+                  <div key={cat} className="dev-point-card">
+                    <NumberInput
+                      label={formatStatName(cat)}
+                      value={playerData.build.developmentPoints[cat] || 0}
+                      onChange={(newValue) => updateDevPoint(cat, newValue)}
+                      min={0}
+                      max={99}
+                    />
                   </div>
                 )
               })}

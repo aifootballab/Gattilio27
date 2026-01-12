@@ -158,6 +158,10 @@
   padding: 1rem;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  /* Fix scroll flickering */
+  will-change: scroll-position;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
 }
 
 .form-grid {
@@ -249,14 +253,15 @@
   border: 1px solid rgba(148, 163, 184, 0.1);
   border-radius: 12px;
   padding: 1rem;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background 0.2s ease, border-color 0.2s ease;
+  /* Fix scroll flickering */
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 .stat-item-card:hover {
   background: rgba(30, 41, 59, 0.8);
-  border-color: rgba(148, 163, 184, 0.2);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  border-color: rgba(148, 163, 184, 0.3);
 }
 
 /* Hide old table styles - using cards instead */
@@ -514,9 +519,6 @@
     grid-template-columns: 1fr;
   }
 
-  .dev-points-grid {
-    grid-template-columns: 1fr;
-  }
 
   .characteristics {
     grid-template-columns: 1fr;
