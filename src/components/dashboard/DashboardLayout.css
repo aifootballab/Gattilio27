@@ -2,120 +2,27 @@
   min-height: 100vh;
   background: linear-gradient(135deg, #1a1f3a 0%, #0f1419 100%);
   display: flex;
-  flex-direction: column;
   color: white;
-}
-
-.dashboard-header {
-  background: rgba(0, 0, 0, 0.3);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 1rem 2rem;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  backdrop-filter: blur(10px);
-}
-
-.header-content {
-  max-width: 1400px;
-  margin: 0 auto;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-
-.logo-link {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  text-decoration: none;
-  color: white;
-  font-weight: bold;
-  font-size: 1.1rem;
-}
-
-.logo-icon {
-  font-size: 1.5rem;
-}
-
-.logo-text {
-  background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.header-nav {
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-}
-
-.nav-link {
-  color: #a0a0a0;
-  text-decoration: none;
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-weight: 500;
-}
-
-.nav-link:hover {
-  color: white;
-  background: rgba(255, 107, 53, 0.1);
-}
-
-.nav-link.active {
-  color: #ff6b35;
-  background: rgba(255, 107, 53, 0.15);
-}
-
-.badge-small {
-  background: #ff6b35;
-  color: white;
-  padding: 0.125rem 0.5rem;
-  border-radius: 10px;
-  font-size: 0.75rem;
-  font-weight: 600;
+  position: relative;
 }
 
 .dashboard-main {
   flex: 1;
-  min-height: calc(100vh - 140px);
+  margin-left: 280px;
+  margin-top: 70px;
+  padding: 2rem;
+  min-height: calc(100vh - 70px);
+  overflow-y: auto;
 }
 
-.dashboard-footer {
-  background: rgba(0, 0, 0, 0.3);
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 1rem 2rem;
-  text-align: center;
-  color: #a0a0a0;
-  font-size: 0.875rem;
+@media (max-width: 1024px) {
+  .dashboard-main {
+    margin-left: 0;
+  }
 }
 
 @media (max-width: 768px) {
-  .dashboard-header {
+  .dashboard-main {
     padding: 1rem;
-  }
-  
-  .header-content {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  
-  .header-nav {
-    width: 100%;
-    flex-wrap: wrap;
-  }
-  
-  .nav-link {
-    flex: 1;
-    justify-content: center;
-    min-width: 100px;
   }
 }

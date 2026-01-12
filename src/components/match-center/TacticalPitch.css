@@ -1,0 +1,109 @@
+.tactical-pitch {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.pitch-container {
+  width: 100%;
+  max-width: 800px;
+  aspect-ratio: 2 / 3;
+  position: relative;
+}
+
+.football-field {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #2d5016 0%, #1a3d0a 100%);
+  border-radius: 8px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.center-line {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.5);
+  transform: translateY(-50%);
+}
+
+.center-circle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 30%;
+  height: 30%;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.penalty-area {
+  position: absolute;
+  left: 0;
+  right: 0;
+  width: 100%;
+  height: 25%;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+}
+
+.penalty-area.top {
+  top: 0;
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+}
+
+.penalty-area.bottom {
+  bottom: 0;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+}
+
+.goal-area {
+  position: absolute;
+  left: 0;
+  right: 0;
+  width: 100%;
+  height: 12%;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+}
+
+.goal-area.top {
+  top: 0;
+  border-bottom: none;
+}
+
+.goal-area.bottom {
+  bottom: 0;
+  border-top: none;
+}
+
+.player {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+  border: 2px solid white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 0.875rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.player:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(74, 144, 226, 0.5);
+}
