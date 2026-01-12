@@ -73,77 +73,30 @@ serve(async (req) => {
 
     // Real scraping implementation
     // Usa stesso pattern del test-efootballhub che ha funzionato per players
-    // Pattern: https://efootballhub.net/efootball23/search/players -> https://efootballhub.net/efootball23/search/managers
+    // Pattern: https://efootballhub.net/efootball23/search/players -> https://efootballhub.net/efootball23/search/coaches
+    // NOTA: efootballhub.net usa "coaches" invece di "managers" nell'URL!
     
-    // Prova URL possibili per managers (seguendo pattern players)
-    const possibleURLs = [
-      'https://efootballhub.net/efootball23/search/managers',
-      'https://efootballhub.net/efootball23/managers',
-      'https://efootballhub.net/managers'
-    ]
+    // URL corretto per managers (testato: funziona!)
+    const baseURL = 'https://efootballhub.net/efootball23/search/coaches'
     
-    let html = ''
-    let baseURL = possibleURLs[0]
-    let response = null
+    console.log(`Fetching managers (coaches) from: ${baseURL}`)
     
-    // Prova il primo URL (più probabile, seguendo pattern players)
-    console.log(`Fetching managers from: ${baseURL}`)
-    
-    try {
-      response = await fetch(baseURL, {
-        method: 'GET',
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-          'Accept-Language': 'it-IT,it;q=0.9,en-US;q=0.8,en;q=0.7',
-          'Referer': 'https://efootballhub.net/',
-        }
-      })
-
-      if (response.ok) {
-        html = await response.text()
-        console.log(`Fetched HTML from ${baseURL} (length: ${html.length})`)
-      } else {
-        // Se 404, prova URL alternativi
-        console.log(`${baseURL} returned ${response.status}, trying alternatives...`)
-        for (let i = 1; i < possibleURLs.length; i++) {
-          const altURL = possibleURLs[i]
-          console.log(`Trying alternative URL: ${altURL}`)
-          const altResponse = await fetch(altURL, {
-            method: 'GET',
-            headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-              'Accept-Language': 'it-IT,it;q=0.9,en-US;q=0.8,en;q=0.7',
-              'Referer': 'https://efootballhub.net/',
-            }
-          })
-          if (altResponse.ok) {
-            html = await altResponse.text()
-            baseURL = altURL
-            response = altResponse
-            console.log(`Successfully fetched from ${altURL} (length: ${html.length})`)
-            break
-          }
-        }
+    const response = await fetch(baseURL, {
+      method: 'GET',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'it-IT,it;q=0.9,en-US;q=0.8,en;q=0.7',
+        'Referer': 'https://efootballhub.net/',
       }
-    } catch (error) {
-      console.error('Error fetching managers:', error)
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
     }
 
-    if (!html || !response || !response.ok) {
-      return new Response(
-        JSON.stringify({
-          success: true,
-          message: 'Managers page not accessible (404 or error). URL pattern may be different.',
-          attempted_urls: possibleURLs,
-          scraped: 0,
-          saved: 0,
-          errors: [`No accessible URL found. Tried: ${possibleURLs.join(', ')}`]
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
+    const html = await response.text()
+    console.log(`Fetched HTML from ${baseURL} (length: ${html.length})`)
 
     // Parse HTML and extract managers
     const parsedManagers = parseManagersHTML(html, manager_name)
