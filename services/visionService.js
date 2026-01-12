@@ -31,7 +31,8 @@ export async function uploadScreenshot(file, userId) {
   const timestamp = Date.now()
   const fileExt = file.name.split('.').pop()
   const fileName = `${userId}/${timestamp}_${Math.random().toString(36).substring(7)}.${fileExt}`
-  const filePath = `player-screenshots/${fileName}`
+  // Il path non deve includere il nome del bucket quando si usa .from()
+  const filePath = fileName
 
   // Upload a Supabase Storage
   const { data, error } = await supabase.storage
