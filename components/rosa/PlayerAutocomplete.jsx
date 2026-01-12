@@ -1,8 +1,8 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { Search, Loader2, User } from 'lucide-react'
-import { searchPlayer } from '../../services/playerService'
+import { Search, Loader2, User, Globe } from 'lucide-react'
+import { searchPlayer, searchPlayerFromHub } from '../../services/playerService'
 import './PlayerAutocomplete.css'
 
 function PlayerAutocomplete({ value, onSelect, onInputChange, placeholder = "Cerca giocatore..." }) {
@@ -11,6 +11,7 @@ function PlayerAutocomplete({ value, onSelect, onInputChange, placeholder = "Cer
   const [isLoading, setIsLoading] = useState(false)
   const [showDropdown, setShowDropdown] = useState(false)
   const [selectedIndex, setSelectedIndex] = useState(-1)
+  const [searchSource, setSearchSource] = useState('local') // 'local' | 'hub'
   const inputRef = useRef(null)
   const dropdownRef = useRef(null)
   const debounceTimer = useRef(null)
@@ -33,13 +34,31 @@ function PlayerAutocomplete({ value, onSelect, onInputChange, placeholder = "Cer
     setIsLoading(true)
     debounceTimer.current = setTimeout(async () => {
       try {
-        const players = await searchPlayer(query)
+        // Prima cerca nel database locale
+        let players = await searchPlayer(query)
+        setSearchSource('local')
+        
+        // Se non trova risultati e query è abbastanza lunga, cerca su efootballhub.net
+        if (players.length === 0 && query.length >= 3) {
+          try {
+            const hubPlayers = await searchPlayerFromHub({ name: query })
+            if (hubPlayers && hubPlayers.length > 0) {
+              players = hubPlayers
+              setSearchSource('hub')
+            }
+          } catch (hubError) {
+            console.warn('Errore ricerca su efootballhub.net:', hubError)
+            // Continuiamo con risultati vuoti, non mostriamo errore
+          }
+        }
+        
         setResults(players)
         setShowDropdown(true) // Mostra dropdown sempre (anche se vuoto) per mostrare "Nessun giocatore trovato"
         setSelectedIndex(-1)
       } catch (error) {
         console.error('Errore ricerca:', error)
         setResults([])
+        setSearchSource('local')
         setShowDropdown(true) // Mostra dropdown anche in caso di errore per feedback
       } finally {
         setIsLoading(false)
@@ -148,7 +167,21 @@ function PlayerAutocomplete({ value, onSelect, onInputChange, placeholder = "Cer
 
       {showDropdown && query.length >= 2 && !isLoading && results.length === 0 && (
         <div className="autocomplete-dropdown">
-          <div className="autocomplete-empty">Nessun giocatore trovato</div>
+          <div className="autocomplete-empty">
+            Nessun giocatore trovato
+            {query.length >= 3 && (
+              <div className="autocomplete-empty-hint">
+                Prova a cercare su efootballhub.net o inserisci manualmente
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      
+      {showDropdown && results.length > 0 && searchSource === 'hub' && (
+        <div className="autocomplete-source-badge">
+          <Globe size={12} />
+          Risultati da efootballhub.net
         </div>
       )}
     </div>
