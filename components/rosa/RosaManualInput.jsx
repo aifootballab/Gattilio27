@@ -1,12 +1,13 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useRosa } from '../../contexts/RosaContext'
 import { 
   X, Save, Target, Shield, Zap, Award, Settings,
-  User, Ruler, Weight, Calendar, Globe, Building2, TrendingUp, Sparkles
+  User, Ruler, Weight, Calendar, Globe, Building2, TrendingUp, Sparkles, Lightbulb
 } from 'lucide-react'
 import * as playerService from '../../services/playerService'
+import * as importService from '../../services/importService'
 import { supabase } from '@/lib/supabase'
 import PlayerAutocomplete from './PlayerAutocomplete'
 import './RosaManualInput.css'
@@ -62,11 +63,20 @@ function RosaManualInput({ onBack, onRosaCreated }) {
   const [error, setError] = useState(null)
   const [availableBoosters, setAvailableBoosters] = useState([])
   const [prefilledFrom, setPrefilledFrom] = useState(null) // Track da quale giocatore abbiamo precompilato
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [positionStats, setPositionStats] = useState(null)
   const { addPlayer } = useRosa()
 
   useEffect(() => {
     loadBoosters()
   }, [])
+
+  // Carica stats medie quando cambia la posizione
+  useEffect(() => {
+    if (playerData.position) {
+      loadPositionSuggestions(playerData.position)
+    }
+  }, [playerData.position])
 
   const loadBoosters = async () => {
     try {
@@ -76,6 +86,42 @@ function RosaManualInput({ onBack, onRosaCreated }) {
       setAvailableBoosters(COMMON_BOOSTERS.map((b, i) => ({ id: `temp-${i}`, ...b })))
     }
   }
+
+  const loadPositionSuggestions = async (position) => {
+    try {
+      const stats = await importService.getPositionStats(position)
+      setPositionStats(stats)
+    } catch (error) {
+      console.error('Errore caricamento suggerimenti:', error)
+      // Usa stats di default se errore
+      try {
+        const defaultStats = importService.getDefaultPositionStats(position)
+        setPositionStats(defaultStats)
+      } catch {
+        // Se anche getDefaultPositionStats fallisce, usa stats vuote
+        setPositionStats(null)
+      }
+    }
+  }
+
+  const applyPositionSuggestions = useCallback(() => {
+    if (!positionStats) return
+
+    setPlayerData(prev => ({
+      ...prev,
+      attacking: { ...prev.attacking, ...positionStats.attacking },
+      defending: { ...prev.defending, ...positionStats.defending },
+      athleticism: { 
+        ...prev.athleticism, 
+        ...positionStats.athleticism,
+        weakFootUsage: prev.athleticism.weakFootUsage || 4,
+        weakFootAccuracy: prev.athleticism.weakFootAccuracy || 4,
+        form: prev.athleticism.form || 8,
+        injuryResistance: prev.athleticism.injuryResistance || 2
+      }
+    }))
+    setShowSuggestions(false)
+  }, [positionStats])
 
   const updateStat = (category, stat, value) => {
     setPlayerData(prev => ({
@@ -239,7 +285,20 @@ function RosaManualInput({ onBack, onRosaCreated }) {
               />
             </div>
             <div className="input-field">
-              <label>Posizione</label>
+              <label>
+                Posizione
+                {positionStats && (
+                  <button 
+                    type="button"
+                    className="suggest-btn"
+                    onClick={applyPositionSuggestions}
+                    title="Applica stats medie per questa posizione"
+                  >
+                    <Lightbulb size={12} />
+                    Suggerisci
+                  </button>
+                )}
+              </label>
               <select value={playerData.position} onChange={(e) => setPlayerData(prev => ({ ...prev, position: e.target.value }))}>
                 {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
               </select>
