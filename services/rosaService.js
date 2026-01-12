@@ -416,3 +416,32 @@ export async function addPlayerToRosaInSlot(rosaId, playerBuildId, destination, 
 
   return data
 }
+
+/**
+ * Analizza rosa e genera suggerimenti coaching
+ * Chiama Edge Function analyze-rosa
+ */
+export async function analyzeRosa(rosaId, userId) {
+  if (!supabase) {
+    throw new Error('Supabase non configurato')
+  }
+
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) {
+    throw new Error('Utente non autenticato')
+  }
+
+  // Chiama Edge Function analyze-rosa
+  const { data, error } = await supabase.functions.invoke('analyze-rosa', {
+    body: {
+      rosa_id: rosaId,
+      user_id: userId || session.user.id
+    }
+  })
+
+  if (error) {
+    throw new Error(`Errore analisi rosa: ${error.message}`)
+  }
+
+  return data
+}
