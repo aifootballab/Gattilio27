@@ -1,0 +1,25 @@
+.rosa-page {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.rosa-header {
+  margin-bottom: 2rem;
+}
+
+.rosa-header h1 {
+  font-size: 2rem;
+  color: white;
+  margin-bottom: 0.5rem;
+}
+
+.rosa-header p {
+  color: #a0a0a0;
+}
+
+@media (max-width: 768px) {
+  .rosa-page {
+    padding: 1rem;
+  }
+}

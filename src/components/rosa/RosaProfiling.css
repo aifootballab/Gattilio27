@@ -1,0 +1,80 @@
+.rosa-profiling {
+  width: 100%;
+}
+
+.rosa-input-section {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 2rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.section-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.section-header h2 {
+  font-size: 1.8rem;
+  color: white;
+  margin-bottom: 0.5rem;
+}
+
+.section-header p {
+  color: #a0a0a0;
+  font-size: 1rem;
+}
+
+.rosa-content-section {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.rosa-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.action-btn {
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  border: none;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+  color: white;
+}
+
+.action-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+}
+
+.action-btn.secondary {
+  background: transparent;
+  border: 2px solid #ff6b35;
+  color: #ff6b35;
+}
+
+.action-btn.secondary:hover {
+  background: rgba(255, 107, 53, 0.1);
+}
+
+@media (max-width: 768px) {
+  .rosa-input-section {
+    padding: 1.5rem;
+  }
+  
+  .rosa-actions {
+    flex-direction: column;
+  }
+  
+  .action-btn {
+    width: 100%;
+  }
+}
