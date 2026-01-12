@@ -10,6 +10,7 @@ import * as playerService from '../../services/playerService'
 import * as importService from '../../services/importService'
 import { supabase } from '@/lib/supabase'
 import PlayerAutocomplete from './PlayerAutocomplete'
+import NumberInput from './NumberInput'
 import './RosaManualInput.css'
 
 const POSITIONS = ['GK', 'CB', 'LB', 'RB', 'DMF', 'CMF', 'LMF', 'RMF', 'AMF', 'LWF', 'RWF', 'SS', 'CF']
@@ -124,20 +125,26 @@ function RosaManualInput({ onBack, onRosaCreated }) {
   }, [positionStats])
 
   const updateStat = (category, stat, value) => {
+    const numValue = typeof value === 'number' ? value : parseInt(value) || 0
     setPlayerData(prev => ({
       ...prev,
-      [category]: { ...prev[category], [stat]: parseInt(value) || 0 }
+      [category]: { ...prev[category], [stat]: numValue }
     }))
   }
 
+  const formatStatName = (stat) => {
+    return stat.replace(/([A-Z])/g, ' $1').trim().replace('Gk', 'GK')
+  }
+
   const updateDevPoint = (category, value) => {
+    const numValue = typeof value === 'number' ? value : parseInt(value) || 0
     setPlayerData(prev => ({
       ...prev,
       build: {
         ...prev.build,
         developmentPoints: {
           ...prev.build.developmentPoints,
-          [category]: parseInt(value) || 0
+          [category]: numValue
         }
       }
     }))
@@ -408,49 +415,35 @@ function RosaManualInput({ onBack, onRosaCreated }) {
         )}
 
         {activeTab === 'defending' && (
-          <div className="stats-table-container">
-            <table className="stats-table">
-              <thead>
-                <tr>
-                  <th>Stat</th>
-                  <th>Valore</th>
-                </tr>
-              </thead>
-              <tbody>
-                {Object.entries(playerData.defending).map(([stat, value]) => (
-                  <tr key={stat}>
-                    <td>{stat.replace(/([A-Z])/g, ' $1').trim().replace('Gk', 'GK')}</td>
-                    <td>
-                      <input type="number" min="0" max="99" value={value} onChange={(e) => updateStat('defending', stat, e.target.value)} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="stats-list">
+            {Object.entries(playerData.defending).map(([stat, value]) => (
+              <div key={stat} className="stat-item-card">
+                <NumberInput
+                  label={formatStatName(stat)}
+                  value={value}
+                  onChange={(newValue) => updateStat('defending', stat, newValue)}
+                  min={0}
+                  max={99}
+                />
+              </div>
+            ))}
           </div>
         )}
 
         {activeTab === 'athleticism' && (
           <>
-            <div className="stats-table-container">
-              <table className="stats-table">
-                <thead>
-                  <tr>
-                    <th>Stat</th>
-                    <th>Valore</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {Object.entries(playerData.athleticism).slice(0, 7).map(([stat, value]) => (
-                    <tr key={stat}>
-                      <td>{stat.replace(/([A-Z])/g, ' $1').trim()}</td>
-                      <td>
-                        <input type="number" min="0" max="99" value={value} onChange={(e) => updateStat('athleticism', stat, e.target.value)} />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="stats-list">
+              {Object.entries(playerData.athleticism).slice(0, 7).map(([stat, value]) => (
+                <div key={stat} className="stat-item-card">
+                  <NumberInput
+                    label={formatStatName(stat)}
+                    value={value}
+                    onChange={(newValue) => updateStat('athleticism', stat, newValue)}
+                    min={0}
+                    max={99}
+                  />
+                </div>
+              ))}
             </div>
             <div className="characteristics">
               <div className="char-field">
