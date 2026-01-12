@@ -1,6 +1,8 @@
 // Componente per selezionare dove inserire il giocatore estratto
 // Chiede all'utente: Titolare o Riserva? E in quale posizione?
 
+'use client'
+
 import React, { useState } from 'react'
 import { Users, UserPlus, X, Check } from 'lucide-react'
 import { useRosa } from '../../contexts/RosaContext'

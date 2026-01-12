@@ -1,3 +1,5 @@
+'use client'
+
 import React, { useState } from 'react'
 import DashboardLayout from '../dashboard/DashboardLayout'
 import RosaTitolari from '../rosa/RosaTitolari'

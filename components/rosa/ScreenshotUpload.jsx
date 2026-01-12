@@ -1,3 +1,5 @@
+'use client'
+
 import React, { useState, useRef } from 'react'
 import { Upload, X, Check, AlertCircle, Loader } from 'lucide-react'
 import { uploadAndProcessScreenshot } from '../../services/visionService'

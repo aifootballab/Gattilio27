@@ -1,3 +1,5 @@
+'use client'
+
 import React from 'react'
 import { useRosa } from '../../contexts/RosaContext'
 import PlayerCardDetailed from './PlayerCardDetailed'

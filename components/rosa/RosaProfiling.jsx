@@ -1,3 +1,5 @@
+'use client'
+
 import React, { useState } from 'react'
 import { useRosa } from '../../contexts/RosaContext'
 import RosaInputSelector from './RosaInputSelector'
