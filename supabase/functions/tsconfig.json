@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["deno.window"],
+    "module": "esnext",
+    "moduleResolution": "node",
+    "allowJs": true,
+    "strict": false,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "types": ["deno"]
+  },
+  "include": ["**/*.ts"],
+  "exclude": []
+}
