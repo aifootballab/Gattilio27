@@ -164,33 +164,47 @@ function RosaManualInput({ onBack, onRosaCreated }) {
     return Math.max(0, Math.min(120, Math.round((att + ath) / 2 + (def > 0 ? def * 0.2 : 0))))
   }
 
-  const handlePlayerSelect = (selectedPlayer) => {
-    if (!selectedPlayer) return
+  const handlePlayerSelect = async (selectedPlayer) => {
+    if (!selectedPlayer || !selectedPlayer.id) return
 
-    // Estrai dati base dal giocatore selezionato
-    const baseData = playerService.extractBaseData(selectedPlayer)
-    if (!baseData) return
+    try {
+      // Carica dati completi del giocatore (include base_stats completi)
+      const fullPlayerData = await playerService.getPlayerBase(selectedPlayer.id)
+      if (!fullPlayerData) return
 
-    // Merge intelligente: dati base + mantieni modifiche utente su campi carta-specifici
-    setPlayerData(prev => ({
-      ...baseData,
-      // Mantieni rating/potential se utente li ha già modificati
-      overall_rating: prev.overall_rating || baseData.attacking ? 
-        Math.round(Object.values(baseData.attacking).reduce((a, b) => a + b, 0) / 10) : 0,
-      potential_max: prev.potential_max || 0,
-      condition: prev.condition || 'A',
-      // Mantieni build specifica (level, booster, dev points)
-      build: prev.build || {
-        currentLevel: null,
-        levelCap: null,
-        developmentPoints: {},
-        activeBooster: null,
-        activeBoosterId: null,
-        activeBoosterEnabled: false
-      }
-    }))
+      // Estrai dati base dal giocatore completo
+      const baseData = playerService.extractBaseData(fullPlayerData)
+      if (!baseData) return
 
-    setPrefilledFrom(selectedPlayer.player_name)
+      // Calcola rating se disponibile
+      const baseStats = fullPlayerData.base_stats || {}
+      const overallRating = baseStats.overall_rating || 
+                           (baseData.attacking && Object.values(baseData.attacking).some(v => v > 0) ?
+                            Math.round(Object.values(baseData.attacking).reduce((a, b) => a + b, 0) / 10) : 0)
+
+      // Merge intelligente: dati base + mantieni modifiche utente su campi carta-specifici
+      setPlayerData(prev => ({
+        ...baseData,
+        // Mantieni rating/potential se utente li ha già modificati
+        overall_rating: prev.overall_rating || overallRating,
+        potential_max: prev.potential_max || fullPlayerData.potential_max || 0,
+        condition: prev.condition || fullPlayerData.form || 'A',
+        // Mantieni build specifica (level, booster, dev points)
+        build: prev.build || {
+          currentLevel: null,
+          levelCap: fullPlayerData.metadata?.level_cap || null,
+          developmentPoints: {},
+          activeBooster: null,
+          activeBoosterId: null,
+          activeBoosterEnabled: false
+        }
+      }))
+
+      setPrefilledFrom(fullPlayerData.player_name)
+    } catch (error) {
+      console.error('Errore caricamento dati giocatore:', error)
+      setError(`Errore precompilazione: ${error.message}`)
+    }
   }
 
   const handleSave = async () => {
