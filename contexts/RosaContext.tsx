@@ -5,8 +5,19 @@ import { supabase } from '@/lib/supabase'
 import * as rosaService from '@/services/rosaService'
 import * as playerService from '@/services/playerService'
 
+// Tipo per lo stato della rosa
+interface RosaState {
+  id: string | null
+  name: string | null
+  players: (any | null)[]
+  possible_formations: string[]
+  squad_analysis: any | null
+  created_at: string | null
+  updated_at: string | null
+}
+
 // Struttura dati Rosa
-const initialRosaState = {
+const initialRosaState: RosaState = {
   id: null,
   name: null,
   players: Array(21).fill(null), // Inizializza con 21 slot null
@@ -19,7 +30,7 @@ const initialRosaState = {
 const RosaContext = createContext<any>(null)
 
 export function RosaProvider({ children }: { children: React.ReactNode }) {
-  const [rosa, setRosa] = useState(initialRosaState)
+  const [rosa, setRosa] = useState<RosaState>(initialRosaState)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
