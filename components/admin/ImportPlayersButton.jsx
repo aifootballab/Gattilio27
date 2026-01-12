@@ -11,6 +11,12 @@ function ImportPlayersButton() {
   const [error, setError] = useState(null)
   const [googleDriveUrl, setGoogleDriveUrl] = useState('')
 
+  // Estrae File ID da URL Google Drive
+  const extractFileId = (url) => {
+    const match = url.match(/[\/=]([a-zA-Z0-9_-]{25,})/)
+    return match ? match[1] : null
+  }
+
   const handleImport = async () => {
     if (!googleDriveUrl.trim()) {
       setError('Inserisci un URL Google Drive valido')
@@ -22,7 +28,15 @@ function ImportPlayersButton() {
     setResult(null)
 
     try {
-      const data = await importService.importPlayersFromDrive(googleDriveUrl, {
+      // Converti URL in formato diretto se necessario
+      const fileId = extractFileId(googleDriveUrl)
+      const directUrl = fileId 
+        ? `https://drive.google.com/uc?export=download&id=${fileId}`
+        : googleDriveUrl
+
+      console.log('Importing from:', directUrl)
+      
+      const data = await importService.importPlayersFromDrive(directUrl, {
         batchSize: 50
       })
 
