@@ -1,1 +1,7 @@
-# Vercel ignore file - assicura che tutti i file necessari siano inclusi
+# Vercel ignore file - escludi file legacy Vite
+# La cartella src/ contiene file legacy di Vite con import.meta.env
+# Questi file non devono essere processati da Next.js
+src/
+src/**
+vite.config.js
+index.html
