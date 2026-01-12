@@ -130,22 +130,50 @@ serve(async (req) => {
     let updated = 0
     const errors: string[] = []
 
-    for (const managerData of parsedManagers.slice(0, batch_size)) {
-      try {
-        // Check if manager exists
-        const { data: existing, error: searchError } = await supabase
-          .from('managers')
-          .select('id')
-          .or(`name.ilike.%${managerData.name}%,efootballhub_id.eq.${managerData.efootballhub_id || 'null'}`)
-          .limit(1)
-          .maybeSingle()
+    // Process in batches for better performance
+    const batch = parsedManagers.slice(0, batch_size)
+    console.log(`Processing ${batch.length} managers...`)
 
-        if (searchError && searchError.code !== 'PGRST116') {
-          throw searchError
+    for (const managerData of batch) {
+      try {
+        if (!managerData.name || managerData.name.trim() === '') {
+          console.warn('Skipping manager with empty name')
+          continue
+        }
+
+        // Check if manager exists (by name or efootballhub_id)
+        let existing = null
+        if (managerData.efootballhub_id) {
+          const { data, error: searchError } = await supabase
+            .from('managers')
+            .select('id')
+            .eq('efootballhub_id', managerData.efootballhub_id)
+            .limit(1)
+            .maybeSingle()
+
+          if (searchError && searchError.code !== 'PGRST116') {
+            throw searchError
+          }
+          existing = data
+        }
+
+        // If not found by ID, try by name
+        if (!existing) {
+          const { data, error: nameSearchError } = await supabase
+            .from('managers')
+            .select('id')
+            .ilike('name', `%${managerData.name}%`)
+            .limit(1)
+            .maybeSingle()
+
+          if (nameSearchError && nameSearchError.code !== 'PGRST116') {
+            throw nameSearchError
+          }
+          existing = data
         }
 
         const managerRecord = {
-          name: managerData.name,
+          name: managerData.name.trim(),
           efootballhub_id: managerData.efootballhub_id || null,
           overall_rating: managerData.overall_rating || null,
           preferred_formation: managerData.preferred_formation || null,
@@ -156,6 +184,8 @@ serve(async (req) => {
           updated_at: new Date().toISOString()
         }
 
+        let managerId: string
+
         if (existing) {
           // Update existing
           const { error: updateError } = await supabase
@@ -164,36 +194,35 @@ serve(async (req) => {
             .eq('id', existing.id)
 
           if (updateError) throw updateError
+          managerId = existing.id
           updated++
+          console.log(`Updated manager: ${managerData.name}`)
         } else {
           // Insert new
-          const { error: insertError } = await supabase
+          const { data: inserted, error: insertError } = await supabase
             .from('managers')
             .insert(managerRecord)
-
-          if (insertError) throw insertError
-          saved++
-
-          // Get the inserted manager ID for style competencies
-          const { data: inserted, error: fetchError } = await supabase
-            .from('managers')
             .select('id')
-            .eq('name', managerData.name)
             .single()
 
-          if (!fetchError && inserted && managerData.team_playing_styles) {
-            // Create style competencies
-            await createStyleCompetencies(
-              supabase,
-              inserted.id,
-              managerData.team_playing_styles,
-              styleMap
-            )
-          }
+          if (insertError) throw insertError
+          managerId = inserted.id
+          saved++
+          console.log(`Inserted manager: ${managerData.name}`)
+        }
+
+        // Create/update style competencies if styles provided
+        if (managerId && managerData.team_playing_styles && managerData.team_playing_styles.length > 0) {
+          await createStyleCompetencies(
+            supabase,
+            managerId,
+            managerData.team_playing_styles,
+            styleMap
+          )
         }
       } catch (error) {
-        console.error(`Error saving manager ${managerData.name}:`, error)
-        errors.push(`${managerData.name}: ${error.message}`)
+        console.error(`Error saving manager ${managerData?.name || 'Unknown'}:`, error)
+        errors.push(`${managerData?.name || 'Unknown'}: ${error.message}`)
       }
     }
 
