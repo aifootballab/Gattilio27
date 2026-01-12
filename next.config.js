@@ -11,6 +11,24 @@ const nextConfig = {
     ],
     formats: ['image/avif', 'image/webp'],
   },
+  // Escludi cartella src/ dal build (contiene file Vite legacy con import.meta.env)
+  experimental: {
+    outputFileTracingExcludes: {
+      '*': ['./src/**/*'],
+    },
+  },
+  webpack: (config) => {
+    // Ignora file in src/ durante il bundle
+    config.resolve.alias = {
+      ...config.resolve.alias,
+    }
+    // Escludi src/ dal resolve
+    config.resolve.modules = [
+      ...(config.resolve.modules || []),
+      'node_modules',
+    ]
+    return config
+  },
 }
 
 module.exports = nextConfig
