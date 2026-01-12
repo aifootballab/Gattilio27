@@ -392,25 +392,18 @@ function RosaManualInput({ onBack, onRosaCreated }) {
         )}
 
         {activeTab === 'attacking' && (
-          <div className="stats-table-container">
-            <table className="stats-table">
-              <thead>
-                <tr>
-                  <th>Stat</th>
-                  <th>Valore</th>
-                </tr>
-              </thead>
-              <tbody>
-                {Object.entries(playerData.attacking).map(([stat, value]) => (
-                  <tr key={stat}>
-                    <td>{stat.replace(/([A-Z])/g, ' $1').trim()}</td>
-                    <td>
-                      <input type="number" min="0" max="99" value={value} onChange={(e) => updateStat('attacking', stat, e.target.value)} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="stats-list">
+            {Object.entries(playerData.attacking).map(([stat, value]) => (
+              <div key={stat} className="stat-item-card">
+                <NumberInput
+                  label={formatStatName(stat)}
+                  value={value}
+                  onChange={(newValue) => updateStat('attacking', stat, newValue)}
+                  min={0}
+                  max={99}
+                />
+              </div>
+            ))}
           </div>
         )}
 
