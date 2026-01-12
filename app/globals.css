@@ -1,0 +1,6 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Importa gli stili esistenti da src/index.css se necessario */
+/* Per ora mantieni gli stili globali qui */

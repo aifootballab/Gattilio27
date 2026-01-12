@@ -1,0 +1,46 @@
+.sinergie-page {
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.sinergie-header {
+  margin-bottom: 2rem;
+}
+
+.sinergie-header h1 {
+  font-size: 2rem;
+  color: white;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.sinergie-header p {
+  color: #a0a0a0;
+  font-size: 1rem;
+}
+
+.sinergie-content {
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 2rem;
+}
+
+.sinergie-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.sinergie-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+@media (max-width: 1200px) {
+  .sinergie-content {
+    grid-template-columns: 1fr;
+  }
+}

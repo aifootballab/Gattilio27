@@ -1,0 +1,25 @@
+.coaching-page {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.coaching-header {
+  margin-bottom: 2rem;
+}
+
+.coaching-header h1 {
+  font-size: 2rem;
+  color: white;
+  margin-bottom: 0.5rem;
+}
+
+.coaching-header p {
+  color: #a0a0a0;
+}
+
+.coaching-content {
+  color: #d0d0d0;
+  text-align: center;
+  padding: 3rem;
+}

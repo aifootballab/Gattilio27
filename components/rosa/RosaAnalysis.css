@@ -1,0 +1,104 @@
+.rosa-analysis {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 2rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.rosa-analysis.loading {
+  text-align: center;
+  color: #a0a0a0;
+  padding: 3rem;
+}
+
+.rosa-analysis h2 {
+  color: white;
+  font-size: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.analysis-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+.analysis-card {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  padding: 1.5rem;
+  border-left: 4px solid;
+}
+
+.analysis-card.strengths {
+  border-left-color: #4caf50;
+}
+
+.analysis-card.weaknesses {
+  border-left-color: #ff6b35;
+}
+
+.analysis-card.formations {
+  border-left-color: #2196f3;
+}
+
+.analysis-card h3 {
+  color: white;
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+}
+
+.analysis-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.analysis-card li {
+  color: #d0d0d0;
+  padding-left: 1.5rem;
+  position: relative;
+}
+
+.analysis-card.strengths li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: #4caf50;
+  font-weight: bold;
+}
+
+.analysis-card.weaknesses li::before {
+  content: '⚠';
+  position: absolute;
+  left: 0;
+  color: #ff6b35;
+}
+
+.formations-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.formation-badge {
+  background: rgba(33, 150, 243, 0.2);
+  color: #2196f3;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+@media (max-width: 768px) {
+  .rosa-analysis {
+    padding: 1.5rem;
+  }
+  
+  .analysis-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,19 @@
+.match-history {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  padding: 2rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.match-history h2 {
+  font-size: 1.5rem;
+  color: white;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+}
+
+.history-placeholder {
+  text-align: center;
+  padding: 3rem;
+  color: #a0a0a0;
+}
