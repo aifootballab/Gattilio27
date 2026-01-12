@@ -5,6 +5,10 @@ export * from './visionService'
 export * from './rosaService'
 export * from './playerService'
 export * from './coachingService'
+export * from './importService'
+export * from './managerService'
+export * from './strengthService'
+export * from './suggestionService'
 
 // Re-export supabase client per comodità
 export { supabase } from '../lib/supabase'
