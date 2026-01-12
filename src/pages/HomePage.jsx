@@ -1,5 +1,5 @@
 import React from 'react'
-import { Link } from 'react-router-dom'
+import Link from 'next/link'
 import './HomePage.css'
 
 function HomePage() {
@@ -14,10 +14,10 @@ function HomePage() {
           </div>
 
           <div className="cta-section">
-            <Link to="/dashboard" className="cta-button primary">
+            <Link href="/dashboard" className="cta-button primary">
               Accedi alla Dashboard
             </Link>
-            <Link to="/rosa" className="cta-button secondary">
+            <Link href="/rosa" className="cta-button secondary">
               Crea la tua Rosa
             </Link>
           </div>
