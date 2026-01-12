@@ -26,45 +26,6 @@ export async function searchPlayer(query) {
 }
 
 /**
- * Ricerca giocatore su efootballhub.net con filtri
- * Usa scraping quando non trova nel database locale
- */
-export async function searchPlayerFromHub({ name, age, team }) {
-  if (!supabase) {
-    throw new Error('Supabase non configurato')
-  }
-
-  if (!name || !name.trim()) {
-    throw new Error('Nome obbligatorio')
-  }
-
-  try {
-    // Chiama Edge Function per scraping efootballhub.net
-    const { data, error } = await supabase.functions.invoke('scrape-players', {
-      body: JSON.stringify({
-        player_name: name.trim(),
-        age: age || null,
-        team: team?.trim() || null,
-        limit: 20
-      })
-    })
-
-    if (error) {
-      throw new Error(`Errore ricerca: ${error.message}`)
-    }
-
-    if (!data || !data.success) {
-      throw new Error(data?.error || 'Errore ricerca su efootballhub.net')
-    }
-
-    return data.players || []
-  } catch (error) {
-    console.error('Errore searchPlayerFromHub:', error)
-    throw error
-  }
-}
-
-/**
  * Estrae dati base da un player_base per precompilazione
  * Esclude dati specifici della carta (build, booster, level)
  */
