@@ -270,8 +270,8 @@ function parseManagersHTML(html: string, filterName?: string): any[] {
     // Cerca pattern comuni come link, card, o tabelle
     
     // Pattern 1: Cerca link a dettagli manager (es: /coaches/{id} o /manager/{name})
-    const managerLinkPattern = /href=["']([^"']*\/coaches?\/[^"']*|/[^"']*manager[^"']*)["']/gi
-    const managerLinks = [...html.matchAll(managerLinkPattern)]
+    const managerLinkPattern = /href=(["'])([^"']*\/coaches?\/[^"']*|/[^"']*manager[^"']*)\1/gi
+    const managerLinks = Array.from(html.matchAll(managerLinkPattern))
     
     // Se troviamo link managers, processiamo quelli
     if (managerLinks.length > 0) {
