@@ -194,3 +194,92 @@ export async function deletePlayerBuild(buildId) {
 
   return true
 }
+
+/**
+ * Crea o aggiorna player_base
+ */
+export async function upsertPlayerBase(playerBaseData) {
+  if (!supabase) {
+    throw new Error('Supabase non configurato')
+  }
+
+  // Cerca se esiste già un player con lo stesso nome
+  const { data: existing } = await supabase
+    .from('players_base')
+    .select('id')
+    .ilike('player_name', playerBaseData.player_name)
+    .limit(1)
+    .single()
+
+  if (existing) {
+    // Aggiorna player esistente
+    const { data, error } = await supabase
+      .from('players_base')
+      .update({
+        ...playerBaseData,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', existing.id)
+      .select()
+      .single()
+
+    if (error) {
+      throw new Error(`Errore aggiornamento player: ${error.message}`)
+    }
+
+    return data
+  } else {
+    // Crea nuovo player
+    const { data, error } = await supabase
+      .from('players_base')
+      .insert(playerBaseData)
+      .select()
+      .single()
+
+    if (error) {
+      throw new Error(`Errore creazione player: ${error.message}`)
+    }
+
+    return data
+  }
+}
+
+/**
+ * Crea player_base e build insieme (operazione completa)
+ */
+export async function createPlayerWithBuild(playerData) {
+  if (!supabase) {
+    throw new Error('Supabase non configurato')
+  }
+
+  const tempUserId = '00000000-0000-0000-0000-000000000001'
+
+  // 1. Crea o aggiorna player_base
+  const playerBase = await upsertPlayerBase({
+    player_name: playerData.player_name,
+    position: playerData.position,
+    base_stats: playerData.base_stats || {},
+    skills: playerData.skills || [],
+    com_skills: playerData.com_skills || [],
+    position_ratings: playerData.position_ratings || {},
+    source: playerData.source || 'manual'
+  })
+
+  // 2. Crea build
+  const build = await upsertPlayerBuild({
+    player_base_id: playerBase.id,
+    development_points: playerData.development_points || {},
+    current_level: playerData.current_level,
+    level_cap: playerData.level_cap,
+    active_booster_name: playerData.active_booster_name,
+    final_stats: playerData.final_stats || {},
+    final_overall_rating: playerData.final_overall_rating,
+    source: playerData.source || 'manual',
+    source_data: playerData.source_data || {}
+  })
+
+  return {
+    player_base: playerBase,
+    build: build
+  }
+}

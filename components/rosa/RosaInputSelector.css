@@ -44,8 +44,21 @@
 }
 
 .mode-icon {
-  font-size: 3rem;
-  margin-bottom: 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  color: #ff6b35;
+  transition: all 0.3s ease;
+}
+
+.input-mode-card:hover .mode-icon {
+  background: rgba(255, 107, 53, 0.1);
+  transform: scale(1.1);
 }
 
 .input-mode-card h3 {
