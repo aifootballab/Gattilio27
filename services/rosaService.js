@@ -463,3 +463,94 @@ export async function analyzeRosa(rosaId, userId) {
 
   return data
 }
+
+/**
+ * Imposta manager per rosa
+ */
+export async function setManager(rosaId, managerId) {
+  if (!supabase) {
+    throw new Error('Supabase non configurato')
+  }
+
+  const tempUserId = '00000000-0000-0000-0000-000000000001'
+
+  const { data, error } = await supabase
+    .from('user_rosa')
+    .update({
+      manager_id: managerId,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', rosaId)
+    .eq('user_id', tempUserId)
+    .select()
+    .single()
+
+  if (error) {
+    throw new Error(`Errore impostazione manager: ${error.message}`)
+  }
+
+  return data
+}
+
+/**
+ * Imposta stile di gioco squadra per rosa
+ */
+export async function setTeamPlayingStyle(rosaId, teamPlayingStyleId) {
+  if (!supabase) {
+    throw new Error('Supabase non configurato')
+  }
+
+  const tempUserId = '00000000-0000-0000-0000-000000000001'
+
+  const { data, error } = await supabase
+    .from('user_rosa')
+    .update({
+      team_playing_style_id: teamPlayingStyleId,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', rosaId)
+    .eq('user_id', tempUserId)
+    .select()
+    .single()
+
+  if (error) {
+    throw new Error(`Errore impostazione stile squadra: ${error.message}`)
+  }
+
+  return data
+}
+
+/**
+ * Ottieni forza complessiva rosa
+ * Usa valori cached in user_rosa se disponibili
+ */
+export async function getStrength(rosaId) {
+  if (!supabase) {
+    throw new Error('Supabase non configurato')
+  }
+
+  const tempUserId = '00000000-0000-0000-0000-000000000001'
+
+  const { data: rosa, error } = await supabase
+    .from('user_rosa')
+    .select('base_strength, overall_strength, synergy_bonus, position_competency_bonus, playing_style_bonus, manager_bonus')
+    .eq('id', rosaId)
+    .eq('user_id', tempUserId)
+    .single()
+
+  if (error || !rosa) {
+    throw new Error(`Errore recupero forza: ${error?.message}`)
+  }
+
+  return {
+    base_strength: rosa.base_strength || 0,
+    overall_strength: rosa.overall_strength || 0,
+    breakdown: {
+      base: rosa.base_strength || 0,
+      synergy_bonus: parseFloat(rosa.synergy_bonus || 0),
+      position_competency_bonus: parseFloat(rosa.position_competency_bonus || 0),
+      playing_style_bonus: parseFloat(rosa.playing_style_bonus || 0),
+      manager_bonus: parseFloat(rosa.manager_bonus || 0)
+    }
+  }
+}
