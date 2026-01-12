@@ -1,5 +1,7 @@
+// @ts-nocheck
 // Supabase Edge Function: Process Screenshot with Google Vision API
 // Estrae dati da screenshot profilo giocatore eFootball
+// Questo file usa Deno runtime, non Node.js - TypeScript validation disabilitata
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'

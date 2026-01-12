@@ -1,5 +1,7 @@
+// @ts-nocheck
 // Helper per parsare dati da Google Drive (formato reale)
 // Converte struttura dati Google Drive in formato database
+// Questo file usa Deno runtime, non Node.js - TypeScript validation disabilitata
 
 export interface GoogleDrivePlayerData {
   "Giocatori": string  // "98\nESA\nVinícius Júnior\nESA Ala prolifica"
