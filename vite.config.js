@@ -24,3 +24,4 @@ export default defineConfig({
     port: 3000
   }
 })
+// Vercel build config fix
