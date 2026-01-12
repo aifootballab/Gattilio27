@@ -1,25 +1,107 @@
 .rosa-page {
-  padding: 2rem;
-  max-width: 1400px;
+  width: 100%;
+  max-width: 1600px;
   margin: 0 auto;
+  padding: 2rem;
 }
 
 .rosa-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 2rem;
 }
 
 .rosa-header h1 {
   font-size: 2rem;
   color: white;
-  margin-bottom: 0.5rem;
+  font-weight: 700;
 }
 
-.rosa-header p {
-  color: #a0a0a0;
+.add-player-btn {
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
 }
 
-@media (max-width: 768px) {
-  .rosa-page {
-    padding: 1rem;
+.add-player-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+}
+
+.input-selector-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(5px);
+}
+
+.input-selector-modal {
+  background: rgba(15, 20, 25, 0.95);
+  border-radius: 12px;
+  padding: 2rem;
+  max-width: 800px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  border: 1px solid rgba(255, 107, 53, 0.3);
+}
+
+.close-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.close-btn:hover {
+  background: rgba(255, 107, 53, 0.3);
+}
+
+.rosa-content {
+  display: grid;
+  grid-template-columns: 1fr 350px;
+  gap: 2rem;
+}
+
+.rosa-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.rosa-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+@media (max-width: 1200px) {
+  .rosa-content {
+    grid-template-columns: 1fr;
   }
 }

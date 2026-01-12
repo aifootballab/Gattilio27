@@ -1,17 +1,49 @@
-import React from 'react'
+import React, { useState } from 'react'
 import DashboardLayout from '../components/dashboard/DashboardLayout'
-import RosaProfiling from '../components/rosa/RosaProfiling'
+import RosaTitolari from '../components/rosa/RosaTitolari'
+import RosaPanchina from '../components/rosa/RosaPanchina'
+import RosaInputSelector from '../components/rosa/RosaInputSelector'
 import './RosaPage.css'
 
 function RosaPage() {
+  const [showInputSelector, setShowInputSelector] = useState(false)
+
   return (
     <DashboardLayout>
       <div className="rosa-page">
         <div className="rosa-header">
-          <h1>Profilazione Rosa</h1>
-          <p>Crea e gestisci la tua squadra</p>
+          <h1>La Mia Rosa</h1>
+          <button 
+            className="add-player-btn"
+            onClick={() => setShowInputSelector(true)}
+          >
+            + Aggiungi Giocatore
+          </button>
         </div>
-        <RosaProfiling />
+
+        {showInputSelector && (
+          <div className="input-selector-overlay">
+            <div className="input-selector-modal">
+              <button 
+                className="close-btn"
+                onClick={() => setShowInputSelector(false)}
+              >
+                ×
+              </button>
+              <RosaInputSelector onClose={() => setShowInputSelector(false)} />
+            </div>
+          </div>
+        )}
+
+        <div className="rosa-content">
+          <div className="rosa-main">
+            <RosaTitolari />
+          </div>
+          
+          <div className="rosa-sidebar">
+            <RosaPanchina />
+          </div>
+        </div>
       </div>
     </DashboardLayout>
   )

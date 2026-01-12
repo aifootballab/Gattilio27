@@ -6,9 +6,10 @@ import { RosaProvider } from './contexts/RosaContext'
 import HomePage from './pages/HomePage'
 import DashboardPage from './pages/DashboardPage'
 import RosaPage from './pages/RosaPage'
-import CoachingPage from './pages/CoachingPage'
-import MatchCenterPage from './pages/MatchCenterPage'
-import PostMatchPage from './pages/PostMatchPage'
+import SinergiePage from './pages/SinergiePage'
+import StatistichePage from './pages/StatistichePage'
+import AnalisiPartitePage from './pages/AnalisiPartitePage'
+import AvversarioPage from './pages/AvversarioPage'
 import NotFoundPage from './pages/NotFoundPage'
 
 function App() {
@@ -19,10 +20,10 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/rosa" element={<RosaPage />} />
-          <Route path="/match-center" element={<MatchCenterPage />} />
-          <Route path="/coaching" element={<CoachingPage />} />
-          <Route path="/analisi" element={<DashboardPage />} />
-          <Route path="/post-match" element={<PostMatchPage />} />
+          <Route path="/sinergie" element={<SinergiePage />} />
+          <Route path="/statistiche" element={<StatistichePage />} />
+          <Route path="/analisi-partite" element={<AnalisiPartitePage />} />
+          <Route path="/avversario" element={<AvversarioPage />} />
           <Route path="/impostazioni" element={<DashboardPage />} />
           <Route path="/404" element={<NotFoundPage />} />
           <Route path="*" element={<Navigate to="/404" replace />} />

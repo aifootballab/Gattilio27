@@ -23,27 +23,27 @@ function SidebarNavigation() {
       badge: hasRosa ? playerCount : null
     },
     {
-      path: '/match-center',
-      icon: '🎯',
-      label: 'Match Center',
+      path: '/sinergie',
+      icon: '🔗',
+      label: 'Sinergie & Build',
       badge: null
     },
     {
-      path: '/coaching',
-      icon: '💡',
-      label: 'Coaching',
-      badge: null
-    },
-    {
-      path: '/analisi',
-      icon: '📊',
-      label: 'Analisi',
-      badge: null
-    },
-    {
-      path: '/post-match',
+      path: '/statistiche',
       icon: '📈',
-      label: 'Post-Match',
+      label: 'Le Mie Statistiche',
+      badge: null
+    },
+    {
+      path: '/analisi-partite',
+      icon: '📊',
+      label: 'Analisi Partite',
+      badge: null
+    },
+    {
+      path: '/avversario',
+      icon: '⚔️',
+      label: 'Formazione Avversaria',
       badge: null
     },
     {
