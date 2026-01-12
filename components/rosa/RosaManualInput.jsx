@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { useRosa } from '../../contexts/RosaContext'
 import { 
   X, Save, Target, Shield, Zap, Award, Settings,
-  User, Ruler, Weight, Calendar, Globe, Building2, TrendingUp, Sparkles
+  User, Ruler, Weight, Calendar, Globe, Building2, TrendingUp
 } from 'lucide-react'
 import * as playerService from '../../services/playerService'
 import * as importService from '../../services/importService'
@@ -288,15 +288,7 @@ function RosaManualInput({ onBack, onRosaCreated }) {
         {activeTab === 'basic' && (
           <div className="form-grid">
             <div className="input-field full-width">
-              <label>
-                Nome Giocatore
-                {prefilledFrom && (
-                  <span className="prefilled-badge">
-                    <Sparkles size={12} />
-                    Precompilato da: {prefilledFrom}
-                  </span>
-                )}
-              </label>
+              <label>Nome Giocatore</label>
               <PlayerAutocomplete
                 value={playerData.player_name}
                 onSelect={handlePlayerSelect}
@@ -306,7 +298,7 @@ function RosaManualInput({ onBack, onRosaCreated }) {
                     setPrefilledFrom(null)
                   }
                 }}
-                placeholder="Cerca giocatore (es. Ronaldinho, Messi...)"
+                placeholder="Cerca giocatore..."
               />
             </div>
             <div className="input-field">
