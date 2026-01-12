@@ -498,31 +498,171 @@
   font-weight: 500;
 }
 
-/* Dev Points - Card Layout like stats */
-.dev-points-list {
+/* Team Playstyle Panel */
+.team-playstyle-panel {
   display: flex;
   flex-direction: column;
+  gap: 1.5rem;
+}
+
+.playstyle-intro {
+  padding: 0.75rem;
+  background: #1a1a1a;
+  border-radius: 8px;
+  border: 1px solid #2a2a2a;
+}
+
+.playstyle-intro p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #aaa;
+  font-weight: 500;
+}
+
+.playstyle-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 1rem;
-  padding: 0;
 }
 
-.dev-point-card {
-  background: rgba(30, 41, 59, 0.6);
-  border: 1px solid rgba(148, 163, 184, 0.1);
-  border-radius: 12px;
+.playstyle-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.playstyle-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #aaa;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Playstyles Panel */
+.playstyles-panel {
   padding: 1rem;
-  transition: background 0.2s ease, border-color 0.2s ease;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
 }
 
-.dev-point-card:hover {
-  background: rgba(30, 41, 59, 0.8);
-  border-color: rgba(148, 163, 184, 0.3);
+.playstyles-section {
+  margin-bottom: 2rem;
 }
 
-.dev-point-card .number-input {
+.playstyles-section h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.section-description {
+  margin: 0 0 1rem 0;
+  font-size: 0.875rem;
+  color: #888;
+  font-weight: 400;
+}
+
+.playstyles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.75rem;
+}
+
+.playstyle-item-checkbox {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.playstyle-item-checkbox:hover {
+  background: #1a1a1a;
+}
+
+.playstyle-item-checkbox input[type="checkbox"] {
+  margin-right: 0.5rem;
+  cursor: pointer;
+}
+
+.playstyle-badge {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.5rem 0.75rem;
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #fff;
+  flex: 1;
+}
+
+.playstyle-category {
+  font-size: 0.7rem;
+  color: #888;
+  font-weight: 400;
+  text-transform: lowercase;
+}
+
+.playstyle-description {
+  font-size: 0.75rem;
+  color: #aaa;
+  font-weight: 400;
+  font-style: italic;
+}
+
+/* Additional Skills */
+.additional-skills-input {
+  margin-bottom: 1rem;
+}
+
+.additional-skills-input input {
   width: 100%;
+  padding: 0.75rem;
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 0.875rem;
+}
+
+.additional-skills-input input:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.skill-badge.additional {
+  background: #1a3a2a;
+  border-color: #2a5a3a;
+}
+
+.remove-skill-btn {
+  background: transparent;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  padding: 0.25rem;
+  margin-left: 0.5rem;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.remove-skill-btn:hover {
+  background: #2a1a1a;
+  color: #ff4444;
+}
+
+.no-items {
+  padding: 1rem;
+  text-align: center;
+  color: #888;
+  font-size: 0.875rem;
 }
 
 @media (max-width: 768px) {

@@ -3,8 +3,8 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useRosa } from '../../contexts/RosaContext'
 import { 
-  X, Save, Target, Shield, Zap, Award, Settings,
-  User, Ruler, Weight, Calendar, Globe, Building2, TrendingUp
+  X, Save, Target, Shield, Zap, Award,
+  User, Ruler, Weight, Calendar, Globe, Building2, Users, Sparkles, Gamepad2, Cpu
 } from 'lucide-react'
 import * as playerService from '../../services/playerService'
 import * as importService from '../../services/importService'
@@ -39,10 +39,58 @@ const COMMON_BOOSTERS = [
   { name: 'GK +10', type: 'goalkeeping' }
 ]
 
-const DEV_POINT_CATEGORIES = [
-  'shooting', 'passing', 'dribbling', 'dexterity',
-  'lowerBodyStrength', 'aerialStrength', 'defending',
-  'gk1', 'gk2', 'gk3'
+// Usa COMMON_BOOSTERS come availableBoosters
+const availableBoosters = COMMON_BOOSTERS.map((b, i) => ({ ...b, id: i + 1 }))
+
+// Playing Styles (Stili di gioco del giocatore)
+const PLAYING_STYLES = [
+  // Attaccanti
+  { name: 'Opportunista', positions: ['CF'], category: 'attacking' },
+  { name: 'Senza palla', positions: ['CF', 'SS', 'RWF', 'LWF'], category: 'attacking' },
+  { name: 'Rapace d\'area', positions: ['CF'], category: 'attacking' },
+  { name: 'Fulcro di gioco', positions: ['CF'], category: 'attacking' },
+  // Centrocampisti e Ali
+  { name: 'Specialista di cross', positions: ['RWF', 'LWF', 'RMF', 'LMF'], category: 'midfield' },
+  { name: 'Classico n°10', positions: ['SS', 'AMF'], category: 'midfield' },
+  { name: 'Regista creativo', positions: ['SS', 'RWF', 'LWF', 'AMF', 'RMF', 'LMF'], category: 'midfield' },
+  { name: 'Ala prolifica', positions: ['RWF', 'LWF'], category: 'midfield' },
+  { name: 'Taglio al centro', positions: ['RWF', 'LWF'], category: 'midfield' },
+  { name: 'Giocatore chiave', positions: ['SS', 'AMF', 'RMF', 'LMF', 'CMF'], category: 'midfield' },
+  // Centrocampisti Difensivi
+  { name: 'Tra le linee', positions: ['CMF', 'DMF'], category: 'midfield' },
+  { name: 'Onnipresente', positions: ['RMF', 'LMF', 'CMF', 'DMF'], category: 'midfield' },
+  { name: 'Collante', positions: ['DMF'], category: 'midfield' },
+  { name: 'Incontrista', positions: ['CMF', 'DMF', 'CB'], category: 'midfield' },
+  // Difensori
+  { name: 'Sviluppo', positions: ['CB'], category: 'defensive' },
+  { name: 'Frontale extra', positions: ['CB'], category: 'defensive' },
+  // Terzini
+  { name: 'Terzino offensivo', positions: ['RB', 'LB'], category: 'fullback' },
+  { name: 'Terzino difensivo', positions: ['RB', 'LB'], category: 'fullback' },
+  { name: 'Terzino mattatore', positions: ['RB', 'LB'], category: 'fullback' },
+  // Portieri
+  { name: 'Portiere offensivo', positions: ['GK'], category: 'goalkeeper' },
+  { name: 'Portiere difensivo', positions: ['GK'], category: 'goalkeeper' }
+]
+
+// AI Playstyles (Stili di gioco IA)
+const AI_PLAYSTYLES = [
+  { name: 'Funambolo', description: 'Specializzato nel doppio passo e dribbling tecnico' },
+  { name: 'Serpentina', description: 'Eccelle nei cambi di direzione e dribbling' },
+  { name: 'Treno in corsa', description: 'Attacca la profondità con velocità' },
+  { name: 'Inserimento', description: 'Usa il dribbling per creare spazi e occasioni' },
+  { name: 'Esperto palle lunghe', description: 'Esegue spesso lanci lunghi' },
+  { name: 'Crossatore', description: 'Cerca continuamente spazi per crossare' },
+  { name: 'Tiratore', description: 'Predilige tiri da fuori area' }
+]
+
+// Team Playing Styles principali (come da efootballhub.net)
+const TEAM_PLAYING_STYLES = [
+  { name: 'Possession Game', key: 'possession_game', label: 'Possesso Palla' },
+  { name: 'Quick Counter', key: 'quick_counter', label: 'Contropiede Rapido' },
+  { name: 'Long Ball Counter', key: 'long_ball_counter', label: 'Contropiede Palla Lunga' },
+  { name: 'Out Wide', key: 'out_wide', label: 'Gioco sulle Fasce' },
+  { name: 'Long Ball', key: 'long_ball', label: 'Palla Lunga' }
 ]
 
 const initialPlayerData = {
@@ -52,8 +100,11 @@ const initialPlayerData = {
   attacking: { offensiveAwareness: 0, ballControl: 0, dribbling: 0, tightPossession: 0, lowPass: 0, loftedPass: 0, finishing: 0, heading: 0, placeKicking: 0, curl: 0 },
   defending: { defensiveAwareness: 0, defensiveEngagement: 0, tackling: 0, aggression: 0, goalkeeping: 0, gkCatching: 0, gkParrying: 0, gkReflexes: 0, gkReach: 0 },
   athleticism: { speed: 0, acceleration: 0, kickingPower: 0, jump: 0, physicalContact: 0, balance: 0, stamina: 0, weakFootUsage: 4, weakFootAccuracy: 4, form: 8, injuryResistance: 2 },
-  skills: [], comSkills: [],
-  build: { currentLevel: null, levelCap: null, developmentPoints: {}, activeBooster: null, activeBoosterId: null, activeBoosterEnabled: false },
+  skills: [], comSkills: [], additionalSkills: [], // Abilità aggiuntive personalizzate
+  playingStyles: [], // Playing Styles (es: Giocatore chiave, Incontrista)
+  aiPlaystyles: [], // AI Playstyles (es: Esperto palle lunghe, Tiratore)
+  team_playstyle_competency: {}, // { possession_game: 0, quick_counter: 0, ... }
+  boosters: { primary: null, secondary: null }, // Alcuni giocatori hanno 2 booster
   metadata: {}
 }
 
@@ -62,30 +113,16 @@ function RosaManualInput({ onBack, onRosaCreated }) {
   const [activeTab, setActiveTab] = useState('basic')
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState(null)
-  const [availableBoosters, setAvailableBoosters] = useState([])
   const [prefilledFrom, setPrefilledFrom] = useState(null)
   const [positionStats, setPositionStats] = useState(null)
   const [isPositionManuallyChanged, setIsPositionManuallyChanged] = useState(false)
   const { addPlayer } = useRosa()
 
   useEffect(() => {
-    loadBoosters()
-  }, [])
-
-  useEffect(() => {
     if (playerData.position) {
       loadPositionSuggestions(playerData.position)
     }
   }, [playerData.position])
-
-  const loadBoosters = async () => {
-    try {
-      const { data } = await supabase.from('boosters').select('*').order('name')
-      setAvailableBoosters(data || COMMON_BOOSTERS.map((b, i) => ({ id: `temp-${i}`, ...b })))
-    } catch {
-      setAvailableBoosters(COMMON_BOOSTERS.map((b, i) => ({ id: `temp-${i}`, ...b })))
-    }
-  }
 
   const loadPositionSuggestions = async (position) => {
     try {
@@ -140,33 +177,13 @@ function RosaManualInput({ onBack, onRosaCreated }) {
     return stat.replace(/([A-Z])/g, ' $1').trim().replace('Gk', 'GK')
   }
 
-  // Mappa nomi Development Points in italiano (come da eFootball)
-  const getDevPointLabel = (category) => {
-    const labels = {
-      'shooting': 'Tiro',
-      'passing': 'Passaggio',
-      'dribbling': 'Dribbling',
-      'dexterity': 'Destrezza',
-      'lowerBodyStrength': 'Forza Gambe',
-      'aerialStrength': 'Forza Aerea',
-      'defending': 'Difesa',
-      'gk1': 'Portiere 1',
-      'gk2': 'Portiere 2',
-      'gk3': 'Portiere 3'
-    }
-    return labels[category] || formatStatName(category)
-  }
-
-  const updateDevPoint = (category, value) => {
+  const updateTeamPlaystyleCompetency = (styleKey, value) => {
     const numValue = typeof value === 'number' ? value : parseInt(value) || 0
     setPlayerData(prev => ({
       ...prev,
-      build: {
-        ...prev.build,
-        developmentPoints: {
-          ...prev.build.developmentPoints,
-          [category]: numValue
-        }
+      team_playstyle_competency: {
+        ...prev.team_playstyle_competency,
+        [styleKey]: Math.max(0, Math.min(99, numValue))
       }
     }))
   }
@@ -177,6 +194,45 @@ function RosaManualInput({ onBack, onRosaCreated }) {
       ...prev,
       [key]: prev[key].includes(skill) ? prev[key].filter(s => s !== skill) : [...prev[key], skill]
     }))
+  }
+
+  const togglePlayingStyle = (styleName) => {
+    setPlayerData(prev => ({
+      ...prev,
+      playingStyles: prev.playingStyles.includes(styleName)
+        ? prev.playingStyles.filter(s => s !== styleName)
+        : [...prev.playingStyles, styleName]
+    }))
+  }
+
+  const toggleAIPlaystyle = (styleName) => {
+    setPlayerData(prev => ({
+      ...prev,
+      aiPlaystyles: prev.aiPlaystyles.includes(styleName)
+        ? prev.aiPlaystyles.filter(s => s !== styleName)
+        : [...prev.aiPlaystyles, styleName]
+    }))
+  }
+
+  const addAdditionalSkill = (skillName) => {
+    if (!skillName.trim()) return
+    setPlayerData(prev => ({
+      ...prev,
+      additionalSkills: [...prev.additionalSkills, skillName.trim()]
+    }))
+  }
+
+  const removeAdditionalSkill = (skillName) => {
+    setPlayerData(prev => ({
+      ...prev,
+      additionalSkills: prev.additionalSkills.filter(s => s !== skillName)
+    }))
+  }
+
+  const getCompatiblePlayingStyles = (position) => {
+    return PLAYING_STYLES.filter(style => 
+      style.positions.includes(position)
+    )
   }
 
   const calculateOverallRating = () => {
@@ -217,15 +273,12 @@ function RosaManualInput({ onBack, onRosaCreated }) {
         overall_rating: prev.overall_rating || overallRating,
         potential_max: prev.potential_max || fullPlayerData.potential_max || 0,
         condition: prev.condition || fullPlayerData.form || 'A',
-        // Mantieni build specifica (level, booster, dev points)
-        build: prev.build || {
-          currentLevel: null,
-          levelCap: fullPlayerData.metadata?.level_cap || null,
-          developmentPoints: {},
-          activeBooster: null,
-          activeBoosterId: null,
-          activeBoosterEnabled: false
-        }
+        // Mantieni team playstyle competency
+        team_playstyle_competency: fullPlayerData.metadata?.team_playstyle_competency || prev.team_playstyle_competency || {},
+        // Carica playing styles e AI playstyles
+        playingStyles: fullPlayerData.metadata?.playing_styles || prev.playingStyles || [],
+        aiPlaystyles: fullPlayerData.metadata?.ai_playstyles || prev.aiPlaystyles || [],
+        additionalSkills: fullPlayerData.metadata?.additional_skills || prev.additionalSkills || []
       }))
 
       setPrefilledFrom(fullPlayerData.player_name)
@@ -251,13 +304,21 @@ function RosaManualInput({ onBack, onRosaCreated }) {
         card_type: playerData.card_type || null, era: playerData.era || null, team: playerData.team || null,
         potential_max: playerData.potential_max || null, form: playerData.condition,
         base_stats: { overall_rating: overallRating, attacking: playerData.attacking, defending: playerData.defending, athleticism: playerData.athleticism },
-        skills: playerData.skills, com_skills: playerData.comSkills, position_ratings: {},
-        development_points: playerData.build.developmentPoints || {}, current_level: playerData.build.currentLevel,
-        level_cap: playerData.build.levelCap, active_booster_name: playerData.build.activeBooster,
-        active_booster_id: playerData.build.activeBoosterId,
+        skills: [...playerData.skills, ...playerData.additionalSkills], com_skills: playerData.comSkills, position_ratings: {},
+        development_points: {}, current_level: null, level_cap: null,
+        active_booster_name: playerData.boosters?.primary || null,
+        active_booster_id: availableBoosters.find(b => b.name === playerData.boosters?.primary)?.id || null,
         final_stats: { attacking: playerData.attacking, defending: playerData.defending, athleticism: playerData.athleticism },
         final_overall_rating: overallRating, source: 'manual',
-        metadata: { ...playerData.metadata, preferred_foot: playerData.preferredFoot }
+        metadata: { 
+          ...playerData.metadata, 
+          preferred_foot: playerData.preferredFoot,
+          team_playstyle_competency: playerData.team_playstyle_competency || {},
+          booster_secondary: playerData.boosters?.secondary || null, // Alcuni giocatori hanno 2 booster
+          playing_styles: playerData.playingStyles || [],
+          ai_playstyles: playerData.aiPlaystyles || [],
+          additional_skills: playerData.additionalSkills || [] // Salva anche separatamente per chiarezza
+        }
       })
       await addPlayer({ build_id: result.build.id, player_name: playerData.player_name, position: playerData.position, overall_rating: overallRating, source: 'manual' })
       if (onRosaCreated) onRosaCreated()
@@ -296,9 +357,9 @@ function RosaManualInput({ onBack, onRosaCreated }) {
         <button className={activeTab === 'attacking' ? 'active' : ''} onClick={() => setActiveTab('attacking')}><Target size={16} />Att</button>
         <button className={activeTab === 'defending' ? 'active' : ''} onClick={() => setActiveTab('defending')}><Shield size={16} />Dif</button>
         <button className={activeTab === 'athleticism' ? 'active' : ''} onClick={() => setActiveTab('athleticism')}><Zap size={16} />Fis</button>
+        <button className={activeTab === 'playstyles' ? 'active' : ''} onClick={() => setActiveTab('playstyles')}><Gamepad2 size={16} />Stili</button>
         <button className={activeTab === 'skills' ? 'active' : ''} onClick={() => setActiveTab('skills')}><Award size={16} />Skill</button>
-        <button className={activeTab === 'build' ? 'active' : ''} onClick={() => setActiveTab('build')}><Settings size={16} />Sviluppo</button>
-        <button className={activeTab === 'devpoints' ? 'active' : ''} onClick={() => setActiveTab('devpoints')}><TrendingUp size={16} />Punti Sviluppo</button>
+        <button className={activeTab === 'teamplaystyle' ? 'active' : ''} onClick={() => setActiveTab('teamplaystyle')}><Users size={16} />Team Style</button>
       </div>
 
       <div className="tab-panel">
@@ -360,6 +421,43 @@ function RosaManualInput({ onBack, onRosaCreated }) {
             <div className="input-field">
               <label>Squadra</label>
               <input type="text" value={playerData.team} onChange={(e) => setPlayerData(prev => ({ ...prev, team: e.target.value }))} />
+            </div>
+            <div className="input-field full-width" style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #2a2a2a' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Sparkles size={14} />
+                Booster 1
+              </label>
+              <select 
+                value={playerData.boosters?.primary || ''} 
+                onChange={(e) => setPlayerData(prev => ({ 
+                  ...prev, 
+                  boosters: { ...prev.boosters, primary: e.target.value || null } 
+                }))}
+              >
+                <option value="">Nessuno</option>
+                {availableBoosters.filter(b => !playerData.position || !b.available_for_positions || b.available_for_positions.length === 0 || b.available_for_positions.includes(playerData.position)).map(b => (
+                  <option key={b.id || b.name} value={b.name}>{b.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="input-field full-width">
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Sparkles size={14} />
+                Booster 2 <span style={{ fontSize: '0.7rem', color: '#888', fontWeight: 'normal' }}>(opzionale)</span>
+              </label>
+              <select 
+                value={playerData.boosters?.secondary || ''} 
+                onChange={(e) => setPlayerData(prev => ({ 
+                  ...prev, 
+                  boosters: { ...prev.boosters, secondary: e.target.value || null } 
+                }))}
+                disabled={!playerData.boosters?.primary}
+              >
+                <option value="">Nessuno</option>
+                {availableBoosters.filter(b => !playerData.position || !b.available_for_positions || b.available_for_positions.length === 0 || b.available_for_positions.includes(playerData.position)).map(b => (
+                  <option key={b.id || b.name} value={b.name}>{b.name}</option>
+                ))}
+              </select>
             </div>
           </div>
         )}
@@ -473,6 +571,53 @@ function RosaManualInput({ onBack, onRosaCreated }) {
           </>
         )}
 
+        {activeTab === 'playstyles' && (
+          <div className="playstyles-panel">
+            <div className="playstyles-section">
+              <h3>Playing Styles (Stili di Gioco)</h3>
+              <p className="section-description">Stili di gioco del giocatore - determinano il comportamento in campo</p>
+              <div className="playstyles-grid">
+                {getCompatiblePlayingStyles(playerData.position).map(style => (
+                  <label key={style.name} className="playstyle-item-checkbox">
+                    <input 
+                      type="checkbox" 
+                      checked={playerData.playingStyles.includes(style.name)} 
+                      onChange={() => togglePlayingStyle(style.name)} 
+                    />
+                    <span className="playstyle-badge">
+                      {style.name}
+                      <span className="playstyle-category">{style.category}</span>
+                    </span>
+                  </label>
+                ))}
+                {getCompatiblePlayingStyles(playerData.position).length === 0 && (
+                  <p className="no-items">Nessuno stile compatibile per la posizione {playerData.position}</p>
+                )}
+              </div>
+            </div>
+            
+            <div className="playstyles-section" style={{ marginTop: '2rem', paddingTop: '2rem', borderTop: '1px solid #2a2a2a' }}>
+              <h3>AI Playstyles (Stili di Gioco IA)</h3>
+              <p className="section-description">Stili di gioco IA - determinano il comportamento con palla</p>
+              <div className="playstyles-grid">
+                {AI_PLAYSTYLES.map(style => (
+                  <label key={style.name} className="playstyle-item-checkbox">
+                    <input 
+                      type="checkbox" 
+                      checked={playerData.aiPlaystyles.includes(style.name)} 
+                      onChange={() => toggleAIPlaystyle(style.name)} 
+                    />
+                    <span className="playstyle-badge">
+                      {style.name}
+                      {style.description && <span className="playstyle-description">{style.description}</span>}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {activeTab === 'skills' && (
           <div className="skills-panel">
             <div className="skills-col">
@@ -497,60 +642,60 @@ function RosaManualInput({ onBack, onRosaCreated }) {
                 ))}
               </div>
             </div>
-          </div>
-        )}
-
-        {activeTab === 'build' && (
-          <div className="form-grid">
-            <div className="input-field">
-              <label>Livello</label>
-              <input type="number" min="1" max="100" value={playerData.build.currentLevel || ''} onChange={(e) => setPlayerData(prev => ({ ...prev, build: { ...prev.build, currentLevel: parseInt(e.target.value) || null } }))} />
-            </div>
-            <div className="input-field">
-              <label>Livello Massimo</label>
-              <input type="number" min="1" max="120" value={playerData.build.levelCap || ''} onChange={(e) => setPlayerData(prev => ({ ...prev, build: { ...prev.build, levelCap: parseInt(e.target.value) || null } }))} />
-            </div>
-            <div className="input-field full-width">
-              <label className="booster-label">
-                <input type="checkbox" checked={playerData.build.activeBoosterEnabled} onChange={(e) => setPlayerData(prev => ({ ...prev, build: { ...prev.build, activeBoosterEnabled: e.target.checked, activeBooster: e.target.checked ? prev.build.activeBooster : null } }))} />
-                <span>Booster Attivo</span>
-              </label>
-              <select value={playerData.build.activeBooster || ''} disabled={!playerData.build.activeBoosterEnabled} onChange={(e) => {
-                const booster = availableBoosters.find(b => b.name === e.target.value)
-                setPlayerData(prev => ({ ...prev, build: { ...prev.build, activeBooster: e.target.value || null, activeBoosterId: booster?.id || null } }))
-              }}>
-                <option value="">Nessuno</option>
-                {availableBoosters.filter(b => !playerData.position || !b.available_for_positions || b.available_for_positions.length === 0 || b.available_for_positions.includes(playerData.position)).map(b => (
-                  <option key={b.id || b.name} value={b.name}>{b.name}</option>
+            <div className="skills-col" style={{ marginTop: '2rem', paddingTop: '2rem', borderTop: '1px solid #2a2a2a', gridColumn: '1 / -1' }}>
+              <h3>Abilità Aggiuntive</h3>
+              <p className="section-description">Skills personalizzate che puoi aggiungere manualmente</p>
+              <div className="additional-skills-input">
+                <input
+                  type="text"
+                  placeholder="Inserisci nome skill e premi Enter"
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      addAdditionalSkill(e.target.value)
+                      e.target.value = ''
+                    }
+                  }}
+                />
+              </div>
+              <div className="skills-list" style={{ marginTop: '1rem' }}>
+                {playerData.additionalSkills.map(skill => (
+                  <label key={skill} className="skill-item">
+                    <span className="skill-badge additional">{skill}</span>
+                    <button 
+                      type="button" 
+                      className="remove-skill-btn"
+                      onClick={() => removeAdditionalSkill(skill)}
+                    >
+                      <X size={14} />
+                    </button>
+                  </label>
                 ))}
-              </select>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'devpoints' && (
-          <div className="dev-points-panel">
-            <div className="dev-points-header">
-              <div className="dev-level-info">
-                <span>Livello: {playerData.build.currentLevel || 1} / {playerData.build.levelCap || 1}</span>
+                {playerData.additionalSkills.length === 0 && (
+                  <p className="no-items" style={{ fontSize: '0.9rem', color: '#888' }}>Nessuna abilità aggiuntiva</p>
+                )}
               </div>
             </div>
-            <div className="dev-points-list">
-              {DEV_POINT_CATEGORIES.map(cat => {
-                if (playerData.position !== 'GK' && cat.startsWith('gk')) return null
-                if (playerData.position === 'GK' && !cat.startsWith('gk') && cat !== 'defending') return null
-                return (
-                  <div key={cat} className="dev-point-card">
-                    <NumberInput
-                      label={getDevPointLabel(cat)}
-                      value={playerData.build.developmentPoints[cat] || 0}
-                      onChange={(newValue) => updateDevPoint(cat, newValue)}
-                      min={0}
-                      max={99}
-                    />
-                  </div>
-                )
-              })}
+          </div>
+        )}
+
+        {activeTab === 'teamplaystyle' && (
+          <div className="team-playstyle-panel">
+            <div className="playstyle-intro">
+              <p>Competenza del giocatore per ogni stile di gioco di squadra (0-99)</p>
+            </div>
+            <div className="playstyle-grid">
+              {TEAM_PLAYING_STYLES.map(style => (
+                <div key={style.key} className="playstyle-item">
+                  <label className="playstyle-label">{style.label}</label>
+                  <NumberInput
+                    value={playerData.team_playstyle_competency[style.key] || 0}
+                    onChange={(newValue) => updateTeamPlaystyleCompetency(style.key, newValue)}
+                    min={0}
+                    max={99}
+                  />
+                </div>
+              ))}
             </div>
           </div>
         )}
