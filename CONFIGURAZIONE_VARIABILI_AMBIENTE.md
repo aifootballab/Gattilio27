@@ -56,6 +56,8 @@ npm run dev
 
 ### **Opzione 2: Configurazione Vercel (Produzione)**
 
+**⚠️ IMPORTANTE**: Se hai già configurato `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY`, devi aggiungere anche `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` con gli stessi valori (Vite usa prefisso `VITE_`, non `NEXT_PUBLIC_`).
+
 **Step 1: Vai su Vercel Dashboard**
 
 1. Vai su [Vercel Dashboard](https://vercel.com/dashboard)
@@ -69,13 +71,13 @@ npm run dev
 
    **Variabile 1**:
    - **Name**: `VITE_SUPABASE_URL`
-   - **Value**: `https://your-project-id.supabase.co`
+   - **Value**: `https://your-project-id.supabase.co` (o usa lo stesso valore di `NEXT_PUBLIC_SUPABASE_URL` se già configurato)
    - **Environment**: Seleziona tutte (Production, Preview, Development)
    - Clicca **Save**
 
    **Variabile 2**:
    - **Name**: `VITE_SUPABASE_ANON_KEY`
-   - **Value**: `your-anon-key-here`
+   - **Value**: `your-anon-key-here` (o usa lo stesso valore di `NEXT_PUBLIC_SUPABASE_ANON_KEY` se già configurato)
    - **Environment**: Seleziona tutte (Production, Preview, Development)
    - Clicca **Save**
 
@@ -85,6 +87,8 @@ npm run dev
 2. Clicca sui **tre puntini** (⋯) del deployment più recente
 3. Seleziona **Redeploy**
 4. Vercel ricostruirà con le nuove variabili
+
+**📖 Vedi anche**: `FIX_VERCEL_ENV_VARIABLES.md` per dettagli su NEXT_PUBLIC_* vs VITE_*
 
 ---
 
