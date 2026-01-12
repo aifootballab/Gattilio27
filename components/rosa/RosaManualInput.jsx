@@ -140,6 +140,23 @@ function RosaManualInput({ onBack, onRosaCreated }) {
     return stat.replace(/([A-Z])/g, ' $1').trim().replace('Gk', 'GK')
   }
 
+  // Mappa nomi Development Points in italiano (come da eFootball)
+  const getDevPointLabel = (category) => {
+    const labels = {
+      'shooting': 'Tiro',
+      'passing': 'Passaggio',
+      'dribbling': 'Dribbling',
+      'dexterity': 'Destrezza',
+      'lowerBodyStrength': 'Forza Gambe',
+      'aerialStrength': 'Forza Aerea',
+      'defending': 'Difesa',
+      'gk1': 'Portiere 1',
+      'gk2': 'Portiere 2',
+      'gk3': 'Portiere 3'
+    }
+    return labels[category] || formatStatName(category)
+  }
+
   const updateDevPoint = (category, value) => {
     const numValue = typeof value === 'number' ? value : parseInt(value) || 0
     setPlayerData(prev => ({
@@ -490,7 +507,7 @@ function RosaManualInput({ onBack, onRosaCreated }) {
               <input type="number" min="1" max="100" value={playerData.build.currentLevel || ''} onChange={(e) => setPlayerData(prev => ({ ...prev, build: { ...prev.build, currentLevel: parseInt(e.target.value) || null } }))} />
             </div>
             <div className="input-field">
-              <label>Level Cap</label>
+              <label>Livello Massimo</label>
               <input type="number" min="1" max="120" value={playerData.build.levelCap || ''} onChange={(e) => setPlayerData(prev => ({ ...prev, build: { ...prev.build, levelCap: parseInt(e.target.value) || null } }))} />
             </div>
             <div className="input-field full-width">
@@ -525,7 +542,7 @@ function RosaManualInput({ onBack, onRosaCreated }) {
                 return (
                   <div key={cat} className="dev-point-card">
                     <NumberInput
-                      label={formatStatName(cat)}
+                      label={getDevPointLabel(cat)}
                       value={playerData.build.developmentPoints[cat] || 0}
                       onChange={(newValue) => updateDevPoint(cat, newValue)}
                       min={0}
