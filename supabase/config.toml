@@ -38,3 +38,4 @@ port = 54327
 [functions]
 process-screenshot = { verify_jwt = false }
 analyze-rosa = { verify_jwt = false }
+import-players-json = { verify_jwt = false }
