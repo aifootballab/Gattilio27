@@ -72,33 +72,80 @@ serve(async (req) => {
     }
 
     // Real scraping implementation
-    // TODO: Implement actual HTML parsing from efootballhub.net/managers
-    // For now, return structure showing what needs to be implemented
+    // Usa stesso pattern del test-efootballhub che ha funzionato per players
+    // Pattern: https://efootballhub.net/efootball23/search/players -> https://efootballhub.net/efootball23/search/managers
     
-    const baseURL = 'https://efootballhub.net/efootball23/managers'
+    // Prova URL possibili per managers (seguendo pattern players)
+    const possibleURLs = [
+      'https://efootballhub.net/efootball23/search/managers',
+      'https://efootballhub.net/efootball23/managers',
+      'https://efootballhub.net/managers'
+    ]
     
+    let html = ''
+    let baseURL = possibleURLs[0]
+    let response = null
+    
+    // Prova il primo URL (più probabile, seguendo pattern players)
     console.log(`Fetching managers from: ${baseURL}`)
     
-    const response = await fetch(baseURL, {
-      method: 'GET',
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Accept-Language': 'it-IT,it;q=0.9,en-US;q=0.8,en;q=0.7',
-        'Referer': 'https://efootballhub.net/',
-      }
-    })
+    try {
+      response = await fetch(baseURL, {
+        method: 'GET',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+          'Accept-Language': 'it-IT,it;q=0.9,en-US;q=0.8,en;q=0.7',
+          'Referer': 'https://efootballhub.net/',
+        }
+      })
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
+      if (response.ok) {
+        html = await response.text()
+        console.log(`Fetched HTML from ${baseURL} (length: ${html.length})`)
+      } else {
+        // Se 404, prova URL alternativi
+        console.log(`${baseURL} returned ${response.status}, trying alternatives...`)
+        for (let i = 1; i < possibleURLs.length; i++) {
+          const altURL = possibleURLs[i]
+          console.log(`Trying alternative URL: ${altURL}`)
+          const altResponse = await fetch(altURL, {
+            method: 'GET',
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+              'Accept-Language': 'it-IT,it;q=0.9,en-US;q=0.8,en;q=0.7',
+              'Referer': 'https://efootballhub.net/',
+            }
+          })
+          if (altResponse.ok) {
+            html = await altResponse.text()
+            baseURL = altURL
+            response = altResponse
+            console.log(`Successfully fetched from ${altURL} (length: ${html.length})`)
+            break
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching managers:', error)
     }
 
-    const html = await response.text()
-    console.log(`Fetched HTML (length: ${html.length})`)
+    if (!html || !response || !response.ok) {
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: 'Managers page not accessible (404 or error). URL pattern may be different.',
+          attempted_urls: possibleURLs,
+          scraped: 0,
+          saved: 0,
+          errors: [`No accessible URL found. Tried: ${possibleURLs.join(', ')}`]
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
 
     // Parse HTML and extract managers
-    // TODO: Implement HTML parsing logic
-    // This is a placeholder - actual parsing needs to be implemented based on efootballhub.net structure
     const parsedManagers = parseManagersHTML(html, manager_name)
 
     if (parsedManagers.length === 0) {
