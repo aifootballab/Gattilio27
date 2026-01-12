@@ -5,7 +5,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { parseGoogleDriveData, type ParsedPlayerData } from './parseGoogleDriveData.ts'
+// Removed parseGoogleDriveData import - not needed for basic screenshot processing
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -77,13 +77,47 @@ serve(async (req) => {
       throw new Error(`Failed to create log entry: ${logError?.message}`)
     }
 
-    // Download image from Storage
-    const imageResponse = await fetch(image_url)
-    if (!imageResponse.ok) {
-      throw new Error(`Failed to download image: ${imageResponse.statusText}`)
+    // Download image from Storage using Supabase client (bucket is private)
+    // Extract path from URL (format: .../storage/v1/object/public/player-screenshots/path/to/file.jpg)
+    let urlPath = null
+    
+    // Try different URL formats
+    if (image_url.includes('/storage/v1/object/public/player-screenshots/')) {
+      urlPath = image_url.split('/storage/v1/object/public/player-screenshots/')[1]
+    } else if (image_url.includes('/storage/v1/object/player-screenshots/')) {
+      urlPath = image_url.split('/storage/v1/object/player-screenshots/')[1]
+    } else if (image_url.includes('player-screenshots/')) {
+      // Fallback: extract everything after player-screenshots/
+      urlPath = image_url.split('player-screenshots/')[1]
+    }
+    
+    // Remove query parameters if present
+    if (urlPath) {
+      urlPath = urlPath.split('?')[0]
+    }
+    
+    if (!urlPath) {
+      console.error('Failed to extract path from URL:', image_url)
+      throw new Error(`Invalid image URL format: ${image_url}`)
     }
 
-    const imageBuffer = await imageResponse.arrayBuffer()
+    console.log('Downloading image with path:', urlPath)
+
+    const { data: imageData, error: downloadError } = await supabase.storage
+      .from('player-screenshots')
+      .download(urlPath)
+
+    if (downloadError) {
+      console.error('Download error:', downloadError)
+      throw new Error(`Failed to download image: ${downloadError.message || 'Unknown error'}`)
+    }
+
+    if (!imageData) {
+      throw new Error('Downloaded image data is null or undefined')
+    }
+
+    // Convert blob to base64
+    const imageBuffer = await imageData.arrayBuffer()
     const imageBase64 = btoa(String.fromCharCode(...new Uint8Array(imageBuffer)))
 
     // Check if Vision API is enabled
@@ -163,68 +197,26 @@ serve(async (req) => {
       image_type
     )
 
-    // Check if data is in Google Drive format and parse accordingly
-    let parsedData: ParsedPlayerData | null = null
-    if (extractedData["Giocatori"] || extractedData["Complessivamente"]) {
-      // Formato Google Drive - parse con helper
-      try {
-        parsedData = parseGoogleDriveData(extractedData as any)
-      } catch (err) {
-        console.warn('Errore parsing Google Drive data:', err)
-        // Fallback a formato OCR tradizionale
-      }
-    }
-
-    // Se non è formato Google Drive, converti formato OCR
-    if (!parsedData) {
-      parsedData = {
-        player_name: extractedData.player_name || 'Unknown Player',
-        position: extractedData.position || 'CF',
-        role: extractedData.role || null,
-        overall_rating: extractedData.overall_rating || 0,
-        height: extractedData.height || null,
-        weight: extractedData.weight || null,
-        age: extractedData.age || null,
-        nationality: extractedData.nationality || null,
-        club_name: extractedData.club_name || null,
-        potential_max: extractedData.potential_max || null,
-        cost: extractedData.cost || null,
-        form: extractedData.form || null,
-        level_cap: extractedData.build?.levelCap || null,
-        base_stats: {
-          overall_rating: extractedData.overall_rating || 0,
-          attacking: extractedData.attacking || {},
-          defending: extractedData.defending || {},
-          athleticism: extractedData.athleticism || {}
-        }
-      }
-    }
-
     // Match player with database
-    const matchedPlayer = await matchPlayer(parsedData.player_name, supabase)
+    const matchedPlayer = await matchPlayer(extractedData.player_name, supabase)
 
     // Save/update players_base (if new player)
     let playerBaseId = matchedPlayer?.id
-    if (!playerBaseId && parsedData.player_name) {
+    if (!playerBaseId && extractedData.player_name) {
       const { data: newPlayer, error: playerError } = await supabase
         .from('players_base')
         .insert({
-          player_name: parsedData.player_name,
-          position: parsedData.position,
-          role: parsedData.role,
-          height: parsedData.height,
-          weight: parsedData.weight,
-          age: parsedData.age,
-          nationality: parsedData.nationality,
-          team: parsedData.club_name,
-          potential_max: parsedData.potential_max,
-          cost: parsedData.cost,
-          form: parsedData.form,
-          base_stats: parsedData.base_stats,
+          player_name: extractedData.player_name,
+          position: extractedData.position,
+          base_stats: extractedData.attacking ? {
+            attacking: extractedData.attacking,
+            defending: extractedData.defending,
+            athleticism: extractedData.athleticism
+          } : {},
           skills: extractedData.skills || [],
           com_skills: extractedData.comSkills || [],
           position_ratings: extractedData.positionRatings || {},
-          source: parsedData && (extractedData["Giocatori"] || extractedData["Complessivamente"]) ? 'google_drive' : 'user_upload'
+          source: 'user_upload'
         })
         .select()
         .single()
@@ -235,40 +227,34 @@ serve(async (req) => {
     }
 
     // Save build (if build data exists)
-    if (playerBaseId) {
+    if (playerBaseId && extractedData.build) {
       await supabase
         .from('player_builds')
         .upsert({
           user_id,
           player_base_id: playerBaseId,
-          development_points: extractedData.build?.developmentPoints || {},
-          current_level: extractedData.build?.currentLevel || null,
-          level_cap: parsedData.level_cap || extractedData.build?.levelCap || null,
-          active_booster_name: extractedData.build?.activeBooster || null,
-          final_overall_rating: parsedData.overall_rating,
-          final_stats: parsedData.base_stats,
-          source: parsedData && (extractedData["Giocatori"] || extractedData["Complessivamente"]) ? 'google_drive' : 'screenshot',
+          development_points: extractedData.build.developmentPoints || {},
+          current_level: extractedData.build.currentLevel,
+          level_cap: extractedData.build.levelCap,
+          active_booster_name: extractedData.build.activeBooster,
+          source: 'screenshot',
           source_data: {
             screenshot_id: logEntry.id,
-            confidence: extractedData.confidence || 0.8,
-            form: parsedData.form
+            confidence: extractedData.confidence || 0.8
           }
         }, {
           onConflict: 'user_id,player_base_id'
         })
     }
 
-    // Update log - salva sia extractedData (OCR) che parsedData (formato finale)
+    // Update log
     await supabase
       .from('screenshot_processing_log')
       .update({
         processing_status: 'completed',
         processing_completed_at: new Date().toISOString(),
         raw_ocr_data: annotations,
-        extracted_data: {
-          ...extractedData,
-          parsed_data: parsedData // Aggiungi dati parsati
-        },
+        extracted_data: extractedData,
         confidence_score: extractedData.confidence || 0.8,
         matched_player_id: playerBaseId,
         matching_confidence: matchedPlayer?.confidence || 1.0
@@ -279,10 +265,7 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         log_id: logEntry.id,
-        extracted_data: {
-          ...extractedData,
-          parsed_data: parsedData // Includi dati parsati nella risposta
-        },
+        extracted_data: extractedData,
         matched_player_id: playerBaseId
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
