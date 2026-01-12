@@ -278,7 +278,7 @@ function parseManagersHTML(html: string, filterName?: string): any[] {
     if (managerLinks.length > 0) {
       // Estrai ID/nome da ogni link
       for (const link of managerLinks.slice(0, 50)) { // Limita a 50 per performance
-        const href = link[1]
+        const href = link[1] || link[0] || ''
         const managerId = extractManagerId(href)
         
         if (managerId) {
@@ -462,7 +462,7 @@ function extractManagersFromTable(tableHtml: string, filterName?: string): any[]
   
   // Cerca righe (<tr>)
   const rowPattern = /<tr[^>]*>([\s\S]*?)<\/tr>/gi
-  const rows = [...tableHtml.matchAll(rowPattern)]
+  const rows = Array.from(tableHtml.matchAll(rowPattern))
   
   for (const row of rows) {
     const rowHtml = row[1]
