@@ -15,6 +15,7 @@ export async function searchPlayer(query) {
     .from('players_base')
     .select('*')
     .ilike('player_name', `%${query}%`)
+    .order('created_at', { ascending: false })
     .limit(20)
 
   if (error) {
@@ -22,6 +23,74 @@ export async function searchPlayer(query) {
   }
 
   return data || []
+}
+
+/**
+ * Estrae dati base da un player_base per precompilazione
+ * Esclude dati specifici della carta (build, booster, level)
+ */
+export function extractBaseData(playerBase) {
+  if (!playerBase) return null
+
+  const baseStats = playerBase.base_stats || {}
+  
+  return {
+    player_name: playerBase.player_name,
+    position: playerBase.position || 'CF',
+    height: playerBase.height,
+    weight: playerBase.weight,
+    age: playerBase.age,
+    nationality: playerBase.nationality || '',
+    club_name: playerBase.club_name || '',
+    card_type: playerBase.card_type || 'Standard',
+    era: playerBase.era || '',
+    team: playerBase.team || '',
+    preferredFoot: playerBase.metadata?.preferred_foot || 'right',
+    // Stats base (senza modifiche build)
+    attacking: baseStats.attacking || {
+      offensiveAwareness: 0, ballControl: 0, dribbling: 0, tightPossession: 0,
+      lowPass: 0, loftedPass: 0, finishing: 0, heading: 0, placeKicking: 0, curl: 0
+    },
+    defending: baseStats.defending || {
+      defensiveAwareness: 0, defensiveEngagement: 0, tackling: 0, aggression: 0,
+      goalkeeping: 0, gkCatching: 0, gkParrying: 0, gkReflexes: 0, gkReach: 0
+    },
+    athleticism: baseStats.athleticism || {
+      speed: 0, acceleration: 0, kickingPower: 0, jump: 0, physicalContact: 0,
+      balance: 0, stamina: 0, weakFootUsage: 4, weakFootAccuracy: 4, form: 8, injuryResistance: 2
+    },
+    // Skills BASE (quelle standard del giocatore, non aggiunte)
+    skills: Array.isArray(playerBase.skills) ? [...playerBase.skills] : [],
+    comSkills: Array.isArray(playerBase.com_skills) ? [...playerBase.com_skills] : [],
+    // Metadata
+    metadata: playerBase.metadata || {}
+  }
+}
+
+/**
+ * Ottieni template giocatore più rappresentativo per nome
+ * Usa il giocatore più recente o con più build come template
+ */
+export async function getPlayerBaseTemplate(playerName) {
+  if (!supabase) {
+    throw new Error('Supabase non configurato')
+  }
+
+  // Cerca giocatore più recente con quel nome
+  const { data, error } = await supabase
+    .from('players_base')
+    .select('*')
+    .ilike('player_name', `%${playerName}%`)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single()
+
+  if (error) {
+    // Se non trovato, ritorna null (utente inserirà manualmente)
+    return null
+  }
+
+  return data
 }
 
 /**

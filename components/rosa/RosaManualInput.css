@@ -444,6 +444,25 @@
   opacity: 0.5;
 }
 
+.prefilled-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  background: #1a3a5a;
+  border: 1px solid #3b82f6;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  color: #60a5fa;
+  font-weight: 500;
+}
+
+.prefilled-badge svg {
+  width: 12px;
+  height: 12px;
+}
+
 .booster-label {
   display: flex;
   align-items: center;

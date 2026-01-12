@@ -4,10 +4,11 @@ import React, { useState, useEffect } from 'react'
 import { useRosa } from '../../contexts/RosaContext'
 import { 
   X, Save, Target, Shield, Zap, Award, Settings,
-  User, Ruler, Weight, Calendar, Globe, Building2, TrendingUp
+  User, Ruler, Weight, Calendar, Globe, Building2, TrendingUp, Sparkles
 } from 'lucide-react'
 import * as playerService from '../../services/playerService'
 import { supabase } from '@/lib/supabase'
+import PlayerAutocomplete from './PlayerAutocomplete'
 import './RosaManualInput.css'
 
 const POSITIONS = ['GK', 'CB', 'LB', 'RB', 'DMF', 'CMF', 'LMF', 'RMF', 'AMF', 'LWF', 'RWF', 'SS', 'CF']
@@ -60,6 +61,7 @@ function RosaManualInput({ onBack, onRosaCreated }) {
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState(null)
   const [availableBoosters, setAvailableBoosters] = useState([])
+  const [prefilledFrom, setPrefilledFrom] = useState(null) // Track da quale giocatore abbiamo precompilato
   const { addPlayer } = useRosa()
 
   useEffect(() => {
@@ -114,6 +116,35 @@ function RosaManualInput({ onBack, onRosaCreated }) {
       return Math.round(Math.max(att * 0.2 + ath * 0.2 + gkAvg * 0.6, 0))
     }
     return Math.max(0, Math.min(120, Math.round((att + ath) / 2 + (def > 0 ? def * 0.2 : 0))))
+  }
+
+  const handlePlayerSelect = (selectedPlayer) => {
+    if (!selectedPlayer) return
+
+    // Estrai dati base dal giocatore selezionato
+    const baseData = playerService.extractBaseData(selectedPlayer)
+    if (!baseData) return
+
+    // Merge intelligente: dati base + mantieni modifiche utente su campi carta-specifici
+    setPlayerData(prev => ({
+      ...baseData,
+      // Mantieni rating/potential se utente li ha già modificati
+      overall_rating: prev.overall_rating || baseData.attacking ? 
+        Math.round(Object.values(baseData.attacking).reduce((a, b) => a + b, 0) / 10) : 0,
+      potential_max: prev.potential_max || 0,
+      condition: prev.condition || 'A',
+      // Mantieni build specifica (level, booster, dev points)
+      build: prev.build || {
+        currentLevel: null,
+        levelCap: null,
+        developmentPoints: {},
+        activeBooster: null,
+        activeBoosterId: null,
+        activeBoosterEnabled: false
+      }
+    }))
+
+    setPrefilledFrom(selectedPlayer.player_name)
   }
 
   const handleSave = async () => {
@@ -185,9 +216,27 @@ function RosaManualInput({ onBack, onRosaCreated }) {
       <div className="tab-panel">
         {activeTab === 'basic' && (
           <div className="form-grid">
-            <div className="input-field">
-              <label>Nome</label>
-              <input type="text" value={playerData.player_name} onChange={(e) => setPlayerData(prev => ({ ...prev, player_name: e.target.value }))} />
+            <div className="input-field full-width">
+              <label>
+                Nome Giocatore
+                {prefilledFrom && (
+                  <span className="prefilled-badge">
+                    <Sparkles size={12} />
+                    Precompilato da: {prefilledFrom}
+                  </span>
+                )}
+              </label>
+              <PlayerAutocomplete
+                value={playerData.player_name}
+                onSelect={handlePlayerSelect}
+                onInputChange={(name) => {
+                  setPlayerData(prev => ({ ...prev, player_name: name }))
+                  if (name !== prefilledFrom) {
+                    setPrefilledFrom(null)
+                  }
+                }}
+                placeholder="Cerca giocatore (es. Ronaldinho, Messi...)"
+              />
             </div>
             <div className="input-field">
               <label>Posizione</label>
