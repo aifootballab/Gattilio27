@@ -400,6 +400,48 @@
   color: #ef4444;
 }
 
+.warning-value {
+  color: #f59e0b;
+}
+
+.result-details {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.result-details h4 {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #cbd5e0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.result-details ul {
+  margin: 0;
+  padding-left: 1.5rem;
+  list-style-type: disc;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.result-details li {
+  margin: 0.5rem 0;
+  font-size: 0.875rem;
+  color: #94a3b8;
+  line-height: 1.5;
+}
+
+.result-details.error-details {
+  margin-top: 1rem;
+}
+
+.result-details.error-details li {
+  color: #f87171;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .admin-import-json {

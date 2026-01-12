@@ -347,6 +347,12 @@ function AdminImportJSON() {
                 <span className="stat-label">Aggiornati</span>
                 <span className="stat-value">{result.updated}</span>
               </div>
+              {result.skipped > 0 && (
+                <div className="stat-item">
+                  <span className="stat-label">Saltati</span>
+                  <span className="stat-value warning-value">{result.skipped}</span>
+                </div>
+              )}
               {result.errors > 0 && (
                 <div className="stat-item">
                   <span className="stat-label">Errori</span>
@@ -354,6 +360,26 @@ function AdminImportJSON() {
                 </div>
               )}
             </div>
+            {result.skippedList && result.skippedList.length > 0 && (
+              <div className="result-details">
+                <h4>Giocatori Saltati (primi 20):</h4>
+                <ul>
+                  {result.skippedList.map((item, i) => (
+                    <li key={i}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {result.errorsList && result.errorsList.length > 0 && (
+              <div className="result-details error-details">
+                <h4>Errori (primi 20):</h4>
+                <ul>
+                  {result.errorsList.map((item, i) => (
+                    <li key={i}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         </div>
       )}
