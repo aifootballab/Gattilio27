@@ -93,7 +93,7 @@ export async function getPositionStats(position) {
 /**
  * Stats di default per posizione (se non ci sono dati nel database)
  */
-function getDefaultPositionStats(position) {
+export function getDefaultPositionStats(position) {
   const defaults = {
     GK: {
       attacking: { offensiveAwareness: 40, ballControl: 45, dribbling: 40, tightPossession: 40, lowPass: 50, loftedPass: 60, finishing: 35, heading: 40, placeKicking: 45, curl: 40 },

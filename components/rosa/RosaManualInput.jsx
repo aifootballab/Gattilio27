@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { useRosa } from '../../contexts/RosaContext'
 import { 
   X, Save, Target, Shield, Zap, Award, Settings,
-  User, Ruler, Weight, Calendar, Globe, Building2, TrendingUp, Sparkles, Lightbulb
+  User, Ruler, Weight, Calendar, Globe, Building2, TrendingUp, Sparkles
 } from 'lucide-react'
 import * as playerService from '../../services/playerService'
 import * as importService from '../../services/importService'
@@ -63,16 +63,15 @@ function RosaManualInput({ onBack, onRosaCreated }) {
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState(null)
   const [availableBoosters, setAvailableBoosters] = useState([])
-  const [prefilledFrom, setPrefilledFrom] = useState(null) // Track da quale giocatore abbiamo precompilato
-  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [prefilledFrom, setPrefilledFrom] = useState(null)
   const [positionStats, setPositionStats] = useState(null)
+  const [isPositionManuallyChanged, setIsPositionManuallyChanged] = useState(false)
   const { addPlayer } = useRosa()
 
   useEffect(() => {
     loadBoosters()
   }, [])
 
-  // Carica stats medie quando cambia la posizione
   useEffect(() => {
     if (playerData.position) {
       loadPositionSuggestions(playerData.position)
@@ -93,36 +92,41 @@ function RosaManualInput({ onBack, onRosaCreated }) {
       const stats = await importService.getPositionStats(position)
       setPositionStats(stats)
     } catch (error) {
-      console.error('Errore caricamento suggerimenti:', error)
-      // Usa stats di default se errore
       try {
         const defaultStats = importService.getDefaultPositionStats(position)
         setPositionStats(defaultStats)
       } catch {
-        // Se anche getDefaultPositionStats fallisce, usa stats vuote
         setPositionStats(null)
       }
     }
   }
 
-  const applyPositionSuggestions = useCallback(() => {
-    if (!positionStats) return
+  useEffect(() => {
+    if (!positionStats || prefilledFrom) return
 
-    setPlayerData(prev => ({
-      ...prev,
-      attacking: { ...prev.attacking, ...positionStats.attacking },
-      defending: { ...prev.defending, ...positionStats.defending },
-      athleticism: { 
-        ...prev.athleticism, 
-        ...positionStats.athleticism,
-        weakFootUsage: prev.athleticism.weakFootUsage || 4,
-        weakFootAccuracy: prev.athleticism.weakFootAccuracy || 4,
-        form: prev.athleticism.form || 8,
-        injuryResistance: prev.athleticism.injuryResistance || 2
+    setPlayerData(prev => {
+      const hasStats = Object.values(prev.attacking).some(v => v > 0) ||
+                       Object.values(prev.defending).some(v => v > 0) ||
+                       Object.values(prev.athleticism).slice(0, 7).some(v => v > 0)
+
+      if (hasStats && !isPositionManuallyChanged) return prev
+
+      return {
+        ...prev,
+        attacking: { ...prev.attacking, ...positionStats.attacking },
+        defending: { ...prev.defending, ...positionStats.defending },
+        athleticism: { 
+          ...prev.athleticism, 
+          ...positionStats.athleticism,
+          weakFootUsage: prev.athleticism.weakFootUsage || 4,
+          weakFootAccuracy: prev.athleticism.weakFootAccuracy || 4,
+          form: prev.athleticism.form || 8,
+          injuryResistance: prev.athleticism.injuryResistance || 2
+        }
       }
-    }))
-    setShowSuggestions(false)
-  }, [positionStats])
+    })
+    setIsPositionManuallyChanged(false)
+  }, [positionStats, prefilledFrom, isPositionManuallyChanged])
 
   const updateStat = (category, stat, value) => {
     const numValue = typeof value === 'number' ? value : parseInt(value) || 0
@@ -306,21 +310,14 @@ function RosaManualInput({ onBack, onRosaCreated }) {
               />
             </div>
             <div className="input-field">
-              <label>
-                Posizione
-                {positionStats && (
-                  <button 
-                    type="button"
-                    className="suggest-btn"
-                    onClick={applyPositionSuggestions}
-                    title="Applica stats medie per questa posizione"
-                  >
-                    <Lightbulb size={12} />
-                    Suggerisci
-                  </button>
-                )}
-              </label>
-              <select value={playerData.position} onChange={(e) => setPlayerData(prev => ({ ...prev, position: e.target.value }))}>
+              <label>Posizione</label>
+              <select 
+                value={playerData.position} 
+                onChange={(e) => {
+                  setIsPositionManuallyChanged(true)
+                  setPlayerData(prev => ({ ...prev, position: e.target.value }))
+                }}
+              >
                 {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
               </select>
             </div>
