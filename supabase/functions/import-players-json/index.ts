@@ -151,64 +151,141 @@ serve(async (req) => {
   }
 })
 
+// Helper: Converte stringa in numero
+function toNumber(value: any, defaultValue = 0): number {
+  if (typeof value === 'number') return value
+  if (typeof value === 'string') {
+    const num = parseInt(value.trim())
+    return isNaN(num) ? defaultValue : num
+  }
+  return defaultValue
+}
+
+// Helper: Estrae informazioni dal campo "Giocatori" (formato: "116\nPT\nNome Giocatore\nStile")
+function parseGiocatoriField(giocatoriStr: string) {
+  if (!giocatoriStr) return { rating: null, cardType: null, name: null, style: null }
+  
+  const parts = giocatoriStr.split('\n').map(p => p.trim()).filter(p => p)
+  return {
+    rating: parts.length > 0 ? toNumber(parts[0]) : null,
+    cardType: parts.length > 1 ? parts[1] : null, // PT, ESA, TRQ, P, EDA, etc.
+    name: parts.length > 2 ? parts[2] : null,
+    style: parts.length > 3 ? parts[3] : null
+  }
+}
+
+// Helper: Determina posizione dal cardType e stile
+function inferPosition(cardType: string, style: string): string {
+  if (!cardType) return 'CF'
+  
+  // Mappa cardType a posizione base
+  const cardTypeMap: { [key: string]: string } = {
+    'PT': 'GK', // Portiere
+    'P': 'CF',  // Punter
+    'ESA': 'LWF', // Esterno Sinistro Attaccante
+    'TRQ': 'AMF', // Trequartista
+    'EDA': 'AMF', // Esterno Destro Attaccante
+    // Aggiungi altre mappature se necessario
+  }
+  
+  return cardTypeMap[cardType.toUpperCase()] || 'CF'
+}
+
 // Mappa dati giocatore al formato database
 function mapPlayerData(jsonPlayer: any) {
-  const attacking = jsonPlayer.attacking || jsonPlayer.attacco || {}
-  const defending = jsonPlayer.defending || jsonPlayer.difesa || {}
-  const athleticism = jsonPlayer.athleticism || jsonPlayer.fisico || {}
-
+  // Estrai informazioni dal campo "Giocatori"
+  const giocatoriInfo = parseGiocatoriField(jsonPlayer.Giocatori || jsonPlayer['Giocatori'] || '')
+  
+  // Usa il nome estratto o fallback su altri campi
+  const playerName = giocatoriInfo.name || 
+                     jsonPlayer.name || 
+                     jsonPlayer.player_name || 
+                     jsonPlayer.nome || 
+                     jsonPlayer.Name || ''
+  
+  // Determina card_type
+  const cardType = giocatoriInfo.cardType || 
+                   jsonPlayer.card_type || 
+                   jsonPlayer.tipo_carta || 
+                   'Standard'
+  
+  // Determina posizione
+  const position = jsonPlayer.position || 
+                   jsonPlayer.pos || 
+                   jsonPlayer.posizione || 
+                   inferPosition(cardType, giocatoriInfo.style || '')
+  
+  // Converti valori numerici (il JSON ha stringhe)
+  const overallRating = toNumber(jsonPlayer.Complessivamente || jsonPlayer.overall_rating || giocatoriInfo.rating)
+  const potential = toNumber(jsonPlayer.Potenziale || jsonPlayer.potential || jsonPlayer.potential_max)
+  const height = toNumber(jsonPlayer.Altezza || jsonPlayer.height || jsonPlayer.altezza)
+  const weight = toNumber(jsonPlayer.Peso || jsonPlayer.weight || jsonPlayer.peso)
+  const age = toNumber(jsonPlayer.Età || jsonPlayer.age || jsonPlayer.eta)
+  const levelCap = toNumber(jsonPlayer['Livello Massimo'] || jsonPlayer.level_cap || jsonPlayer.livello_massimo)
+  
+  // Stats attacco (italiano -> inglese)
+  const attacking = {
+    offensiveAwareness: toNumber(jsonPlayer['Comportamento offensivo'] || jsonPlayer.attacking?.offensiveAwareness),
+    ballControl: toNumber(jsonPlayer['Controllo palla'] || jsonPlayer.attacking?.ballControl),
+    dribbling: toNumber(jsonPlayer['Vel. dribbling'] || jsonPlayer.attacking?.dribbling),
+    tightPossession: toNumber(jsonPlayer['Possesso stretto'] || jsonPlayer.attacking?.tightPossession),
+    lowPass: toNumber(jsonPlayer['Passaggio rasoterra'] || jsonPlayer.attacking?.lowPass),
+    loftedPass: toNumber(jsonPlayer['Passaggio alto'] || jsonPlayer.attacking?.loftedPass),
+    finishing: toNumber(jsonPlayer.Finalizzazione || jsonPlayer.attacking?.finishing),
+    heading: toNumber(jsonPlayer['Colpo di testa'] || jsonPlayer.attacking?.heading),
+    placeKicking: toNumber(jsonPlayer['Calci piazzati'] || jsonPlayer.attacking?.placeKicking),
+    curl: toNumber(jsonPlayer['Tiro a giro'] || jsonPlayer.attacking?.curl)
+  }
+  
+  // Stats difesa (italiano -> inglese)
+  const defending = {
+    defensiveAwareness: toNumber(jsonPlayer['Comportamento difensivo'] || jsonPlayer.defending?.defensiveAwareness),
+    defensiveEngagement: toNumber(jsonPlayer['Coinvolgimento difensivo'] || jsonPlayer.defending?.defensiveEngagement),
+    tackling: toNumber(jsonPlayer.Contrasto || jsonPlayer.defending?.tackling),
+    aggression: toNumber(jsonPlayer.Aggressività || jsonPlayer.defending?.aggression),
+    goalkeeping: toNumber(jsonPlayer.Portieri || jsonPlayer.defending?.goalkeeping),
+    gkCatching: toNumber(jsonPlayer['Presa PT'] || jsonPlayer.defending?.gkCatching),
+    gkParrying: toNumber(jsonPlayer['Parata PT'] || jsonPlayer.defending?.gkParrying),
+    gkReflexes: toNumber(jsonPlayer['Riflessi PT'] || jsonPlayer.defending?.gkReflexes),
+    gkReach: toNumber(jsonPlayer['Estensione PT'] || jsonPlayer.defending?.gkReach)
+  }
+  
+  // Stats fisiche (italiano -> inglese)
+  const athleticism = {
+    speed: toNumber(jsonPlayer.Velocità || jsonPlayer.athleticism?.speed),
+    acceleration: toNumber(jsonPlayer.Accelerazione || jsonPlayer.athleticism?.acceleration),
+    kickingPower: toNumber(jsonPlayer['Potenza di tiro'] || jsonPlayer.athleticism?.kickingPower),
+    jump: toNumber(jsonPlayer.Elevazione || jsonPlayer.athleticism?.jump),
+    physicalContact: toNumber(jsonPlayer['Contatto fisico'] || jsonPlayer.athleticism?.physicalContact),
+    balance: toNumber(jsonPlayer.Equilibrio || jsonPlayer.athleticism?.balance),
+    stamina: toNumber(jsonPlayer.Resistenza || jsonPlayer.athleticism?.stamina),
+    weakFootUsage: toNumber(jsonPlayer.weak_foot_usage || jsonPlayer.athleticism?.weakFootUsage, 4),
+    weakFootAccuracy: toNumber(jsonPlayer.weak_foot_accuracy || jsonPlayer.athleticism?.weakFootAccuracy, 4),
+    form: toNumber(jsonPlayer.form || jsonPlayer.athleticism?.form, 8),
+    injuryResistance: toNumber(jsonPlayer.injury_resistance || jsonPlayer.athleticism?.injuryResistance, 2)
+  }
+  
   return {
-    player_name: jsonPlayer.name || jsonPlayer.player_name || jsonPlayer.nome || jsonPlayer.Name || '',
-    position: jsonPlayer.position || jsonPlayer.pos || jsonPlayer.posizione || 'CF',
-    height: jsonPlayer.height || jsonPlayer.altezza || null,
-    weight: jsonPlayer.weight || jsonPlayer.peso || null,
-    age: jsonPlayer.age || jsonPlayer.eta || null,
-    nationality: jsonPlayer.nationality || jsonPlayer.nazionalita || jsonPlayer.country || '',
-    club_name: jsonPlayer.club || jsonPlayer.club_name || jsonPlayer.squadra || '',
-    card_type: jsonPlayer.card_type || jsonPlayer.tipo_carta || 'Standard',
+    player_name: playerName,
+    position: position,
+    height: height || null,
+    weight: weight || null,
+    age: age || null,
+    nationality: jsonPlayer['Nazionalità...'] || jsonPlayer.nationality || jsonPlayer.nazionalita || '',
+    club_name: jsonPlayer.ClubName || jsonPlayer.club || jsonPlayer.club_name || '',
+    card_type: cardType || 'Standard',
     era: jsonPlayer.era || '',
-    team: jsonPlayer.team || jsonPlayer.squadra || '',
+    team: jsonPlayer.team || '',
+    potential_max: potential || null,
+    form: jsonPlayer.Condizione || jsonPlayer.condition || jsonPlayer.form || 'B',
     
     base_stats: {
-      overall_rating: jsonPlayer.overall_rating || jsonPlayer.rating || jsonPlayer.overall || 
-                     (attacking && Object.keys(attacking).length > 0 ? 
-                      Math.round(Object.values(attacking).reduce((a: number, b: number) => a + b, 0) / 10) : 0),
-      attacking: {
-        offensiveAwareness: attacking.offensive_awareness || attacking.offensiveAwareness || attacking.OffensiveAwareness || 0,
-        ballControl: attacking.ball_control || attacking.ballControl || attacking.BallControl || 0,
-        dribbling: attacking.dribbling || attacking.Dribbling || 0,
-        tightPossession: attacking.tight_possession || attacking.tightPossession || attacking.TightPossession || 0,
-        lowPass: attacking.low_pass || attacking.lowPass || attacking.LowPass || 0,
-        loftedPass: attacking.lofted_pass || attacking.loftedPass || attacking.LoftedPass || 0,
-        finishing: attacking.finishing || attacking.Finishing || 0,
-        heading: attacking.heading || attacking.Heading || 0,
-        placeKicking: attacking.place_kicking || attacking.placeKicking || attacking.PlaceKicking || 0,
-        curl: attacking.curl || attacking.Curl || 0
-      },
-      defending: {
-        defensiveAwareness: defending.defensive_awareness || defending.defensiveAwareness || defending.DefensiveAwareness || 0,
-        defensiveEngagement: defending.defensive_engagement || defending.defensiveEngagement || defending.DefensiveEngagement || 0,
-        tackling: defending.tackling || defending.Tackling || 0,
-        aggression: defending.aggression || defending.Aggression || 0,
-        goalkeeping: defending.goalkeeping || defending.gk || defending.Goalkeeping || 0,
-        gkCatching: defending.gk_catching || defending.gkCatching || defending.GkCatching || 0,
-        gkParrying: defending.gk_parrying || defending.gkParrying || defending.GkParrying || 0,
-        gkReflexes: defending.gk_reflexes || defending.gkReflexes || defending.GkReflexes || 0,
-        gkReach: defending.gk_reach || defending.gkReach || defending.GkReach || 0
-      },
-      athleticism: {
-        speed: athleticism.speed || athleticism.velocita || athleticism.Speed || 0,
-        acceleration: athleticism.acceleration || athleticism.accelerazione || athleticism.Acceleration || 0,
-        kickingPower: athleticism.kicking_power || athleticism.kickingPower || athleticism.KickingPower || 0,
-        jump: athleticism.jump || athleticism.salto || athleticism.Jump || 0,
-        physicalContact: athleticism.physical_contact || athleticism.physicalContact || athleticism.PhysicalContact || 0,
-        balance: athleticism.balance || athleticism.equilibrio || athleticism.Balance || 0,
-        stamina: athleticism.stamina || athleticism.resistenza || athleticism.Stamina || 0,
-        weakFootUsage: athleticism.weak_foot_usage || athleticism.weakFootUsage || 4,
-        weakFootAccuracy: athleticism.weak_foot_accuracy || athleticism.weakFootAccuracy || 4,
-        form: athleticism.form || athleticism.forma || 8,
-        injuryResistance: athleticism.injury_resistance || athleticism.injuryResistance || 2
-      }
+      overall_rating: overallRating || 
+                     (attacking.offensiveAwareness > 0 ? 
+                      Math.round((attacking.offensiveAwareness + attacking.ballControl + attacking.finishing) / 3) : 0),
+      attacking: attacking,
+      defending: defending,
+      athleticism: athleticism
     },
     
     skills: Array.isArray(jsonPlayer.skills) ? jsonPlayer.skills : 
@@ -220,7 +297,10 @@ function mapPlayerData(jsonPlayer: any) {
     metadata: {
       preferred_foot: jsonPlayer.preferred_foot || jsonPlayer.piede || 'right',
       konami_id: jsonPlayer.konami_id || jsonPlayer.id || null,
-      efootballhub_id: jsonPlayer.efootballhub_id || null
+      efootballhub_id: jsonPlayer.efootballhub_id || null,
+      style: giocatoriInfo.style || null,
+      level_cap: levelCap || null,
+      cost: toNumber(jsonPlayer.Costo)
     },
     
     source: 'json_import'
