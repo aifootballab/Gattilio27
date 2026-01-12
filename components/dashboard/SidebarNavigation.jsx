@@ -10,7 +10,7 @@ function SidebarNavigation() {
   const pathname = usePathname()
   const { hasRosa, playerCount } = useRosa()
 
-  const isActive = (path: string) => pathname === path
+  const isActive = (path) => pathname === path
 
   const menuItems = [
     {

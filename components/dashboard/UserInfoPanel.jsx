@@ -1,6 +1,6 @@
 import React from 'react'
-import { useRosa } from '../../contexts/RosaContext'
-import PostMatchStats from '../post-match/PostMatchStats'
+import { useRosa } from '@/contexts/RosaContext'
+import PostMatchStats from '@/components/post-match/PostMatchStats'
 import './UserInfoPanel.css'
 
 function UserInfoPanel() {
