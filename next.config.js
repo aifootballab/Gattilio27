@@ -17,23 +17,19 @@ const nextConfig = {
       '*': ['./src/**/*'],
     },
   },
-  webpack: (config, { webpack }) => {
+  webpack: (config, { webpack, isServer }) => {
     // Ignora completamente i file in src/ che usano import.meta.env (Vite)
-    config.plugins.push(
-      new webpack.IgnorePlugin({
-        checkResource(resource, context) {
-          // Ignora tutti i file in src/ directory
-          if (context && context.includes('src')) {
-            return true
-          }
-          // Ignora import.meta.env
-          if (resource && resource.includes('import.meta')) {
-            return true
-          }
-          return false
-        },
-      })
-    )
+    if (!isServer) {
+      config.plugins.push(
+        new webpack.IgnorePlugin({
+          resourceRegExp: /^\.\/src\//,
+        })
+      )
+    }
+    // Escludi src/ dal resolve
+    config.resolve.alias = {
+      ...config.resolve.alias,
+    }
     return config
   },
 }
