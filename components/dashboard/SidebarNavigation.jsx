@@ -48,13 +48,14 @@ function SidebarNavigation() {
       icon: '⚔️',
       label: 'Formazione Avversaria',
       badge: null
-    },
-    {
-      path: '/impostazioni',
-      icon: '⚙️',
-      label: 'Impostazioni',
-      badge: null
     }
+    // TODO: Aggiungere pagina impostazioni quando necessaria
+    // {
+    //   path: '/impostazioni',
+    //   icon: '⚙️',
+    //   label: 'Impostazioni',
+    //   badge: null
+    // }
   ]
 
   return (
