@@ -17,16 +17,23 @@ const nextConfig = {
       '*': ['./src/**/*'],
     },
   },
-  webpack: (config) => {
-    // Ignora file in src/ durante il bundle
-    config.resolve.alias = {
-      ...config.resolve.alias,
-    }
-    // Escludi src/ dal resolve
-    config.resolve.modules = [
-      ...(config.resolve.modules || []),
-      'node_modules',
-    ]
+  webpack: (config, { webpack }) => {
+    // Ignora completamente i file in src/ che usano import.meta.env (Vite)
+    config.plugins.push(
+      new webpack.IgnorePlugin({
+        checkResource(resource, context) {
+          // Ignora tutti i file in src/ directory
+          if (context && context.includes('src')) {
+            return true
+          }
+          // Ignora import.meta.env
+          if (resource && resource.includes('import.meta')) {
+            return true
+          }
+          return false
+        },
+      })
+    )
     return config
   },
 }
