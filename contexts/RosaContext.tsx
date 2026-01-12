@@ -49,12 +49,13 @@ export function RosaProvider({ children }: { children: React.ReactNode }) {
         return
       }
 
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) {
-        setRosa(initialRosaState)
-        setIsLoading(false)
-        return
-      }
+      // TEMPORANEO: Login disabilitato per sviluppo - usa user_id di default
+      // const { data: { session } } = await supabase.auth.getSession()
+      // if (!session) {
+      //   setRosa(initialRosaState)
+      //   setIsLoading(false)
+      //   return
+      // }
 
       const rosas = await rosaService.getUserRosas()
       if (rosas && rosas.length > 0) {
@@ -129,11 +130,13 @@ export function RosaProvider({ children }: { children: React.ReactNode }) {
       let buildIdToAdd = player.build_id
       if (!buildIdToAdd && player.player_base_id) {
         if (!supabase) throw new Error('Supabase non configurato')
-        const { data: { session } } = await supabase.auth.getSession()
-        if (!session) throw new Error('Utente non autenticato')
+        // TEMPORANEO: Login disabilitato per sviluppo
+        // const { data: { session } } = await supabase.auth.getSession()
+        // if (!session) throw new Error('Utente non autenticato')
+        const tempUserId = 'dev-user-temp' // User ID temporaneo per sviluppo
 
         const buildData = {
-          user_id: session.user.id,
+          user_id: tempUserId, // session.user.id,
           player_base_id: player.player_base_id,
           development_points: player.development_points || {},
           final_stats: player.final_stats || player.stats,
@@ -204,10 +207,12 @@ export function RosaProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true)
     setError(null)
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) throw new Error("Utente non autenticato.")
+      // TEMPORANEO: Login disabilitato per sviluppo
+      // const { data: { session } } = await supabase.auth.getSession()
+      // if (!session) throw new Error("Utente non autenticato.")
+      const tempUserId = 'dev-user-temp' // User ID temporaneo per sviluppo
 
-      const analysisResult = await rosaService.analyzeRosa(rosa.id, session.user.id)
+      const analysisResult = await rosaService.analyzeRosa(rosa.id, tempUserId) // session.user.id
       setRosa(prev => ({ ...prev, squad_analysis: analysisResult.analysis }))
       return analysisResult
     } catch (err: any) {

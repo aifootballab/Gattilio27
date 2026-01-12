@@ -53,15 +53,17 @@ export async function upsertPlayerBuild(buildData) {
     throw new Error('Supabase non configurato')
   }
 
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) {
-    throw new Error('Utente non autenticato')
-  }
+  // TEMPORANEO: Login disabilitato per sviluppo
+  // const { data: { session } } = await supabase.auth.getSession()
+  // if (!session) {
+  //   throw new Error('Utente non autenticato')
+  // }
+  const tempUserId = 'dev-user-temp' // User ID temporaneo per sviluppo
 
   const { data, error } = await supabase
     .from('player_builds')
     .upsert({
-      user_id: session.user.id,
+      user_id: tempUserId, // session.user.id,
       player_base_id: buildData.player_base_id,
       development_points: buildData.development_points || {},
       active_booster_id: buildData.active_booster_id || null,
@@ -94,10 +96,12 @@ export async function getPlayerBuild(playerBaseId) {
     throw new Error('Supabase non configurato')
   }
 
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) {
-    throw new Error('Utente non autenticato')
-  }
+  // TEMPORANEO: Login disabilitato per sviluppo
+  // const { data: { session } } = await supabase.auth.getSession()
+  // if (!session) {
+  //   throw new Error('Utente non autenticato')
+  // }
+  const tempUserId = 'dev-user-temp' // User ID temporaneo per sviluppo
 
   const { data, error } = await supabase
     .from('player_builds')
@@ -113,7 +117,7 @@ export async function getPlayerBuild(playerBaseId) {
         position_ratings
       )
     `)
-    .eq('user_id', session.user.id)
+    .eq('user_id', tempUserId) // session.user.id
     .eq('player_base_id', playerBaseId)
     .single()
 
@@ -132,10 +136,12 @@ export async function getUserBuilds() {
     throw new Error('Supabase non configurato')
   }
 
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) {
-    throw new Error('Utente non autenticato')
-  }
+  // TEMPORANEO: Login disabilitato per sviluppo
+  // const { data: { session } } = await supabase.auth.getSession()
+  // if (!session) {
+  //   throw new Error('Utente non autenticato')
+  // }
+  const tempUserId = 'dev-user-temp' // User ID temporaneo per sviluppo
 
   const { data, error } = await supabase
     .from('player_builds')
@@ -151,7 +157,7 @@ export async function getUserBuilds() {
         position_ratings
       )
     `)
-    .eq('user_id', session.user.id)
+    .eq('user_id', tempUserId) // session.user.id
     .order('created_at', { ascending: false })
 
   if (error) {
@@ -169,16 +175,18 @@ export async function deletePlayerBuild(buildId) {
     throw new Error('Supabase non configurato')
   }
 
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) {
-    throw new Error('Utente non autenticato')
-  }
+  // TEMPORANEO: Login disabilitato per sviluppo
+  // const { data: { session } } = await supabase.auth.getSession()
+  // if (!session) {
+  //   throw new Error('Utente non autenticato')
+  // }
+  const tempUserId = 'dev-user-temp' // User ID temporaneo per sviluppo
 
   const { error } = await supabase
     .from('player_builds')
     .delete()
     .eq('id', buildId)
-    .eq('user_id', session.user.id)
+    .eq('user_id', tempUserId) // session.user.id
 
   if (error) {
     throw new Error(`Errore eliminazione build: ${error.message}`)

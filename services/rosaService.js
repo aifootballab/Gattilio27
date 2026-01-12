@@ -11,15 +11,17 @@ export async function createRosa(rosaData) {
     throw new Error('Supabase non configurato')
   }
 
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) {
-    throw new Error('Utente non autenticato')
-  }
+  // TEMPORANEO: Login disabilitato per sviluppo
+  // const { data: { session } } = await supabase.auth.getSession()
+  // if (!session) {
+  //   throw new Error('Utente non autenticato')
+  // }
+  const tempUserId = 'dev-user-temp' // User ID temporaneo per sviluppo
 
   const { data, error } = await supabase
     .from('user_rosa')
     .insert({
-      user_id: session.user.id,
+      user_id: tempUserId, // session.user.id,
       name: rosaData.name || 'La mia squadra',
       description: rosaData.description || null,
       player_build_ids: rosaData.player_build_ids || [],
@@ -44,15 +46,17 @@ export async function getUserRosas() {
     throw new Error('Supabase non configurato')
   }
 
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) {
-    throw new Error('Utente non autenticato')
-  }
+  // TEMPORANEO: Login disabilitato per sviluppo
+  // const { data: { session } } = await supabase.auth.getSession()
+  // if (!session) {
+  //   throw new Error('Utente non autenticato')
+  // }
+  const tempUserId = 'dev-user-temp' // User ID temporaneo per sviluppo
 
   const { data, error } = await supabase
     .from('user_rosa')
     .select('*')
-    .eq('user_id', session.user.id)
+    .eq('user_id', tempUserId) // session.user.id
     .order('created_at', { ascending: false })
 
   if (error) {
@@ -70,17 +74,19 @@ export async function getRosaById(rosaId) {
     throw new Error('Supabase non configurato')
   }
 
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) {
-    throw new Error('Utente non autenticato')
-  }
+  // TEMPORANEO: Login disabilitato per sviluppo
+  // const { data: { session } } = await supabase.auth.getSession()
+  // if (!session) {
+  //   throw new Error('Utente non autenticato')
+  // }
+  const tempUserId = 'dev-user-temp' // User ID temporaneo per sviluppo
 
   // Ottieni rosa
   const { data: rosa, error: rosaError } = await supabase
     .from('user_rosa')
     .select('*')
     .eq('id', rosaId)
-    .eq('user_id', session.user.id)
+    .eq('user_id', tempUserId) // session.user.id
     .single()
 
   if (rosaError || !rosa) {
@@ -167,10 +173,12 @@ export async function updateRosa(rosaId, updates) {
     throw new Error('Supabase non configurato')
   }
 
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) {
-    throw new Error('Utente non autenticato')
-  }
+  // TEMPORANEO: Login disabilitato per sviluppo
+  // const { data: { session } } = await supabase.auth.getSession()
+  // if (!session) {
+  //   throw new Error('Utente non autenticato')
+  // }
+  const tempUserId = 'dev-user-temp' // User ID temporaneo per sviluppo
 
   const { data, error } = await supabase
     .from('user_rosa')
@@ -179,7 +187,7 @@ export async function updateRosa(rosaId, updates) {
       updated_at: new Date().toISOString()
     })
     .eq('id', rosaId)
-    .eq('user_id', session.user.id)
+    .eq('user_id', tempUserId) // session.user.id
     .select()
     .single()
 
@@ -198,16 +206,18 @@ export async function deleteRosa(rosaId) {
     throw new Error('Supabase non configurato')
   }
 
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) {
-    throw new Error('Utente non autenticato')
-  }
+  // TEMPORANEO: Login disabilitato per sviluppo
+  // const { data: { session } } = await supabase.auth.getSession()
+  // if (!session) {
+  //   throw new Error('Utente non autenticato')
+  // }
+  const tempUserId = 'dev-user-temp' // User ID temporaneo per sviluppo
 
   const { error } = await supabase
     .from('user_rosa')
     .delete()
     .eq('id', rosaId)
-    .eq('user_id', session.user.id)
+    .eq('user_id', tempUserId) // session.user.id
 
   if (error) {
     throw new Error(`Errore eliminazione rosa: ${error.message}`)
@@ -224,17 +234,19 @@ export async function addPlayerToRosa(rosaId, playerBuildId) {
     throw new Error('Supabase non configurato')
   }
 
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) {
-    throw new Error('Utente non autenticato')
-  }
+  // TEMPORANEO: Login disabilitato per sviluppo
+  // const { data: { session } } = await supabase.auth.getSession()
+  // if (!session) {
+  //   throw new Error('Utente non autenticato')
+  // }
+  const tempUserId = 'dev-user-temp' // User ID temporaneo per sviluppo
 
   // Ottieni rosa corrente
   const { data: rosa, error: rosaError } = await supabase
     .from('user_rosa')
     .select('player_build_ids')
     .eq('id', rosaId)
-    .eq('user_id', session.user.id)
+    .eq('user_id', tempUserId) // session.user.id
     .single()
 
   if (rosaError || !rosa) {
@@ -253,7 +265,7 @@ export async function addPlayerToRosa(rosaId, playerBuildId) {
         updated_at: new Date().toISOString()
       })
       .eq('id', rosaId)
-      .eq('user_id', session.user.id)
+      .eq('user_id', tempUserId) // session.user.id
       .select()
       .single()
 
@@ -275,17 +287,19 @@ export async function removePlayerFromRosa(rosaId, playerBuildId) {
     throw new Error('Supabase non configurato')
   }
 
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) {
-    throw new Error('Utente non autenticato')
-  }
+  // TEMPORANEO: Login disabilitato per sviluppo
+  // const { data: { session } } = await supabase.auth.getSession()
+  // if (!session) {
+  //   throw new Error('Utente non autenticato')
+  // }
+  const tempUserId = 'dev-user-temp' // User ID temporaneo per sviluppo
 
   // Ottieni rosa corrente
   const { data: rosa, error: rosaError } = await supabase
     .from('user_rosa')
     .select('player_build_ids')
     .eq('id', rosaId)
-    .eq('user_id', session.user.id)
+    .eq('user_id', tempUserId) // session.user.id
     .single()
 
   if (rosaError || !rosa) {
@@ -303,7 +317,7 @@ export async function removePlayerFromRosa(rosaId, playerBuildId) {
       updated_at: new Date().toISOString()
     })
     .eq('id', rosaId)
-    .eq('user_id', session.user.id)
+    .eq('user_id', tempUserId) // session.user.id
     .select()
     .single()
 
@@ -326,17 +340,19 @@ export async function addPlayerToRosaInSlot(rosaId, playerBuildId, destination, 
     throw new Error('Supabase non configurato')
   }
 
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) {
-    throw new Error('Utente non autenticato')
-  }
+  // TEMPORANEO: Login disabilitato per sviluppo
+  // const { data: { session } } = await supabase.auth.getSession()
+  // if (!session) {
+  //   throw new Error('Utente non autenticato')
+  // }
+  const tempUserId = 'dev-user-temp' // User ID temporaneo per sviluppo
 
   // Ottieni rosa corrente
   const { data: rosa, error: rosaError } = await supabase
     .from('user_rosa')
     .select('player_build_ids')
     .eq('id', rosaId)
-    .eq('user_id', session.user.id)
+    .eq('user_id', tempUserId) // session.user.id
     .single()
 
   if (rosaError || !rosa) {
@@ -406,7 +422,7 @@ export async function addPlayerToRosaInSlot(rosaId, playerBuildId, destination, 
       updated_at: new Date().toISOString()
     })
     .eq('id', rosaId)
-    .eq('user_id', session.user.id)
+    .eq('user_id', tempUserId) // session.user.id
     .select()
     .single()
 
@@ -426,16 +442,18 @@ export async function analyzeRosa(rosaId, userId) {
     throw new Error('Supabase non configurato')
   }
 
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) {
-    throw new Error('Utente non autenticato')
-  }
+  // TEMPORANEO: Login disabilitato per sviluppo
+  // const { data: { session } } = await supabase.auth.getSession()
+  // if (!session) {
+  //   throw new Error('Utente non autenticato')
+  // }
+  const tempUserId = 'dev-user-temp' // User ID temporaneo per sviluppo
 
   // Chiama Edge Function analyze-rosa
   const { data, error } = await supabase.functions.invoke('analyze-rosa', {
     body: {
       rosa_id: rosaId,
-      user_id: userId || session.user.id
+      user_id: userId || tempUserId // session.user.id
     }
   })
 
