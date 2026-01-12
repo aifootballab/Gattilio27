@@ -7,9 +7,11 @@ import './RosaTitolari.css'
 function RosaTitolari() {
   const { rosa } = useRosa()
   
-  // Filtra titolari (primi 11 giocatori)
-  const titolari = rosa.players.slice(0, 11)
-  const panchina = rosa.players.slice(11)
+  // Filtra titolari (slot 0-10) - rosa.players è array di 21 elementi (con null per slot vuoti)
+  // IMPORTANTE: rosa.players mantiene l'ordine degli slot (0-20)
+  const titolari = (rosa.players || [])
+    .slice(0, 11) // Primi 11 slot (0-10)
+    .filter(player => player !== null && player !== undefined) // Rimuovi slot vuoti
 
   return (
     <div className="rosa-titolari">

@@ -6,8 +6,11 @@ import './RosaPanchina.css'
 function RosaPanchina() {
   const { rosa } = useRosa()
   
-  // Giocatori di riserva (dopo i primi 11)
-  const panchina = rosa.players.slice(11)
+  // Giocatori di riserva (slot 11-20) - rosa.players è array di 21 elementi (con null per slot vuoti)
+  // IMPORTANTE: rosa.players mantiene l'ordine degli slot (0-20)
+  const panchina = (rosa.players || [])
+    .slice(11, 21) // Slot 11-20 (riserve)
+    .filter(player => player !== null && player !== undefined) // Rimuovi slot vuoti
 
   return (
     <div className="rosa-panchina">
