@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { useRosa } from '../../contexts/RosaContext'
 import { 
   X, Save, Target, Shield, Zap, Award, Settings,
-  User, Ruler, Weight, Calendar, Globe, Building2
+  User, Ruler, Weight, Calendar, Globe, Building2, TrendingUp
 } from 'lucide-react'
 import * as playerService from '../../services/playerService'
 import { supabase } from '@/lib/supabase'
@@ -12,6 +12,7 @@ import './RosaManualInput.css'
 
 const POSITIONS = ['GK', 'CB', 'LB', 'RB', 'DMF', 'CMF', 'LMF', 'RMF', 'AMF', 'LWF', 'RWF', 'SS', 'CF']
 const CARD_TYPES = ['Standard', 'Raro', 'Super Raro', 'Epico', 'Leggendario', 'Fantasy']
+const CONDITIONS = ['A', 'B', 'C', 'D', 'E']
 const WEAK_FOOT = ['Raramente', 'Occasionalmente', 'Spesso', 'Sempre']
 const WEAK_FOOT_ACC = ['Bassa', 'Media', 'Alta', 'Molto Alta']
 const FORM = ['E', 'D', 'C', 'B', 'A', 'B', 'A', 'Normale']
@@ -35,15 +36,21 @@ const COMMON_BOOSTERS = [
   { name: 'GK +10', type: 'goalkeeping' }
 ]
 
+const DEV_POINT_CATEGORIES = [
+  'shooting', 'passing', 'dribbling', 'dexterity',
+  'lowerBodyStrength', 'aerialStrength', 'defending',
+  'gk1', 'gk2', 'gk3'
+]
+
 const initialPlayerData = {
-  player_name: '', position: 'CF', overall_rating: 0,
+  player_name: '', position: 'CF', overall_rating: 0, potential_max: 0, condition: 'A',
   height: null, weight: null, age: null, nationality: '', club_name: '',
   card_type: 'Standard', era: '', team: '', preferredFoot: 'right',
   attacking: { offensiveAwareness: 0, ballControl: 0, dribbling: 0, tightPossession: 0, lowPass: 0, loftedPass: 0, finishing: 0, heading: 0, placeKicking: 0, curl: 0 },
   defending: { defensiveAwareness: 0, defensiveEngagement: 0, tackling: 0, aggression: 0, goalkeeping: 0, gkCatching: 0, gkParrying: 0, gkReflexes: 0, gkReach: 0 },
   athleticism: { speed: 0, acceleration: 0, kickingPower: 0, jump: 0, physicalContact: 0, balance: 0, stamina: 0, weakFootUsage: 4, weakFootAccuracy: 4, form: 8, injuryResistance: 2 },
   skills: [], comSkills: [],
-  build: { currentLevel: null, levelCap: null, developmentPoints: {}, activeBooster: null, activeBoosterId: null },
+  build: { currentLevel: null, levelCap: null, developmentPoints: {}, activeBooster: null, activeBoosterId: null, activeBoosterEnabled: false },
   metadata: {}
 }
 
@@ -72,6 +79,19 @@ function RosaManualInput({ onBack, onRosaCreated }) {
     setPlayerData(prev => ({
       ...prev,
       [category]: { ...prev[category], [stat]: parseInt(value) || 0 }
+    }))
+  }
+
+  const updateDevPoint = (category, value) => {
+    setPlayerData(prev => ({
+      ...prev,
+      build: {
+        ...prev.build,
+        developmentPoints: {
+          ...prev.build.developmentPoints,
+          [category]: parseInt(value) || 0
+        }
+      }
     }))
   }
 
@@ -110,6 +130,7 @@ function RosaManualInput({ onBack, onRosaCreated }) {
         height: playerData.height, weight: playerData.weight, age: playerData.age,
         nationality: playerData.nationality || null, club_name: playerData.club_name || null,
         card_type: playerData.card_type || null, era: playerData.era || null, team: playerData.team || null,
+        potential_max: playerData.potential_max || null, form: playerData.condition,
         base_stats: { overall_rating: overallRating, attacking: playerData.attacking, defending: playerData.defending, athleticism: playerData.athleticism },
         skills: playerData.skills, com_skills: playerData.comSkills, position_ratings: {},
         development_points: playerData.build.developmentPoints || {}, current_level: playerData.build.currentLevel,
@@ -128,11 +149,24 @@ function RosaManualInput({ onBack, onRosaCreated }) {
     }
   }
 
+  const overallRating = playerData.overall_rating || calculateOverallRating()
+  const potentialMax = playerData.potential_max || overallRating
+
   return (
     <div className="rosa-manual-input">
       <div className="manual-header">
         <button onClick={onBack} className="back-btn"><X size={20} /></button>
-        <h2>Nuovo Giocatore</h2>
+        <div className="player-header-info">
+          <div className="rating-display">
+            <span className="current-rating">{overallRating}</span>
+            {potentialMax > overallRating && <span className="potential-rating">{potentialMax}</span>}
+          </div>
+          <div className="position-condition">
+            <span className="position">{playerData.position}</span>
+            <span className="condition">{playerData.condition}</span>
+          </div>
+          <h2>{playerData.player_name || 'Nuovo Giocatore'}</h2>
+        </div>
       </div>
 
       {error && <div className="error-msg">{error}</div>}
@@ -145,6 +179,7 @@ function RosaManualInput({ onBack, onRosaCreated }) {
         <button className={activeTab === 'athleticism' ? 'active' : ''} onClick={() => setActiveTab('athleticism')}><Zap size={16} />Fis</button>
         <button className={activeTab === 'skills' ? 'active' : ''} onClick={() => setActiveTab('skills')}><Award size={16} />Skill</button>
         <button className={activeTab === 'build' ? 'active' : ''} onClick={() => setActiveTab('build')}><Settings size={16} />Build</button>
+        <button className={activeTab === 'devpoints' ? 'active' : ''} onClick={() => setActiveTab('devpoints')}><TrendingUp size={16} />Dev</button>
       </div>
 
       <div className="tab-panel">
@@ -163,9 +198,19 @@ function RosaManualInput({ onBack, onRosaCreated }) {
             <div className="input-field">
               <label>Rating</label>
               <div className="rating-field">
-                <input type="number" min="0" max="120" value={playerData.overall_rating || ''} onChange={(e) => setPlayerData(prev => ({ ...prev, overall_rating: parseInt(e.target.value) || 0 }))} />
+                <input type="number" min="0" max="120" value={overallRating || ''} onChange={(e) => setPlayerData(prev => ({ ...prev, overall_rating: parseInt(e.target.value) || 0 }))} />
                 <button type="button" onClick={() => setPlayerData(prev => ({ ...prev, overall_rating: calculateOverallRating() }))}>Auto</button>
               </div>
+            </div>
+            <div className="input-field">
+              <label>Potential</label>
+              <input type="number" min="0" max="120" value={playerData.potential_max || ''} onChange={(e) => setPlayerData(prev => ({ ...prev, potential_max: parseInt(e.target.value) || null }))} />
+            </div>
+            <div className="input-field">
+              <label>Condizione</label>
+              <select value={playerData.condition} onChange={(e) => setPlayerData(prev => ({ ...prev, condition: e.target.value }))}>
+                {CONDITIONS.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
             </div>
             <div className="input-field">
               <label>Tipo Carta</label>
@@ -218,36 +263,72 @@ function RosaManualInput({ onBack, onRosaCreated }) {
         )}
 
         {activeTab === 'attacking' && (
-          <div className="stats-grid">
-            {Object.entries(playerData.attacking).map(([stat, value]) => (
-              <div key={stat} className="stat-field">
-                <label>{stat.replace(/([A-Z])/g, ' $1').trim()}</label>
-                <input type="number" min="0" max="99" value={value} onChange={(e) => updateStat('attacking', stat, e.target.value)} />
-              </div>
-            ))}
+          <div className="stats-table-container">
+            <table className="stats-table">
+              <thead>
+                <tr>
+                  <th>Stat</th>
+                  <th>Valore</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(playerData.attacking).map(([stat, value]) => (
+                  <tr key={stat}>
+                    <td>{stat.replace(/([A-Z])/g, ' $1').trim()}</td>
+                    <td>
+                      <input type="number" min="0" max="99" value={value} onChange={(e) => updateStat('attacking', stat, e.target.value)} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
 
         {activeTab === 'defending' && (
-          <div className="stats-grid">
-            {Object.entries(playerData.defending).map(([stat, value]) => (
-              <div key={stat} className="stat-field">
-                <label>{stat.replace(/([A-Z])/g, ' $1').trim().replace('Gk', 'GK')}</label>
-                <input type="number" min="0" max="99" value={value} onChange={(e) => updateStat('defending', stat, e.target.value)} />
-              </div>
-            ))}
+          <div className="stats-table-container">
+            <table className="stats-table">
+              <thead>
+                <tr>
+                  <th>Stat</th>
+                  <th>Valore</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(playerData.defending).map(([stat, value]) => (
+                  <tr key={stat}>
+                    <td>{stat.replace(/([A-Z])/g, ' $1').trim().replace('Gk', 'GK')}</td>
+                    <td>
+                      <input type="number" min="0" max="99" value={value} onChange={(e) => updateStat('defending', stat, e.target.value)} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
 
         {activeTab === 'athleticism' && (
           <>
-            <div className="stats-grid">
-              {Object.entries(playerData.athleticism).slice(0, 7).map(([stat, value]) => (
-                <div key={stat} className="stat-field">
-                  <label>{stat.replace(/([A-Z])/g, ' $1').trim()}</label>
-                  <input type="number" min="0" max="99" value={value} onChange={(e) => updateStat('athleticism', stat, e.target.value)} />
-                </div>
-              ))}
+            <div className="stats-table-container">
+              <table className="stats-table">
+                <thead>
+                  <tr>
+                    <th>Stat</th>
+                    <th>Valore</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.entries(playerData.athleticism).slice(0, 7).map(([stat, value]) => (
+                    <tr key={stat}>
+                      <td>{stat.replace(/([A-Z])/g, ' $1').trim()}</td>
+                      <td>
+                        <input type="number" min="0" max="99" value={value} onChange={(e) => updateStat('athleticism', stat, e.target.value)} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
             <div className="characteristics">
               <div className="char-field">
@@ -286,7 +367,7 @@ function RosaManualInput({ onBack, onRosaCreated }) {
                 {COMMON_SKILLS.map(s => (
                   <label key={s} className="skill-item">
                     <input type="checkbox" checked={playerData.skills.includes(s)} onChange={() => toggleSkill(s, false)} />
-                    <span>{s}</span>
+                    <span className="skill-badge">{s}</span>
                   </label>
                 ))}
               </div>
@@ -297,7 +378,7 @@ function RosaManualInput({ onBack, onRosaCreated }) {
                 {COMMON_COM_SKILLS.map(s => (
                   <label key={s} className="skill-item">
                     <input type="checkbox" checked={playerData.comSkills.includes(s)} onChange={() => toggleSkill(s, true)} />
-                    <span>{s}</span>
+                    <span className="skill-badge">{s}</span>
                   </label>
                 ))}
               </div>
@@ -316,8 +397,11 @@ function RosaManualInput({ onBack, onRosaCreated }) {
               <input type="number" min="1" max="120" value={playerData.build.levelCap || ''} onChange={(e) => setPlayerData(prev => ({ ...prev, build: { ...prev.build, levelCap: parseInt(e.target.value) || null } }))} />
             </div>
             <div className="input-field full-width">
-              <label>Booster</label>
-              <select value={playerData.build.activeBooster || ''} onChange={(e) => {
+              <label className="booster-label">
+                <input type="checkbox" checked={playerData.build.activeBoosterEnabled} onChange={(e) => setPlayerData(prev => ({ ...prev, build: { ...prev.build, activeBoosterEnabled: e.target.checked, activeBooster: e.target.checked ? prev.build.activeBooster : null } }))} />
+                <span>Booster Attivo</span>
+              </label>
+              <select value={playerData.build.activeBooster || ''} disabled={!playerData.build.activeBoosterEnabled} onChange={(e) => {
                 const booster = availableBoosters.find(b => b.name === e.target.value)
                 setPlayerData(prev => ({ ...prev, build: { ...prev.build, activeBooster: e.target.value || null, activeBoosterId: booster?.id || null } }))
               }}>
@@ -326,6 +410,28 @@ function RosaManualInput({ onBack, onRosaCreated }) {
                   <option key={b.id || b.name} value={b.name}>{b.name}</option>
                 ))}
               </select>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'devpoints' && (
+          <div className="dev-points-panel">
+            <div className="dev-points-header">
+              <div className="dev-level-info">
+                <span>Livello: {playerData.build.currentLevel || 1} / {playerData.build.levelCap || 1}</span>
+              </div>
+            </div>
+            <div className="dev-points-grid">
+              {DEV_POINT_CATEGORIES.map(cat => {
+                if (playerData.position !== 'GK' && cat.startsWith('gk')) return null
+                if (playerData.position === 'GK' && !cat.startsWith('gk') && cat !== 'defending') return null
+                return (
+                  <div key={cat} className="dev-point-field">
+                    <label>{cat.replace(/([A-Z])/g, ' $1').trim().replace('Gk', 'GK')}</label>
+                    <input type="number" min="0" max="99" value={playerData.build.developmentPoints[cat] || 0} onChange={(e) => updateDevPoint(cat, e.target.value)} />
+                  </div>
+                )
+              })}
             </div>
           </div>
         )}
