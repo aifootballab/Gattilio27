@@ -138,8 +138,10 @@ function AdminImportJSON() {
         total: data.total,
         imported: data.imported,
         updated: data.updated,
+        skipped: data.skipped || 0,
         errors: data.errors,
-        errorsList: data.errorsList
+        errorsList: data.errorsList || [],
+        skippedList: data.skippedList || []
       })
       
       // Pulisci dopo successo
