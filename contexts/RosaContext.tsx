@@ -9,6 +9,8 @@ import * as playerService from '@/services/playerService'
 interface RosaState {
   id: string | null
   name: string | null
+  // Array di 21 slot (11 titolari + 10 riserve). Mantiene i buchi (null) per preservare l'ordine.
+  player_build_ids: (string | null)[]
   players: (any | null)[]
   possible_formations: string[]
   squad_analysis: any | null
@@ -16,10 +18,17 @@ interface RosaState {
   updated_at: string | null
 }
 
+function normalizeSlots<T>(arr: (T | null | undefined)[] | null | undefined, size = 21): (T | null)[] {
+  const out: (T | null)[] = Array.isArray(arr) ? arr.slice(0, size).map(v => (v === undefined ? null : v)) : []
+  while (out.length < size) out.push(null)
+  return out
+}
+
 // Struttura dati Rosa
 const initialRosaState: RosaState = {
   id: null,
   name: null,
+  player_build_ids: Array(21).fill(null),
   players: Array(21).fill(null), // Inizializza con 21 slot null
   possible_formations: [],
   squad_analysis: null,
@@ -65,7 +74,8 @@ export function RosaProvider({ children }: { children: React.ReactNode }) {
           setRosa({
             id: fullRosa.id,
             name: fullRosa.name,
-            players: fullRosa.players || Array(21).fill(null),
+            player_build_ids: normalizeSlots<string>(fullRosa.player_build_ids),
+            players: normalizeSlots<any>(fullRosa.players),
             possible_formations: [],
             squad_analysis: fullRosa.squad_analysis,
             created_at: fullRosa.created_at,
@@ -79,7 +89,8 @@ export function RosaProvider({ children }: { children: React.ReactNode }) {
         setRosa({
           id: fullRosa.id,
           name: fullRosa.name,
-          players: fullRosa.players || Array(21).fill(null),
+          player_build_ids: normalizeSlots<string>(fullRosa.player_build_ids),
+          players: normalizeSlots<any>(fullRosa.players),
           possible_formations: [],
           squad_analysis: fullRosa.squad_analysis,
           created_at: fullRosa.created_at,
@@ -104,6 +115,7 @@ export function RosaProvider({ children }: { children: React.ReactNode }) {
       setRosa({
         id: newRosa.id,
         name: newRosa.name,
+        player_build_ids: Array(21).fill(null),
         players: Array(21).fill(null),
         possible_formations: [],
         squad_analysis: newRosa.squad_analysis,
@@ -228,12 +240,12 @@ export function RosaProvider({ children }: { children: React.ReactNode }) {
     if (!rosa.id) {
       return await createRosa({
         name: rosa.name || 'La mia squadra',
-        player_build_ids: rosa.players.map(p => p?.build_id).filter(Boolean)
+        player_build_ids: (rosa.player_build_ids || rosa.players.map(p => p?.build_id ?? null))
       })
     } else {
       return await rosaService.updateRosa(rosa.id, {
         name: rosa.name,
-        player_build_ids: rosa.players.map(p => p?.build_id).filter(Boolean),
+        player_build_ids: (rosa.player_build_ids || rosa.players.map(p => p?.build_id ?? null)),
         squad_analysis: rosa.squad_analysis
       })
     }

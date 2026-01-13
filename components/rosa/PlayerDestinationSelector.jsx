@@ -35,8 +35,13 @@ export default function PlayerDestinationSelector({
   const [selectedSlot, setSelectedSlot] = useState(null) // Indice slot (0-10 per titolari, 11-20 per riserve)
 
   // Calcola slot disponibili
-  const titolariCount = rosa.player_build_ids?.slice(0, 11).length || 0
-  const riserveCount = rosa.player_build_ids?.slice(11, 21).length || 0
+  const slots = Array.isArray(rosa?.player_build_ids) ? rosa.player_build_ids : []
+  const normalizedSlots = [...slots]
+  while (normalizedSlots.length < 21) normalizedSlots.push(null)
+  if (normalizedSlots.length > 21) normalizedSlots.length = 21
+
+  const titolariCount = normalizedSlots.slice(0, 11).filter(Boolean).length
+  const riserveCount = normalizedSlots.slice(11, 21).filter(Boolean).length
   const titolariSlots = Array.from({ length: 11 }, (_, i) => i)
   const riserveSlots = Array.from({ length: 10 }, (_, i) => i + 11)
 
@@ -52,8 +57,8 @@ export default function PlayerDestinationSelector({
     if (destination === 'titolare') {
       // Trova primo slot libero
       const firstFreeSlot = titolariSlots.find(slot => 
-        !rosa.player_build_ids?.[slot]
-      ) ?? titolariSlots[titolariCount]
+        !normalizedSlots[slot]
+      )
       setSelectedSlot(firstFreeSlot)
     }
   }
@@ -161,7 +166,7 @@ export default function PlayerDestinationSelector({
           <div className="formation-preview">
             <div className="formation-slots">
               {titolariSlots.map(slot => {
-                const isOccupied = !!rosa.player_build_ids?.[slot]
+                const isOccupied = !!normalizedSlots[slot]
                 const isSelected = selectedSlot === slot
                 return (
                   <div
