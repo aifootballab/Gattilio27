@@ -145,7 +145,7 @@ export async function upsertPlayerBuild(buildData) {
       source: buildData.source || 'manual',
       source_data: buildData.source_data || {}
     }, {
-      onConflict: 'user_id,player_base_id'
+      onConflict: 'player_builds_user_id_player_base_id_key'
     })
     .select()
     .single()

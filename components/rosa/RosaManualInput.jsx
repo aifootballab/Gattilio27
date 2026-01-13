@@ -826,6 +826,7 @@ function BoosterViewEdit({
 }) {
   return (
     <div className="view-container booster-view-edit">
+      {/* Stessa struttura Vista Sviluppo */}
       <SviluppoViewEdit 
         playerData={playerData}
         setPlayerData={setPlayerData}
@@ -846,7 +847,7 @@ function BoosterViewEdit({
         setShowMaxBooster={setShowMaxBooster}
       />
       
-      {/* Sezione Booster Evidenziata */}
+      {/* Sezione Booster Evidenziata - Dopo la struttura principale */}
       <div className="booster-section-edit">
         <div className="booster-header">
           <h3>Booster</h3>
