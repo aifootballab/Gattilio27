@@ -389,7 +389,7 @@ function AdminImportJSON() {
         <div className="import-message error">
           <XCircle size={20} />
           <div>
-            <strong>Errore durante l'importazione</strong>
+            <strong>Errore durante l&apos;importazione</strong>
             <p>{result.error}</p>
           </div>
         </div>

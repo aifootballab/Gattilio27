@@ -20,7 +20,7 @@ function PostMatchPage() {
           <div className="analysis-section">
             <h2>Analisi e Insights</h2>
             <div className="analysis-placeholder">
-              <p>Inserisci le statistiche per vedere l'analisi completa</p>
+              <p>Inserisci le statistiche per vedere l&apos;analisi completa</p>
             </div>
           </div>
         </div>

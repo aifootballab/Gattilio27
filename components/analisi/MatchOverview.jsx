@@ -6,7 +6,7 @@ function MatchOverview() {
     <div className="match-overview">
       <h2>Vista Panoramica</h2>
       <div className="overview-placeholder">
-        <p>Tutti i dati necessari per l'analisi delle partite</p>
+        <p>Tutti i dati necessari per l&apos;analisi delle partite</p>
       </div>
     </div>
   )

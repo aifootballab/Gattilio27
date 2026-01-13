@@ -273,7 +273,7 @@ export default function ScreenshotUpload({ onPlayerExtracted }) {
             <>
               <Upload size={48} />
               <h3>Carica Screenshot Profilo Giocatore</h3>
-              <p>Trascina qui l'immagine o clicca per selezionare</p>
+              <p>Trascina qui l&apos;immagine o clicca per selezionare</p>
               <p className="hint">Formati supportati: JPG, PNG, WebP (max 10MB)</p>
             </>
           )}

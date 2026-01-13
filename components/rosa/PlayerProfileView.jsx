@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 import { 
   TrendingUp, Sparkles, BarChart3, 
   ChevronLeft, ChevronRight, X
@@ -24,6 +24,31 @@ function PlayerProfileView({ player, onClose, onEdit, mode = 'view' }) {
   const [activeView, setActiveView] = useState(VIEWS.SVILUPPO)
   const [showMaxBooster, setShowMaxBooster] = useState(false)
 
+  // Navigazione viste
+  const nextView = useCallback(() => {
+    const views = Object.values(VIEWS)
+    const currentIndex = views.indexOf(activeView)
+    const nextIndex = (currentIndex + 1) % views.length
+    setActiveView(views[nextIndex])
+  }, [activeView])
+
+  const prevView = useCallback(() => {
+    const views = Object.values(VIEWS)
+    const currentIndex = views.indexOf(activeView)
+    const prevIndex = (currentIndex - 1 + views.length) % views.length
+    setActiveView(views[prevIndex])
+  }, [activeView])
+
+  // Keyboard navigation (L1/R1 equivalent)
+  useEffect(() => {
+    const handleKeyPress = (e) => {
+      if (e.key === 'ArrowLeft' || e.key === 'q') prevView() // L1 equivalent
+      if (e.key === 'ArrowRight' || e.key === 'e') nextView() // R1 equivalent
+    }
+    window.addEventListener('keydown', handleKeyPress)
+    return () => window.removeEventListener('keydown', handleKeyPress)
+  }, [nextView, prevView])
+
   if (!player) return null
 
   const stats = player.final_stats || player.base_stats || {}
@@ -40,31 +65,6 @@ function PlayerProfileView({ player, onClose, onEdit, mode = 'view' }) {
     const boost = 0 // Placeholder
     return baseValue + boost
   }
-
-  // Navigazione viste
-  const nextView = () => {
-    const views = Object.values(VIEWS)
-    const currentIndex = views.indexOf(activeView)
-    const nextIndex = (currentIndex + 1) % views.length
-    setActiveView(views[nextIndex])
-  }
-
-  const prevView = () => {
-    const views = Object.values(VIEWS)
-    const currentIndex = views.indexOf(activeView)
-    const prevIndex = (currentIndex - 1 + views.length) % views.length
-    setActiveView(views[prevIndex])
-  }
-
-  // Keyboard navigation (L1/R1 equivalent)
-  React.useEffect(() => {
-    const handleKeyPress = (e) => {
-      if (e.key === 'ArrowLeft' || e.key === 'q') prevView() // L1 equivalent
-      if (e.key === 'ArrowRight' || e.key === 'e') nextView() // R1 equivalent
-    }
-    window.addEventListener('keydown', handleKeyPress)
-    return () => window.removeEventListener('keydown', handleKeyPress)
-  }, [activeView])
 
   return (
     <div className="player-profile-view">

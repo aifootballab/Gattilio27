@@ -11,7 +11,7 @@ function AvversarioPage() {
       <div className="avversario-page">
         <div className="avversario-header">
           <h1>Formazione Avversaria</h1>
-          <p>Analizza l'avversario e ricevi contromisure tattiche</p>
+          <p>Analizza l&apos;avversario e ricevi contromisure tattiche</p>
         </div>
 
         <div className="avversario-content">

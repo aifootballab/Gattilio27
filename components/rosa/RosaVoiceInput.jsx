@@ -58,8 +58,8 @@ function RosaVoiceInput({ onBack, onRosaCreated }) {
       <div className="voice-input-container">
         <h3>Dettatura Vocale</h3>
         <p className="instruction">
-          Descrivi i giocatori della tua squadra. Es: "Ho Ronaldinho come trequartista, 
-          Mbappé in attacco, Thuram ala sinistra..."
+          Descrivi i giocatori della tua squadra. Es: &quot;Ho Ronaldinho come trequartista,
+          Mbappé in attacco, Thuram ala sinistra...&quot;
         </p>
 
         <div className="recording-section">
