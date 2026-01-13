@@ -216,6 +216,7 @@ serve(async (req) => {
           skills: extractedData.skills || [],
           com_skills: extractedData.comSkills || [],
           position_ratings: extractedData.positionRatings || {},
+          metadata: extractedData.metadata || {},
           source: 'user_upload'
         })
         .select()
@@ -351,6 +352,7 @@ function extractPlayerData(annotations: any, imageType: string): any {
   const skills = extractSkills(textAnnotations, fullText)
   const comSkills = extractComSkills(textAnnotations, fullText)
   const build = extractBuild(textAnnotations, fullText)
+  const metadata = extractPlayerMetadata(fullText)
 
   // Calcola confidence basato su quanti dati abbiamo estratto
   const extractedFields = [
@@ -375,6 +377,7 @@ function extractPlayerData(annotations: any, imageType: string): any {
     comSkills: comSkills,
     positionRatings: {},
     build: build,
+    metadata,
     confidence: Math.max(0.5, confidence) // Minimo 0.5
   }
 }
@@ -441,6 +444,25 @@ function extractPosition(textAnnotations: any[], fullText: string): string {
   const positions = ['GK', 'CB', 'LB', 'RB', 'DMF', 'CMF', 'LMF', 'RMF', 'AMF', 'LWF', 'RWF', 'SS', 'CF']
   const searchText = fullText.toUpperCase()
   
+  // Mapping abbreviations ITA (UI italiana) -> posizioni standard
+  const itaMap: Record<string, string> = {
+    'POR': 'GK',
+    'DC': 'CB',
+    'TS': 'LB',
+    'TD': 'RB',
+    'MED': 'CMF',
+    'TRQ': 'AMF',
+    'ESA': 'LWF',
+    'EDA': 'RWF',
+    'SP': 'SS',
+    'ATT': 'CF',
+  }
+
+  for (const [ita, standard] of Object.entries(itaMap)) {
+    const re = new RegExp(`\\b${ita}\\b`, 'i')
+    if (re.test(searchText)) return standard
+  }
+
   for (const pos of positions) {
     if (searchText.includes(pos)) {
       return pos
@@ -456,12 +478,12 @@ function extractAttackingStats(textAnnotations: any[], fullText: string): any {
     ballControl: extractStatValue(fullText, ['Ball Control', 'Controllo palla']),
     dribbling: extractStatValue(fullText, ['Dribbling']),
     tightPossession: extractStatValue(fullText, ['Tight Possession', 'Possesso stretto']),
-    lowPass: extractStatValue(fullText, ['Low Pass', 'Passaggio basso']),
+    lowPass: extractStatValue(fullText, ['Low Pass', 'Passaggio basso', 'Passaggio rasoterra']),
     loftedPass: extractStatValue(fullText, ['Lofted Pass', 'Passaggio alto']),
     finishing: extractStatValue(fullText, ['Finishing', 'Finalizzazione']),
     heading: extractStatValue(fullText, ['Heading', 'Colpo di testa']),
-    placeKicking: extractStatValue(fullText, ['Place Kicking', 'Tiro piazzato']),
-    curl: extractStatValue(fullText, ['Curl', 'Effetto'])
+    placeKicking: extractStatValue(fullText, ['Place Kicking', 'Tiro piazzato', 'Calci da fermo', 'Calci piazzati']),
+    curl: extractStatValue(fullText, ['Curl', 'Effetto', 'Tiro a giro'])
   }
 }
 
@@ -471,11 +493,11 @@ function extractDefendingStats(textAnnotations: any[], fullText: string): any {
     defensiveEngagement: extractStatValue(fullText, ['Defensive Engagement', 'Coinvolgimento difensivo']),
     tackling: extractStatValue(fullText, ['Tackling', 'Contrasto']),
     aggression: extractStatValue(fullText, ['Aggression', 'Aggressività']),
-    goalkeeping: extractStatValue(fullText, ['Goalkeeping', 'Portiere']),
-    gkCatching: extractStatValue(fullText, ['GK Catching', 'Parata']),
-    gkParrying: extractStatValue(fullText, ['GK Parrying', 'Respinta']),
-    gkReflexes: extractStatValue(fullText, ['GK Reflexes', 'Riflessi']),
-    gkReach: extractStatValue(fullText, ['GK Reach', 'Portata'])
+    goalkeeping: extractStatValue(fullText, ['Goalkeeping', 'Portiere', 'Comportamento PT', 'Comportamento Portiere']),
+    gkCatching: extractStatValue(fullText, ['GK Catching', 'Presa PT', 'Presa']),
+    gkParrying: extractStatValue(fullText, ['GK Parrying', 'Parata PT', 'Parata']),
+    gkReflexes: extractStatValue(fullText, ['GK Reflexes', 'Riflessi PT', 'Riflessi']),
+    gkReach: extractStatValue(fullText, ['GK Reach', 'Estensione PT', 'Portata'])
   }
 }
 
@@ -483,10 +505,10 @@ function extractAthleticismStats(textAnnotations: any[], fullText: string): any 
   return {
     speed: extractStatValue(fullText, ['Speed', 'Velocità']),
     acceleration: extractStatValue(fullText, ['Acceleration', 'Accelerazione']),
-    kickingPower: extractStatValue(fullText, ['Kicking Power', 'Potenza tiro']),
-    jump: extractStatValue(fullText, ['Jump', 'Salto']),
+    kickingPower: extractStatValue(fullText, ['Kicking Power', 'Potenza tiro', 'Potenza di tiro']),
+    jump: extractStatValue(fullText, ['Jump', 'Salto', 'Elevazione']),
     physicalContact: extractStatValue(fullText, ['Physical Contact', 'Contatto fisico']),
-    balance: extractStatValue(fullText, ['Balance', 'Equilibrio']),
+    balance: extractStatValue(fullText, ['Balance', 'Equilibrio', 'Controllo corpo']),
     stamina: extractStatValue(fullText, ['Stamina', 'Resistenza']),
     weakFootUsage: extractStatValue(fullText, ['Weak Foot Usage', 'Uso piede debole'], 1, 4),
     weakFootAccuracy: extractStatValue(fullText, ['Weak Foot Accuracy', 'Precisione piede debole'], 1, 4),
@@ -496,6 +518,25 @@ function extractAthleticismStats(textAnnotations: any[], fullText: string): any 
 }
 
 function extractSkills(textAnnotations: any[], fullText: string): string[] {
+  // mapping ITA -> canonical (EN) usato nel DB
+  const italianToCanonical: Record<string, string> = {
+    'Doppio tocco': 'Double Touch',
+    'Veronica': 'Marseille Turn',
+    'Taglia alle spalle e gira': 'Cut Behind & Turn',
+    'Controllo di suola': 'Sole Control',
+    'Colpo di tacco': 'Heel Trick',
+    'Passaggio di prima': 'One Touch Pass',
+    'Passaggio filtrante': 'Through Passing',
+    'Passaggio calibrato': 'Weighted Pass',
+    'Esterno a giro': 'Outside Curler',
+    'Intercettazione': 'Interception',
+    'Leader': 'Captaincy',
+    'Passaggio a scavalcare': 'Low Lofted Pass',
+    'Elastico': 'Flip Flap',
+    'Marcatore': 'Man Marking',
+    'Disimpegno acrobatico': 'Acrobatic Clear',
+  }
+
   const commonSkills = [
     'Heading', 'Long Range Drive', 'Chip Shot Control', 'Heel Trick',
     'First Time Shot', 'One Touch Pass', 'Through Passing', 'Outside Curler',
@@ -514,6 +555,14 @@ function extractSkills(textAnnotations: any[], fullText: string): string[] {
   const foundSkills: string[] = []
   const upperText = fullText.toUpperCase()
 
+  // 1) Cerca skill italiane e normalizza
+  for (const [ita, canonical] of Object.entries(italianToCanonical)) {
+    if (upperText.includes(ita.toUpperCase())) {
+      foundSkills.push(canonical)
+    }
+  }
+
+  // 2) Cerca skill già in inglese (fallback)
   for (const skill of commonSkills) {
     const upperSkill = skill.toUpperCase()
     if (upperText.includes(upperSkill)) {
@@ -521,27 +570,35 @@ function extractSkills(textAnnotations: any[], fullText: string): string[] {
     }
   }
 
-  return foundSkills
+  // Dedup mantenendo ordine
+  return Array.from(new Set(foundSkills))
 }
 
 function extractComSkills(textAnnotations: any[], fullText: string): string[] {
-  const comSkills = [
-    'MazingRun', 'IncisiveRun', 'LongRanger', 'EarlyCross', 'Blocker',
-    'Track Back', 'Interception', 'Penalty Specialist', 'GK Long Throw',
-    'GK High Punt', 'GK Low Punt', 'Long Throw', 'Captaincy'
-  ]
-
-  const foundSkills: string[] = []
   const upperText = fullText.toUpperCase()
 
-  for (const skill of comSkills) {
-    const upperSkill = skill.toUpperCase()
-    if (upperText.includes(upperSkill)) {
-      foundSkills.push(skill)
-    }
+  const italianToCanonical: Record<string, string> = {
+    'Serpentina': 'MazingRun',
+    'Esperto palle lunghe': 'Long Ball Expert',
   }
 
-  return foundSkills
+  const known = [
+    'MazingRun', 'IncisiveRun', 'LongRanger', 'EarlyCross', 'Blocker',
+    'Track Back', 'Interception', 'Penalty Specialist', 'GK Long Throw',
+    'GK High Punt', 'GK Low Punt', 'Long Throw', 'Captaincy', 'Long Ball Expert'
+  ]
+
+  const found: string[] = []
+
+  for (const [ita, canonical] of Object.entries(italianToCanonical)) {
+    if (upperText.includes(ita.toUpperCase())) found.push(canonical)
+  }
+
+  for (const skill of known) {
+    if (upperText.includes(skill.toUpperCase())) found.push(skill)
+  }
+
+  return Array.from(new Set(found))
 }
 
 function extractBuild(textAnnotations: any[], fullText: string): any {
@@ -564,8 +621,7 @@ function extractBuild(textAnnotations: any[], fullText: string): any {
     gk3: extractDevPoint(fullText, ['GK 3', 'GK3'])
   }
 
-  const boosterMatch = fullText.match(/([A-Za-z\s]+\s*\+\s*\d+)/)
-  const activeBooster = boosterMatch ? boosterMatch[1].trim() : null
+  const activeBooster = extractActiveBooster(fullText)
 
   if (levelCap || currentLevel || Object.values(developmentPoints).some((v: any) => v !== null)) {
     return {
@@ -577,6 +633,59 @@ function extractBuild(textAnnotations: any[], fullText: string): any {
   }
 
   return null
+}
+
+function extractActiveBooster(fullText: string): string | null {
+  const upper = fullText.toUpperCase()
+
+  // Alcuni booster comuni in ITA (estendibile)
+  const knownItaBoosters = [
+    'ISTINTO DA ATTACCANTE',
+  ]
+  for (const b of knownItaBoosters) {
+    if (upper.includes(b)) {
+      // Ritorna in forma title-case più leggibile
+      return b.toLowerCase().replace(/\b\w/g, c => c.toUpperCase())
+    }
+  }
+
+  // Heuristic: cerca una riga dopo "Booster"
+  const m = fullText.match(/Booster\s*\n?([A-Za-zÀ-ÿ' ]{4,})/i)
+  if (m && m[1]) {
+    const candidate = m[1].trim()
+    if (candidate.length >= 4 && candidate.length <= 60) return candidate
+  }
+
+  // Fallback: se troviamo "Effetto: +1" ma non il nome, non inventiamo nulla.
+  return null
+}
+
+function extractPlayerMetadata(fullText: string): any {
+  const getIntAfter = (label: string) => {
+    const re = new RegExp(`${label}\\s*(\\d{1,3})`, 'i')
+    const m = fullText.match(re)
+    return m ? parseInt(m[1]) : null
+  }
+
+  const height = getIntAfter('Altezza')
+  const weight = getIntAfter('Peso')
+  const age = getIntAfter('Età')
+
+  // Valutazione (es. "Valutazione C")
+  const valuationMatch = fullText.match(/Valutazione\s*([A-E])/i)
+  const valuation = valuationMatch ? valuationMatch[1].toUpperCase() : null
+
+  // Ruolo/Playstyle sotto al nome (es. "Tra le linee")
+  const roleMatch = fullText.match(/Tra le linee|Ala prolifica|Regista|Trascinatore|Centravanti/gi)
+  const roleText = roleMatch && roleMatch.length ? roleMatch[0] : null
+
+  const out: any = {}
+  if (height) out.height = height
+  if (weight) out.weight = weight
+  if (age) out.age = age
+  if (valuation) out.valuation = valuation
+  if (roleText) out.role = roleText
+  return out
 }
 
 function extractStatValue(fullText: string, searchTerms: string[], min: number = 0, max: number = 99): number | null {

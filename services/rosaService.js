@@ -93,8 +93,14 @@ export async function getRosaById(rosaId) {
     throw new Error(`Errore recupero rosa: ${rosaError?.message}`)
   }
 
+  // Normalizza sempre a 21 slot (11 titolari + 10 riserve) preservando i buchi (null)
+  const normalizedBuildIds = Array.isArray(rosa.player_build_ids) ? [...rosa.player_build_ids] : []
+  while (normalizedBuildIds.length < 21) normalizedBuildIds.push(null)
+  if (normalizedBuildIds.length > 21) normalizedBuildIds.splice(21)
+  rosa.player_build_ids = normalizedBuildIds
+
   // Ottieni giocatori completi MANTENENDO L'ORDINE DEGLI SLOT
-  if (rosa.player_build_ids && rosa.player_build_ids.length > 0) {
+  if (rosa.player_build_ids && rosa.player_build_ids.some(Boolean)) {
     // Filtra solo gli ID validi (rimuovi null/undefined)
     const validIds = rosa.player_build_ids.filter(id => id !== null && id !== undefined)
     
@@ -253,30 +259,37 @@ export async function addPlayerToRosa(rosaId, playerBuildId) {
     throw new Error(`Rosa non trovata: ${rosaError?.message}`)
   }
 
-  // Aggiungi player_build_id se non presente
-  const currentIds = rosa.player_build_ids || []
-  if (!currentIds.includes(playerBuildId)) {
-    const updatedIds = [...currentIds, playerBuildId]
+  // Normalizza a 21 slot e inserisci nel primo slot libero (preserva ordine)
+  let currentIds = Array.isArray(rosa.player_build_ids) ? [...rosa.player_build_ids] : []
+  while (currentIds.length < 21) currentIds.push(null)
+  if (currentIds.length > 21) currentIds = currentIds.slice(0, 21)
 
-    const { data, error } = await supabase
-      .from('user_rosa')
-      .update({
-        player_build_ids: updatedIds,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', rosaId)
-      .eq('user_id', tempUserId) // session.user.id
-      .select()
-      .single()
+  // Se il giocatore è già presente, non fare nulla
+  if (currentIds.includes(playerBuildId)) return rosa
 
-    if (error) {
-      throw new Error(`Errore aggiunta giocatore: ${error.message}`)
-    }
-
-    return data
+  const firstFreeSlot = currentIds.findIndex(id => !id)
+  if (firstFreeSlot === -1) {
+    throw new Error('Rosa piena. Rimuovi un giocatore prima di aggiungerne uno nuovo.')
   }
 
-  return rosa
+  currentIds[firstFreeSlot] = playerBuildId
+
+  const { data, error } = await supabase
+    .from('user_rosa')
+    .update({
+      player_build_ids: currentIds,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', rosaId)
+    .eq('user_id', tempUserId) // session.user.id
+    .select()
+    .single()
+
+  if (error) {
+    throw new Error(`Errore aggiunta giocatore: ${error.message}`)
+  }
+
+  return data
 }
 
 /**
@@ -306,9 +319,12 @@ export async function removePlayerFromRosa(rosaId, playerBuildId) {
     throw new Error(`Rosa non trovata: ${rosaError?.message}`)
   }
 
-  // Rimuovi player_build_id
-  const currentIds = rosa.player_build_ids || []
-  const updatedIds = currentIds.filter(id => id !== playerBuildId)
+  // Normalizza a 21 slot e rimuovi preservando ordine (set null)
+  let currentIds = Array.isArray(rosa.player_build_ids) ? [...rosa.player_build_ids] : []
+  while (currentIds.length < 21) currentIds.push(null)
+  if (currentIds.length > 21) currentIds = currentIds.slice(0, 21)
+
+  const updatedIds = currentIds.map(id => (id === playerBuildId ? null : id))
 
   const { data, error } = await supabase
     .from('user_rosa')
@@ -373,6 +389,9 @@ export async function addPlayerToRosaInSlot(rosaId, playerBuildId, destination, 
     currentIds = currentIds.slice(0, 21)
   }
 
+  // Evita duplicati: se il playerBuildId è già presente, rimuovilo dallo slot corrente
+  currentIds = currentIds.map(id => (id === playerBuildId ? null : id))
+
   if (destination === 'titolare') {
     // Validazione slot titolare
     if (slot === null || slot < 0 || slot >= 11) {
@@ -411,14 +430,11 @@ export async function addPlayerToRosaInSlot(rosaId, playerBuildId, destination, 
     throw new Error('Destinazione non valida (deve essere "titolare" o "riserva")')
   }
 
-  // Rimuovi null dall'array (mantieni solo gli ID validi)
-  const cleanedIds = currentIds.filter(id => id !== null && id !== undefined)
-
   // Aggiorna rosa
   const { data, error } = await supabase
     .from('user_rosa')
     .update({
-      player_build_ids: cleanedIds,
+      player_build_ids: currentIds,
       updated_at: new Date().toISOString()
     })
     .eq('id', rosaId)

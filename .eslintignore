@@ -1,0 +1,7 @@
+# Legacy Vite code (not part of Next build)
+src/**
+
+# Build artifacts
+.next/**
+dist/**
+

@@ -11,7 +11,7 @@ function AnalisiPartitePage() {
       <div className="analisi-partite-page">
         <div className="analisi-header">
           <h1>Analisi Partite</h1>
-          <p>Vista panoramica completa per l'analisi delle partite</p>
+          <p>Vista panoramica completa per l&apos;analisi delle partite</p>
         </div>
 
         <div className="analisi-content">
