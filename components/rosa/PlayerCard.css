@@ -69,28 +69,51 @@
   font-size: 1.2rem;
 }
 
-.remove-button {
+.player-actions {
   position: absolute;
   top: 0.5rem;
   right: 0.5rem;
-  background: rgba(255, 0, 0, 0.2);
+  display: flex;
+  gap: 0.5rem;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.player-card:hover .player-actions {
+  opacity: 1;
+}
+
+.view-profile-button,
+.remove-button {
+  background: rgba(0, 0, 0, 0.7);
   border: none;
-  color: #ff6666;
+  color: #fff;
   width: 28px;
   height: 28px;
   border-radius: 50%;
   cursor: pointer;
-  font-size: 1.5rem;
+  font-size: 1rem;
   line-height: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.3s ease;
-  opacity: 0;
 }
 
-.player-card:hover .remove-button {
-  opacity: 1;
+.view-profile-button {
+  background: rgba(59, 130, 246, 0.3);
+  color: #3b82f6;
+}
+
+.view-profile-button:hover {
+  background: rgba(59, 130, 246, 0.6);
+  transform: scale(1.1);
+}
+
+.remove-button {
+  background: rgba(255, 0, 0, 0.2);
+  color: #ff6666;
+  font-size: 1.5rem;
 }
 
 .remove-button:hover {
@@ -109,7 +132,7 @@
     font-size: 1.2rem;
   }
   
-  .remove-button {
+  .player-actions {
     opacity: 1;
   }
 }

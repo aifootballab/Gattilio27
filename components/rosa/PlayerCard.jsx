@@ -4,7 +4,7 @@ import React from 'react'
 import { useRosa } from '../../contexts/RosaContext'
 import './PlayerCard.css'
 
-function PlayerCard({ player }) {
+function PlayerCard({ player, onViewProfile }) {
   const { removePlayer } = useRosa()
 
   const handleRemove = () => {
@@ -31,13 +31,24 @@ function PlayerCard({ player }) {
         </span>
       </div>
 
-      <button 
-        onClick={handleRemove}
-        className="remove-button"
-        title="Rimuovi giocatore"
-      >
-        ×
-      </button>
+      <div className="player-actions">
+        {onViewProfile && (
+          <button 
+            onClick={() => onViewProfile(player)}
+            className="view-profile-button"
+            title="Vedi profilo completo"
+          >
+            👁️
+          </button>
+        )}
+        <button 
+          onClick={handleRemove}
+          className="remove-button"
+          title="Rimuovi giocatore"
+        >
+          ×
+        </button>
+      </div>
     </div>
   )
 }
