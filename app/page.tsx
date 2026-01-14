@@ -37,19 +37,28 @@ type RosaSlot = {
   imageDataUrl?: string
 } | null
 
+type UploadImage = { id: string; dataUrl: string }
+type BatchGroup = {
+  group_id: string
+  label: string
+  image_ids: string[]
+  player: ExtractedPlayer
+  missing_screens?: string[]
+  notes?: string[]
+}
+
 function RosaLocalPage() {
   const [isDragging, setIsDragging] = React.useState(false)
-  const [imageDataUrl, setImageDataUrl] = React.useState<string | null>(null)
+  const [images, setImages] = React.useState<UploadImage[]>([])
   const [isExtracting, setIsExtracting] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
-  const [extracted, setExtracted] = React.useState<ExtractedPlayer | null>(null)
-  const [rawJson, setRawJson] = React.useState<string>('')
   const [selectedSlot, setSelectedSlot] = React.useState<number>(0)
   const [rosa, setRosa] = React.useState<RosaSlot[]>(() => Array.from({ length: 21 }, () => null))
   const [envInfo, setEnvInfo] = React.useState<{ vercelEnv: string | null; hasOpenaiKey: boolean | null }>({
     vercelEnv: null,
     hasOpenaiKey: null,
   })
+  const [groups, setGroups] = React.useState<BatchGroup[]>([])
 
   const fileInputRef = React.useRef<HTMLInputElement | null>(null)
 
@@ -61,8 +70,8 @@ function RosaLocalPage() {
       .catch(() => setEnvInfo({ vercelEnv: null, hasOpenaiKey: null }))
   }, [])
 
-  const compressImageToDataUrl = async (file: File) => {
-    // Riduce dimensioni per evitare body troppo grande su Vercel/Next
+  const compressImageToDataUrl = async (file: File, maxDim = 1200, quality = 0.88) => {
+    // Riduce dimensioni per evitare body troppo grande su Vercel/Next (importante con batch)
     const original = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader()
       reader.onload = () => resolve(String(reader.result))
@@ -74,7 +83,6 @@ function RosaLocalPage() {
     img.src = original
     await img.decode()
 
-    const maxDim = 1400
     const scale = Math.min(1, maxDim / Math.max(img.width, img.height))
     const w = Math.max(1, Math.round(img.width * scale))
     const h = Math.max(1, Math.round(img.height * scale))
@@ -91,43 +99,46 @@ function RosaLocalPage() {
     ctx.drawImage(img, 0, 0, w, h)
 
     // jpeg riduce molto la size
-    const out = canvas.toDataURL('image/jpeg', 0.9)
+    const out = canvas.toDataURL('image/jpeg', quality)
     return out
   }
 
-  const onPickFile = async (file: File) => {
+  const onPickFiles = async (fileList: FileList | File[]) => {
     setError(null)
-    setExtracted(null)
-    setRawJson('')
-    const dataUrl = await compressImageToDataUrl(file)
-    setImageDataUrl(dataUrl)
+    setGroups([])
+    const files = Array.from(fileList).slice(0, 6) // minimo: max 6 immagini per batch
+    const newImages: UploadImage[] = []
+    for (const f of files) {
+      const dataUrl = await compressImageToDataUrl(f, 1200, 0.88)
+      newImages.push({ id: crypto.randomUUID(), dataUrl })
+    }
+    setImages(prev => [...prev, ...newImages])
   }
 
   const onDrop = async (e: React.DragEvent) => {
     e.preventDefault()
     e.stopPropagation()
     setIsDragging(false)
-    const file = e.dataTransfer.files?.[0]
-    if (file) await onPickFile(file)
+    const files = e.dataTransfer.files
+    if (files && files.length) await onPickFiles(files)
   }
 
-  const extract = async () => {
-    if (!imageDataUrl) return
+  const analyzeBatch = async () => {
+    if (!images.length) return
     setIsExtracting(true)
     setError(null)
     try {
-      const res = await fetch('/api/extract-player', {
+      const res = await fetch('/api/extract-batch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageDataUrl }),
+        body: JSON.stringify({ images: images.map(i => ({ id: i.id, imageDataUrl: i.dataUrl })) }),
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
         const details = data?.openai_body || data?.raw || data?.details
         throw new Error(`${data?.error || `Errore estrazione (${res.status})`}${details ? `\n\n${String(details).slice(0, 1200)}` : ''}`)
       }
-      setExtracted(data.player)
-      setRawJson(JSON.stringify(data.player, null, 2))
+      setGroups(Array.isArray(data.groups) ? data.groups : [])
     } catch (err: any) {
       setError(err?.message || 'Errore estrazione')
     } finally {
@@ -135,15 +146,13 @@ function RosaLocalPage() {
     }
   }
 
-  const insertIntoRosa = () => {
-    if (!extracted) return
-    const slot = Math.max(0, Math.min(20, selectedSlot))
+  const insertIntoRosa = (player: ExtractedPlayer, slotIndex: number) => {
+    const slot = Math.max(0, Math.min(20, slotIndex))
     setRosa(prev => {
       const next = [...prev]
       next[slot] = {
         id: crypto.randomUUID(),
-        extracted,
-        imageDataUrl: imageDataUrl || undefined,
+        extracted: player,
       }
       return next
     })
@@ -151,24 +160,23 @@ function RosaLocalPage() {
 
   const reset = () => {
     setError(null)
-    setImageDataUrl(null)
-    setExtracted(null)
-    setRawJson('')
+    setImages([])
+    setGroups([])
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
   return (
     <main className="container">
       <header className="header">
-        <h1>Rosa (Local)</h1>
-        <p className="subtitle">Drag & drop screenshot giocatore → estrazione dati → inserimento in rosa (solo memoria)</p>
+        <h1>Rosa (Production)</h1>
+        <p className="subtitle">Carica 1–6 screenshot (anche mischiati) → raggruppo per giocatore → estraggo dati → inserisci in rosa</p>
         <p className="subtitle" style={{ marginTop: 6, fontSize: 12, opacity: 0.85 }}>
           Env: <b>{envInfo.vercelEnv ?? '—'}</b> · OPENAI_API_KEY: <b>{envInfo.hasOpenaiKey === null ? '—' : envInfo.hasOpenaiKey ? 'OK' : 'MISSING'}</b>
         </p>
       </header>
 
       <section className="card">
-        {!imageDataUrl ? (
+        {!images.length ? (
           <div
             className={`dropzone ${isDragging ? 'dragging' : ''}`}
             onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true) }}
@@ -182,23 +190,31 @@ function RosaLocalPage() {
             <input
               ref={fileInputRef}
               type="file"
+              multiple
               accept="image/jpeg,image/jpg,image/png,image/webp"
               style={{ display: 'none' }}
               onChange={async (e) => {
-                const file = e.target.files?.[0]
-                if (file) await onPickFile(file)
+                const files = e.target.files
+                if (files && files.length) await onPickFiles(files)
               }}
             />
             <div className="dropzone-title">Carica Screenshot</div>
-            <div className="dropzone-hint">Trascina qui oppure clicca (JPG/PNG/WebP)</div>
+            <div className="dropzone-hint">Trascina qui oppure clicca (JPG/PNG/WebP). Puoi caricare 2 o 3 foto per giocatore, anche miste.</div>
           </div>
         ) : (
           <div className="preview">
             <div className="preview-row">
-              <img className="preview-img" src={imageDataUrl} alt="Preview screenshot" />
+              <div className="card inner" style={{ padding: 12 }}>
+                <b>Immagini caricate: {images.length}</b>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8, marginTop: 10 }}>
+                  {images.map((img) => (
+                    <img key={img.id} src={img.dataUrl} alt="thumb" style={{ width: '100%', borderRadius: 10, border: '1px solid rgba(255,255,255,0.12)' }} />
+                  ))}
+                </div>
+              </div>
               <div className="preview-actions">
-                <button className="btn primary" onClick={extract} disabled={isExtracting}>
-                  {isExtracting ? 'Estrazione…' : 'Estrai dati'}
+                <button className="btn primary" onClick={analyzeBatch} disabled={isExtracting}>
+                  {isExtracting ? 'Analisi…' : 'Analizza batch'}
                 </button>
                 <button className="btn" onClick={reset} disabled={isExtracting}>
                   Cambia immagine
@@ -208,48 +224,40 @@ function RosaLocalPage() {
 
             {error && <div className="error">Errore: {error}</div>}
 
-            {extracted && (
+            {groups.length > 0 && (
               <div className="grid">
-                <div className="card inner">
-                  <h2>Dati estratti</h2>
-                  <div className="kv">
-                    <div><b>Nome</b>: {extracted.player_name ?? '—'}</div>
-                    <div><b>OVR</b>: {extracted.overall_rating ?? '—'}</div>
-                    <div><b>Pos</b>: {extracted.position ?? '—'}</div>
-                    <div><b>Ruolo</b>: {extracted.role ?? '—'}</div>
-                    <div><b>Carta</b>: {extracted.card_type ?? '—'}</div>
-                    <div><b>Team</b>: {extracted.team ?? '—'}</div>
-                    <div><b>Nazione/Regione</b>: {extracted.nationality ?? extracted.region_or_nationality ?? '—'}</div>
-                    <div><b>Club</b>: {extracted.club_name ?? '—'}</div>
-                    <div><b>Altezza/Peso/Età</b>: {(extracted.height_cm ?? '—')} / {(extracted.weight_kg ?? '—')} / {(extracted.age ?? '—')}</div>
-                    <div><b>Forma</b>: {extracted.form ?? '—'} · <b>Piede</b>: {extracted.preferred_foot ?? '—'}</div>
-                    <div><b>Livello</b>: {extracted.level_current ?? '—'} / {extracted.level_cap ?? '—'} · <b>Punti</b>: {extracted.progression_points ?? '—'}</div>
-                    <div><b>Partite/Gol/Assist</b>: {extracted.matches_played ?? '—'} / {extracted.goals ?? '—'} / {extracted.assists ?? '—'}</div>
-                    <div><b>Boosters</b>: {extracted.boosters?.filter(b => b?.name || b?.effect).map((b) => `${b.name ?? '—'} (${b.effect ?? '—'})`).join(', ') || '—'}</div>
-                  </div>
-                  <textarea className="json" value={rawJson} readOnly />
-                </div>
+                {groups.map((g) => (
+                  <div key={g.group_id} className="card inner">
+                    <h2>{g.label}</h2>
+                    <div className="kv">
+                      <div><b>Nome</b>: {g.player.player_name ?? '—'}</div>
+                      <div><b>OVR</b>: {g.player.overall_rating ?? '—'} · <b>Pos</b>: {g.player.position ?? '—'}</div>
+                      <div><b>Ruolo</b>: {g.player.role ?? '—'}</div>
+                      <div><b>Carta</b>: {g.player.card_type ?? '—'} · <b>Team</b>: {g.player.team ?? '—'}</div>
+                      <div><b>Boosters</b>: {g.player.boosters?.filter(b => b?.name || b?.effect).map((b) => `${b.name ?? '—'} (${b.effect ?? '—'})`).join(', ') || '—'}</div>
+                      {g.missing_screens?.length ? <div><b>Manca</b>: {g.missing_screens.join(', ')}</div> : null}
+                    </div>
+                    <textarea className="json" value={JSON.stringify(g.player, null, 2)} readOnly />
 
-                <div className="card inner">
-                  <h2>Inserisci in rosa</h2>
-                  <label className="label">
-                    Slot (0-10 titolari, 11-20 panchina)
-                    <select
-                      className="select"
-                      value={selectedSlot}
-                      onChange={(e) => setSelectedSlot(Number(e.target.value))}
-                    >
-                      {Array.from({ length: 21 }, (_, i) => (
-                        <option key={i} value={i}>
-                          {i <= 10 ? `Titolare ${i + 1}` : `Panchina ${i - 10}`}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <button className="btn primary" onClick={insertIntoRosa}>
-                    Inserisci
-                  </button>
-                </div>
+                    <label className="label">
+                      Slot (0-10 titolari, 11-20 panchina)
+                      <select
+                        className="select"
+                        value={selectedSlot}
+                        onChange={(e) => setSelectedSlot(Number(e.target.value))}
+                      >
+                        {Array.from({ length: 21 }, (_, i) => (
+                          <option key={i} value={i}>
+                            {i <= 10 ? `Titolare ${i + 1}` : `Panchina ${i - 10}`}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <button className="btn primary" onClick={() => insertIntoRosa(g.player, selectedSlot)}>
+                      Inserisci questo giocatore
+                    </button>
+                  </div>
+                ))}
               </div>
             )}
           </div>
