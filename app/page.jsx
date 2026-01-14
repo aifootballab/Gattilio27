@@ -75,6 +75,12 @@ function RosaLocalPage() {
     initAnon()
   }, [])
 
+  const getFreshToken = async () => {
+    if (!supabase) return null
+    const { data } = await supabase.auth.getSession()
+    return data?.session?.access_token || null
+  }
+
   const compressImageToDataUrl = async (file, maxDim = 1200, quality = 0.88) => {
     const original = await new Promise((resolve, reject) => {
       const reader = new FileReader()
@@ -166,10 +172,11 @@ function RosaLocalPage() {
   const resetMySupabaseData = async () => {
     setSupabaseMsg(null)
     try {
-      if (!authStatus.token) throw new Error('Anon auth non pronta')
+      const token = await getFreshToken()
+      if (!token) throw new Error('Anon auth non pronta')
       const res = await fetch('/api/supabase/reset-my-data', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${authStatus.token}` },
+        headers: { Authorization: `Bearer ${token}` },
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data?.error || `Reset failed (${res.status})`)
@@ -182,10 +189,11 @@ function RosaLocalPage() {
   const saveToSupabase = async (player, slotIndex) => {
     setSupabaseMsg(null)
     try {
-      if (!authStatus.token) throw new Error('Anon auth non pronta')
+      const token = await getFreshToken()
+      if (!token) throw new Error('Anon auth non pronta')
       const res = await fetch('/api/supabase/save-player', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authStatus.token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ player, slotIndex }),
       })
       const data = await res.json().catch(() => ({}))
