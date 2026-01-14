@@ -11,9 +11,211 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: linear-gradient(135deg, #1a1f3a 0%, #0f1419 100%);
+  background: #0b1020;
   min-height: 100vh;
   color: white;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.header {
+  margin-bottom: 16px;
+}
+
+.subtitle {
+  opacity: 0.8;
+  margin-top: 8px;
+}
+
+.card {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 16px;
+}
+
+.card.inner {
+  margin-top: 0;
+}
+
+.dropzone {
+  border: 2px dashed rgba(255,255,255,0.22);
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+  cursor: pointer;
+  background: rgba(255,255,255,0.04);
+}
+
+.dropzone.dragging {
+  border-color: rgba(168,85,247,0.9);
+  background: rgba(168,85,247,0.12);
+}
+
+.dropzone-title {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.dropzone-hint {
+  margin-top: 8px;
+  opacity: 0.85;
+}
+
+.preview-row {
+  display: grid;
+  grid-template-columns: 1fr 260px;
+  gap: 16px;
+  align-items: start;
+}
+
+.preview-img {
+  width: 100%;
+  max-height: 420px;
+  object-fit: contain;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(0,0,0,0.25);
+}
+
+.preview-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.btn {
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(255,255,255,0.08);
+  color: white;
+  padding: 10px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.btn:hover {
+  background: rgba(255,255,255,0.12);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn.primary {
+  background: rgba(168,85,247,0.25);
+  border-color: rgba(168,85,247,0.5);
+}
+
+.btn.small {
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+.error {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(239,68,68,0.16);
+  border: 1px solid rgba(239,68,68,0.35);
+}
+
+.grid {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.kv {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0 12px;
+  opacity: 0.95;
+}
+
+.json {
+  width: 100%;
+  min-height: 240px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.16);
+  background: rgba(0,0,0,0.35);
+  color: white;
+  padding: 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 12px;
+}
+
+.label {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.select {
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.16);
+  background: rgba(0,0,0,0.35);
+  color: white;
+  padding: 10px;
+}
+
+.rosa-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.rosa-slot {
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.04);
+  border-radius: 12px;
+  padding: 10px;
+  min-height: 96px;
+}
+
+.rosa-slot.filled {
+  border-color: rgba(168,85,247,0.4);
+  background: rgba(168,85,247,0.10);
+}
+
+.slot-title {
+  font-weight: 700;
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.slot-body {
+  margin-top: 8px;
+}
+
+.slot-name {
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.slot-meta {
+  margin-top: 4px;
+  opacity: 0.85;
+  font-size: 12px;
+}
+
+.slot-empty {
+  opacity: 0.6;
+  font-size: 12px;
+}
+
+@media (max-width: 920px) {
+  .preview-row { grid-template-columns: 1fr; }
+  .grid { grid-template-columns: 1fr; }
+  .rosa-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
 /* Scrollbar styling */

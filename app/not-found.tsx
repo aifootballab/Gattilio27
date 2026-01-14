@@ -1,5 +1,8 @@
-import NotFoundPage from '@/components/pages/NotFoundPage'
-
 export default function NotFound() {
-  return <NotFoundPage />
+  return (
+    <main style={{ padding: 24 }}>
+      <h1>404</h1>
+      <p>Pagina non trovata.</p>
+    </main>
+  )
 }

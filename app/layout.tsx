@@ -1,10 +1,9 @@
 import type { Metadata } from 'next'
-import { RosaProvider } from '@/contexts/RosaContext'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'eFootball AI Coach',
-  description: 'Coaching professionale per eFootball',
+  title: 'Gattilio27 - Rosa (Local)',
+  description: 'Test locale: drop screenshot → estrazione dati → inserimento rosa',
 }
 
 export default function RootLayout({
@@ -15,9 +14,7 @@ export default function RootLayout({
   return (
     <html lang="it">
       <body>
-        <RosaProvider>
-          {children}
-        </RosaProvider>
+        {children}
       </body>
     </html>
   )
