@@ -268,7 +268,19 @@ class RealtimeCoachingServiceV2 {
    * Gestisce messaggi dal WebSocket
    */
   handleMessage(message, userId) {
+    // ✅ Verifica che message sia valido
+    if (!message || typeof message !== 'object') {
+      console.warn('⚠️ Invalid message received:', message)
+      return
+    }
+
     const { type, event } = message
+
+    // ✅ Verifica che type esista
+    if (!type) {
+      console.warn('⚠️ Message without type:', message)
+      return
+    }
 
     switch (type) {
       case 'session.created':
@@ -296,7 +308,11 @@ class RealtimeCoachingServiceV2 {
 
       case 'response.function_call':
         // Function call richiesta da GPT
-        this.handleFunctionCall(event, userId)
+        if (event) {
+          this.handleFunctionCall(event, userId)
+        } else {
+          console.warn('⚠️ Function call without event:', message)
+        }
         break
 
       case 'input_audio_transcription.completed':
@@ -343,8 +359,14 @@ class RealtimeCoachingServiceV2 {
 
       case 'error':
         if (this.onError) {
-          this.onError(new Error(event.message || 'Unknown error'))
+          const errorMessage = event?.message || message?.error?.message || 'Unknown error'
+          this.onError(new Error(errorMessage))
         }
+        break
+
+      default:
+        // ✅ Gestisci messaggi non riconosciuti senza crashare
+        console.log('ℹ️ Unhandled message type:', type, message)
         break
     }
   }
@@ -354,7 +376,25 @@ class RealtimeCoachingServiceV2 {
    */
   async handleFunctionCall(call, userId) {
     try {
-      const args = JSON.parse(call.arguments)
+      // ✅ Verifica che call sia valido
+      if (!call || !call.name) {
+        console.error('❌ Invalid function call:', call)
+        return
+      }
+
+      // ✅ Verifica che arguments esista
+      if (!call.arguments) {
+        console.warn('⚠️ Function call without arguments:', call)
+        call.arguments = '{}'
+      }
+
+      let args
+      try {
+        args = typeof call.arguments === 'string' ? JSON.parse(call.arguments) : call.arguments
+      } catch (parseError) {
+        console.error('❌ Error parsing function arguments:', parseError, call.arguments)
+        args = {}
+      }
       
       // ✅ Fix: Ottieni JWT token dalla sessione Supabase invece di usare anon key
       const { data: { session }, error: sessionError } = await supabase.auth.getSession()
