@@ -14,7 +14,13 @@ function RosaLocalPage() {
   const [error, setError] = React.useState(null)
   const [selectedSlot, setSelectedSlot] = React.useState(0)
   const [rosa, setRosa] = React.useState(() => Array.from({ length: 21 }, () => null))
-  const [envInfo, setEnvInfo] = React.useState({ vercelEnv: null, hasOpenaiKey: null })
+  const [envInfo, setEnvInfo] = React.useState({
+    vercelEnv: null,
+    hasOpenaiKey: null,
+    hasSupabaseUrl: null,
+    hasSupabaseAnonKey: null,
+    hasSupabaseServiceRoleKey: null,
+  })
   const [groups, setGroups] = React.useState([])
   const [authStatus, setAuthStatus] = React.useState({ ready: false, userId: null, token: null })
   const [supabaseMsg, setSupabaseMsg] = React.useState(null)
@@ -24,8 +30,24 @@ function RosaLocalPage() {
   React.useEffect(() => {
     fetch('/api/env-check')
       .then((r) => r.json())
-      .then((j) => setEnvInfo({ vercelEnv: j?.vercelEnv ?? null, hasOpenaiKey: !!j?.hasOpenaiKey }))
-      .catch(() => setEnvInfo({ vercelEnv: null, hasOpenaiKey: null }))
+      .then((j) =>
+        setEnvInfo({
+          vercelEnv: j?.vercelEnv ?? null,
+          hasOpenaiKey: j?.hasOpenaiKey ?? null,
+          hasSupabaseUrl: j?.hasSupabaseUrl ?? null,
+          hasSupabaseAnonKey: j?.hasSupabaseAnonKey ?? null,
+          hasSupabaseServiceRoleKey: j?.hasSupabaseServiceRoleKey ?? null,
+        })
+      )
+      .catch(() =>
+        setEnvInfo({
+          vercelEnv: null,
+          hasOpenaiKey: null,
+          hasSupabaseUrl: null,
+          hasSupabaseAnonKey: null,
+          hasSupabaseServiceRoleKey: null,
+        })
+      )
   }, [])
 
   React.useEffect(() => {
@@ -182,6 +204,20 @@ function RosaLocalPage() {
         <p className="subtitle" style={{ marginTop: 6, fontSize: 12, opacity: 0.85 }}>
           Env: <b>{envInfo.vercelEnv ?? '—'}</b> · OPENAI_API_KEY:{' '}
           <b>{envInfo.hasOpenaiKey === null ? '—' : envInfo.hasOpenaiKey ? 'OK' : 'MISSING'}</b>
+        </p>
+        <p className="subtitle" style={{ marginTop: 6, fontSize: 12, opacity: 0.85 }}>
+          Supabase env:{' '}
+          <b>
+            {envInfo.hasSupabaseUrl === null
+              ? '—'
+              : envInfo.hasSupabaseUrl && envInfo.hasSupabaseAnonKey
+                ? 'PUBLIC OK'
+                : 'PUBLIC MISSING'}
+          </b>
+          {' · '}Service key:{' '}
+          <b>
+            {envInfo.hasSupabaseServiceRoleKey === null ? '—' : envInfo.hasSupabaseServiceRoleKey ? 'OK' : 'MISSING'}
+          </b>
         </p>
         <p className="subtitle" style={{ marginTop: 6, fontSize: 12, opacity: 0.85 }}>
           Supabase anon: <b>{authStatus.userId ? 'OK' : authStatus.ready ? 'MISSING' : '…'}</b>
