@@ -413,9 +413,9 @@ export default function VoiceCoachingPanel() {
       const fileName = `chat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`
       const filePath = `chat-images/${fileName}`
 
-      // Upload a Supabase Storage
+      // Upload a Supabase Storage (usa player-screenshots con sottocartella chat-images)
       const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('screenshots')
+        .from('player-screenshots')
         .upload(filePath, imageFile, {
           cacheControl: '3600',
           upsert: false
@@ -425,7 +425,7 @@ export default function VoiceCoachingPanel() {
 
       // Ottieni URL pubblico
       const { data: urlData } = supabase.storage
-        .from('screenshots')
+        .from('player-screenshots')
         .getPublicUrl(filePath)
 
       return urlData.publicUrl
