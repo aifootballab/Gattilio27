@@ -37,19 +37,45 @@ function RosaLocalPage() {
 
   const fileInputRef = React.useRef<HTMLInputElement | null>(null)
 
-  const readFileAsDataUrl = (file: File) =>
-    new Promise<string>((resolve, reject) => {
+  const compressImageToDataUrl = async (file: File) => {
+    // Riduce dimensioni per evitare body troppo grande su Vercel/Next
+    const original = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader()
       reader.onload = () => resolve(String(reader.result))
       reader.onerror = () => reject(new Error('Impossibile leggere il file'))
       reader.readAsDataURL(file)
     })
 
+    const img = new Image()
+    img.src = original
+    await img.decode()
+
+    const maxDim = 1100
+    const scale = Math.min(1, maxDim / Math.max(img.width, img.height))
+    const w = Math.max(1, Math.round(img.width * scale))
+    const h = Math.max(1, Math.round(img.height * scale))
+
+    const canvas = document.createElement('canvas')
+    canvas.width = w
+    canvas.height = h
+    const ctx = canvas.getContext('2d')
+    if (!ctx) throw new Error('Canvas non supportato')
+
+    // sfondo bianco per PNG trasparenti
+    ctx.fillStyle = '#ffffff'
+    ctx.fillRect(0, 0, w, h)
+    ctx.drawImage(img, 0, 0, w, h)
+
+    // jpeg riduce molto la size
+    const out = canvas.toDataURL('image/jpeg', 0.85)
+    return out
+  }
+
   const onPickFile = async (file: File) => {
     setError(null)
     setExtracted(null)
     setRawJson('')
-    const dataUrl = await readFileAsDataUrl(file)
+    const dataUrl = await compressImageToDataUrl(file)
     setImageDataUrl(dataUrl)
   }
 
@@ -71,9 +97,10 @@ function RosaLocalPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ imageDataUrl }),
       })
-      const data = await res.json()
+      const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        throw new Error(data?.error || `Errore estrazione (${res.status})`)
+        const details = data?.openai_body || data?.raw || data?.details
+        throw new Error(`${data?.error || `Errore estrazione (${res.status})`}${details ? `\n\n${String(details).slice(0, 1200)}` : ''}`)
       }
       setExtracted(data.player)
       setRawJson(JSON.stringify(data.player, null, 2))

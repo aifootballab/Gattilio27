@@ -13,12 +13,20 @@ type ExtractedPlayer = {
   skills: string[]
 }
 
+export const runtime = 'nodejs'
+
 function pickJsonObject(text: string): string | null {
   // tenta di prendere il primo oggetto JSON dal testo
   const start = text.indexOf('{')
   const end = text.lastIndexOf('}')
   if (start === -1 || end === -1 || end <= start) return null
   return text.slice(start, end + 1)
+}
+
+function truncate(value: any, max = 2000) {
+  const s = typeof value === 'string' ? value : JSON.stringify(value)
+  if (s.length <= max) return s
+  return s.slice(0, max) + '…(truncated)'
 }
 
 export async function POST(req: Request) {
@@ -81,8 +89,16 @@ Regole:
 
     const openaiJson = await openaiRes.json().catch(() => null)
     if (!openaiRes.ok) {
+      console.error('OpenAI error', {
+        status: openaiRes.status,
+        body: openaiJson,
+      })
       return NextResponse.json(
-        { error: openaiJson?.error?.message || `OpenAI error (${openaiRes.status})` },
+        {
+          error: openaiJson?.error?.message || `OpenAI error (${openaiRes.status})`,
+          openai_status: openaiRes.status,
+          openai_body: truncate(openaiJson, 4000),
+        },
         { status: 500 }
       )
     }
@@ -99,7 +115,7 @@ Regole:
       player = JSON.parse(jsonStr)
     } catch {
       return NextResponse.json(
-        { error: 'Impossibile parse JSON da OpenAI', raw: outputText },
+        { error: 'Impossibile parse JSON da OpenAI', raw: truncate(outputText, 4000) },
         { status: 500 }
       )
     }
@@ -111,7 +127,11 @@ Regole:
 
     return NextResponse.json({ player })
   } catch (err: any) {
-    return NextResponse.json({ error: err?.message || 'Errore server' }, { status: 500 })
+    console.error('Server error /api/extract-player:', err)
+    return NextResponse.json(
+      { error: err?.message || 'Errore server', details: truncate(err, 2000) },
+      { status: 500 }
+    )
   }
 }
 
