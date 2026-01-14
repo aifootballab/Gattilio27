@@ -130,25 +130,52 @@ async function transcribeAudio(audioBase64: string): Promise<string> {
       throw new Error('Audio buffer is empty')
     }
 
-    // ✅ Crea FormData con file audio
-    // IMPORTANTE: Il client ora converte webm opus in WAV prima di inviare
-    // Quindi riceviamo WAV reali, non webm
-    // Creiamo File con estensione .wav e tipo audio/wav
+    // ✅ ENTERPRISE SOLUTION: Rileva formato e gestisci webm/wav
+    // Il client può inviare webm (se conversione fallisce) o wav (se conversione funziona)
+    // Whisper supporta webm, ma potrebbe rifiutare webm opus
+    // Strategia: prova prima formato originale, poi fallback a wav se necessario
     
     const formData = new FormData()
     let audioFile: File | Blob
+    let fileName = 'audio.webm' // Default: assumiamo webm
+    let mimeType = 'audio/webm'
     
-    // ✅ Crea File WAV (il client ha già convertito l'audio da webm opus a WAV)
+    // ✅ Rileva formato guardando i primi bytes (magic numbers)
+    // WebM inizia con: 0x1A 0x45 0xDF 0xA3
+    // WAV inizia con: "RIFF" (0x52 0x49 0x46 0x46)
+    const isWebM = audioBuffer.length >= 4 && 
+                   audioBuffer[0] === 0x1A && 
+                   audioBuffer[1] === 0x45 && 
+                   audioBuffer[2] === 0xDF && 
+                   audioBuffer[3] === 0xA3
+    
+    const isWAV = audioBuffer.length >= 4 &&
+                  String.fromCharCode(audioBuffer[0], audioBuffer[1], audioBuffer[2], audioBuffer[3]) === 'RIFF'
+    
+    if (isWAV) {
+      fileName = 'audio.wav'
+      mimeType = 'audio/wav'
+      console.log('✅ Detected WAV format')
+    } else if (isWebM) {
+      fileName = 'audio.webm'
+      mimeType = 'audio/webm'
+      console.log('✅ Detected WebM format')
+    } else {
+      // Formato sconosciuto, prova webm
+      console.warn('⚠️ Unknown audio format, assuming webm')
+    }
+    
+    // ✅ Crea File con formato rilevato
     try {
-      audioFile = new File([audioBuffer], 'audio.wav', { 
-        type: 'audio/wav',
+      audioFile = new File([audioBuffer], fileName, { 
+        type: mimeType,
         lastModified: Date.now()
       })
-      console.log('✅ Using File constructor with .wav (client converted from webm opus)')
+      console.log(`✅ Using File constructor with ${fileName} (${mimeType})`)
     } catch (fileError) {
       // Fallback: usa Blob
       console.warn('⚠️ File constructor not available, using Blob:', fileError)
-      audioFile = new Blob([audioBuffer], { type: 'audio/wav' })
+      audioFile = new Blob([audioBuffer], { type: mimeType })
     }
     
     // ✅ Aggiungi file a FormData
@@ -162,17 +189,18 @@ async function transcribeAudio(audioBase64: string): Promise<string> {
       fileType: audioFile instanceof File ? 'File' : 'Blob',
       fileName: audioFile instanceof File ? (audioFile as File).name : 'unknown',
       fileMimeType: audioFile instanceof File ? (audioFile as File).type : (audioFile as Blob).type,
-      size: audioBuffer.length
+      size: audioBuffer.length,
+      detectedFormat: isWAV ? 'WAV' : (isWebM ? 'WebM' : 'Unknown')
     })
 
-    console.log('📤 Sending audio to Whisper API:', {
+    console.log(`📤 Sending audio to Whisper API (attempt 1 - ${fileName}):`, {
       size: audioBuffer.length,
       sizeKB: Math.round(audioBuffer.length / 1024),
-      type: 'audio/wav',
-      fileName: 'audio.wav'
+      type: mimeType,
+      fileName: fileName
     })
 
-    const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+    let response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${openaiApiKey}`,
@@ -180,14 +208,54 @@ async function transcribeAudio(audioBase64: string): Promise<string> {
       body: formData
     })
 
+    // ✅ Se webm fallisce, prova con estensione .wav (workaround)
+    if (!response.ok && isWebM) {
+      const errorText = await response.text()
+      console.warn('⚠️ Whisper rejected webm, trying with .wav extension workaround:', {
+        status: response.status,
+        error: errorText.substring(0, 200)
+      })
+      
+      // Prova con estensione .wav (stessi dati, estensione diversa)
+      const formDataWav = new FormData()
+      let audioFileWav: File | Blob
+      
+      try {
+        audioFileWav = new File([audioBuffer], 'audio.wav', { 
+          type: 'audio/wav',
+          lastModified: Date.now()
+        })
+      } catch (fileError) {
+        audioFileWav = new Blob([audioBuffer], { type: 'audio/wav' })
+      }
+      
+      formDataWav.append('file', audioFileWav)
+      formDataWav.append('model', 'whisper-1')
+      formDataWav.append('language', 'it')
+      formDataWav.append('response_format', 'json')
+      
+      console.log('📤 Retrying with .wav extension (workaround)...')
+      response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openaiApiKey}`,
+        },
+        body: formDataWav
+      })
+    }
+
     if (!response.ok) {
       const errorText = await response.text()
-      console.error('❌ Whisper API error:', {
+      console.error('❌ Whisper API error (all attempts failed):', {
         status: response.status,
         statusText: response.statusText,
-        error: errorText
+        error: errorText,
+        detectedFormat: isWAV ? 'WAV' : (isWebM ? 'WebM' : 'Unknown'),
+        originalFileName: fileName
       })
-      throw new Error(`Whisper API error: ${response.status} - ${errorText}`)
+      
+      // ✅ Errore dettagliato per debugging enterprise
+      throw new Error(`Whisper API error: ${response.status} - ${errorText}. Format detected: ${isWAV ? 'WAV' : (isWebM ? 'WebM' : 'Unknown')}. File size: ${audioBuffer.length} bytes.`)
     }
 
     const data = await response.json()
