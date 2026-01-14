@@ -661,6 +661,12 @@ class RealtimeCoachingServiceV2 {
                   this.onAudioTranscription(data.transcription)
                 }
                 
+                // Gestisci audio TTS completo (se presente)
+                if (data.audio && data.audioComplete && this.onAudioDone) {
+                  console.log('🔊 TTS audio complete received')
+                  this.onAudioDone(data.audio)
+                }
+                
                 // Gestisci delta text
                 if (data.delta && this.onTextDelta) {
                   this.currentResponse += data.delta

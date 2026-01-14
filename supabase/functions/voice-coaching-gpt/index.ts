@@ -36,6 +36,61 @@ interface VoiceCoachingRequest {
 // ============================================================================
 
 /**
+ * Genera audio TTS da testo usando OpenAI TTS API
+ */
+async function generateTTS(text: string, voice: string = 'alloy'): Promise<string> {
+  const openaiApiKey = Deno.env.get('OPENAI_API_KEY')
+  
+  if (!openaiApiKey) {
+    throw new Error('OPENAI_API_KEY not configured')
+  }
+
+  try {
+    console.log('🔊 Generating TTS for text:', text.substring(0, 50) + '...')
+    
+    const response = await fetch('https://api.openai.com/v1/audio/speech', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openaiApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'tts-1',
+        input: text,
+        voice: voice, // alloy, echo, fable, onyx, nova, shimmer
+        response_format: 'opus' // opus, mp3, aac, flac
+      })
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('❌ TTS API error:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText
+      })
+      throw new Error(`TTS API error: ${response.status} - ${errorText}`)
+    }
+
+    // Converti audio response in base64
+    const audioBuffer = await response.arrayBuffer()
+    const audioBase64 = btoa(String.fromCharCode(...new Uint8Array(audioBuffer)))
+    
+    console.log('✅ TTS generated:', {
+      textLength: text.length,
+      audioSize: audioBuffer.byteLength,
+      audioSizeKB: Math.round(audioBuffer.byteLength / 1024)
+    })
+
+    return audioBase64
+
+  } catch (error) {
+    console.error('❌ Error generating TTS:', error)
+    throw new Error(`TTS generation failed: ${error.message}`)
+  }
+}
+
+/**
  * Trascrivi audio usando OpenAI Whisper API
  */
 async function transcribeAudio(audioBase64: string): Promise<string> {
@@ -1265,6 +1320,24 @@ COMPORTAMENTO: Analitico, prudente, contestualizzato, guidato. Non creativo, non
                 const data = line.substring(6)
                 if (data === '[DONE]') {
                   console.log('📝 GPT response complete, total length:', fullResponse.length)
+                  
+                  // ✅ Genera audio TTS dalla risposta completa
+                  try {
+                    console.log('🔊 Generating TTS audio for response...')
+                    const ttsAudio = await generateTTS(fullResponse, 'alloy')
+                    
+                    // Invia audio completo al client via SSE
+                    controller.enqueue(
+                      new TextEncoder().encode(
+                        `data: ${JSON.stringify({ audio: ttsAudio, audioComplete: true })}\n\n`
+                      )
+                    )
+                    console.log('✅ TTS audio sent to client')
+                  } catch (ttsError) {
+                    console.warn('⚠️ TTS generation failed, continuing without audio:', ttsError)
+                    // Continua anche se TTS fallisce
+                  }
+                  
                   // Streaming completo - salva risposta completa
                   const updatedHistory = [
                     ...conversationHistory,
