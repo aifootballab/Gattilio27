@@ -1,41 +1,19 @@
 'use client'
 
-import React, { useState } from 'react'
+import React from 'react'
 import DashboardLayout from '../dashboard/DashboardLayout'
 import RosaTitolari from '../rosa/RosaTitolari'
 import RosaPanchina from '../rosa/RosaPanchina'
-import RosaInputSelector from '../rosa/RosaInputSelector'
 import './RosaPage.css'
 
 function RosaPage() {
-  const [showInputSelector, setShowInputSelector] = useState(false)
-
   return (
     <DashboardLayout>
       <div className="rosa-page">
         <div className="rosa-header">
           <h1>La Mia Rosa</h1>
-          <button 
-            className="add-player-btn"
-            onClick={() => setShowInputSelector(true)}
-          >
-            + Aggiungi Giocatore
-          </button>
+          <p className="rosa-hint">Usa il pulsante "Cervello" per aggiungere giocatori via screenshot o conversazione</p>
         </div>
-
-        {showInputSelector && (
-          <div className="input-selector-overlay">
-            <div className="input-selector-modal">
-              <button 
-                className="close-btn"
-                onClick={() => setShowInputSelector(false)}
-              >
-                ×
-              </button>
-              <RosaInputSelector onRosaCreated={() => setShowInputSelector(false)} />
-            </div>
-          </div>
-        )}
 
         <div className="rosa-content">
           <div className="rosa-main">

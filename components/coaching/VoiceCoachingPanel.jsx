@@ -4,418 +4,202 @@ import React, { useState, useRef, useEffect } from 'react'
 import { Mic, MicOff, Send, Volume2, VolumeX, Loader, Sparkles, Square, Image as ImageIcon, X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useRosa } from '@/contexts/RosaContext'
-import realtimeCoachingServiceV2 from '@/services/realtimeCoachingServiceV2'
+import gptRealtimeService from '@/services/gptRealtimeService'
 import './VoiceCoachingPanel.css'
 
 /**
- * Componente Voice Coaching - Coach personale vocale
- * Conversazione bidirezionale con GPT-Realtime
+ * Componente Voice Coaching - Implementazione Pulita
+ * Connessione diretta a GPT Realtime API via WebSocket
  */
 export default function VoiceCoachingPanel() {
   const [isRecording, setIsRecording] = useState(false)
-  const [isListening, setIsListening] = useState(false)
   const [messages, setMessages] = useState([])
   const [currentMessage, setCurrentMessage] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
-  const [audioEnabled, setAudioEnabled] = useState(true) // Abilita/disabilita audio output
+  const [audioEnabled, setAudioEnabled] = useState(true)
   const [streamingResponse, setStreamingResponse] = useState('')
   const [currentFunctionCall, setCurrentFunctionCall] = useState(null)
   const [canInterrupt, setCanInterrupt] = useState(false)
-  const [selectedImage, setSelectedImage] = useState(null) // Immagine selezionata per inviare
-  const [imagePreview, setImagePreview] = useState(null) // Preview immagine
-  const [isPlayingAudio, setIsPlayingAudio] = useState(false) // Stato riproduzione audio
+  const [selectedImage, setSelectedImage] = useState(null)
+  const [imagePreview, setImagePreview] = useState(null)
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false)
+  const [isConnected, setIsConnected] = useState(false)
   
   const mediaRecorderRef = useRef(null)
   const audioChunksRef = useRef([])
   const messagesEndRef = useRef(null)
   const streamingMessageRef = useRef(null)
   const imageInputRef = useRef(null)
-  const audioContextRef = useRef(null) // AudioContext per riproduzione
-  const audioQueueRef = useRef([]) // Coda chunk audio
-  const currentAudioRef = useRef(null) // Audio element corrente
+  const audioContextRef = useRef(null)
+  const currentAudioRef = useRef(null)
   const { rosa } = useRosa()
   const sessionInitialized = useRef(false)
-
-  /**
-   * Converte AudioBuffer in Blob WAV
-   * @param {AudioBuffer} audioBuffer - Buffer audio da convertire
-   * @returns {Blob} - Blob WAV
-   */
-  const audioBufferToWav = (audioBuffer) => {
-    const numChannels = audioBuffer.numberOfChannels
-    const sampleRate = audioBuffer.sampleRate
-    const length = audioBuffer.length
-    
-    // Crea buffer per WAV
-    const buffer = new ArrayBuffer(44 + length * numChannels * 2)
-    const view = new DataView(buffer)
-    
-    // WAV header
-    const writeString = (offset, string) => {
-      for (let i = 0; i < string.length; i++) {
-        view.setUint8(offset + i, string.charCodeAt(i))
-      }
-    }
-    
-    writeString(0, 'RIFF')
-    view.setUint32(4, 36 + length * numChannels * 2, true)
-    writeString(8, 'WAVE')
-    writeString(12, 'fmt ')
-    view.setUint32(16, 16, true) // fmt chunk size
-    view.setUint16(20, 1, true) // audio format (1 = PCM)
-    view.setUint16(22, numChannels, true)
-    view.setUint32(24, sampleRate, true)
-    view.setUint32(28, sampleRate * numChannels * 2, true) // byte rate
-    view.setUint16(32, numChannels * 2, true) // block align
-    view.setUint16(34, 16, true) // bits per sample
-    writeString(36, 'data')
-    view.setUint32(40, length * numChannels * 2, true)
-    
-    // Converti canali audio in interi 16-bit
-    let offset = 44
-    for (let i = 0; i < length; i++) {
-      for (let channel = 0; channel < numChannels; channel++) {
-        const sample = Math.max(-1, Math.min(1, audioBuffer.getChannelData(channel)[i]))
-        view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true)
-        offset += 2
-      }
-    }
-    
-    return new Blob([buffer], { type: 'audio/wav' })
-  }
 
   // Scroll to bottom quando arrivano nuovi messaggi
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  // Formatta contenuto messaggio con markdown e strutture
-  const formatMessageContent = (content) => {
-    if (!content) return null
-
-    // Rileva sezione dati riconosciuti
-    const recognizedMatch = content.match(/✅\s*DATI\s*RICONOSCIUTI[^❌]*/s)
-    const uncertainMatch = content.match(/⚠️\s*DATI\s*INCERTI[^❌]*/s)
-    const missingMatch = content.match(/❌\s*DATI\s*NON\s*RICONOSCIUTI[^💡]*/s)
-    const suggestionsMatch = content.match(/💡\s*COSA\s*POSSIAMO\s*FARE:?[^]*/s)
-
-    if (recognizedMatch || uncertainMatch || missingMatch || suggestionsMatch) {
-      // Formato strutturato coach professionale
-      return (
-        <div className="coach-structured-message">
-          {recognizedMatch && (
-            <div className="coach-section recognized">
-              <div className="section-header">✅ DATI RICONOSCIUTI</div>
-              <div className="section-content">
-                {formatList(recognizedMatch[0].replace(/✅\s*DATI\s*RICONOSCIUTI[:\s]*/i, ''))}
-              </div>
-            </div>
-          )}
-          {uncertainMatch && (
-            <div className="coach-section uncertain">
-              <div className="section-header">⚠️ DATI INCERTI</div>
-              <div className="section-content">
-                {formatList(uncertainMatch[0].replace(/⚠️\s*DATI\s*INCERTI[:\s]*/i, ''))}
-              </div>
-            </div>
-          )}
-          {missingMatch && (
-            <div className="coach-section missing">
-              <div className="section-header">❌ DATI NON RICONOSCIUTI</div>
-              <div className="section-content">
-                {formatList(missingMatch[0].replace(/❌\s*DATI\s*NON\s*RICONOSCIUTI[:\s]*/i, ''))}
-              </div>
-            </div>
-          )}
-          {suggestionsMatch && (
-            <div className="coach-section suggestions">
-              <div className="section-header">💡 COSA POSSIAMO FARE</div>
-              <div className="section-content">
-                {formatList(suggestionsMatch[0].replace(/💡\s*COSA\s*POSSIAMO\s*FARE[:\s]*/i, ''))}
-              </div>
-            </div>
-          )}
-          {formatRegularText(content, recognizedMatch, uncertainMatch, missingMatch, suggestionsMatch)}
-        </div>
-      )
-    }
-
-    // Formato normale con markdown base
-    return formatRegularText(content)
-  }
-
-  const formatList = (text) => {
-    const lines = text.split('\n').filter(line => line.trim())
-    return (
-      <ul className="coach-list">
-        {lines.map((line, idx) => {
-          // Rileva confidence percentage
-          const confidenceMatch = line.match(/\((\d+)%\s*certo\)/i)
-          const cleanLine = line.replace(/\s*\([\d%]+[^)]*\)/g, '').replace(/^[-•]\s*/, '').trim()
-          
-          return (
-            <li key={idx} className="coach-list-item">
-              <span className="list-item-text">{cleanLine}</span>
-              {confidenceMatch && (
-                <span className="confidence-badge" style={{
-                  backgroundColor: getConfidenceColor(parseInt(confidenceMatch[1]))
-                }}>
-                  {confidenceMatch[1]}%
-                </span>
-              )}
-            </li>
-          )
-        })}
-      </ul>
-    )
-  }
-
-  const getConfidenceColor = (percentage) => {
-    if (percentage >= 90) return '#10b981' // Verde
-    if (percentage >= 70) return '#f59e0b' // Arancione
-    return '#ef4444' // Rosso
-  }
-
-  const formatRegularText = (text, ...exclusions) => {
-    // Rimuovi sezioni già formattate
-    let cleanText = text
-    exclusions.forEach(excl => {
-      if (excl) cleanText = cleanText.replace(excl[0], '')
-    })
-    
-    // Formatta markdown base
-    const parts = []
-    let currentIndex = 0
-    
-    // Bold **text**
-    const boldRegex = /\*\*(.+?)\*\*/g
-    let match
-    
-    while ((match = boldRegex.exec(cleanText)) !== null) {
-      if (match.index > currentIndex) {
-        parts.push(cleanText.substring(currentIndex, match.index))
-      }
-      parts.push(<strong key={match.index}>{match[1]}</strong>)
-      currentIndex = match.index + match[0].length
-    }
-    
-    if (currentIndex < cleanText.length) {
-      parts.push(cleanText.substring(currentIndex))
-    }
-    
-    // Split per paragrafi
-    const paragraphs = parts.length > 0 ? parts.join('').split('\n\n') : cleanText.split('\n\n')
-    
-    return (
-      <div className="message-paragraphs">
-        {paragraphs.map((para, idx) => (
-          <p key={idx} className="message-paragraph">
-            {para.split('\n').map((line, lineIdx) => (
-              <React.Fragment key={lineIdx}>
-                {line}
-                {lineIdx < para.split('\n').length - 1 && <br />}
-              </React.Fragment>
-            ))}
-          </p>
-        ))}
-      </div>
-    )
-  }
-
-  // Inizializza sessione Realtime API quando il componente si monta
+  // Inizializza connessione GPT Realtime
   useEffect(() => {
-    const initSession = async () => {
-      if (!sessionInitialized.current) {
-        try {
-          // ✅ Verifica se utente è già autenticato, altrimenti fai login anonymous
-          let { data: { session }, error: sessionError } = await supabase.auth.getSession()
+    const initConnection = async () => {
+      if (sessionInitialized.current) return
+
+      try {
+        // Verifica autenticazione
+        let { data: { session }, error: sessionError } = await supabase.auth.getSession()
+        
+        if (!session || sessionError) {
+          const { data: authData, error: authError } = await supabase.auth.signInAnonymously()
           
-          if (!session || sessionError) {
-            // Se non c'è sessione, fai login anonymous
-            const { data: authData, error: authError } = await supabase.auth.signInAnonymously()
-            
-            if (authError || !authData.session) {
-              throw new Error(`Errore autenticazione: ${authError?.message || 'Impossibile creare sessione anonima'}`)
-            }
-            
-            session = authData.session
-            console.log('✅ Login anonymous completato', {
-              userId: session.user.id,
-              isAnonymous: session.user.is_anonymous,
-              hasToken: !!session.access_token
-            })
-            
-            // ✅ Piccolo delay per assicurarsi che la sessione sia completamente pronta
-            await new Promise(resolve => setTimeout(resolve, 100))
-            
-            // ✅ Verifica che la sessione sia ancora valida dopo il delay
-            const { data: { session: verifySession } } = await supabase.auth.getSession()
-            if (verifySession && verifySession.access_token) {
-              session = verifySession
-            }
+          if (authError || !authData.session) {
+            throw new Error(`Errore autenticazione: ${authError?.message || 'Impossibile creare sessione anonima'}`)
           }
           
-          const userId = session.user.id
-          const context = {
-            rosa: rosa,
-            user_profile: {
-              coaching_level: 'intermedio'
-            }
+          session = authData.session
+        }
+
+        const userId = session.user.id
+        const context = {
+          rosa: rosa,
+          user_profile: {
+            coaching_level: 'intermedio'
           }
+        }
 
-          // Setup callback per streaming word-by-word
-          realtimeCoachingServiceV2.onTextDeltaCallback((delta) => {
-            if (delta === null) {
-              // Streaming completato
-              if (streamingMessageRef.current) {
-                streamingMessageRef.current.isStreaming = false
-                streamingMessageRef.current = null
-              }
-              setStreamingResponse('')
-              setIsProcessing(false)
-              setCanInterrupt(false)
-            } else {
-              // Nuova parola in streaming
-              setStreamingResponse(prev => {
-                const newText = prev + delta
-                // Aggiorna messaggio streaming in tempo reale
-                if (streamingMessageRef.current) {
-                  streamingMessageRef.current.content = newText
-                  // Aggiorna messaggio nella lista
-                  setMessages(prev => prev.map(msg => 
-                    msg === streamingMessageRef.current 
-                      ? { ...msg, content: newText }
-                      : msg
-                  ))
-                } else {
-                  // Crea nuovo messaggio streaming
-                  const streamingMsg = {
-                    role: 'coach',
-                    content: newText,
-                    timestamp: new Date(),
-                    isStreaming: true
-                  }
-                  streamingMessageRef.current = streamingMsg
-                  setMessages(prev => [...prev, streamingMsg])
-                }
-                setCanInterrupt(true)
-                setIsProcessing(true)
-                return newText
-              })
+        // Setup callbacks
+        gptRealtimeService.setOnTextDelta((delta) => {
+          if (delta === null) {
+            // Streaming completato
+            if (streamingMessageRef.current) {
+              streamingMessageRef.current.isStreaming = false
+              streamingMessageRef.current = null
             }
-          })
-
-          // Setup callback per function calls
-          realtimeCoachingServiceV2.onFunctionCallCallback((call) => {
-            setCurrentFunctionCall({
-              name: call.name,
-              status: 'executing'
-            })
-            // Mostra notifica in UI
-            const functionMsg = {
-              role: 'system',
-              content: `🔧 Eseguendo: ${call.name}...`,
-              timestamp: new Date(),
-              isFunctionCall: true
-            }
-            setMessages(prev => [...prev, functionMsg])
-            
-            // Dopo 2 secondi, aggiorna con risultato
-            setTimeout(() => {
-              setCurrentFunctionCall(prev => {
-                if (prev && prev.name === call.name) {
-                  return { ...prev, status: 'completed' }
-                }
-                return prev
-              })
-              // Aggiorna messaggio con risultato
-              setMessages(prev => prev.map(msg => 
-                msg.isFunctionCall && msg.content.includes(call.name)
-                  ? { ...msg, content: `✅ Completato: ${call.name}` }
-                  : msg
-              ))
-              // Rimuovi dopo 3 secondi
-              setTimeout(() => {
-                setCurrentFunctionCall(null)
-              }, 3000)
-            }, 2000)
-          })
-
-          // Setup callback per trascrizione audio utente
-          realtimeCoachingServiceV2.onAudioTranscriptionCallback((transcribedText) => {
-            // Aggiorna ultimo messaggio utente con trascrizione
-            setMessages(prev => {
-              const updated = [...prev]
-              // Trova ultimo messaggio utente (se esiste)
-              for (let i = updated.length - 1; i >= 0; i--) {
-                if (updated[i].role === 'user' && updated[i].isAudio) {
-                  updated[i] = {
-                    ...updated[i],
-                    content: transcribedText,
-                    transcribed: true
-                  }
-                  break
-                }
-              }
-              return updated
-            })
-          })
-
-          // ✅ Setup callback per audio output (TTS) - chunk in streaming
-          realtimeCoachingServiceV2.onAudioDeltaCallback((audioChunk) => {
-            if (audioEnabled) {
-              // Accumula chunk audio
-              audioQueueRef.current.push(audioChunk)
-              // Riproduci chunk immediatamente se non c'è audio in riproduzione
-              if (!isPlayingAudio) {
-                playAudioChunk(audioChunk)
-              }
-            }
-          })
-
-          // ✅ Setup callback per audio output completo (TTS)
-          realtimeCoachingServiceV2.onAudioDoneCallback((audioBase64) => {
-            if (audioEnabled) {
-              // Riproduci audio completo
-              playCompleteAudio(audioBase64)
-            }
-          })
-
-          // Setup callback per errori
-          realtimeCoachingServiceV2.onErrorCallback((error) => {
-            const errorMsg = {
-              role: 'error',
-              content: `Errore: ${error.message}`,
-              timestamp: new Date()
-            }
-            setMessages(prev => [...prev, errorMsg])
+            setStreamingResponse('')
             setIsProcessing(false)
             setCanInterrupt(false)
-          })
+          } else {
+            // Nuova parola in streaming
+            setStreamingResponse(prev => {
+              const newText = prev + delta
+              if (streamingMessageRef.current) {
+                streamingMessageRef.current.content = newText
+                setMessages(prev => prev.map(msg => 
+                  msg === streamingMessageRef.current 
+                    ? { ...msg, content: newText }
+                    : msg
+                ))
+              } else {
+                const streamingMsg = {
+                  role: 'coach',
+                  content: newText,
+                  timestamp: new Date(),
+                  isStreaming: true
+                }
+                streamingMessageRef.current = streamingMsg
+                setMessages(prev => [...prev, streamingMsg])
+              }
+              setCanInterrupt(true)
+              setIsProcessing(true)
+              return newText
+            })
+          }
+        })
 
-          // ✅ Passa la sessione direttamente per evitare problemi di timing
-          await realtimeCoachingServiceV2.startSession(userId, context, session)
-          sessionInitialized.current = true
-        } catch (error) {
-          console.error('Error initializing session:', error)
+        gptRealtimeService.setOnFunctionCall((call) => {
+          setCurrentFunctionCall({
+            name: call.name,
+            status: 'executing'
+          })
+          const functionMsg = {
+            role: 'system',
+            content: `🔧 Eseguendo: ${call.name}...`,
+            timestamp: new Date(),
+            isFunctionCall: true
+          }
+          setMessages(prev => [...prev, functionMsg])
+          
+          setTimeout(() => {
+            setCurrentFunctionCall(prev => {
+              if (prev && prev.name === call.name) {
+                return { ...prev, status: 'completed' }
+              }
+              return prev
+            })
+            setMessages(prev => prev.map(msg => 
+              msg.isFunctionCall && msg.content.includes(call.name)
+                ? { ...msg, content: `✅ Completato: ${call.name}` }
+                : msg
+            ))
+            setTimeout(() => {
+              setCurrentFunctionCall(null)
+            }, 3000)
+          }, 2000)
+        })
+
+        gptRealtimeService.setOnTranscription((transcribedText) => {
+          setMessages(prev => {
+            const updated = [...prev]
+            for (let i = updated.length - 1; i >= 0; i--) {
+              if (updated[i].role === 'user' && updated[i].isAudio) {
+                updated[i] = {
+                  ...updated[i],
+                  content: transcribedText,
+                  transcribed: true
+                }
+                break
+              }
+            }
+            return updated
+          })
+        })
+
+        gptRealtimeService.setOnAudioDelta((audioChunk) => {
+          if (audioEnabled) {
+            playAudioChunk(audioChunk)
+          }
+        })
+
+        gptRealtimeService.setOnAudioDone((audioBase64) => {
+          if (audioEnabled) {
+            playCompleteAudio(audioBase64)
+          }
+        })
+
+        gptRealtimeService.setOnError((error) => {
           const errorMsg = {
             role: 'error',
-            content: `Errore inizializzazione: ${error.message}`,
+            content: `Errore: ${error.message}`,
             timestamp: new Date()
           }
           setMessages(prev => [...prev, errorMsg])
+          setIsProcessing(false)
+          setCanInterrupt(false)
+        })
+
+        // Connetti a GPT Realtime API
+        await gptRealtimeService.connect(userId, context)
+        setIsConnected(true)
+        sessionInitialized.current = true
+
+      } catch (error) {
+        console.error('Error initializing connection:', error)
+        const errorMsg = {
+          role: 'error',
+          content: `Errore inizializzazione: ${error.message}`,
+          timestamp: new Date()
         }
+        setMessages(prev => [...prev, errorMsg])
       }
     }
 
-    initSession()
+    initConnection()
 
-    // Cleanup quando il componente si smonta
+    // Cleanup
     return () => {
       if (sessionInitialized.current) {
-        realtimeCoachingServiceV2.disconnect()
+        gptRealtimeService.disconnect()
       }
-      // ✅ Cleanup audio
       if (currentAudioRef.current) {
         currentAudioRef.current.pause()
         currentAudioRef.current = null
@@ -425,41 +209,14 @@ export default function VoiceCoachingPanel() {
         audioContextRef.current = null
       }
     }
-  }, [rosa])
+  }, [rosa, audioEnabled])
 
   // Inizia registrazione audio
   const handleStartRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      
-      // ✅ Prova formati compatibili con AudioContext.decodeAudioData
-      // IMPORTANTE: decodeAudioData NON supporta webm opus in Chrome
-      // Preferiamo formati che possono essere decodificati per la conversione WAV
-      let mimeType = 'audio/webm'
-      const supportedTypes = [
-        'audio/webm;codecs=vp9', // VP9 codec (se supportato, può essere decodificato)
-        'audio/webm', // webm generico (potrebbe essere opus)
-        'audio/mp4', // MP4 (se supportato)
-        'audio/webm;codecs=opus', // Opus (fallback, non decodificabile)
-        'audio/ogg;codecs=opus' // OGG Opus (fallback)
-      ]
-      
-      // Trova il primo formato supportato
-      for (const type of supportedTypes) {
-        if (MediaRecorder.isTypeSupported(type)) {
-          mimeType = type
-          console.log(`✅ Using audio format: ${mimeType}`)
-          break
-        }
-      }
-      
-      // ⚠️ Avviso se stiamo usando opus (non decodificabile)
-      if (mimeType.includes('opus')) {
-        console.warn('⚠️ Using opus codec - conversion to WAV may fail, will send webm directly')
-      }
-      
       const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: mimeType
+        mimeType: 'audio/webm'
       })
 
       mediaRecorderRef.current = mediaRecorder
@@ -472,28 +229,13 @@ export default function VoiceCoachingPanel() {
       }
 
       mediaRecorder.onstop = async () => {
-        // ✅ ENTERPRISE SOLUTION: Invia webm direttamente al server
-        // Il server userà un metodo più robusto per convertire se necessario
-        // Questo evita problemi di compatibilità browser con decodeAudioData
-        const webmBlob = new Blob(audioChunksRef.current, { 
-          type: mimeType || 'audio/webm' 
-        })
-        
-        console.log('📤 Sending audio to server (enterprise mode - server-side conversion):', {
-          size: webmBlob.size,
-          sizeKB: Math.round(webmBlob.size / 1024),
-          type: mimeType || 'audio/webm'
-        })
-        
-        await sendAudioMessage(webmBlob)
-        
-        // Stop stream
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+        await sendAudioMessage(audioBlob)
         stream.getTracks().forEach(track => track.stop())
       }
 
       mediaRecorder.start()
       setIsRecording(true)
-      setIsListening(true)
 
     } catch (error) {
       console.error('Error starting recording:', error)
@@ -506,7 +248,6 @@ export default function VoiceCoachingPanel() {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop()
       setIsRecording(false)
-      setIsListening(false)
     }
   }
 
@@ -524,19 +265,16 @@ export default function VoiceCoachingPanel() {
     const file = e.target.files?.[0]
     if (!file) return
 
-    // Verifica tipo file
     if (!file.type.startsWith('image/')) {
       alert('Seleziona un file immagine valido')
       return
     }
 
-    // Verifica dimensione (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
       alert('Immagine troppo grande. Massimo 10MB')
       return
     }
 
-    // Crea preview
     const reader = new FileReader()
     reader.onloadend = () => {
       setImagePreview(reader.result)
@@ -554,14 +292,13 @@ export default function VoiceCoachingPanel() {
     }
   }
 
-  // Upload immagine a Supabase Storage e ottieni URL
+  // Upload immagine a Supabase Storage
   const uploadImageToStorage = async (imageFile) => {
     try {
       const fileExt = imageFile.name.split('.').pop()
       const fileName = `chat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`
       const filePath = `chat-images/${fileName}`
 
-      // Upload a Supabase Storage (usa player-screenshots con sottocartella chat-images)
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('player-screenshots')
         .upload(filePath, imageFile, {
@@ -571,7 +308,6 @@ export default function VoiceCoachingPanel() {
 
       if (uploadError) throw uploadError
 
-      // Ottieni URL pubblico
       const { data: urlData } = supabase.storage
         .from('player-screenshots')
         .getPublicUrl(filePath)
@@ -583,32 +319,11 @@ export default function VoiceCoachingPanel() {
     }
   }
 
-  // Invia messaggio testuale usando Realtime API
+  // Invia messaggio testuale
   const sendTextMessage = async (text) => {
-    if (!realtimeCoachingServiceV2.isActive) {
-      // Se sessione non attiva, inizializza
-      try {
-        // ✅ Verifica se utente è già autenticato, altrimenti fai login anonymous
-        let { data: { session }, error: sessionError } = await supabase.auth.getSession()
-        
-        if (!session || sessionError) {
-          // Se non c'è sessione, fai login anonymous
-          const { data: authData, error: authError } = await supabase.auth.signInAnonymously()
-          
-          if (authError || !authData.session) {
-            throw new Error(`Errore autenticazione: ${authError?.message || 'Impossibile creare sessione anonima'}`)
-          }
-          
-          session = authData.session
-        }
-        
-        const userId = session.user.id
-        // ✅ Passa la sessione direttamente per evitare problemi di timing
-        await realtimeCoachingServiceV2.startSession(userId, { rosa, user_profile: { coaching_level: 'intermedio' } }, session)
-      } catch (error) {
-        console.error('Error starting session:', error)
-        return
-      }
+    if (!isConnected) {
+      alert('Non connesso a GPT Realtime API. Attendi...')
+      return
     }
 
     setIsProcessing(true)
@@ -648,13 +363,11 @@ export default function VoiceCoachingPanel() {
     handleRemoveImage()
 
     try {
-      // Invia messaggio via Realtime API (streaming) con immagine se presente
-      const messageInput = { text: text || undefined }
       if (imageUrl) {
-        messageInput.image = imageUrl
+        gptRealtimeService.sendImageMessage(text, imageUrl)
+      } else {
+        gptRealtimeService.sendTextMessage(text)
       }
-      realtimeCoachingServiceV2.sendMessage(messageInput)
-      // La risposta arriverà tramite callback onTextDelta (streaming word-by-word)
     } catch (error) {
       console.error('Error sending message:', error)
       const errorMsg = {
@@ -668,17 +381,11 @@ export default function VoiceCoachingPanel() {
     }
   }
 
-  // Invia messaggio audio usando Realtime API
+  // Invia messaggio audio
   const sendAudioMessage = async (audioBlob) => {
-    if (!realtimeCoachingServiceV2.isActive) {
-      // Se sessione non attiva, inizializza
-      try {
-        const userId = '00000000-0000-0000-0000-000000000001'
-        await realtimeCoachingServiceV2.startSession(userId, { rosa, user_profile: { coaching_level: 'intermedio' } })
-      } catch (error) {
-        console.error('Error starting session:', error)
-        return
-      }
+    if (!isConnected) {
+      alert('Non connesso a GPT Realtime API. Attendi...')
+      return
     }
 
     setIsProcessing(true)
@@ -687,47 +394,24 @@ export default function VoiceCoachingPanel() {
     streamingMessageRef.current = null
 
     try {
-      // Upload immagine se presente
-      let imageUrl = null
-      if (selectedImage) {
-        try {
-          imageUrl = await uploadImageToStorage(selectedImage)
-        } catch (error) {
-          console.error('Error uploading image:', error)
-          // Continua anche se upload immagine fallisce
-        }
-      }
-
       // Converti audio a base64
       const reader = new FileReader()
       reader.onloadend = async () => {
         const base64Audio = reader.result.split(',')[1]
 
         try {
-          // Aggiungi messaggio utente placeholder (verrà aggiornato con trascrizione)
+          // Aggiungi messaggio utente placeholder
           const audioMsg = {
             role: 'user',
             content: '🎤 Registrando...',
             timestamp: new Date(),
             isAudio: true,
-            transcribed: false,
-            imageUrl: imageUrl || null
+            transcribed: false
           }
           setMessages(prev => [...prev, audioMsg])
 
-          // Rimuovi immagine dopo invio
-          if (selectedImage) {
-            handleRemoveImage()
-          }
-
-          // Invia audio via Realtime API (multimodale: audio + immagine se presente)
-          const messageInput = { audio: base64Audio }
-          if (imageUrl) {
-            messageInput.image = imageUrl
-          }
-          realtimeCoachingServiceV2.sendMessage(messageInput)
-          // La trascrizione arriverà tramite callback onAudioTranscription
-          // La risposta arriverà tramite callback onTextDelta (streaming word-by-word)
+          // Invia audio via GPT Realtime API
+          gptRealtimeService.sendAudioMessage(base64Audio)
         } catch (error) {
           console.error('Error sending audio:', error)
           const errorMsg = {
@@ -756,18 +440,16 @@ export default function VoiceCoachingPanel() {
     }
   }
 
-  // ✅ Riproduci chunk audio (streaming)
+  // Riproduci chunk audio
   const playAudioChunk = async (audioChunkBase64) => {
     try {
       if (!audioContextRef.current) {
         audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)()
       }
 
-      // Decodifica base64
       const audioData = Uint8Array.from(atob(audioChunkBase64), c => c.charCodeAt(0))
       const audioBuffer = await audioContextRef.current.decodeAudioData(audioData.buffer)
       
-      // Crea source e riproduci
       const source = audioContextRef.current.createBufferSource()
       source.buffer = audioBuffer
       source.connect(audioContextRef.current.destination)
@@ -784,28 +466,18 @@ export default function VoiceCoachingPanel() {
     }
   }
 
-  // ✅ Riproduci audio completo
+  // Riproduci audio completo
   const playCompleteAudio = async (audioBase64) => {
     try {
-      // Ferma audio corrente se in riproduzione
       if (currentAudioRef.current) {
         currentAudioRef.current.pause()
         currentAudioRef.current = null
       }
 
-      // Decodifica base64
       const audioData = Uint8Array.from(atob(audioBase64), c => c.charCodeAt(0))
-      // TTS API restituisce mp3
       const audioBlob = new Blob([audioData], { type: 'audio/mpeg' })
       const audioUrl = URL.createObjectURL(audioBlob)
       
-      console.log('🔊 Playing TTS audio:', {
-        size: audioData.length,
-        sizeKB: Math.round(audioData.length / 1024),
-        type: 'audio/mpeg'
-      })
-      
-      // Crea e riproduci audio
       const audio = new Audio(audioUrl)
       currentAudioRef.current = audio
       
@@ -831,11 +503,10 @@ export default function VoiceCoachingPanel() {
     }
   }
 
-  // ✅ Toggle audio output
+  // Toggle audio output
   const handleToggleAudio = () => {
     setAudioEnabled(prev => !prev)
     if (!audioEnabled && currentAudioRef.current) {
-      // Se riabilitiamo audio, ferma riproduzione corrente
       currentAudioRef.current.pause()
       currentAudioRef.current = null
       setIsPlayingAudio(false)
@@ -844,25 +515,29 @@ export default function VoiceCoachingPanel() {
 
   // Interrompi risposta corrente
   const handleInterrupt = () => {
-    if (canInterrupt && realtimeCoachingServiceV2.isActive) {
-      realtimeCoachingServiceV2.interrupt()
+    if (canInterrupt && isConnected) {
+      gptRealtimeService.interrupt()
       setCanInterrupt(false)
       setIsProcessing(false)
       
-      // ✅ Ferma anche audio se in riproduzione
       if (currentAudioRef.current) {
         currentAudioRef.current.pause()
         currentAudioRef.current = null
         setIsPlayingAudio(false)
       }
       
-      // Finalizza messaggio streaming
       if (streamingMessageRef.current) {
         streamingMessageRef.current.isStreaming = false
         streamingMessageRef.current = null
       }
       setStreamingResponse('')
     }
+  }
+
+  // Formatta contenuto messaggio
+  const formatMessageContent = (content) => {
+    if (!content) return null
+    return <div className="message-content-formatted">{content}</div>
   }
 
   return (
@@ -880,8 +555,8 @@ export default function VoiceCoachingPanel() {
           </div>
         </div>
         <div className="header-status">
-          <div className="status-indicator active"></div>
-          <span className="status-text">Online</span>
+          <div className={`status-indicator ${isConnected ? 'active' : 'inactive'}`}></div>
+          <span className="status-text">{isConnected ? 'Online' : 'Connessione...'}</span>
         </div>
       </div>
 
@@ -971,7 +646,7 @@ export default function VoiceCoachingPanel() {
           </div>
         )}
 
-        {/* Typing Indicator (quando non c'è streaming) */}
+        {/* Typing Indicator */}
         {isProcessing && !streamingResponse && (
           <div className="message coach">
             <div className="message-content">
@@ -996,7 +671,7 @@ export default function VoiceCoachingPanel() {
       {/* Input Area */}
       <div className="coaching-input">
         <div className="input-controls">
-          {/* Interrupt Button (mostra solo quando streaming) */}
+          {/* Interrupt Button */}
           {canInterrupt && isProcessing && (
             <button
               onClick={handleInterrupt}
@@ -1006,15 +681,6 @@ export default function VoiceCoachingPanel() {
               <Square size={18} />
             </button>
           )}
-
-          {/* Audio Toggle Button */}
-          <button
-            onClick={handleToggleAudio}
-            className={`audio-toggle-button ${!audioEnabled ? 'muted' : ''}`}
-            title={audioEnabled ? 'Disabilita audio' : 'Abilita audio'}
-          >
-            {audioEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
-          </button>
 
           {/* Audio Toggle Button */}
           <button
@@ -1044,7 +710,7 @@ export default function VoiceCoachingPanel() {
 
           {/* Microphone Button */}
           <button
-            className={`mic-button ${isRecording ? 'recording' : ''} ${isListening ? 'listening' : ''}`}
+            className={`mic-button ${isRecording ? 'recording' : ''}`}
             onMouseDown={handleStartRecording}
             onMouseUp={handleStopRecording}
             onTouchStart={handleStartRecording}

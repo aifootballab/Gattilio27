@@ -73,7 +73,7 @@ export async function processScreenshot(imageUrl, imageType, userId) {
   // }
   const tempUserId = '00000000-0000-0000-0000-000000000001' // UUID fisso per sviluppo (user_id deve essere UUID)
 
-  const { data, error } = await supabase.functions.invoke('process-screenshot', {
+  const { data, error } = await supabase.functions.invoke('process-screenshot-gpt', {
     body: {
       image_url: imageUrl,
       image_type: imageType,

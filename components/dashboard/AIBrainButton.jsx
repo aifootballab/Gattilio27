@@ -4,7 +4,7 @@ import React, { useState } from 'react'
 import { Brain, Upload, X } from 'lucide-react'
 import VoiceCoachingPanel from '../coaching/VoiceCoachingPanel'
 import ScreenshotUpload from '../rosa/ScreenshotUpload'
-import realtimeCoachingServiceV2 from '@/services/realtimeCoachingServiceV2'
+import gptRealtimeService from '@/services/gptRealtimeService'
 import './AIBrainButton.css'
 
 /**
@@ -36,9 +36,7 @@ export default function AIBrainButton() {
 
   const handleClose = async () => {
     // Chiudi sessione Realtime quando si chiude il panel
-    if (realtimeCoachingServiceV2.isActive) {
-      realtimeCoachingServiceV2.disconnect()
-    }
+    gptRealtimeService.disconnect()
     setIsActive(false)
     setMode(null)
   }

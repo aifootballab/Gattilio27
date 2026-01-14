@@ -7,8 +7,8 @@ import RosaStatusPanel from '@/components/dashboard/RosaStatusPanel'
 import AIBrainButton from '@/components/dashboard/AIBrainButton'
 import Link from 'next/link'
 import { 
-  TrendingUp, Target, BarChart3, Users, 
-  ArrowRight, FileText, Zap 
+  TrendingUp, Users, 
+  ArrowRight, FileText
 } from 'lucide-react'
 import './DashboardPage.css'
 
@@ -40,39 +40,6 @@ function DashboardPage() {
                 <div className="action-content">
                   <h3>Gestisci Rosa</h3>
                   <p>Carica e gestisci la tua squadra</p>
-                </div>
-                <ArrowRight size={20} className="action-arrow" />
-              </Link>
-
-              <Link href="/sinergie" className="action-card sinergie-card">
-                <div className="action-icon">
-                  <Zap size={32} />
-                </div>
-                <div className="action-content">
-                  <h3>Analisi Sinergie</h3>
-                  <p>Ottimizza la tua formazione</p>
-                </div>
-                <ArrowRight size={20} className="action-arrow" />
-              </Link>
-
-              <Link href="/statistiche" className="action-card stats-card">
-                <div className="action-icon">
-                  <BarChart3 size={32} />
-                </div>
-                <div className="action-content">
-                  <h3>Statistiche</h3>
-                  <p>Visualizza le tue performance</p>
-                </div>
-                <ArrowRight size={20} className="action-arrow" />
-              </Link>
-
-              <Link href="/analisi-partite" className="action-card analysis-card">
-                <div className="action-icon">
-                  <Target size={32} />
-                </div>
-                <div className="action-content">
-                  <h3>Analisi Partite</h3>
-                  <p>Rivedi e analizza le partite</p>
                 </div>
                 <ArrowRight size={20} className="action-arrow" />
               </Link>

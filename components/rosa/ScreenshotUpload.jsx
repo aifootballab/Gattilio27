@@ -2,7 +2,7 @@
 
 import React, { useState, useRef } from 'react'
 import { Upload, X, Check, AlertCircle, Loader } from 'lucide-react'
-import { uploadAndProcessScreenshot } from '@/services/visionService'
+import { uploadAndProcessScreenshot, getProcessingLog } from '@/services/visionService'
 import { useRosa } from '@/contexts/RosaContext'
 import { supabase } from '@/lib/supabase'
 import * as playerService from '@/services/playerService'
@@ -110,8 +110,37 @@ export default function ScreenshotUpload({ onPlayerExtracted }) {
   }
 
   const pollProcessingStatus = async (logId) => {
-    // TODO: Implementare polling
-    // Per ora usa extracted_data se disponibile
+    const maxAttempts = 30
+    const delay = 2000 // 2 secondi
+    
+    for (let i = 0; i < maxAttempts; i++) {
+      try {
+        const log = await getProcessingLog(logId)
+        
+        if (log.processing_status === 'completed') {
+          setExtractedData(log.extracted_data)
+          setIsProcessing(false)
+          return
+        }
+        
+        if (log.processing_status === 'failed') {
+          setError(log.error_message || 'Errore durante il processing')
+          setIsProcessing(false)
+          return
+        }
+        
+        // Attendi prima del prossimo tentativo
+        await new Promise(resolve => setTimeout(resolve, delay))
+      } catch (err) {
+        console.error('Error polling status:', err)
+        if (i === maxAttempts - 1) {
+          setError('Timeout: il processing sta impiegando troppo tempo')
+          setIsProcessing(false)
+        }
+      }
+    }
+    
+    setError('Timeout: il processing sta impiegando troppo tempo')
     setIsProcessing(false)
   }
 

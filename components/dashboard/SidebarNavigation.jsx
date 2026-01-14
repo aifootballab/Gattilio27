@@ -24,36 +24,6 @@ function SidebarNavigation() {
       icon: '👥',
       label: 'Rosa',
       badge: hasRosa ? playerCount : null
-    },
-    {
-      path: '/sinergie',
-      icon: '🔗',
-      label: 'Sinergie & Build',
-      badge: null
-    },
-    {
-      path: '/statistiche',
-      icon: '📈',
-      label: 'Le Mie Statistiche',
-      badge: null
-    },
-    {
-      path: '/analisi-partite',
-      icon: '📊',
-      label: 'Analisi Partite',
-      badge: null
-    },
-    {
-      path: '/avversario',
-      icon: '⚔️',
-      label: 'Formazione Avversaria',
-      badge: null
-    },
-    {
-      path: '/admin',
-      icon: '⚙️',
-      label: 'Admin',
-      badge: null
     }
     // TODO: Aggiungere pagina impostazioni quando necessaria
     // {
