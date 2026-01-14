@@ -50,10 +50,8 @@
 **Status**: ✅ **COMPLETO**
 
 Variabili configurate:
-- ✅ `VITE_SUPABASE_URL` = `https://zliuuorrwdetylollrua.supabase.co`
-- ✅ `VITE_SUPABASE_ANON_KEY` = `sb_publishable_8SwNxwen65r_fWoe3joRZw_a_WdX1hr`
-- ✅ `NEXT_PUBLIC_SUPABASE_URL` = (per compatibilità Next.js)
-- ✅ `NEXT_PUBLIC_SUPABASE_ANON_KEY` = (per compatibilità Next.js)
+- ✅ `NEXT_PUBLIC_SUPABASE_URL` = `https://zliuuorrwdetylollrua.supabase.co`
+- ✅ `NEXT_PUBLIC_SUPABASE_ANON_KEY` = `sb_publishable_8SwNxwen65r_fWoe3joRZw_a_WdX1hr`
 - ✅ `NEXT_PUBLIC_OPENAI_API_KEY` = (per WebSocket client)
 
 #### **Backend (Supabase Edge Functions)**
@@ -104,8 +102,8 @@ USING ( true );
 - [ ] **RLS Policies verificate** per anonymous users
 
 ### **Vercel**
-- [x] `VITE_SUPABASE_URL` configurata
-- [x] `VITE_SUPABASE_ANON_KEY` configurata
+- [x] `NEXT_PUBLIC_SUPABASE_URL` configurata
+- [x] `NEXT_PUBLIC_SUPABASE_ANON_KEY` configurata
 - [x] `NEXT_PUBLIC_OPENAI_API_KEY` configurata
 
 ### **Code**

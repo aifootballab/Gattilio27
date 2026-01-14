@@ -62,8 +62,8 @@
 
 | Variabile | Valore | Status |
 |-----------|--------|--------|
-| `VITE_SUPABASE_URL` | `https://zliuuorrwdetylollrua.supabase.co` | ✅ |
-| `VITE_SUPABASE_ANON_KEY` | `sb_publishable_8SwNxwen65r_fWoe3joRZw_a_WdX1hr` | ✅ |
+| `NEXT_PUBLIC_SUPABASE_URL` | `https://zliuuorrwdetylollrua.supabase.co` | ✅ |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `sb_publishable_8SwNxwen65r_fWoe3joRZw_a_WdX1hr` | ✅ |
 | `NEXT_PUBLIC_OPENAI_API_KEY` | (configurata) | ✅ |
 
 **Publishable Keys Disponibili**:

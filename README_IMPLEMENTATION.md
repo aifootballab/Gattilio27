@@ -160,20 +160,21 @@ supabase functions deploy process-screenshot
 
 ---
 
-### **4. Variabili Frontend**
+### **4. Variabili Frontend (Vercel)**
 
-**File**: `.env` (locale) o Vercel Environment Variables
+**Vercel** → Settings → Environment Variables
 
 ```env
-VITE_SUPABASE_URL=your-supabase-url
-VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
+NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+NEXT_PUBLIC_OPENAI_API_KEY=sk-...   # se usi il realtime nel browser
 ```
 
 ---
 
 ## 🧪 TESTING
 
-### **Test Locale**
+### **Test Produzione (Vercel)**
 
 1. **Test Upload**:
 ```javascript
@@ -196,7 +197,7 @@ const result = await processScreenshot(
 console.log(result.extracted_data)
 ```
 
-3. **Test Componente**:
+3. **Test Componente (Vercel)**:
 - Apri `/rosa`
 - Click "Aggiungi Giocatore"
 - Seleziona "Carica Screenshot"

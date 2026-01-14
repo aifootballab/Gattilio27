@@ -64,11 +64,12 @@ Esegui in ordine:
 
 ### **4. Variabili Frontend**
 
-**File**: `.env` (locale) o Vercel Environment Variables
+**File**: `.env.local` (locale) o Vercel Environment Variables
 
 ```env
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+NEXT_PUBLIC_OPENAI_API_KEY=sk-...   # se usi il realtime nel browser
 ```
 
 ---

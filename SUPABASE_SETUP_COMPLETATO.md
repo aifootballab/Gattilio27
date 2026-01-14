@@ -168,8 +168,8 @@
 - [ ] `GOOGLE_VISION_MAX_IMAGE_SIZE_MB=10`
 
 ### **2. Variabili Frontend**:
-- [ ] `VITE_SUPABASE_URL`
-- [ ] `VITE_SUPABASE_ANON_KEY`
+- [ ] `NEXT_PUBLIC_SUPABASE_URL`
+- [ ] `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
 ### **3. Testing**:
 - [ ] Test upload screenshot

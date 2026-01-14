@@ -1,5 +1,5 @@
 # 🔧 Fix Variabili d'Ambiente Vercel
-## Problema: NEXT_PUBLIC_* vs VITE_*
+## Progetto Next.js: usa SOLO NEXT_PUBLIC_*
 
 **Data**: 2025-01-12  
 **Status**: ✅ **SOLUZIONE IMMEDIATA**
@@ -8,13 +8,10 @@
 
 ## 🚨 PROBLEMA IDENTIFICATO
 
-Hai configurato in Vercel:
-- ❌ `NEXT_PUBLIC_SUPABASE_URL` (per Next.js)
-- ❌ `NEXT_PUBLIC_SUPABASE_ANON_KEY` (per Next.js)
-
-Ma il progetto usa **Vite**, quindi serve:
-- ✅ `VITE_SUPABASE_URL`
-- ✅ `VITE_SUPABASE_ANON_KEY`
+Il progetto è **Next.js** (vedi `package.json`, `vercel.json`, `tsconfig.json`).
+Quindi in Vercel devi usare:
+- ✅ `NEXT_PUBLIC_SUPABASE_URL`
+- ✅ `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
 ---
 
@@ -28,14 +25,14 @@ Ma il progetto usa **Vite**, quindi serve:
 4. Clicca **"Add New"**
 
 **Variabile 1**:
-- **Name**: `VITE_SUPABASE_URL`
-- **Value**: `https://zliuuorrwdetylollrua.supabase.co` (usa lo stesso valore di `NEXT_PUBLIC_SUPABASE_URL`)
+- **Name**: `NEXT_PUBLIC_SUPABASE_URL`
+- **Value**: `https://zliuuorrwdetylollrua.supabase.co`
 - **Environment**: Seleziona tutte (Production, Preview, Development)
 - Clicca **Save**
 
 **Variabile 2**:
-- **Name**: `VITE_SUPABASE_ANON_KEY`
-- **Value**: `sb_publishable_8SwNxwen65r_fWoe3joRZw_a_WdX1hr` (usa lo stesso valore di `NEXT_PUBLIC_SUPABASE_ANON_KEY`)
+- **Name**: `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- **Value**: `sb_publishable_8SwNxwen65r_fWoe3joRZw_a_WdX1hr`
 - **Environment**: Seleziona tutte (Production, Preview, Development)
 - Clicca **Save**
 
@@ -54,11 +51,11 @@ Ma il progetto usa **Vite**, quindi serve:
 
 ## 📋 VARIABILI FINALI IN VERCEL
 
-Dopo aver aggiunto le nuove variabili, avrai:
+Dopo aver aggiunto le variabili, avrai:
 
-### **Per Vite (Frontend)**:
-- ✅ `VITE_SUPABASE_URL` = `https://zliuuorrwdetylollrua.supabase.co`
-- ✅ `VITE_SUPABASE_ANON_KEY` = `sb_publishable_8SwNxwen65r_fWoe3joRZw_a_WdX1hr`
+### **Frontend (Next.js)**:
+- ✅ `NEXT_PUBLIC_SUPABASE_URL` = `https://zliuuorrwdetylollrua.supabase.co`
+- ✅ `NEXT_PUBLIC_SUPABASE_ANON_KEY` = `sb_publishable_8SwNxwen65r_fWoe3joRZw_a_WdX1hr`
 
 ### **Per Edge Functions (Backend)**:
 - ✅ `SUPABASE_SERVICE_ROLE_KEY` = (già configurato)
@@ -67,28 +64,18 @@ Dopo aver aggiunto le nuove variabili, avrai:
 - ✅ `GOOGLE_VISION_API_ENABLED` = `true` (già configurato)
 - ✅ `GOOGLE_VISION_MAX_IMAGE_SIZE_MB` = `10` (già configurato)
 
-### **Opzionali (non necessarie per Vite)**:
-- ⚠️ `NEXT_PUBLIC_SUPABASE_URL` (puoi lasciarla o rimuoverla, non fa male)
-- ⚠️ `NEXT_PUBLIC_SUPABASE_ANON_KEY` (puoi lasciarla o rimuoverla, non fa male)
-
 ---
 
-## 🔍 PERCHÉ QUESTA DIFFERENZA?
+## 🔍 NOTA
 
-### **Next.js** usa:
-- `NEXT_PUBLIC_*` per variabili esposte al frontend
-
-### **Vite** usa:
-- `VITE_*` per variabili esposte al frontend
-
-**Entrambi** servono allo stesso scopo (esporre variabili al frontend), ma hanno prefissi diversi.
+In Next.js le variabili da esporre al browser devono iniziare con `NEXT_PUBLIC_`.
 
 ---
 
 ## ✅ CHECKLIST
 
-- [ ] Aggiunto `VITE_SUPABASE_URL` in Vercel
-- [ ] Aggiunto `VITE_SUPABASE_ANON_KEY` in Vercel
+- [ ] Aggiunto `NEXT_PUBLIC_SUPABASE_URL` in Vercel
+- [ ] Aggiunto `NEXT_PUBLIC_SUPABASE_ANON_KEY` in Vercel
 - [ ] Variabili configurate per tutti gli ambienti (Production, Preview, Development)
 - [ ] Redeploy fatto
 - [ ] Errore risolto in console

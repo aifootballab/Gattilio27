@@ -45,9 +45,9 @@ class RealtimeCoachingServiceV2 {
         throw new Error('Invalid session: missing access_token')
       }
 
-      // ✅ Vite usa import.meta.env, Next.js usa process.env - supporta entrambi
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || import.meta.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
-      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      // ✅ Next.js client env
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
       
       if (!supabaseUrl || !supabaseAnonKey) {
         throw new Error('Supabase URL or Anon Key not configured')
@@ -128,25 +128,20 @@ class RealtimeCoachingServiceV2 {
    */
   async connectToRealtimeAPI(userId, context) {
     return new Promise((resolve, reject) => {
-      // ✅ Ottieni API key da variabile d'ambiente (Vite usa import.meta.env)
-      // Supporta sia VITE_* (Vite) che NEXT_PUBLIC_* (Next.js) per compatibilità
-      const apiKey = import.meta.env.VITE_OPENAI_API_KEY || import.meta.env.NEXT_PUBLIC_OPENAI_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY
+      // ✅ Next.js client env
+      const apiKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY
       
       // ✅ Debug: Verifica accesso variabili d'ambiente
       console.log('🔍 Environment variables check:', {
-        hasViteKey: !!import.meta.env.VITE_OPENAI_API_KEY,
-        hasNextKey: !!import.meta.env.NEXT_PUBLIC_OPENAI_API_KEY,
         hasProcessKey: !!process.env.NEXT_PUBLIC_OPENAI_API_KEY,
         finalApiKey: apiKey ? `${apiKey.substring(0, 7)}...` : 'undefined',
         apiKeyLength: apiKey?.length || 0
       })
       
       if (!apiKey) {
-        const error = new Error('OPENAI_API_KEY not configured. Verifica variabili d\'ambiente in Vercel. Configura VITE_OPENAI_API_KEY o NEXT_PUBLIC_OPENAI_API_KEY.')
+        const error = new Error('OPENAI_API_KEY not configured. Verifica variabili d\'ambiente in Vercel. Configura NEXT_PUBLIC_OPENAI_API_KEY.')
         console.error('❌', error.message, {
           availableEnv: {
-            VITE_OPENAI_API_KEY: import.meta.env.VITE_OPENAI_API_KEY ? 'present' : 'missing',
-            NEXT_PUBLIC_OPENAI_API_KEY: import.meta.env.NEXT_PUBLIC_OPENAI_API_KEY ? 'present' : 'missing',
             processEnv: process.env.NEXT_PUBLIC_OPENAI_API_KEY ? 'present' : 'missing'
           }
         })
@@ -483,9 +478,9 @@ class RealtimeCoachingServiceV2 {
         throw new Error('User not authenticated. Please log in.')
       }
 
-      // ✅ Vite usa import.meta.env, Next.js usa process.env - supporta entrambi
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || import.meta.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
-      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      // ✅ Next.js client env
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
       
       if (!supabaseUrl || !supabaseAnonKey) {
         throw new Error('Supabase URL or Anon Key not configured')

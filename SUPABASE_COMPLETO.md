@@ -207,8 +207,8 @@ DELETE /storage/v1/object/player-screenshots/{user_id}/{file}
 3. `GOOGLE_VISION_MAX_IMAGE_SIZE_MB=10`
 
 ### **Variabili Frontend**:
-1. `VITE_SUPABASE_URL`
-2. `VITE_SUPABASE_ANON_KEY`
+1. `NEXT_PUBLIC_SUPABASE_URL`
+2. `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
 ### **Testing**:
 1. Test upload screenshot
