@@ -389,6 +389,9 @@ async function handleStartSession(supabase: any, userId: string, context: any) {
   }
 
   // Crea sessione
+  const now = new Date()
+  const expiresAt = new Date(now.getTime() + 60 * 60 * 1000) // 1 ora da ora
+  
   const { data, error } = await supabase
     .from('coaching_sessions')
     .insert({
@@ -396,12 +399,15 @@ async function handleStartSession(supabase: any, userId: string, context: any) {
       session_id: sessionId,
       conversation_history: [],
       context_snapshot: userContext,
-      is_active: true
+      is_active: true,
+      last_activity: now.toISOString(),
+      expires_at: expiresAt.toISOString()
     })
     .select()
     .single()
 
   if (error) {
+    console.error('Error creating session:', error)
     throw new Error(`Failed to create session: ${error.message}`)
   }
 
