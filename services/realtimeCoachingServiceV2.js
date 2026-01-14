@@ -24,13 +24,25 @@ class RealtimeCoachingServiceV2 {
   /**
    * Inizia sessione Realtime
    */
-  async startSession(userId, context = {}) {
+  async startSession(userId, context = {}, providedSession = null) {
     try {
-      // ✅ Fix: Ottieni JWT token dalla sessione Supabase invece di usare anon key
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      // ✅ Usa sessione fornita o ottieni dalla cache Supabase
+      let session = providedSession
       
-      if (sessionError || !session) {
-        throw new Error('User not authenticated. Please log in.')
+      if (!session) {
+        // Se non fornita, prova a ottenerla dalla cache
+        const { data: { session: cachedSession }, error: sessionError } = await supabase.auth.getSession()
+        
+        if (sessionError || !cachedSession) {
+          throw new Error('User not authenticated. Please log in.')
+        }
+        
+        session = cachedSession
+      }
+      
+      // ✅ Verifica che la sessione abbia access_token
+      if (!session || !session.access_token) {
+        throw new Error('Invalid session: missing access_token')
       }
 
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL
@@ -39,6 +51,14 @@ class RealtimeCoachingServiceV2 {
       if (!supabaseUrl || !supabaseAnonKey) {
         throw new Error('Supabase URL or Anon Key not configured')
       }
+      
+      // ✅ Debug: Verifica token
+      console.log('🔑 Using JWT token for Edge Function:', {
+        userId: session.user.id,
+        isAnonymous: session.user.is_anonymous,
+        tokenLength: session.access_token?.length,
+        tokenPrefix: session.access_token?.substring(0, 20) + '...'
+      })
       
       // ✅ Usa JWT token dell'utente autenticato invece di anon key
       const response = await fetch(`${supabaseUrl}/functions/v1/voice-coaching-gpt`, {
@@ -63,7 +83,24 @@ class RealtimeCoachingServiceV2 {
         } catch {
           errorData = { error: errorText, status: response.status }
         }
-        throw new Error(errorData.error || `Edge Function returned ${response.status}`)
+        
+        // ✅ Log dettagliato per debug 401
+        if (response.status === 401) {
+          console.error('🔴 401 Unauthorized - Dettagli:', {
+            status: response.status,
+            error: errorData,
+            tokenLength: session.access_token?.length,
+            tokenPrefix: session.access_token?.substring(0, 20) + '...',
+            userId: session.user.id,
+            isAnonymous: session.user.is_anonymous,
+            headers: {
+              hasAuth: !!session.access_token,
+              hasApikey: !!supabaseAnonKey
+            }
+          })
+        }
+        
+        throw new Error(errorData.error || errorData.message || `Edge Function returned ${response.status}`)
       }
 
       const sessionData = await response.json()

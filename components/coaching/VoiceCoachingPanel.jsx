@@ -191,7 +191,20 @@ export default function VoiceCoachingPanel() {
             }
             
             session = authData.session
-            console.log('✅ Login anonymous completato')
+            console.log('✅ Login anonymous completato', {
+              userId: session.user.id,
+              isAnonymous: session.user.is_anonymous,
+              hasToken: !!session.access_token
+            })
+            
+            // ✅ Piccolo delay per assicurarsi che la sessione sia completamente pronta
+            await new Promise(resolve => setTimeout(resolve, 100))
+            
+            // ✅ Verifica che la sessione sia ancora valida dopo il delay
+            const { data: { session: verifySession } } = await supabase.auth.getSession()
+            if (verifySession && verifySession.access_token) {
+              session = verifySession
+            }
           }
           
           const userId = session.user.id
@@ -332,8 +345,8 @@ export default function VoiceCoachingPanel() {
             setCanInterrupt(false)
           })
 
-          // Avvia sessione Realtime API
-          await realtimeCoachingServiceV2.startSession(userId, context)
+          // ✅ Passa la sessione direttamente per evitare problemi di timing
+          await realtimeCoachingServiceV2.startSession(userId, context, session)
           sessionInitialized.current = true
         } catch (error) {
           console.error('Error initializing session:', error)
@@ -503,7 +516,8 @@ export default function VoiceCoachingPanel() {
         }
         
         const userId = session.user.id
-        await realtimeCoachingServiceV2.startSession(userId, { rosa, user_profile: { coaching_level: 'intermedio' } })
+        // ✅ Passa la sessione direttamente per evitare problemi di timing
+        await realtimeCoachingServiceV2.startSession(userId, { rosa, user_profile: { coaching_level: 'intermedio' } }, session)
       } catch (error) {
         console.error('Error starting session:', error)
         return
