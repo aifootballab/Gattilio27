@@ -149,9 +149,18 @@ serve(async (req) => {
       .eq('session_id', session_id)
       .eq('user_id', user_id)
       .eq('is_active', true)
-      .single()
+      .maybeSingle() // ✅ Usa maybeSingle() per gestire meglio il caso "non trovato"
 
-    if (sessionError || !session) {
+    if (sessionError && sessionError.code !== 'PGRST116') {
+      // PGRST116 = "no rows returned" - gestito sotto
+      console.error('Error loading session:', sessionError)
+      return new Response(
+        JSON.stringify({ error: 'Error loading session', details: sessionError.message }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    if (!session) {
       return new Response(
         JSON.stringify({ error: 'Session not found or expired' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -177,28 +186,32 @@ serve(async (req) => {
     
     if (!userContext.rosa) {
       // Carica rosa principale utente
-      const { data: rosa } = await supabase
+      const { data: rosa, error: rosaError } = await supabase
         .from('user_rosa')
         .select('*, players:player_builds(*)')
         .eq('user_id', user_id)
         .eq('is_main', true)
-        .single()
+        .maybeSingle() // ✅ Usa maybeSingle() invece di single()
       
-      if (rosa) {
+      if (rosa && !rosaError) {
         userContext.rosa = rosa
+      } else if (rosaError && rosaError.code !== 'PGRST116') {
+        console.warn('Warning loading rosa:', rosaError.message)
       }
     }
 
     if (!userContext.user_profile) {
       // Carica profilo utente (livello coaching, preferenze)
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('user_profiles')
         .select('*')
         .eq('user_id', user_id)
-        .single()
+        .maybeSingle() // ✅ Usa maybeSingle() invece di single()
       
-      if (profile) {
+      if (profile && !profileError) {
         userContext.user_profile = profile
+      } else if (profileError && profileError.code !== 'PGRST116') {
+        console.warn('Warning loading user profile:', profileError.message)
       }
     }
 
@@ -364,27 +377,33 @@ async function handleStartSession(supabase: any, userId: string, context: any) {
   let userContext = context || {}
   
   if (!userContext.rosa) {
-    const { data: rosa } = await supabase
+    const { data: rosa, error: rosaError } = await supabase
       .from('user_rosa')
       .select('*, players:player_builds(*)')
       .eq('user_id', userId)
       .eq('is_main', true)
-      .single()
+      .maybeSingle() // ✅ Usa maybeSingle() invece di single() per evitare errori se non trova risultati
     
-    if (rosa) {
+    if (rosa && !rosaError) {
       userContext.rosa = rosa
+    } else if (rosaError && rosaError.code !== 'PGRST116') {
+      // PGRST116 = "no rows returned" - non è un errore critico
+      console.warn('Warning loading rosa:', rosaError.message)
     }
   }
 
   if (!userContext.user_profile) {
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from('user_profiles')
       .select('*')
       .eq('user_id', userId)
-      .single()
+      .maybeSingle() // ✅ Usa maybeSingle() invece di single()
     
-    if (profile) {
+    if (profile && !profileError) {
       userContext.user_profile = profile
+    } else if (profileError && profileError.code !== 'PGRST116') {
+      // PGRST116 = "no rows returned" - non è un errore critico
+      console.warn('Warning loading user profile:', profileError.message)
     }
   }
 
