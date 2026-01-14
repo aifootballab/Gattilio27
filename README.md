@@ -54,3 +54,7 @@ La rosa è **solo in RAM** (refresh = reset).
 
 - UI: `app/page.tsx`
 - Estrazione (server): `app/api/extract-player/route.ts`
+
+## Documentazione
+
+- `DOCUMENTAZIONE.md`
