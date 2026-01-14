@@ -109,26 +109,20 @@ class GPTRealtimeService {
    */
   async connect(userId, context = {}) {
     return new Promise((resolve, reject) => {
-      const apiKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY
-      
-      if (!apiKey) {
-        reject(new Error('OPENAI_API_KEY not configured'))
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      if (!supabaseUrl) {
+        reject(new Error('NEXT_PUBLIC_SUPABASE_URL not configured'))
         return
       }
 
-      // URL WebSocket OpenAI Realtime API
-      const wsUrl = `wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview`
+      // URL WebSocket verso Supabase Edge Function proxy (server-side aggiunge Authorization verso OpenAI)
+      const wsUrl = supabaseUrl.replace('https://', 'wss://') + '/functions/v1/realtime-proxy'
       
       console.log('🔌 Connecting to GPT Realtime API...')
       
       try {
-        // In browser non possiamo settare header Authorization: usiamo i sub-protocols
-        // (Sec-WebSocket-Protocol) per passare la key.
-        this.ws = new WebSocket(wsUrl, [
-          'realtime',
-          `openai-insecure-api-key.${apiKey}`,
-          'openai-beta.realtime-v1'
-        ])
+        // Connessione al proxy Supabase (no auth lato client, verify_jwt=false)
+        this.ws = new WebSocket(wsUrl)
       } catch (error) {
         reject(new Error(`Failed to create WebSocket: ${error.message}`))
         return
