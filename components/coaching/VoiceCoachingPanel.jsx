@@ -36,6 +36,54 @@ export default function VoiceCoachingPanel() {
   const { rosa } = useRosa()
   const sessionInitialized = useRef(false)
 
+  /**
+   * Converte AudioBuffer in Blob WAV
+   * @param {AudioBuffer} audioBuffer - Buffer audio da convertire
+   * @returns {Blob} - Blob WAV
+   */
+  const audioBufferToWav = (audioBuffer) => {
+    const numChannels = audioBuffer.numberOfChannels
+    const sampleRate = audioBuffer.sampleRate
+    const length = audioBuffer.length
+    
+    // Crea buffer per WAV
+    const buffer = new ArrayBuffer(44 + length * numChannels * 2)
+    const view = new DataView(buffer)
+    
+    // WAV header
+    const writeString = (offset, string) => {
+      for (let i = 0; i < string.length; i++) {
+        view.setUint8(offset + i, string.charCodeAt(i))
+      }
+    }
+    
+    writeString(0, 'RIFF')
+    view.setUint32(4, 36 + length * numChannels * 2, true)
+    writeString(8, 'WAVE')
+    writeString(12, 'fmt ')
+    view.setUint32(16, 16, true) // fmt chunk size
+    view.setUint16(20, 1, true) // audio format (1 = PCM)
+    view.setUint16(22, numChannels, true)
+    view.setUint32(24, sampleRate, true)
+    view.setUint32(28, sampleRate * numChannels * 2, true) // byte rate
+    view.setUint16(32, numChannels * 2, true) // block align
+    view.setUint16(34, 16, true) // bits per sample
+    writeString(36, 'data')
+    view.setUint32(40, length * numChannels * 2, true)
+    
+    // Converti canali audio in interi 16-bit
+    let offset = 44
+    for (let i = 0; i < length; i++) {
+      for (let channel = 0; channel < numChannels; channel++) {
+        const sample = Math.max(-1, Math.min(1, audioBuffer.getChannelData(channel)[i]))
+        view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true)
+        offset += 2
+      }
+    }
+    
+    return new Blob([buffer], { type: 'audio/wav' })
+  }
+
   // Scroll to bottom quando arrivano nuovi messaggi
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -418,8 +466,37 @@ export default function VoiceCoachingPanel() {
       }
 
       mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
-        await sendAudioMessage(audioBlob)
+        try {
+          // ✅ Converti webm opus in WAV per compatibilità Whisper
+          const webmBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+          console.log('🔄 Converting webm to WAV for Whisper compatibility...')
+          
+          // Converti Blob in ArrayBuffer
+          const arrayBuffer = await webmBlob.arrayBuffer()
+          
+          // Decodifica audio usando AudioContext
+          const audioContext = new (window.AudioContext || window.webkitAudioContext)()
+          const audioBuffer = await audioContext.decodeAudioData(arrayBuffer)
+          
+          // ✅ Converti AudioBuffer in WAV
+          const wavBlob = audioBufferToWav(audioBuffer)
+          
+          console.log('✅ Audio converted to WAV:', {
+            originalSize: webmBlob.size,
+            wavSize: wavBlob.size,
+            duration: audioBuffer.duration
+          })
+          
+          await sendAudioMessage(wavBlob)
+          
+          // Chiudi AudioContext
+          await audioContext.close()
+        } catch (conversionError) {
+          console.error('❌ Error converting audio to WAV, sending original:', conversionError)
+          // Fallback: invia webm originale se conversione fallisce
+          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+          await sendAudioMessage(audioBlob)
+        }
         
         // Stop stream
         stream.getTracks().forEach(track => track.stop())
