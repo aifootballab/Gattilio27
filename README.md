@@ -1,153 +1,112 @@
-# Progetto eFootball
+# 🎮 Gattilio27 - Voice Coaching System per eFootball
 
-Plattaforma eFootball con integrazione Vercel, Supabase e GitHub.
+**Sistema di coaching vocale in tempo reale** con GPT-Realtime API per eFootball.
 
-## Setup
+---
 
-Progetto in configurazione iniziale con landing page "Benvenuto Gattilio" per test di configurazione.
+## 🚀 Quick Start
 
-## Tech Stack
+### **Prerequisiti**:
+- Node.js 18+
+- Supabase account
+- OpenAI API key
 
-- **React + Vite**: Frontend framework e build tool
-- **GitHub**: Version control e CI/CD
-- **Vercel**: Hosting e deployment automatico
-- **Supabase**: Database e autenticazione (configurato tramite MCP)
-
-## Allineamento GitHub, Vercel e Cursor
-
-### Chi è @mrway80?
-
-**@mrway80** è il tuo account GitHub configurato localmente:
-- **Username GitHub**: `mrway80`
-- **Email**: `mrway80@gmail.com`
-- **Repository**: `aifootballab/Gattilio27`
-
-### Problema di Connessione
-
-Se Vercel mostra il messaggio "Please connect aifootballab on Vercel to the @mrway80 GitHub account", significa che:
-- Il progetto Vercel "aifootballab" esiste
-- Il repository GitHub `aifootballab/Gattilio27` esiste
-- Ma l'account GitHub `@mrway80` non è ancora autorizzato nel Team Vercel
-
-### Soluzione: Allineare i Servizi
-
-**Passo 1: Verifica Account GitHub**
+### **Setup**:
 ```bash
-# Verifica la configurazione Git locale
-git config --get user.name    # Dovrebbe essere: mrway80
-git config --get user.email   # Dovrebbe essere: mrway80@gmail.com
-```
-
-**Passo 2: Verifica Connessione GitHub-Vercel**
-1. Vai su [Vercel Dashboard](https://vercel.com/dashboard)
-2. Clicca su **Settings** → **Git**
-3. **Se vedi il repository connesso** (`aifootballab/Gattilio27` con "Connected"):
-   - ✅ **Tutto è già configurato!** Il repository è connesso
-   - Il deploy automatico dovrebbe funzionare
-   - Puoi testare facendo un push su GitHub
-4. **Se NON vedi il repository connesso** o vedi un messaggio di errore:
-   - Clicca su **"Disconnect"** (se presente)
-   - Poi clicca su **"Connect Git Repository"** o **"Connect @mrway80"**
-   - Autorizza Vercel ad accedere al tuo account GitHub
-   - Seleziona il repository `aifootballab/Gattilio27`
-
-**Passo 3: Verifica in Cursor**
-- Cursor usa automaticamente la configurazione Git locale
-- Assicurati di essere loggato con l'account corretto su GitHub
-- I commit verranno fatti con `mrway80` come autore
-
-**Passo 4: Verifica che Tutto Funzioni**
-
-Se il repository è già connesso (vedi "Connected" in Settings → Git), puoi testare il workflow:
-
-```bash
-# Fai una modifica e committa
-git add .
-git commit -m "test: verifica allineamento GitHub-Vercel"
-git push origin master
-
-# Vercel dovrebbe automaticamente:
-# 1. Rilevare il push (vedi in Vercel Dashboard → Deployments)
-# 2. Fare il build
-# 3. Deployare su produzione
-```
-
-**Come verificare che funzioni:**
-1. Dopo il push, vai su [Vercel Dashboard](https://vercel.com/dashboard)
-2. Seleziona il progetto **aifootballab**
-3. Vai su **Deployments**
-4. Dovresti vedere un nuovo deployment in corso o completato
-5. Se vedi il deployment, significa che tutto è allineato correttamente!
-
-### Stato Attuale
-
-✅ **Configurato e Allineato**:
-- ✅ Repository Git: `aifootballab/Gattilio27`
-- ✅ Git user: `mrway80` (mrway80@gmail.com)
-- ✅ Git remote: `https://github.com/aifootballab/Gattilio27.git`
-- ✅ Vercel config: `vercel.json` presente
-- ✅ Cursor: Usa automaticamente la configurazione Git locale
-
-✅ **Repository Connesso**:
-- Il repository `aifootballab/Gattilio27` è già connesso a Vercel
-- Il deploy automatico dovrebbe essere attivo
-- Se vedi "Connected" nella pagina Settings → Git, tutto è configurato correttamente
-
-💡 **Nota**: Se non vedi il pulsante "Connect @mrway80", significa che il repository è già connesso. Il pulsante appare solo quando serve riconnettere o quando c'è un problema di autorizzazione.
-
-### Script di Verifica
-
-Sono disponibili due script PowerShell per gestire l'allineamento:
-- **`check-alignment.ps1`**: Verifica lo stato corrente della configurazione
-- **`setup-alignment.ps1`**: Configura automaticamente Git per l'allineamento
-
-Per eseguire la verifica:
-```powershell
-powershell -ExecutionPolicy Bypass -File .\check-alignment.ps1
-```
-
-## Configurazione Deploy Automatico su Vercel
-
-✅ **DEPLOY AUTOMATICO ATTIVO**: Ogni push su `master` attiva automaticamente il deploy su Vercel tramite l'integrazione nativa GitHub.
-
-⚠️ **IMPORTANTE**: Se Vercel sta deployando commit vecchi (es. `cd5c308`), verifica su Vercel Dashboard:
-1. Settings → Git → Disconnect e riconnetti il repository
-2. Cancella i deploy falliti vecchi
-3. Vai su Deployments → "Redeploy" del commit più recente (`845a3b5` o successivo)
-
-### Setup Vercel (UNA VOLTA SOLA)
-
-1. **Collega il repository GitHub a Vercel**:
-   - Vai su [Vercel Dashboard](https://vercel.com/new)
-   - Seleziona "Import Git Repository"
-   - Autorizza Vercel ad accedere a `aifootballab/Gattilio27`
-   - Vercel rileverà automaticamente Vite e configurerà il progetto
-
-2. **Verifica le impostazioni**:
-   - Framework: Vite (auto-rilevato)
-   - Root Directory: `./`
-   - Build Command: `npm run build`
-   - Output Directory: `dist`
-
-### Workflow Automatico
-
-```
-Push su GitHub (master) 
-  ↓
-Vercel rileva il commit automaticamente
-  ↓
-Build e Deploy automatico su Vercel (produzione)
-```
-
-### Verifica Deploy
-
-Dopo ogni push, controlla:
-- **Vercel Dashboard**: Vedi i deployment in tempo reale
-- I deployment vengono creati automaticamente per ogni push su `master`
-
-## Sviluppo Locale
-
-```bash
+# Install dependencies
 npm install
-npm run dev
+
+# Configura variabili ambiente
+cp .env.example .env.local
+# Aggiungi NEXT_PUBLIC_OPENAI_API_KEY, NEXT_PUBLIC_SUPABASE_URL, etc.
+
+# Deploy Edge Functions
+supabase functions deploy voice-coaching-gpt
+
+# Esegui migrations
+# In Supabase Dashboard → SQL Editor → Esegui migrations/009_fix_missing_columns_and_align.sql
 ```
+
+---
+
+## 📚 Documentazione
+
+### **Documentazione Principale**:
+- **[DOCUMENTAZIONE_COMPLETA_SISTEMA.md](./DOCUMENTAZIONE_COMPLETA_SISTEMA.md)** - Panoramica completa sistema
+- **[ANALISI_COMPLETA_CODICE_STRUTTURA_FLUSSI.md](./ANALISI_COMPLETA_CODICE_STRUTTURA_FLUSSI.md)** - Analisi riga per riga codice
+
+### **Documentazione Tecnica**:
+- **[ALLINEAMENTO_MIGRATIONS_COMPLETO.md](./ALLINEAMENTO_MIGRATIONS_COMPLETO.md)** - Migrations database
+- **[FIX_ERRORE_500_COMPLETATO.md](./FIX_ERRORE_500_COMPLETATO.md)** - Troubleshooting
+- **[VERIFICA_COMPLETA_ENDPOINT_STRUTTURA.md](./VERIFICA_COMPLETA_ENDPOINT_STRUTTURA.md)** - Endpoint e coerenza
+- **[VERIFICA_SUPABASE_COMPLETA.md](./VERIFICA_SUPABASE_COMPLETA.md)** - Verifica Supabase
+
+### **Feature Specifiche**:
+- **[IMPLEMENTAZIONE_REALTIME_COMPLETATA.md](./IMPLEMENTAZIONE_REALTIME_COMPLETATA.md)** - Implementazione Realtime API
+- **[INTEGRAZIONE_FRONTEND_REALTIME.md](./INTEGRAZIONE_FRONTEND_REALTIME.md)** - Integrazione frontend
+- **[CARICAMENTO_IMMAGINI_CHAT_IMPLEMENTATO.md](./CARICAMENTO_IMMAGINI_CHAT_IMPLEMENTATO.md)** - Feature immagini
+- **[AGGIORNAMENTO_EVENTI_TRASCRIZIONE_AUDIO.md](./AGGIORNAMENTO_EVENTI_TRASCRIZIONE_AUDIO.md)** - Feature trascrizione audio
+- **[SPIEGAZIONE_GPT_REALTIME_MCP.md](./SPIEGAZIONE_GPT_REALTIME_MCP.md)** - Spiegazione tecnica MCP
+
+---
+
+## 🎯 Funzionalità
+
+- ✅ **Conversazione vocale real-time** - Parla e ricevi risposte immediate
+- ✅ **Streaming word-by-word** - Risposte appaiono parola per parola
+- ✅ **Interrupt capability** - Puoi interrompere l'AI mentre parla
+- ✅ **Multimodale** - Testo + voce + immagini insieme
+- ✅ **Function calling** - AI esegue azioni (salva giocatori, carica rosa, etc.)
+- ✅ **Trascrizione audio real-time** - Vedi cosa hai detto mentre parli
+- ✅ **Analisi screenshot** - Invia screenshot e l'AI li analizza
+
+---
+
+## 🏗️ Architettura
+
+```
+Frontend (Next.js)
+  ↓ WebSocket
+OpenAI Realtime API
+  ↓ Function Calls
+Supabase Edge Functions
+  ↓
+Supabase Database/Storage
+```
+
+---
+
+## 📊 Status
+
+**Status**: 🟢 **SISTEMA COMPLETO E FUNZIONANTE**
+
+- ✅ Frontend completo
+- ✅ Backend completo
+- ✅ Database allineato
+- ✅ Migrations applicate
+- ✅ Tutte le funzionalità operative
+
+---
+
+## 🔧 Tecnologie
+
+- **Frontend**: Next.js 14+, React 18+
+- **Backend**: Supabase Edge Functions (Deno)
+- **AI**: OpenAI GPT-Realtime API
+- **Database**: PostgreSQL (Supabase)
+- **Storage**: Supabase Storage
+- **Real-time**: WebSocket
+
+---
+
+## 📝 Note
+
+- ⚠️ API key OpenAI esposta nel client (`NEXT_PUBLIC_OPENAI_API_KEY`)
+- ✅ Considerare proxy Edge Function per nascondere API key in futuro
+- ✅ RLS policies su tutte le tabelle
+- ✅ Storage policies configurate
+
+---
+
+**Ultimo Aggiornamento**: 2025-01-14  
+**Versione**: 2.0

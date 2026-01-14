@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
-import { Mic, MicOff, Send, Volume2, Loader, Sparkles, Square, Image as ImageIcon, X } from 'lucide-react'
+import { Mic, MicOff, Send, Volume2, VolumeX, Loader, Sparkles, Square, Image as ImageIcon, X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useRosa } from '@/contexts/RosaContext'
 import realtimeCoachingServiceV2 from '@/services/realtimeCoachingServiceV2'
@@ -17,18 +17,22 @@ export default function VoiceCoachingPanel() {
   const [messages, setMessages] = useState([])
   const [currentMessage, setCurrentMessage] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
-  const [audioEnabled, setAudioEnabled] = useState(true)
+  const [audioEnabled, setAudioEnabled] = useState(true) // Abilita/disabilita audio output
   const [streamingResponse, setStreamingResponse] = useState('')
   const [currentFunctionCall, setCurrentFunctionCall] = useState(null)
   const [canInterrupt, setCanInterrupt] = useState(false)
   const [selectedImage, setSelectedImage] = useState(null) // Immagine selezionata per inviare
   const [imagePreview, setImagePreview] = useState(null) // Preview immagine
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false) // Stato riproduzione audio
   
   const mediaRecorderRef = useRef(null)
   const audioChunksRef = useRef([])
   const messagesEndRef = useRef(null)
   const streamingMessageRef = useRef(null)
   const imageInputRef = useRef(null)
+  const audioContextRef = useRef(null) // AudioContext per riproduzione
+  const audioQueueRef = useRef([]) // Coda chunk audio
+  const currentAudioRef = useRef(null) // Audio element corrente
   const { rosa } = useRosa()
   const sessionInitialized = useRef(false)
 
@@ -281,6 +285,26 @@ export default function VoiceCoachingPanel() {
             })
           })
 
+          // ✅ Setup callback per audio output (TTS) - chunk in streaming
+          realtimeCoachingServiceV2.onAudioDeltaCallback((audioChunk) => {
+            if (audioEnabled) {
+              // Accumula chunk audio
+              audioQueueRef.current.push(audioChunk)
+              // Riproduci chunk immediatamente se non c'è audio in riproduzione
+              if (!isPlayingAudio) {
+                playAudioChunk(audioChunk)
+              }
+            }
+          })
+
+          // ✅ Setup callback per audio output completo (TTS)
+          realtimeCoachingServiceV2.onAudioDoneCallback((audioBase64) => {
+            if (audioEnabled) {
+              // Riproduci audio completo
+              playCompleteAudio(audioBase64)
+            }
+          })
+
           // Setup callback per errori
           realtimeCoachingServiceV2.onErrorCallback((error) => {
             const errorMsg = {
@@ -314,6 +338,15 @@ export default function VoiceCoachingPanel() {
     return () => {
       if (sessionInitialized.current) {
         realtimeCoachingServiceV2.disconnect()
+      }
+      // ✅ Cleanup audio
+      if (currentAudioRef.current) {
+        currentAudioRef.current.pause()
+        currentAudioRef.current = null
+      }
+      if (audioContextRef.current) {
+        audioContextRef.current.close()
+        audioContextRef.current = null
       }
     }
   }, [rosa])
@@ -593,12 +626,99 @@ export default function VoiceCoachingPanel() {
     }
   }
 
+  // ✅ Riproduci chunk audio (streaming)
+  const playAudioChunk = async (audioChunkBase64) => {
+    try {
+      if (!audioContextRef.current) {
+        audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)()
+      }
+
+      // Decodifica base64
+      const audioData = Uint8Array.from(atob(audioChunkBase64), c => c.charCodeAt(0))
+      const audioBuffer = await audioContextRef.current.decodeAudioData(audioData.buffer)
+      
+      // Crea source e riproduci
+      const source = audioContextRef.current.createBufferSource()
+      source.buffer = audioBuffer
+      source.connect(audioContextRef.current.destination)
+      source.start(0)
+      
+      setIsPlayingAudio(true)
+      
+      source.onended = () => {
+        setIsPlayingAudio(false)
+      }
+    } catch (error) {
+      console.error('Error playing audio chunk:', error)
+      setIsPlayingAudio(false)
+    }
+  }
+
+  // ✅ Riproduci audio completo
+  const playCompleteAudio = async (audioBase64) => {
+    try {
+      // Ferma audio corrente se in riproduzione
+      if (currentAudioRef.current) {
+        currentAudioRef.current.pause()
+        currentAudioRef.current = null
+      }
+
+      // Decodifica base64
+      const audioData = Uint8Array.from(atob(audioBase64), c => c.charCodeAt(0))
+      const audioBlob = new Blob([audioData], { type: 'audio/opus' })
+      const audioUrl = URL.createObjectURL(audioBlob)
+      
+      // Crea e riproduci audio
+      const audio = new Audio(audioUrl)
+      currentAudioRef.current = audio
+      
+      setIsPlayingAudio(true)
+      
+      audio.onended = () => {
+        setIsPlayingAudio(false)
+        URL.revokeObjectURL(audioUrl)
+        currentAudioRef.current = null
+      }
+      
+      audio.onerror = (error) => {
+        console.error('Error playing audio:', error)
+        setIsPlayingAudio(false)
+        URL.revokeObjectURL(audioUrl)
+        currentAudioRef.current = null
+      }
+      
+      await audio.play()
+    } catch (error) {
+      console.error('Error playing complete audio:', error)
+      setIsPlayingAudio(false)
+    }
+  }
+
+  // ✅ Toggle audio output
+  const handleToggleAudio = () => {
+    setAudioEnabled(prev => !prev)
+    if (!audioEnabled && currentAudioRef.current) {
+      // Se riabilitiamo audio, ferma riproduzione corrente
+      currentAudioRef.current.pause()
+      currentAudioRef.current = null
+      setIsPlayingAudio(false)
+    }
+  }
+
   // Interrompi risposta corrente
   const handleInterrupt = () => {
     if (canInterrupt && realtimeCoachingServiceV2.isActive) {
       realtimeCoachingServiceV2.interrupt()
       setCanInterrupt(false)
       setIsProcessing(false)
+      
+      // ✅ Ferma anche audio se in riproduzione
+      if (currentAudioRef.current) {
+        currentAudioRef.current.pause()
+        currentAudioRef.current = null
+        setIsPlayingAudio(false)
+      }
+      
       // Finalizza messaggio streaming
       if (streamingMessageRef.current) {
         streamingMessageRef.current.isStreaming = false
@@ -749,6 +869,24 @@ export default function VoiceCoachingPanel() {
               <Square size={18} />
             </button>
           )}
+
+          {/* Audio Toggle Button */}
+          <button
+            onClick={handleToggleAudio}
+            className={`audio-toggle-button ${!audioEnabled ? 'muted' : ''}`}
+            title={audioEnabled ? 'Disabilita audio' : 'Abilita audio'}
+          >
+            {audioEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
+          </button>
+
+          {/* Audio Toggle Button */}
+          <button
+            onClick={handleToggleAudio}
+            className={`audio-toggle-button ${!audioEnabled ? 'muted' : ''}`}
+            title={audioEnabled ? 'Disabilita audio' : 'Abilita audio'}
+          >
+            {audioEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
+          </button>
 
           {/* Image Upload Button */}
           <button

@@ -563,6 +563,35 @@
   }
 }
 
+/* Audio Toggle Button */
+.audio-toggle-button {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: #10b981;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.audio-toggle-button:hover {
+  background: rgba(16, 185, 129, 0.1);
+  transform: scale(1.05);
+}
+
+.audio-toggle-button.muted {
+  color: #ef4444;
+}
+
+.audio-toggle-button.muted:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
 /* Streaming Message */
 .message.streaming .message-text {
   border: 2px solid #667eea;

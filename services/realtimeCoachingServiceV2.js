@@ -15,7 +15,10 @@ class RealtimeCoachingServiceV2 {
     this.onFunctionCall = null
     this.onError = null
     this.onAudioTranscription = null // Callback per trascrizione audio utente
+    this.onAudioDelta = null // Callback per chunk audio output (TTS)
+    this.onAudioDone = null // Callback per audio output completo
     this.currentResponse = ''
+    this.audioQueue = [] // Coda per chunk audio in streaming
   }
 
   /**
@@ -162,12 +165,29 @@ class RealtimeCoachingServiceV2 {
       }
     ]
 
-    // Invia configurazione sessione
+    // Invia configurazione sessione con audio bidirezionale abilitato
     this.ws.send(JSON.stringify({
       type: 'session.update',
       session: {
         tools: functions,
-        instructions: this.buildSystemPrompt(context)
+        instructions: this.buildSystemPrompt(context),
+        // ✅ Abilita audio bidirezionale
+        modalities: ['text', 'audio'],
+        // ✅ Configurazione audio input (trascrizione)
+        input_audio_transcription: {
+          model: 'whisper-1'
+        },
+        // ✅ Voice Activity Detection (VAD) per rilevare quando utente finisce di parlare
+        turn_detection: {
+          type: 'server_vad',
+          threshold: 0.5,
+          prefix_padding_ms: 300,
+          silence_duration_ms: 500
+        },
+        // ✅ Configurazione voce output (TTS)
+        voice: 'alloy', // Opzioni: alloy, echo, fable, onyx, nova, shimmer
+        temperature: 0.7,
+        max_response_output_tokens: 4096
       }
     }))
   }
@@ -227,6 +247,25 @@ class RealtimeCoachingServiceV2 {
         // Trascrizione risposta audio completata (opzionale)
         if (event?.text) {
           console.log('🎤 Response audio transcribed:', event.text)
+        }
+        break
+
+      case 'response.audio.delta':
+        // ✅ Chunk audio in streaming (TTS)
+        if (event?.delta && this.onAudioDelta) {
+          // Delta è base64 audio chunk
+          this.audioQueue.push(event.delta)
+          this.onAudioDelta(event.delta)
+        }
+        break
+
+      case 'response.audio.done':
+        // ✅ Audio completo ricevuto (TTS)
+        if (event?.audio && this.onAudioDone) {
+          // Audio completo in base64
+          console.log('🔊 Audio output complete')
+          this.onAudioDone(event.audio)
+          this.audioQueue = [] // Reset queue
         }
         break
 
@@ -319,11 +358,11 @@ class RealtimeCoachingServiceV2 {
       }
     }))
 
-    // Crea risposta (avvia streaming)
+    // Crea risposta (avvia streaming) con audio bidirezionale
     this.ws.send(JSON.stringify({
       type: 'response.create',
       response: {
-        modalities: ['text']
+        modalities: ['text', 'audio'] // ✅ Testo + Audio (TTS)
       }
     }))
   }
@@ -384,6 +423,14 @@ Puoi usare le funzioni disponibili per:
 
   onAudioTranscriptionCallback(callback) {
     this.onAudioTranscription = callback
+  }
+
+  onAudioDeltaCallback(callback) {
+    this.onAudioDelta = callback
+  }
+
+  onAudioDoneCallback(callback) {
+    this.onAudioDone = callback
   }
 
   /**
