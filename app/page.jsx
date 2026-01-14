@@ -4,10 +4,10 @@ import React from 'react'
 import { supabase } from '@/lib/supabaseClient'
 
 export default function Home() {
-  return <RosaLocalPage />
+  return <RosaProductionPage />
 }
 
-function RosaLocalPage() {
+function RosaProductionPage() {
   const [isDragging, setIsDragging] = React.useState(false)
   const [images, setImages] = React.useState([])
   const [isExtracting, setIsExtracting] = React.useState(false)
