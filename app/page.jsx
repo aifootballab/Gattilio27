@@ -20,6 +20,8 @@ function RosaLocalPage() {
     hasSupabaseUrl: null,
     hasSupabaseAnonKey: null,
     hasSupabaseServiceRoleKey: null,
+    supabaseAnonKeyKind: null,
+    supabaseServiceRoleKeyKind: null,
   })
   const [groups, setGroups] = React.useState([])
   const [authStatus, setAuthStatus] = React.useState({ ready: false, userId: null, token: null })
@@ -37,6 +39,8 @@ function RosaLocalPage() {
           hasSupabaseUrl: j?.hasSupabaseUrl ?? null,
           hasSupabaseAnonKey: j?.hasSupabaseAnonKey ?? null,
           hasSupabaseServiceRoleKey: j?.hasSupabaseServiceRoleKey ?? null,
+          supabaseAnonKeyKind: j?.supabaseAnonKeyKind ?? null,
+          supabaseServiceRoleKeyKind: j?.supabaseServiceRoleKeyKind ?? null,
         })
       )
       .catch(() =>
@@ -46,6 +50,8 @@ function RosaLocalPage() {
           hasSupabaseUrl: null,
           hasSupabaseAnonKey: null,
           hasSupabaseServiceRoleKey: null,
+          supabaseAnonKeyKind: null,
+          supabaseServiceRoleKeyKind: null,
         })
       )
   }, [])
@@ -226,6 +232,7 @@ function RosaLocalPage() {
           <b>
             {envInfo.hasSupabaseServiceRoleKey === null ? '—' : envInfo.hasSupabaseServiceRoleKey ? 'OK' : 'MISSING'}
           </b>
+          {envInfo.supabaseServiceRoleKeyKind ? <span> ({envInfo.supabaseServiceRoleKeyKind})</span> : null}
         </p>
         <p className="subtitle" style={{ marginTop: 6, fontSize: 12, opacity: 0.85 }}>
           Supabase anon: <b>{authStatus.userId ? 'OK' : authStatus.ready ? 'MISSING' : '…'}</b>

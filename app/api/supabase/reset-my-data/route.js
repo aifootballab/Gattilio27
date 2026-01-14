@@ -17,7 +17,15 @@ export async function POST(req) {
 
     const admin = createClient(supabaseUrl, serviceKey)
     const { data: userData, error: userErr } = await admin.auth.getUser(token)
-    if (userErr || !userData?.user?.id) return NextResponse.json({ error: 'Invalid auth' }, { status: 401 })
+    if (userErr || !userData?.user?.id) {
+      return NextResponse.json(
+        {
+          error: 'Invalid auth',
+          details: userErr?.message || null,
+        },
+        { status: 401 }
+      )
+    }
     const userId = userData.user.id
 
     // Cancella SOLO i dati dell’utente corrente (anon): non tocca players_base globali
