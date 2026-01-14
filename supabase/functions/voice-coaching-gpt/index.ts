@@ -567,14 +567,14 @@ async function savePlayerToSupabase(
 
     // 3. Aggiungi a rosa se rosaId fornito
     if (rosaId && playerBuildId) {
-      const { data: rosa } = await supabase
+      const { data: rosa, error: rosaError } = await supabase
         .from('user_rosa')
         .select('player_build_ids')
         .eq('id', rosaId)
         .eq('user_id', userId)
-        .single()
+        .maybeSingle() // ✅ Usa maybeSingle() invece di single()
 
-      if (rosa) {
+      if (rosa && !rosaError) {
         const currentIds = rosa.player_build_ids || []
         if (!currentIds.includes(playerBuildId)) {
           await supabase
