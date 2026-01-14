@@ -128,10 +128,20 @@ class RealtimeCoachingServiceV2 {
   async connectToRealtimeAPI(userId, context) {
     return new Promise((resolve, reject) => {
       // Ottieni API key da variabile d'ambiente Vercel
-      const apiKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY
+      const apiKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY || import.meta.env.VITE_OPENAI_API_KEY
       
       if (!apiKey) {
-        reject(new Error('NEXT_PUBLIC_OPENAI_API_KEY not configured. Verifica variabili d\'ambiente in Vercel.'))
+        const error = new Error('OPENAI_API_KEY not configured. Verifica variabili d\'ambiente in Vercel.')
+        console.error('❌', error.message)
+        reject(error)
+        return
+      }
+
+      // ✅ Verifica formato API key (dovrebbe iniziare con sk-)
+      if (!apiKey.startsWith('sk-') && !apiKey.startsWith('sk-proj-')) {
+        const error = new Error('Invalid OpenAI API key format. Expected to start with "sk-" or "sk-proj-". Verifica NEXT_PUBLIC_OPENAI_API_KEY in Vercel.')
+        console.error('❌', error.message, { apiKeyPrefix: apiKey.substring(0, 10) })
+        reject(error)
         return
       }
 
@@ -139,10 +149,23 @@ class RealtimeCoachingServiceV2 {
       // NOTA: Per sicurezza, considera di usare un proxy Edge Function invece di esporre API key nel client
       // Usa gpt-realtime (nuovo modello stabile) invece di gpt-4o-realtime-preview
       const model = 'gpt-realtime'
-      const wsUrl = `wss://api.openai.com/v1/realtime?model=${model}&api_key=${apiKey}`
+      // ✅ OpenAI Realtime API richiede api_key come query parameter
+      const wsUrl = `wss://api.openai.com/v1/realtime?model=${model}&api_key=${encodeURIComponent(apiKey)}`
       
-      console.log('🔌 Connecting to OpenAI Realtime API...')
-      this.ws = new WebSocket(wsUrl)
+      console.log('🔌 Connecting to OpenAI Realtime API...', {
+        model,
+        apiKeyPrefix: apiKey.substring(0, 7) + '...',
+        apiKeyLength: apiKey.length,
+        urlPrefix: wsUrl.substring(0, 60) + '...'
+      })
+      
+      try {
+        this.ws = new WebSocket(wsUrl)
+      } catch (wsError) {
+        console.error('❌ Error creating WebSocket:', wsError)
+        reject(new Error(`Failed to create WebSocket connection: ${wsError.message}`))
+        return
+      }
 
       this.ws.onopen = () => {
         console.log('✅ Connected to GPT Realtime API')
