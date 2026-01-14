@@ -34,7 +34,10 @@ export async function POST(req: Request) {
     const apiKey = process.env.OPENAI_API_KEY
     if (!apiKey) {
       return NextResponse.json(
-        { error: 'OPENAI_API_KEY mancante (server-only). Crea .env.local e riavvia.' },
+        {
+          error:
+            'OPENAI_API_KEY mancante su questo deployment Vercel. Aggiungila in Vercel → Settings → Environment Variables (Preview + Production) e fai Redeploy.',
+        },
         { status: 500 }
       )
     }
