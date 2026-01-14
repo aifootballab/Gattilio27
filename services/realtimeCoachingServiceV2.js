@@ -624,11 +624,14 @@ class RealtimeCoachingServiceV2 {
         const decoder = new TextDecoder()
         let buffer = ''
 
+        console.log('📥 Starting to read SSE stream...')
+
         while (true) {
           const { done, value } = await reader.read()
           
           if (done) {
             // Streaming completo
+            console.log('✅ SSE stream completed')
             if (this.onTextDelta) {
               this.onTextDelta(null) // null = done
             }
@@ -643,24 +646,39 @@ class RealtimeCoachingServiceV2 {
           buffer = lines.pop() || '' // Ultima linea incompleta
 
           for (const line of lines) {
+            if (line.trim() === '') continue // Skip empty lines
+            
             if (line.startsWith('data: ')) {
               try {
-                const data = JSON.parse(line.substring(6))
+                const dataStr = line.substring(6)
+                const data = JSON.parse(dataStr)
+                
+                console.log('📨 Received SSE data:', data)
+                
+                // Gestisci trascrizione audio (se presente)
+                if (data.transcription && this.onAudioTranscription) {
+                  console.log('🎤 Audio transcription received:', data.transcription)
+                  this.onAudioTranscription(data.transcription)
+                }
                 
                 // Gestisci delta text
                 if (data.delta && this.onTextDelta) {
                   this.currentResponse += data.delta
+                  console.log('📝 Text delta:', data.delta)
                   this.onTextDelta(data.delta)
                 }
                 
                 // Gestisci risposta completa
                 if (data.content && this.onTextDelta) {
                   this.currentResponse = data.content
+                  console.log('📝 Full content:', data.content)
                   this.onTextDelta(data.content)
                 }
               } catch (parseError) {
-                console.warn('Error parsing SSE data:', parseError, line)
+                console.warn('⚠️ Error parsing SSE data:', parseError, 'Line:', line)
               }
+            } else if (line.trim() !== '') {
+              console.log('📨 SSE line (not data:):', line)
             }
           }
         }

@@ -1157,9 +1157,13 @@ serve(async (req) => {
 
     // 2. Trascrivi audio se fornito (usando OpenAI Whisper o GPT-4o Realtime)
     let transcribedMessage = message
+    let audioTranscribed = false
     
     if (audio_base64 && !message) {
+      console.log('🎤 Transcribing audio...')
       transcribedMessage = await transcribeAudio(audio_base64)
+      audioTranscribed = true
+      console.log('✅ Audio transcribed:', transcribedMessage)
     }
 
     if (!transcribedMessage) {
@@ -1224,6 +1228,16 @@ COMPORTAMENTO: Analitico, prudente, contestualizzato, guidato. Non creativo, non
     // ✅ Crea stream SSE per risposte in tempo reale
     const stream = new ReadableStream({
       async start(controller) {
+        // ✅ Invia trascrizione audio al client se presente
+        if (audioTranscribed && transcribedMessage) {
+          console.log('📤 Sending transcription to client:', transcribedMessage)
+          controller.enqueue(
+            new TextEncoder().encode(
+              `data: ${JSON.stringify({ transcription: transcribedMessage })}\n\n`
+            )
+          )
+        }
+
         const reader = openaiResponse.body?.getReader()
         const decoder = new TextDecoder()
         let fullResponse = ''
@@ -1233,10 +1247,15 @@ COMPORTAMENTO: Analitico, prudente, contestualizzato, guidato. Non creativo, non
           return
         }
 
+        console.log('📥 Starting GPT response stream...')
+
         try {
           while (true) {
             const { done, value } = await reader.read()
-            if (done) break
+            if (done) {
+              console.log('✅ GPT stream completed')
+              break
+            }
 
             const chunk = decoder.decode(value, { stream: true })
             const lines = chunk.split('\n')
@@ -1245,6 +1264,7 @@ COMPORTAMENTO: Analitico, prudente, contestualizzato, guidato. Non creativo, non
               if (line.startsWith('data: ')) {
                 const data = line.substring(6)
                 if (data === '[DONE]') {
+                  console.log('📝 GPT response complete, total length:', fullResponse.length)
                   // Streaming completo - salva risposta completa
                   const updatedHistory = [
                     ...conversationHistory,
@@ -1286,9 +1306,14 @@ COMPORTAMENTO: Analitico, prudente, contestualizzato, guidato. Non creativo, non
                   if (delta) {
                     fullResponse += delta
                     // Invia delta al client via SSE
-                    controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ delta })}\n\n`))
+                    controller.enqueue(
+                      new TextEncoder().encode(
+                        `data: ${JSON.stringify({ delta })}\n\n`
+                      )
+                    )
                   }
                 } catch (parseError) {
+                  console.warn('⚠️ Error parsing GPT chunk:', parseError, 'Data:', data)
                   // Ignora errori di parsing
                 }
               }
