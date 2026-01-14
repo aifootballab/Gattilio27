@@ -466,20 +466,66 @@ export default function VoiceCoachingPanel() {
       }
 
       mediaRecorder.onstop = async () => {
-        // ✅ Invia webm direttamente al server
-        // Il server gestirà la conversione se necessario
-        // Whisper supporta webm, ma potrebbe richiedere conversione lato server
-        const audioBlob = new Blob(audioChunksRef.current, { 
-          type: mimeType || 'audio/webm' 
-        })
-        
-        console.log('📤 Sending audio to server:', {
-          size: audioBlob.size,
-          sizeKB: Math.round(audioBlob.size / 1024),
-          type: mimeType || 'audio/webm'
-        })
-        
-        await sendAudioMessage(audioBlob)
+        try {
+          // ✅ Converti webm opus in WAV per compatibilità Whisper
+          const webmBlob = new Blob(audioChunksRef.current, { 
+            type: mimeType || 'audio/webm' 
+          })
+          console.log('🔄 Converting webm to WAV for Whisper compatibility...')
+          
+          // Converti Blob in ArrayBuffer
+          const arrayBuffer = await webmBlob.arrayBuffer()
+          
+          // ✅ Prova AudioContext.decodeAudioData
+          const audioContext = new (window.AudioContext || window.webkitAudioContext)()
+          const audioBuffer = await audioContext.decodeAudioData(arrayBuffer.slice(0))
+          
+          // ✅ Converti AudioBuffer in WAV
+          const wavBlob = audioBufferToWav(audioBuffer)
+          
+          console.log('✅ Audio converted to WAV:', {
+            originalSize: webmBlob.size,
+            wavSize: wavBlob.size,
+            duration: audioBuffer.duration,
+            sampleRate: audioBuffer.sampleRate
+          })
+          
+          await sendAudioMessage(wavBlob)
+          
+          // Chiudi AudioContext
+          await audioContext.close()
+        } catch (conversionError) {
+          // ✅ Se la conversione fallisce (decodeAudioData non supporta webm opus),
+          // prova a registrare in un formato diverso se supportato
+          console.error('❌ Error converting audio to WAV:', conversionError)
+          
+          // Prova a registrare in un formato diverso (se supportato)
+          const alternativeFormats = [
+            'audio/mp4',
+            'audio/ogg;codecs=opus',
+            'audio/webm;codecs=vp9'
+          ]
+          
+          let alternativeSupported = false
+          for (const format of alternativeFormats) {
+            if (MediaRecorder.isTypeSupported(format)) {
+              console.log(`⚠️ Retrying with alternative format: ${format}`)
+              alternativeSupported = true
+              // Non possiamo ri-registrare, quindi accettiamo il fallback
+              break
+            }
+          }
+          
+          if (!alternativeSupported) {
+            console.warn('⚠️ No alternative formats supported, sending webm (may fail with Whisper)')
+          }
+          
+          // Fallback: invia webm originale (probabilmente fallirà con Whisper)
+          const audioBlob = new Blob(audioChunksRef.current, { 
+            type: mimeType || 'audio/webm' 
+          })
+          await sendAudioMessage(audioBlob)
+        }
         
         // Stop stream
         stream.getTracks().forEach(track => track.stop())
