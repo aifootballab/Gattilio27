@@ -58,7 +58,7 @@ async function generateTTS(text: string, voice: string = 'alloy'): Promise<strin
         model: 'tts-1',
         input: text,
         voice: voice, // alloy, echo, fable, onyx, nova, shimmer
-        response_format: 'opus' // opus, mp3, aac, flac
+        response_format: 'mp3' // mp3 è più compatibile con browser rispetto a opus
       })
     })
 

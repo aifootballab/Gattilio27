@@ -806,8 +806,15 @@ export default function VoiceCoachingPanel() {
 
       // Decodifica base64
       const audioData = Uint8Array.from(atob(audioBase64), c => c.charCodeAt(0))
-      const audioBlob = new Blob([audioData], { type: 'audio/opus' })
+      // TTS API restituisce mp3
+      const audioBlob = new Blob([audioData], { type: 'audio/mpeg' })
       const audioUrl = URL.createObjectURL(audioBlob)
+      
+      console.log('🔊 Playing TTS audio:', {
+        size: audioData.length,
+        sizeKB: Math.round(audioData.length / 1024),
+        type: 'audio/mpeg'
+      })
       
       // Crea e riproduci audio
       const audio = new Audio(audioUrl)
