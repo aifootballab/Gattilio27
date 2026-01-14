@@ -509,13 +509,13 @@ async function savePlayerToSupabase(
     
     if (playerData.player_name) {
       // Cerca se esiste già
-      const { data: existing } = await supabase
+      const { data: existing, error: existingError } = await supabase
         .from('players_base')
         .select('id')
         .eq('player_name', playerData.player_name)
-        .single()
+        .maybeSingle() // ✅ Usa maybeSingle() invece di single()
 
-      if (existing) {
+      if (existing && !existingError) {
         playerBaseId = existing.id
       } else {
         // Crea nuovo
@@ -833,15 +833,15 @@ async function handleExecuteFunction(supabase: any, userId: string, functionName
 async function handleAnalyzeScreenshot(supabase: any, userId: string, sessionId: string | undefined, imageUrl: string, imageType: string, context: any) {
   // Se c'è una sessione, usa quella, altrimenti analisi standalone
   if (sessionId) {
-    const { data: session } = await supabase
+    const { data: session, error: sessionError } = await supabase
       .from('coaching_sessions')
       .select('*')
       .eq('session_id', sessionId)
       .eq('user_id', userId)
       .eq('is_active', true)
-      .single()
+      .maybeSingle() // ✅ Usa maybeSingle() invece di single()
 
-    if (session) {
+    if (session && !sessionError) {
       // Analizza screenshot e aggiungi alla conversazione
       const openaiApiKey = Deno.env.get('OPENAI_API_KEY')
       if (!openaiApiKey) {
