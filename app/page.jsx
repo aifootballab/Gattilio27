@@ -26,6 +26,7 @@ function RosaLocalPage() {
   const [groups, setGroups] = React.useState([])
   const [authStatus, setAuthStatus] = React.useState({ ready: false, userId: null, token: null })
   const [supabaseMsg, setSupabaseMsg] = React.useState(null)
+  const [tokenKind, setTokenKind] = React.useState(null)
 
   const fileInputRef = React.useRef(null)
 
@@ -84,7 +85,10 @@ function RosaLocalPage() {
   const getFreshToken = async () => {
     if (!supabase) return null
     const { data } = await supabase.auth.getSession()
-    return data?.session?.access_token || null
+    const t = data?.session?.access_token || null
+    // safe debug: non mostra token, solo "jwt" vs "opaque"
+    setTokenKind(t && typeof t === 'string' && t.includes('.') && t.split('.').length >= 3 ? 'jwt' : t ? 'opaque' : null)
+    return t
   }
 
   const compressImageToDataUrl = async (file, maxDim = 1200, quality = 0.88) => {
@@ -185,7 +189,7 @@ function RosaLocalPage() {
         headers: { Authorization: `Bearer ${token}` },
       })
       const data = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(data?.error || `Reset failed (${res.status})`)
+      if (!res.ok) throw new Error(`${data?.error || `Reset failed (${res.status})`}${data?.details ? ` — ${data.details}` : ''}`)
       setSupabaseMsg('✅ Dati Supabase resettati per questo utente anonimo')
     } catch (e) {
       setSupabaseMsg(`❌ ${e?.message || 'Errore reset'}`)
@@ -203,7 +207,7 @@ function RosaLocalPage() {
         body: JSON.stringify({ player, slotIndex }),
       })
       const data = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(data?.error || `Save failed (${res.status})`)
+      if (!res.ok) throw new Error(`${data?.error || `Save failed (${res.status})`}${data?.details ? ` — ${data.details}` : ''}`)
       setSupabaseMsg(`✅ Salvato in Supabase (slot ${data.slot})`)
     } catch (e) {
       setSupabaseMsg(`❌ ${e?.message || 'Errore salvataggio'}`)
@@ -237,6 +241,7 @@ function RosaLocalPage() {
         <p className="subtitle" style={{ marginTop: 6, fontSize: 12, opacity: 0.85 }}>
           Supabase anon: <b>{authStatus.userId ? 'OK' : authStatus.ready ? 'MISSING' : '…'}</b>
           {authStatus.userId ? <span> · user_id: <b>{authStatus.userId}</b></span> : null}
+          {tokenKind ? <span> · token: <b>{tokenKind}</b></span> : null}
         </p>
         <div style={{ display: 'flex', gap: 10, marginTop: 10, flexWrap: 'wrap' }}>
           <button className="btn" onClick={resetMySupabaseData} disabled={!authStatus.token}>
