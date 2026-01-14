@@ -25,7 +25,9 @@ export async function POST(req) {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    
     if (!supabaseUrl || !serviceKey || !anonKey) {
+      console.error('[save-player] Missing env vars:', { hasUrl: !!supabaseUrl, hasAnon: !!anonKey, hasService: !!serviceKey })
       return NextResponse.json(
         { error: 'Supabase server env missing (NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY)' },
         { status: 500 }
@@ -34,48 +36,89 @@ export async function POST(req) {
 
     const auth = req.headers.get('authorization') || ''
     const token = auth.toLowerCase().startsWith('bearer ') ? auth.slice(7) : null
-    if (!token) return NextResponse.json({ error: 'Missing Authorization bearer token' }, { status: 401 })
+    
+    if (!token) {
+      console.error('[save-player] Missing token in header:', { authHeader: auth ? `${auth.substring(0, 20)}...` : 'empty' })
+      return NextResponse.json({ error: 'Missing Authorization bearer token' }, { status: 401 })
+    }
 
-    // IMPORTANT:
-    // I token anon sono sempre JWT e richiedono la chiave legacy JWT (anon) per essere validati.
+    console.log('[save-player] Validating token:', { tokenPrefix: token.substring(0, 20) + '...', anonKeyKind: anonKey?.startsWith('sb_publishable_') ? 'publishable' : anonKey?.includes('.') ? 'jwt' : 'unknown' })
+
+    // IMPORTANT: I token anon sono sempre JWT e richiedono la chiave legacy JWT (anon) per essere validati.
     // Se anonKey è una publishable moderna (sb_publishable_...), dobbiamo usare la legacy JWT.
-    // Per ora, proviamo prima con anonKey, poi se fallisce con "Invalid API key", usiamo la legacy.
     let userData = null
     let userErr = null
     let userId = null
     
-    // Prova con la chiave configurata
-    const authClient = createClient(supabaseUrl, anonKey)
-    const authResult = await authClient.auth.getUser(token)
-    userData = authResult.data
-    userErr = authResult.error
-    
-    // Se fallisce con "Invalid API key" e anonKey è publishable, prova con legacy JWT
-    if (userErr?.message?.includes('Invalid API key') && anonKey?.startsWith('sb_publishable_')) {
-      // Usa la legacy JWT anon key (hardcoded per questo progetto)
-      const legacyAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsaXV1b3Jyd2RldHlsb2xscnVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc5MDk0MTksImV4cCI6MjA4MzQ4NTQxOX0.pGnglOpSQ4gJ1JClB_zyBIB3-94eKHJfgveuCfoyffo'
+    // Prova PRIMA con legacy JWT (più affidabile per token anon)
+    const legacyAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsaXV1b3Jyd2RldHlsb2xscnVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc5MDk0MTksImV4cCI6MjA4MzQ4NTQxOX0.pGnglOpSQ4gJ1JClB_zyBIB3-94eKHJfgveuCfoyffo'
+    try {
       const legacyAuthClient = createClient(supabaseUrl, legacyAnonKey)
       const legacyResult = await legacyAuthClient.auth.getUser(token)
       userData = legacyResult.data
       userErr = legacyResult.error
+      if (!userErr && userData?.user?.id) {
+        console.log('[save-player] Token validated with legacy JWT key')
+      }
+    } catch (legacyErr) {
+      console.error('[save-player] Legacy JWT validation failed:', legacyErr?.message || legacyErr)
+      userErr = legacyErr
+    }
+    
+    // Fallback: se legacy fallisce e anonKey è JWT, prova con anonKey
+    if (userErr && anonKey?.includes('.') && !anonKey?.startsWith('sb_publishable_')) {
+      try {
+        const authClient = createClient(supabaseUrl, anonKey)
+        const authResult = await authClient.auth.getUser(token)
+        if (!authResult.error && authResult.data?.user?.id) {
+          userData = authResult.data
+          userErr = null
+          console.log('[save-player] Token validated with configured JWT key')
+        } else {
+          userErr = authResult.error || userErr
+        }
+      } catch (fallbackErr) {
+        console.error('[save-player] Fallback validation failed:', fallbackErr?.message || fallbackErr)
+        userErr = fallbackErr
+      }
     }
     
     if (userErr || !userData?.user?.id) {
+      const errorMsg = userErr?.message || String(userErr) || 'Unknown auth error'
+      console.error('[save-player] Auth validation failed:', { error: errorMsg, hasUserData: !!userData, hasUserId: !!userData?.user?.id })
       return NextResponse.json(
         {
           error: 'Invalid auth',
-          details: userErr?.message || null,
+          details: errorMsg,
         },
         { status: 401 }
       )
     }
     userId = userData.user.id
-    const admin = createClient(supabaseUrl, serviceKey)
+    console.log('[save-player] Auth OK, userId:', userId)
+    let admin = null
+    try {
+      admin = createClient(supabaseUrl, serviceKey)
+    } catch (adminErr) {
+      console.error('[save-player] Failed to create admin client:', adminErr?.message || adminErr)
+      return NextResponse.json({ error: 'Failed to initialize Supabase admin client', details: adminErr?.message }, { status: 500 })
+    }
 
-    const body = await req.json().catch(() => null)
+    let body = null
+    try {
+      body = await req.json()
+    } catch (parseErr) {
+      console.error('[save-player] JSON parse failed:', parseErr?.message || parseErr)
+      return NextResponse.json({ error: 'Invalid JSON in request body' }, { status: 400 })
+    }
+    
     const player = body?.player
     const slotIndex = toInt(body?.slotIndex)
+    
+    console.log('[save-player] Request body:', { hasPlayer: !!player, playerName: player?.player_name, slotIndex })
+    
     if (!player || slotIndex === null || slotIndex < 0 || slotIndex > 20) {
+      console.error('[save-player] Invalid input:', { hasPlayer: !!player, slotIndex })
       return NextResponse.json({ error: 'Invalid input: player + slotIndex(0-20) required' }, { status: 400 })
     }
 
@@ -252,8 +295,18 @@ export async function POST(req) {
       slot: slotIndex,
     })
   } catch (e) {
-    console.error('save-player error', e)
-    return NextResponse.json({ error: e?.message || 'Errore server' }, { status: 500 })
+    console.error('[save-player] Unhandled exception:', {
+      message: e?.message || String(e),
+      stack: e?.stack,
+      name: e?.name,
+    })
+    return NextResponse.json(
+      {
+        error: e?.message || 'Errore server',
+        details: process.env.NODE_ENV === 'development' ? String(e) : null,
+      },
+      { status: 500 }
+    )
   }
 }
 
