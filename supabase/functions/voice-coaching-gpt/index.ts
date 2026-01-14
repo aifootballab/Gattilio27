@@ -47,7 +47,54 @@ serve(async (req) => {
   }
 
   try {
-    const requestBody: VoiceCoachingRequest = await req.json()
+    // ✅ Verifica che il body esista e non sia vuoto prima di fare parsing
+    let requestBody: VoiceCoachingRequest
+    
+    try {
+      // Controlla se il body esiste
+      if (!req.body) {
+        return new Response(
+          JSON.stringify({ error: 'Request body is missing', code: 'EMPTY_BODY' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      requestBody = await req.json()
+      
+      // Verifica che requestBody non sia null o undefined
+      if (!requestBody) {
+        return new Response(
+          JSON.stringify({ error: 'Request body is empty', code: 'EMPTY_BODY' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+    } catch (parseError: any) {
+      console.error('JSON parse error:', parseError)
+      const errorMessage = parseError?.message || 'Unknown parsing error'
+      
+      // Se è "Unexpected end of JSON input", significa body vuoto
+      if (errorMessage.includes('Unexpected end of JSON input') || errorMessage.includes('JSON')) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'Request body is empty or invalid JSON', 
+            code: 'INVALID_JSON',
+            details: errorMessage
+          }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+      
+      // Altri errori di parsing
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid JSON in request body', 
+          code: 'INVALID_JSON',
+          details: errorMessage
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     const { action = 'send_message', user_id, session_id, message, audio_base64, image_url, image_type, function_name, arguments: args, context, mode = 'text' } = requestBody
 
     if (!user_id) {
