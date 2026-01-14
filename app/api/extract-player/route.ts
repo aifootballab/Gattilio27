@@ -146,6 +146,8 @@ Output JSON con queste chiavi esatte.
       body: JSON.stringify({
         // più affidabile su screenshot complessi; puoi cambiare in futuro via env se vuoi
         model: process.env.OPENAI_VISION_MODEL || 'gpt-4o',
+        // Responses API: il vecchio `response_format` è stato spostato qui
+        text: { format: { type: 'json_object' } },
         input: [
           {
             role: 'user',
@@ -155,7 +157,6 @@ Output JSON con queste chiavi esatte.
             ],
           },
         ],
-        response_format: { type: 'json_object' },
         temperature: 0,
         max_output_tokens: 1200,
       }),
