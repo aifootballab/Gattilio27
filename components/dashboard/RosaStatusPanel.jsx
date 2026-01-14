@@ -3,7 +3,7 @@
 import React from 'react'
 import { useRosa } from '@/contexts/RosaContext'
 import Link from 'next/link'
-import { Users, CheckCircle, AlertCircle, ArrowRight } from 'lucide-react'
+import { Users, AlertCircle, ArrowRight } from 'lucide-react'
 import './RosaStatusPanel.css'
 
 function RosaStatusPanel() {
@@ -69,11 +69,6 @@ function RosaStatusPanel() {
             <Link href="/rosa" className="rosa-action-btn">
               <Users size={18} />
               Gestisci Rosa
-              <ArrowRight size={16} />
-            </Link>
-            <Link href="/sinergie" className="rosa-action-btn secondary">
-              <CheckCircle size={18} />
-              Analisi Sinergie
               <ArrowRight size={16} />
             </Link>
           </div>

@@ -117,12 +117,18 @@ class GPTRealtimeService {
       }
 
       // URL WebSocket OpenAI Realtime API
-      const wsUrl = `wss://api.openai.com/v1/realtime?model=gpt-realtime&api_key=${apiKey}`
+      const wsUrl = `wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview`
       
       console.log('🔌 Connecting to GPT Realtime API...')
       
       try {
-        this.ws = new WebSocket(wsUrl)
+        // In browser non possiamo settare header Authorization: usiamo i sub-protocols
+        // (Sec-WebSocket-Protocol) per passare la key.
+        this.ws = new WebSocket(wsUrl, [
+          'realtime',
+          `openai-insecure-api-key.${apiKey}`,
+          'openai-beta.realtime-v1'
+        ])
       } catch (error) {
         reject(new Error(`Failed to create WebSocket: ${error.message}`))
         return
