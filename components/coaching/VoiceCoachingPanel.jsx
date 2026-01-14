@@ -179,7 +179,22 @@ export default function VoiceCoachingPanel() {
     const initSession = async () => {
       if (!sessionInitialized.current) {
         try {
-          const userId = '00000000-0000-0000-0000-000000000001' // TODO: Get from auth
+          // ✅ Verifica se utente è già autenticato, altrimenti fai login anonymous
+          let { data: { session }, error: sessionError } = await supabase.auth.getSession()
+          
+          if (!session || sessionError) {
+            // Se non c'è sessione, fai login anonymous
+            const { data: authData, error: authError } = await supabase.auth.signInAnonymously()
+            
+            if (authError || !authData.session) {
+              throw new Error(`Errore autenticazione: ${authError?.message || 'Impossibile creare sessione anonima'}`)
+            }
+            
+            session = authData.session
+            console.log('✅ Login anonymous completato')
+          }
+          
+          const userId = session.user.id
           const context = {
             rosa: rosa,
             user_profile: {
@@ -473,7 +488,21 @@ export default function VoiceCoachingPanel() {
     if (!realtimeCoachingServiceV2.isActive) {
       // Se sessione non attiva, inizializza
       try {
-        const userId = '00000000-0000-0000-0000-000000000001'
+        // ✅ Verifica se utente è già autenticato, altrimenti fai login anonymous
+        let { data: { session }, error: sessionError } = await supabase.auth.getSession()
+        
+        if (!session || sessionError) {
+          // Se non c'è sessione, fai login anonymous
+          const { data: authData, error: authError } = await supabase.auth.signInAnonymously()
+          
+          if (authError || !authData.session) {
+            throw new Error(`Errore autenticazione: ${authError?.message || 'Impossibile creare sessione anonima'}`)
+          }
+          
+          session = authData.session
+        }
+        
+        const userId = session.user.id
         await realtimeCoachingServiceV2.startSession(userId, { rosa, user_profile: { coaching_level: 'intermedio' } })
       } catch (error) {
         console.error('Error starting session:', error)
