@@ -568,42 +568,118 @@ class RealtimeCoachingServiceV2 {
   }
 
   /**
-   * Invia messaggio a GPT
+   * Invia messaggio a GPT tramite Edge Function (HTTP streaming)
    */
-  sendMessage(input) {
-    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
-      throw new Error('WebSocket not connected')
-    }
-
-    const inputArray = []
-    
-    if (input.text) {
-      inputArray.push({ type: 'input_text', text: input.text })
-    }
-    if (input.audio) {
-      inputArray.push({ type: 'input_audio', audio: input.audio })
-    }
-    if (input.image) {
-      inputArray.push({ type: 'input_image', image_url: { url: input.image } })
-    }
-
-    // Crea messaggio utente
-    this.ws.send(JSON.stringify({
-      type: 'conversation.item.create',
-      item: {
-        type: 'message',
-        role: 'user',
-        content: inputArray
+  async sendMessage(input) {
+    try {
+      // ✅ Ottieni sessione Supabase per JWT token
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      
+      if (sessionError || !session) {
+        throw new Error('User not authenticated. Please log in.')
       }
-    }))
 
-    // Crea risposta (avvia streaming) con audio bidirezionale
-    this.ws.send(JSON.stringify({
-      type: 'response.create',
-      response: {
-        modalities: ['text', 'audio'] // ✅ Testo + Audio (TTS)
+      if (!this.sessionId) {
+        throw new Error('Session not started. Call startSession() first.')
       }
-    }))
+
+      // ✅ Ottieni URL Supabase
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      
+      if (!supabaseUrl || !supabaseAnonKey) {
+        throw new Error('Supabase URL or Anon Key not configured')
+      }
+
+      // ✅ Prepara payload per Edge Function
+      const payload = {
+        action: 'send_message',
+        user_id: session.user.id,
+        session_id: this.sessionId,
+        message: input.text || null,
+        audio_base64: input.audio || null,
+        image_url: input.image || null,
+        mode: input.audio ? 'voice' : 'text'
+      }
+
+      // ✅ Chiama Edge Function con streaming
+      const response = await fetch(`${supabaseUrl}/functions/v1/voice-coaching-gpt`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+          'apikey': supabaseAnonKey
+        },
+        body: JSON.stringify(payload)
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(`Edge Function error: ${response.status} - ${errorText}`)
+      }
+
+      // ✅ Gestisci risposta streaming
+      if (response.body) {
+        const reader = response.body.getReader()
+        const decoder = new TextDecoder()
+        let buffer = ''
+
+        while (true) {
+          const { done, value } = await reader.read()
+          
+          if (done) {
+            // Streaming completo
+            if (this.onTextDelta) {
+              this.onTextDelta(null) // null = done
+            }
+            break
+          }
+
+          // Decodifica chunk
+          buffer += decoder.decode(value, { stream: true })
+          
+          // Processa linee SSE (data: ...)
+          const lines = buffer.split('\n')
+          buffer = lines.pop() || '' // Ultima linea incompleta
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.substring(6))
+                
+                // Gestisci delta text
+                if (data.delta && this.onTextDelta) {
+                  this.currentResponse += data.delta
+                  this.onTextDelta(data.delta)
+                }
+                
+                // Gestisci risposta completa
+                if (data.content && this.onTextDelta) {
+                  this.currentResponse = data.content
+                  this.onTextDelta(data.content)
+                }
+              } catch (parseError) {
+                console.warn('Error parsing SSE data:', parseError, line)
+              }
+            }
+          }
+        }
+      } else {
+        // Fallback: risposta non streaming
+        const data = await response.json()
+        if (data.response && this.onTextDelta) {
+          this.currentResponse = data.response
+          this.onTextDelta(data.response)
+          this.onTextDelta(null) // done
+        }
+      }
+    } catch (error) {
+      console.error('Error sending message:', error)
+      if (this.onError) {
+        this.onError(error)
+      }
+      throw error
+    }
   }
 
   /**

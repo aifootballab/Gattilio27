@@ -831,7 +831,7 @@ COMPORTAMENTO: Analitico, prudente, contestualizzato, guidato. Non creativo, non
         ],
         max_tokens: 1000,
         temperature: 0.7, // Bilanciato tra creatività e coerenza
-        stream: false // Per ora non streaming, ma può essere abilitato
+        stream: true // ✅ Abilita streaming per risposte in tempo reale
       }),
     })
 
@@ -1096,60 +1096,128 @@ serve(async (req) => {
       throw new Error('OPENAI_API_KEY not configured')
     }
 
-    const coachingResponse = await callGPTRealtimeCoaching(
-      coachingPrompt,
-      userContext,
-      openaiApiKey,
-      conversationHistory
-    )
+    // ✅ 5. Chiama GPT con streaming e restituisci SSE
+    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openaiApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages: [
+          {
+            role: 'system',
+            content: buildCoachingPrompt('', userContext, conversationHistory).split('\n\n')[0] // System prompt
+          },
+          ...conversationHistory.slice(-10).map((msg: any) => ({
+            role: msg.role === 'user' ? 'user' : 'assistant',
+            content: msg.content
+          })),
+          {
+            role: 'user',
+            content: coachingPrompt
+          }
+        ],
+        max_tokens: 1000,
+        temperature: 0.7,
+        stream: true
+      }),
+    })
 
-    // 5. Aggiorna sessione con nuovo messaggio e risposta
-    const updatedHistory = [
-      ...conversationHistory,
-      { role: 'user', content: transcribedMessage, timestamp: new Date().toISOString() },
-      { role: 'assistant', content: coachingResponse, timestamp: new Date().toISOString() }
-    ]
-
-    await supabase
-      .from('coaching_sessions')
-      .update({
-        conversation_history: updatedHistory,
-        context_snapshot: userContext,
-        last_activity: new Date().toISOString()
-      })
-      .eq('session_id', session_id)
-
-    // 6. Salva anche in voice_coaching_sessions per log completo
-    try {
-      await supabase
-        .from('voice_coaching_sessions')
-        .insert({
-          user_id,
-          user_message: transcribedMessage,
-          coaching_response: coachingResponse,
-          context_snapshot: userContext,
-          created_at: new Date().toISOString()
-        })
-    } catch (logError) {
-      console.error('Failed to log conversation:', logError)
-      // Non bloccare la risposta se il log fallisce
+    if (!openaiResponse.ok) {
+      const errorData = await openaiResponse.text()
+      throw new Error(`GPT API error: ${openaiResponse.status} - ${errorData}`)
     }
 
-    // 7. Return risposta coaching
-    return new Response(
-      JSON.stringify({
-        success: true,
-        response: coachingResponse,
-        transcribed_message: transcribedMessage,
-        session_id: session_id,
-        context_used: {
-          has_rosa: !!userContext.rosa,
-          has_match_stats: !!userContext.match_stats,
-          has_opponent: !!userContext.opponent_formation
+    // ✅ Crea stream SSE per risposte in tempo reale
+    const stream = new ReadableStream({
+      async start(controller) {
+        const reader = openaiResponse.body?.getReader()
+        const decoder = new TextDecoder()
+        let fullResponse = ''
+
+        if (!reader) {
+          controller.close()
+          return
         }
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+
+        try {
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+
+            const chunk = decoder.decode(value, { stream: true })
+            const lines = chunk.split('\n')
+
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                const data = line.substring(6)
+                if (data === '[DONE]') {
+                  // Streaming completo - salva risposta completa
+                  const updatedHistory = [
+                    ...conversationHistory,
+                    { role: 'user', content: transcribedMessage, timestamp: new Date().toISOString() },
+                    { role: 'assistant', content: fullResponse, timestamp: new Date().toISOString() }
+                  ]
+
+                  await supabase
+                    .from('coaching_sessions')
+                    .update({
+                      conversation_history: updatedHistory,
+                      context_snapshot: userContext,
+                      last_activity: new Date().toISOString()
+                    })
+                    .eq('session_id', session_id)
+
+                  // Log completo
+                  try {
+                    await supabase
+                      .from('voice_coaching_sessions')
+                      .insert({
+                        user_id,
+                        user_message: transcribedMessage,
+                        coaching_response: fullResponse,
+                        context_snapshot: userContext,
+                        created_at: new Date().toISOString()
+                      })
+                  } catch (logError) {
+                    console.error('Failed to log conversation:', logError)
+                  }
+
+                  controller.close()
+                  return
+                }
+
+                try {
+                  const json = JSON.parse(data)
+                  const delta = json.choices?.[0]?.delta?.content
+                  if (delta) {
+                    fullResponse += delta
+                    // Invia delta al client via SSE
+                    controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ delta })}\n\n`))
+                  }
+                } catch (parseError) {
+                  // Ignora errori di parsing
+                }
+              }
+            }
+          }
+        } catch (error) {
+          controller.error(error)
+        }
+      }
+    })
+
+    // ✅ Return SSE stream
+    return new Response(stream, {
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive'
+      }
+    })
 
   } catch (error) {
     console.error('Error in voice coaching:', error)
