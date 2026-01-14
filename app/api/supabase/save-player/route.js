@@ -188,23 +188,33 @@ export async function POST(req) {
       source: 'screenshot_extractor',
     }
 
+    console.log('[save-player] basePayload:', { player_name: basePayload.player_name, has_base_stats: !!basePayload.base_stats, source: basePayload.source })
+
     let playerBaseId = existingBase?.id || null
     if (!playerBaseId) {
+      console.log('[save-player] Inserting new players_base...')
       const { data: inserted, error: insErr } = await admin
         .from('players_base')
         .insert(basePayload)
         .select('id')
         .single()
-      if (insErr) throw insErr
+      if (insErr) {
+        console.error('[save-player] players_base insert failed:', { error: insErr.message, code: insErr.code, details: insErr.details, hint: insErr.hint })
+        throw new Error(`players_base insert failed: ${insErr.message}${insErr.details ? ` (${insErr.details})` : ''}${insErr.hint ? ` Hint: ${insErr.hint}` : ''}`)
+      }
       playerBaseId = inserted.id
+      console.log('[save-player] players_base inserted, id:', playerBaseId)
     } else {
-      // NON sovrascriviamo i record esistenti (potrebbero essere del DB base).
-      // Aggiorniamo solo se è un record creato da noi (taggato).
-      await admin
+      console.log('[save-player] players_base exists, id:', playerBaseId, '- updating metadata if tagged...')
+      const { error: updateErr } = await admin
         .from('players_base')
         .update({ metadata: basePayload.metadata, updated_at: new Date().toISOString() })
         .eq('id', playerBaseId)
         .contains('metadata', { source: 'screenshot_extractor' })
+      if (updateErr) {
+        console.error('[save-player] players_base update failed:', { error: updateErr.message })
+        // Non blocchiamo se l'update fallisce (potrebbe essere un record del DB base)
+      }
     }
 
     // 2) player_builds: 1 build per user_id + player_base_id
@@ -218,6 +228,7 @@ export async function POST(req) {
     const buildPayload = {
       user_id: userId,
       player_base_id: playerBaseId,
+      development_points: {}, // NOT NULL, required
       current_level: toInt(player.level_current),
       level_cap: toInt(player.level_cap),
       final_overall_rating: typeof player.overall_rating === 'number' ? player.overall_rating : toInt(player.overall_rating),
@@ -226,13 +237,25 @@ export async function POST(req) {
       source_data: { extracted: player },
     }
 
+    console.log('[save-player] buildPayload:', { user_id: userId, player_base_id: playerBaseId, has_dev_points: !!buildPayload.development_points })
+
     let buildId = existingBuild?.id || null
     if (!buildId) {
+      console.log('[save-player] Inserting new player_build...')
       const { data: b, error: bErr } = await admin.from('player_builds').insert(buildPayload).select('id').single()
-      if (bErr) throw bErr
+      if (bErr) {
+        console.error('[save-player] player_builds insert failed:', { error: bErr.message, code: bErr.code, details: bErr.details, hint: bErr.hint })
+        throw new Error(`player_builds insert failed: ${bErr.message}${bErr.details ? ` (${bErr.details})` : ''}${bErr.hint ? ` Hint: ${bErr.hint}` : ''}`)
+      }
       buildId = b.id
+      console.log('[save-player] player_builds inserted, id:', buildId)
     } else {
-      await admin.from('player_builds').update(buildPayload).eq('id', buildId)
+      console.log('[save-player] Updating existing player_build, id:', buildId)
+      const { error: updateErr } = await admin.from('player_builds').update(buildPayload).eq('id', buildId)
+      if (updateErr) {
+        console.error('[save-player] player_builds update failed:', { error: updateErr.message, code: updateErr.code, details: updateErr.details })
+        throw new Error(`player_builds update failed: ${updateErr.message}${updateErr.details ? ` (${updateErr.details})` : ''}`)
+      }
     }
 
     // 3) user_rosa: crea se non esiste main, poi setta lo slot
@@ -244,6 +267,7 @@ export async function POST(req) {
       .maybeSingle()
 
     if (!rosa) {
+      console.log('[save-player] Creating new user_rosa...')
       const { data: newRosa, error: rErr } = await admin
         .from('user_rosa')
         .insert({
@@ -254,18 +278,28 @@ export async function POST(req) {
         })
         .select('id, player_build_ids')
         .single()
-      if (rErr) throw rErr
+      if (rErr) {
+        console.error('[save-player] user_rosa insert failed:', { error: rErr.message, code: rErr.code, details: rErr.details })
+        throw new Error(`user_rosa insert failed: ${rErr.message}${rErr.details ? ` (${rErr.details})` : ''}`)
+      }
       rosa = newRosa
+      console.log('[save-player] user_rosa created, id:', rosa.id)
+    } else {
+      console.log('[save-player] user_rosa exists, id:', rosa.id)
     }
 
     const updated = ensureArrayLen(rosa.player_build_ids, 21)
     updated[slotIndex] = buildId
+    console.log('[save-player] Updating user_rosa slot', slotIndex, 'with build_id:', buildId)
 
     const { error: upErr } = await admin
       .from('user_rosa')
       .update({ player_build_ids: updated, updated_at: new Date().toISOString() })
       .eq('id', rosa.id)
-    if (upErr) throw upErr
+    if (upErr) {
+      console.error('[save-player] user_rosa update failed:', { error: upErr.message, code: upErr.code, details: upErr.details })
+      throw new Error(`user_rosa update failed: ${upErr.message}${upErr.details ? ` (${upErr.details})` : ''}`)
+    }
 
     if (logId) {
       await admin
