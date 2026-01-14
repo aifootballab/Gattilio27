@@ -1,10 +1,10 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
-import { Mic, MicOff, Send, Volume2, Loader, Sparkles } from 'lucide-react'
+import { Mic, MicOff, Send, Volume2, Loader, Sparkles, Square } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useRosa } from '@/contexts/RosaContext'
-import realtimeCoachingService from '@/services/realtimeCoachingService'
+import realtimeCoachingServiceV2 from '@/services/realtimeCoachingServiceV2'
 import './VoiceCoachingPanel.css'
 
 /**
@@ -18,10 +18,14 @@ export default function VoiceCoachingPanel() {
   const [currentMessage, setCurrentMessage] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
   const [audioEnabled, setAudioEnabled] = useState(true)
+  const [streamingResponse, setStreamingResponse] = useState('')
+  const [currentFunctionCall, setCurrentFunctionCall] = useState(null)
+  const [canInterrupt, setCanInterrupt] = useState(false)
   
   const mediaRecorderRef = useRef(null)
   const audioChunksRef = useRef([])
   const messagesEndRef = useRef(null)
+  const streamingMessageRef = useRef(null)
   const { rosa } = useRosa()
   const sessionInitialized = useRef(false)
 
@@ -163,7 +167,7 @@ export default function VoiceCoachingPanel() {
     )
   }
 
-  // Inizializza sessione persistente quando il componente si monta
+  // Inizializza sessione Realtime API quando il componente si monta
   useEffect(() => {
     const initSession = async () => {
       if (!sessionInitialized.current) {
@@ -176,13 +180,86 @@ export default function VoiceCoachingPanel() {
             }
           }
 
-          // Setup callbacks
-          realtimeCoachingService.onMessage((message) => {
-            setMessages(prev => [...prev, message])
-            setIsProcessing(false)
+          // Setup callback per streaming word-by-word
+          realtimeCoachingServiceV2.onTextDeltaCallback((delta) => {
+            if (delta === null) {
+              // Streaming completato
+              if (streamingMessageRef.current) {
+                streamingMessageRef.current.isStreaming = false
+                streamingMessageRef.current = null
+              }
+              setStreamingResponse('')
+              setIsProcessing(false)
+              setCanInterrupt(false)
+            } else {
+              // Nuova parola in streaming
+              setStreamingResponse(prev => {
+                const newText = prev + delta
+                // Aggiorna messaggio streaming in tempo reale
+                if (streamingMessageRef.current) {
+                  streamingMessageRef.current.content = newText
+                  // Aggiorna messaggio nella lista
+                  setMessages(prev => prev.map(msg => 
+                    msg === streamingMessageRef.current 
+                      ? { ...msg, content: newText }
+                      : msg
+                  ))
+                } else {
+                  // Crea nuovo messaggio streaming
+                  const streamingMsg = {
+                    role: 'coach',
+                    content: newText,
+                    timestamp: new Date(),
+                    isStreaming: true
+                  }
+                  streamingMessageRef.current = streamingMsg
+                  setMessages(prev => [...prev, streamingMsg])
+                }
+                setCanInterrupt(true)
+                setIsProcessing(true)
+                return newText
+              })
+            }
           })
 
-          realtimeCoachingService.onError((error) => {
+          // Setup callback per function calls
+          realtimeCoachingServiceV2.onFunctionCallCallback((call) => {
+            setCurrentFunctionCall({
+              name: call.name,
+              status: 'executing'
+            })
+            // Mostra notifica in UI
+            const functionMsg = {
+              role: 'system',
+              content: `🔧 Eseguendo: ${call.name}...`,
+              timestamp: new Date(),
+              isFunctionCall: true
+            }
+            setMessages(prev => [...prev, functionMsg])
+            
+            // Dopo 2 secondi, aggiorna con risultato
+            setTimeout(() => {
+              setCurrentFunctionCall(prev => {
+                if (prev && prev.name === call.name) {
+                  return { ...prev, status: 'completed' }
+                }
+                return prev
+              })
+              // Aggiorna messaggio con risultato
+              setMessages(prev => prev.map(msg => 
+                msg.isFunctionCall && msg.content.includes(call.name)
+                  ? { ...msg, content: `✅ Completato: ${call.name}` }
+                  : msg
+              ))
+              // Rimuovi dopo 3 secondi
+              setTimeout(() => {
+                setCurrentFunctionCall(null)
+              }, 3000)
+            }, 2000)
+          })
+
+          // Setup callback per errori
+          realtimeCoachingServiceV2.onErrorCallback((error) => {
             const errorMsg = {
               role: 'error',
               content: `Errore: ${error.message}`,
@@ -190,13 +267,20 @@ export default function VoiceCoachingPanel() {
             }
             setMessages(prev => [...prev, errorMsg])
             setIsProcessing(false)
+            setCanInterrupt(false)
           })
 
-          // Avvia sessione persistente
-          await realtimeCoachingService.startSession(userId, context)
+          // Avvia sessione Realtime API
+          await realtimeCoachingServiceV2.startSession(userId, context)
           sessionInitialized.current = true
         } catch (error) {
           console.error('Error initializing session:', error)
+          const errorMsg = {
+            role: 'error',
+            content: `Errore inizializzazione: ${error.message}`,
+            timestamp: new Date()
+          }
+          setMessages(prev => [...prev, errorMsg])
         }
       }
     }
@@ -206,7 +290,7 @@ export default function VoiceCoachingPanel() {
     // Cleanup quando il componente si smonta
     return () => {
       if (sessionInitialized.current) {
-        realtimeCoachingService.endSession()
+        realtimeCoachingServiceV2.disconnect()
       }
     }
   }, [rosa])
@@ -264,13 +348,13 @@ export default function VoiceCoachingPanel() {
     await sendTextMessage(userMessage)
   }
 
-  // Invia messaggio testuale usando sessione persistente
+  // Invia messaggio testuale usando Realtime API
   const sendTextMessage = async (text) => {
-    if (!realtimeCoachingService.isSessionActive()) {
+    if (!realtimeCoachingServiceV2.isActive) {
       // Se sessione non attiva, inizializza
       try {
         const userId = '00000000-0000-0000-0000-000000000001'
-        await realtimeCoachingService.startSession(userId, { rosa, user_profile: { coaching_level: 'intermedio' } })
+        await realtimeCoachingServiceV2.startSession(userId, { rosa, user_profile: { coaching_level: 'intermedio' } })
       } catch (error) {
         console.error('Error starting session:', error)
         return
@@ -278,6 +362,9 @@ export default function VoiceCoachingPanel() {
     }
 
     setIsProcessing(true)
+    setStreamingResponse('')
+    setCanInterrupt(false)
+    streamingMessageRef.current = null
 
     // Aggiungi messaggio utente alla chat
     const userMsg = {
@@ -288,9 +375,9 @@ export default function VoiceCoachingPanel() {
     setMessages(prev => [...prev, userMsg])
 
     try {
-      // Usa servizio persistente invece di chiamata singola
-      await realtimeCoachingService.sendMessage(text)
-      // La risposta arriverà tramite callback onMessage
+      // Invia messaggio via Realtime API (streaming)
+      realtimeCoachingServiceV2.sendMessage({ text })
+      // La risposta arriverà tramite callback onTextDelta (streaming word-by-word)
     } catch (error) {
       console.error('Error sending message:', error)
       const errorMsg = {
@@ -300,16 +387,17 @@ export default function VoiceCoachingPanel() {
       }
       setMessages(prev => [...prev, errorMsg])
       setIsProcessing(false)
+      setCanInterrupt(false)
     }
   }
 
-  // Invia messaggio audio usando sessione persistente
+  // Invia messaggio audio usando Realtime API
   const sendAudioMessage = async (audioBlob) => {
-    if (!realtimeCoachingService.isSessionActive()) {
+    if (!realtimeCoachingServiceV2.isActive) {
       // Se sessione non attiva, inizializza
       try {
         const userId = '00000000-0000-0000-0000-000000000001'
-        await realtimeCoachingService.startSession(userId, { rosa, user_profile: { coaching_level: 'intermedio' } })
+        await realtimeCoachingServiceV2.startSession(userId, { rosa, user_profile: { coaching_level: 'intermedio' } })
       } catch (error) {
         console.error('Error starting session:', error)
         return
@@ -317,6 +405,9 @@ export default function VoiceCoachingPanel() {
     }
 
     setIsProcessing(true)
+    setStreamingResponse('')
+    setCanInterrupt(false)
+    streamingMessageRef.current = null
 
     try {
       // Converti audio a base64
@@ -325,9 +416,9 @@ export default function VoiceCoachingPanel() {
         const base64Audio = reader.result.split(',')[1]
 
         try {
-          // Usa servizio persistente
-          await realtimeCoachingService.sendMessage(null, base64Audio)
-          // La risposta arriverà tramite callback onMessage
+          // Invia audio via Realtime API (multimodale)
+          realtimeCoachingServiceV2.sendMessage({ audio: base64Audio })
+          // La risposta arriverà tramite callback onTextDelta (streaming word-by-word)
         } catch (error) {
           console.error('Error sending audio:', error)
           const errorMsg = {
@@ -337,6 +428,7 @@ export default function VoiceCoachingPanel() {
           }
           setMessages(prev => [...prev, errorMsg])
           setIsProcessing(false)
+          setCanInterrupt(false)
         }
       }
 
@@ -351,6 +443,22 @@ export default function VoiceCoachingPanel() {
       }
       setMessages(prev => [...prev, errorMsg])
       setIsProcessing(false)
+      setCanInterrupt(false)
+    }
+  }
+
+  // Interrompi risposta corrente
+  const handleInterrupt = () => {
+    if (canInterrupt && realtimeCoachingServiceV2.isActive) {
+      realtimeCoachingServiceV2.interrupt()
+      setCanInterrupt(false)
+      setIsProcessing(false)
+      // Finalizza messaggio streaming
+      if (streamingMessageRef.current) {
+        streamingMessageRef.current.isStreaming = false
+        streamingMessageRef.current = null
+      }
+      setStreamingResponse('')
     }
   }
 
@@ -416,7 +524,40 @@ export default function VoiceCoachingPanel() {
           </div>
         ))}
 
-        {isProcessing && (
+        {/* Function Call Notification */}
+        {currentFunctionCall && (
+          <div className="message system">
+            <div className="message-content">
+              <div className="message-avatar system">🔧</div>
+              <div className="message-text">
+                <div className="function-call-indicator">
+                  <Loader size={16} className="spinner" />
+                  <span>Eseguendo: {currentFunctionCall.name}...</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Streaming Response */}
+        {isProcessing && streamingResponse && (
+          <div className="message coach streaming">
+            <div className="message-content">
+              <div className="message-avatar coach">
+                <div className="avatar-pulse">🧠</div>
+              </div>
+              <div className="message-text">
+                <div className="message-content-formatted">
+                  {formatMessageContent(streamingResponse)}
+                </div>
+                <span className="streaming-indicator">●</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Typing Indicator (quando non c'è streaming) */}
+        {isProcessing && !streamingResponse && (
           <div className="message coach">
             <div className="message-content">
               <div className="message-avatar coach">
@@ -440,6 +581,17 @@ export default function VoiceCoachingPanel() {
       {/* Input Area */}
       <div className="coaching-input">
         <div className="input-controls">
+          {/* Interrupt Button (mostra solo quando streaming) */}
+          {canInterrupt && isProcessing && (
+            <button
+              onClick={handleInterrupt}
+              className="interrupt-button"
+              title="Interrompi risposta"
+            >
+              <Square size={18} />
+            </button>
+          )}
+
           {/* Microphone Button */}
           <button
             className={`mic-button ${isRecording ? 'recording' : ''} ${isListening ? 'listening' : ''}`}
@@ -447,7 +599,7 @@ export default function VoiceCoachingPanel() {
             onMouseUp={handleStopRecording}
             onTouchStart={handleStartRecording}
             onTouchEnd={handleStopRecording}
-            disabled={isProcessing}
+            disabled={isProcessing && !canInterrupt}
             title={isRecording ? 'Rilascia per inviare' : 'Tieni premuto per parlare'}
           >
             {isRecording ? <MicOff size={20} /> : <Mic size={20} />}
@@ -465,14 +617,14 @@ export default function VoiceCoachingPanel() {
               }
             }}
             placeholder="Scrivi qui o usa il microfono..."
-            disabled={isProcessing || isRecording}
+            disabled={(isProcessing && !canInterrupt) || isRecording}
             className="message-input"
           />
 
           {/* Send Button */}
           <button
             onClick={handleSendMessage}
-            disabled={!currentMessage.trim() || isProcessing || isRecording}
+            disabled={!currentMessage.trim() || (isProcessing && !canInterrupt) || isRecording}
             className="send-button"
           >
             <Send size={18} />

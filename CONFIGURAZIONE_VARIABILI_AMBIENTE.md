@@ -1,242 +1,196 @@
-# 🔧 Configurazione Variabili d'Ambiente
-## Fix errore "Supabase non configurato"
+# ⚙️ Configurazione Variabili d'Ambiente Supabase
+## Guida Completa per Fix Errori 500
 
-**Data**: 2025-01-12  
-**Status**: ✅ **GUIDA COMPLETA**
-
----
-
-## 🚨 ERRORE ATTUALE
-
-```
-Supabase URL o Anon Key non configurati nelle variabili d'ambiente
-Errore caricamento rosa: Error: Supabase non configurato
-```
-
-**Causa**: Le variabili `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` non sono configurate.
+**Data**: 2025-01-14  
+**Status**: 🔴 **AZIONE RICHIESTA**
 
 ---
 
-## ✅ SOLUZIONE
+## 🚨 PROBLEMA
 
-### **Opzione 1: Configurazione Locale (Sviluppo)**
+Le Edge Functions restituiscono errori **500** perché mancano variabili d'ambiente necessarie.
 
-**Step 1: Crea file `.env` nella root del progetto**
+---
+
+## ✅ SOLUZIONE: Configurare Secrets in Supabase
+
+### **Metodo 1: Supabase Dashboard** (Consigliato)
+
+1. Vai a **Supabase Dashboard**: https://supabase.com/dashboard
+2. Seleziona il progetto: **zliuuorrwdetylollrua**
+3. Vai a **Project Settings** → **Edge Functions**
+4. Sezione **Secrets**
+5. Aggiungi le seguenti variabili:
+
+#### **Per `voice-coaching-gpt`**:
+```
+OPENAI_API_KEY = sk-... (tua chiave OpenAI)
+```
+
+#### **Per `process-screenshot`** (Opzionale - usa mock se non configurato):
+```
+GOOGLE_VISION_API_KEY = ... (chiave Google Vision API)
+GOOGLE_VISION_API_ENABLED = true
+```
+
+---
+
+### **Metodo 2: Supabase CLI**
 
 ```bash
-# Nella root del progetto
-touch .env
+# Installa Supabase CLI
+npm install -g supabase
+
+# Login
+supabase login
+
+# Link progetto
+supabase link --project-ref zliuuorrwdetylollrua
+
+# Aggiungi secrets
+supabase secrets set OPENAI_API_KEY=sk-proj-...
+supabase secrets set GOOGLE_VISION_API_KEY=...
+supabase secrets set GOOGLE_VISION_API_ENABLED=true
+
+# Verifica secrets
+supabase secrets list
 ```
 
-**Step 2: Aggiungi le variabili**
+---
 
-```env
-VITE_SUPABASE_URL=https://your-project-id.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key-here
-```
+## 🔑 COME OTTENERE LE CHIAVI
 
-**Step 3: Ottieni i valori da Supabase**
+### **1. OpenAI API Key**
 
-1. Vai su [Supabase Dashboard](https://supabase.com/dashboard)
-2. Seleziona il tuo progetto
-3. Vai su **Settings** → **API**
-4. Copia:
-   - **Project URL** → `VITE_SUPABASE_URL`
-   - **anon/public key** → `VITE_SUPABASE_ANON_KEY` (⚠️ NON usare service_role!)
+1. Vai a https://platform.openai.com/api-keys
+2. Crea nuova chiave API
+3. Copia la chiave (inizia con `sk-` o `sk-proj-`)
+4. **⚠️ IMPORTANTE**: Salvala subito, non la vedrai più!
 
-**Step 4: Riavvia il server di sviluppo**
+**Costo**: ~$0.01-0.03 per 1000 token (molto economico per test)
+
+---
+
+### **2. Google Vision API Key** (Opzionale)
+
+1. Vai a https://console.cloud.google.com/
+2. Crea nuovo progetto o seleziona esistente
+3. Abilita **Cloud Vision API**
+4. Vai a **Credentials** → **Create Credentials** → **API Key**
+5. Copia la chiave
+
+**Costo**: Primi 1000 richieste/mese gratuite, poi ~$1.50 per 1000 richieste
+
+**⚠️ NOTA**: Se non configuri Google Vision, `process-screenshot` userà dati mock per sviluppo.
+
+---
+
+## 🧪 VERIFICA CONFIGURAZIONE
+
+### **Test 1: Verifica `voice-coaching-gpt`**
 
 ```bash
-# Ferma il server (Ctrl+C)
-# Riavvia
-npm run dev
+curl -X POST https://zliuuorrwdetylollrua.supabase.co/functions/v1/voice-coaching-gpt \
+  -H "Authorization: Bearer sb_publishable_8SwNxwen65r_fWoe3joRZw_a_WdX1hr" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "action": "start_session",
+    "user_id": "00000000-0000-0000-0000-000000000001",
+    "context": {}
+  }'
+```
+
+**Risposta attesa** (successo):
+```json
+{
+  "session_id": "xxx-xxx-xxx",
+  "success": true
+}
+```
+
+**Risposta errore** (se `OPENAI_API_KEY` mancante):
+```json
+{
+  "error": "OPENAI_API_KEY not configured. Please set it in Supabase Edge Functions secrets.",
+  "code": "MISSING_API_KEY"
+}
 ```
 
 ---
 
-### **Opzione 2: Configurazione Vercel (Produzione)**
-
-**⚠️ IMPORTANTE**: Se hai già configurato `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY`, devi aggiungere anche `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` con gli stessi valori (Vite usa prefisso `VITE_`, non `NEXT_PUBLIC_`).
-
-**Step 1: Vai su Vercel Dashboard**
-
-1. Vai su [Vercel Dashboard](https://vercel.com/dashboard)
-2. Seleziona il progetto **aifootballab** (o il tuo progetto)
-
-**Step 2: Aggiungi Environment Variables**
-
-1. Vai su **Settings** → **Environment Variables**
-2. Clicca **Add New**
-3. Aggiungi:
-
-   **Variabile 1**:
-   - **Name**: `VITE_SUPABASE_URL`
-   - **Value**: `https://your-project-id.supabase.co` (o usa lo stesso valore di `NEXT_PUBLIC_SUPABASE_URL` se già configurato)
-   - **Environment**: Seleziona tutte (Production, Preview, Development)
-   - Clicca **Save**
-
-   **Variabile 2**:
-   - **Name**: `VITE_SUPABASE_ANON_KEY`
-   - **Value**: `your-anon-key-here` (o usa lo stesso valore di `NEXT_PUBLIC_SUPABASE_ANON_KEY` se già configurato)
-   - **Environment**: Seleziona tutte (Production, Preview, Development)
-   - Clicca **Save**
-
-**Step 3: Redeploy**
-
-1. Vai su **Deployments**
-2. Clicca sui **tre puntini** (⋯) del deployment più recente
-3. Seleziona **Redeploy**
-4. Vercel ricostruirà con le nuove variabili
-
-**📖 Vedi anche**: `FIX_VERCEL_ENV_VARIABLES.md` per dettagli su NEXT_PUBLIC_* vs VITE_*
-
----
-
-## 📋 VARIABILI NECESSARIE
-
-### **Frontend (Vite)**:
-
-| Variabile | Descrizione | Dove trovarla |
-|-----------|-------------|---------------|
-| `VITE_SUPABASE_URL` | URL progetto Supabase | Supabase Dashboard → Settings → API → Project URL |
-| `VITE_SUPABASE_ANON_KEY` | Chiave pubblica anon | Supabase Dashboard → Settings → API → anon/public key |
-
-**⚠️ IMPORTANTE**:
-- Usa la chiave **anon** o **public** (non service_role!)
-- Le variabili `VITE_*` sono esposte al frontend (pubbliche)
-- Non sono segrete, ma necessarie per il funzionamento
-
----
-
-### **Backend (Edge Functions)**:
-
-Queste sono configurate automaticamente da Supabase quando deployi le Edge Functions.
-
-| Variabile | Descrizione | Configurazione |
-|-----------|-------------|----------------|
-| `SUPABASE_URL` | URL progetto | Auto-configurato da Supabase |
-| `SUPABASE_SERVICE_ROLE_KEY` | Chiave service role | Auto-configurato da Supabase |
-| `GOOGLE_VISION_API_KEY` | Chiave Google Vision API | Da configurare manualmente in Vercel |
-
-**Per Edge Functions**:
-- Vai su Supabase Dashboard → **Edge Functions** → **Settings**
-- Le variabili `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` sono già configurate
-- Per `GOOGLE_VISION_API_KEY`: configura in Vercel (se usi Vercel per deploy Edge Functions)
-
----
-
-## 🔍 VERIFICA CONFIGURAZIONE
-
-### **Locale**:
+### **Test 2: Verifica `process-screenshot`**
 
 ```bash
-# Verifica che .env esista
-ls -la .env
-
-# Verifica contenuto (senza mostrare valori)
-cat .env | grep VITE_SUPABASE
+curl -X POST https://zliuuorrwdetylollrua.supabase.co/functions/v1/process-screenshot \
+  -H "Authorization: Bearer sb_publishable_8SwNxwen65r_fWoe3joRZw_a_WdX1hr" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "image_url": "https://zliuuorrwdetylollrua.supabase.co/storage/v1/object/public/player-screenshots/test.jpg",
+    "image_type": "player_profile",
+    "user_id": "00000000-0000-0000-0000-000000000001"
+  }'
 ```
 
-### **Vercel**:
-
-1. Vai su Vercel Dashboard → **Settings** → **Environment Variables**
-2. Verifica che ci siano:
-   - ✅ `VITE_SUPABASE_URL`
-   - ✅ `VITE_SUPABASE_ANON_KEY`
-
-### **Runtime (Browser Console)**:
-
-Apri la console del browser e verifica:
-
-```javascript
-// Dovrebbe mostrare i valori (non undefined)
-console.log(import.meta.env.VITE_SUPABASE_URL)
-console.log(import.meta.env.VITE_SUPABASE_ANON_KEY)
+**Risposta attesa** (con mock data se Vision API non configurata):
+```json
+{
+  "success": true,
+  "log_id": "xxx",
+  "extracted_data": {...},
+  "warning": "Using mock data - configure GOOGLE_VISION_API_KEY for real OCR"
+}
 ```
 
 ---
 
-## 🛠️ TROUBLESHOOTING
+## 📋 CHECKLIST
 
-### **Problema 1: Variabili non caricate dopo creazione .env**
-
-**Soluzione**:
-```bash
-# Riavvia il server di sviluppo
-# Vite carica .env solo all'avvio
-npm run dev
-```
-
-### **Problema 2: Variabili non funzionano in Vercel**
-
-**Soluzione**:
-1. Verifica che le variabili siano configurate in Vercel
-2. **Redeploy** il progetto (le variabili vengono caricate al build time)
-3. Verifica che i nomi siano esatti: `VITE_SUPABASE_URL` (con VITE_ prefix!)
-
-### **Problema 3: Errore "Invalid API key"**
-
-**Soluzione**:
-- Verifica di usare la chiave **anon/public**, non service_role
-- Verifica che l'URL sia corretto (formato: `https://xxx.supabase.co`)
-
-### **Problema 4: Variabili funzionano localmente ma non su Vercel**
-
-**Soluzione**:
-1. Vai su Vercel Dashboard → **Settings** → **Environment Variables**
-2. Verifica che le variabili siano configurate per **tutti gli ambienti** (Production, Preview, Development)
-3. Fai **Redeploy** dopo aver aggiunto le variabili
+- [ ] Aggiunto `OPENAI_API_KEY` in Supabase Secrets
+- [ ] (Opzionale) Aggiunto `GOOGLE_VISION_API_KEY` in Supabase Secrets
+- [ ] (Opzionale) Aggiunto `GOOGLE_VISION_API_ENABLED=true` in Supabase Secrets
+- [ ] Testato `voice-coaching-gpt` con curl
+- [ ] Testato `process-screenshot` con curl
+- [ ] Verificato che errori 500 siano risolti
 
 ---
 
-## 📝 FILE .env.example
+## 🔍 DEBUGGING
 
-Ho creato `.env.example` come template:
+### **Se ancora errori 500**:
 
-```env
-VITE_SUPABASE_URL=https://your-project-id.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key-here
-```
+1. **Verifica log Supabase**:
+   - Dashboard → **Edge Functions** → **Logs**
+   - Cerca errori recenti con dettagli
 
-**Uso**:
-1. Copia `.env.example` come `.env`
-2. Sostituisci i valori placeholder con i tuoi valori reali
-3. `.env` è già in `.gitignore` (non viene committato)
-
----
-
-## ✅ CHECKLIST
-
-- [ ] File `.env` creato nella root
-- [ ] `VITE_SUPABASE_URL` configurato
-- [ ] `VITE_SUPABASE_ANON_KEY` configurato
-- [ ] Server di sviluppo riavviato
-- [ ] Variabili configurate in Vercel (per produzione)
-- [ ] Redeploy fatto su Vercel (se necessario)
-- [ ] Errore risolto in console
-
----
-
-## 🎯 PROSSIMI STEP
-
-Dopo aver configurato le variabili:
-
-1. **Test Locale**:
+2. **Verifica secrets**:
    ```bash
-   npm run dev
-   # Verifica che non ci siano più errori in console
+   supabase secrets list
    ```
 
-2. **Test Produzione**:
-   - Fai push su GitHub
-   - Vercel deployerà automaticamente
-   - Verifica che funzioni su Vercel
-
-3. **Test Funzionalità**:
-   - Prova a caricare uno screenshot
-   - Verifica che la rosa si carichi
-   - Verifica che i dati vengano salvati
+3. **Test locale** (se hai Supabase CLI):
+   ```bash
+   supabase functions serve voice-coaching-gpt
+   ```
 
 ---
 
-**Status**: 🟢 **GUIDA COMPLETA - SEGUI I PASSI SOPRA**
+## ⚠️ NOTE IMPORTANTI
+
+1. **Secrets sono per progetto**: Ogni progetto Supabase ha i suoi secrets
+2. **Secrets sono sicuri**: Non vengono esposti nel codice frontend
+3. **Rideploy dopo secrets**: Le Edge Functions caricano secrets al runtime, non serve rideploy
+4. **Costi**: Monitora l'uso di API keys per evitare costi inattesi
+
+---
+
+## 🚀 DOPO LA CONFIGURAZIONE
+
+Una volta configurate le variabili:
+
+1. ✅ Gli errori 500 dovrebbero sparire
+2. ✅ `voice-coaching-gpt` funzionerà con GPT-4o
+3. ✅ `process-screenshot` userà Google Vision (se configurato) o mock data
+
+---
+
+**Status**: 🔴 **AZIONE RICHIESTA** - Configurare `OPENAI_API_KEY` in Supabase Dashboard

@@ -4,7 +4,7 @@ import React, { useState } from 'react'
 import { Brain, Upload, X } from 'lucide-react'
 import VoiceCoachingPanel from '../coaching/VoiceCoachingPanel'
 import ScreenshotUpload from '../rosa/ScreenshotUpload'
-import realtimeCoachingService from '@/services/realtimeCoachingService'
+import realtimeCoachingServiceV2 from '@/services/realtimeCoachingServiceV2'
 import './AIBrainButton.css'
 
 /**
@@ -35,9 +35,9 @@ export default function AIBrainButton() {
   }
 
   const handleClose = async () => {
-    // Chiudi sessione persistente quando si chiude il panel
-    if (realtimeCoachingService.isSessionActive()) {
-      await realtimeCoachingService.endSession()
+    // Chiudi sessione Realtime quando si chiude il panel
+    if (realtimeCoachingServiceV2.isActive) {
+      realtimeCoachingServiceV2.disconnect()
     }
     setIsActive(false)
     setMode(null)

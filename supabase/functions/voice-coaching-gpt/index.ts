@@ -5,6 +5,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import * as functions from './functions.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,13 +13,15 @@ const corsHeaders = {
 }
 
 interface VoiceCoachingRequest {
-  action?: 'start_session' | 'send_message' | 'keep_alive' | 'end_session' | 'analyze_screenshot'
+  action?: 'start_session' | 'send_message' | 'keep_alive' | 'end_session' | 'analyze_screenshot' | 'execute_function'
   user_id: string
   session_id?: string // ID sessione persistente
   message?: string // Testo o trascrizione audio
   audio_base64?: string // Audio in base64 (opzionale)
   image_url?: string // URL screenshot
   image_type?: string // Tipo screenshot
+  function_name?: string // Nome funzione da eseguire
+  arguments?: any // Argomenti funzione
   context?: {
     rosa?: any // Rosa utente
     match_stats?: any // Statistiche partita corrente
@@ -45,7 +48,8 @@ serve(async (req) => {
   }
 
   try {
-    const { action = 'send_message', user_id, session_id, message, audio_base64, image_url, image_type, context, mode = 'text' }: VoiceCoachingRequest = await req.json()
+    const requestBody: VoiceCoachingRequest = await req.json()
+    const { action = 'send_message', user_id, session_id, message, audio_base64, image_url, image_type, function_name, arguments: args, context, mode = 'text' } = requestBody
 
     if (!user_id) {
       return new Response(
@@ -78,6 +82,10 @@ serve(async (req) => {
 
     if (action === 'analyze_screenshot') {
       return await handleAnalyzeScreenshot(supabase, user_id, session_id, image_url!, image_type!, context)
+    }
+
+    if (action === 'execute_function') {
+      return await handleExecuteFunction(supabase, user_id, function_name!, args)
     }
 
     // Action: send_message (default) - Richiede sessione
@@ -229,10 +237,31 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in voice coaching:', error)
     
+    // Log dettagliato per debugging
+    const errorDetails = {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    }
+    console.error('Error details:', JSON.stringify(errorDetails, null, 2))
+    
+    // Messaggio più chiaro per errori comuni
+    let errorMessage = error.message
+    let errorCode = 'COACHING_ERROR'
+    
+    if (error.message.includes('OPENAI_API_KEY')) {
+      errorMessage = 'OPENAI_API_KEY not configured. Please set it in Supabase Edge Functions secrets.'
+      errorCode = 'MISSING_API_KEY'
+    } else if (error.message.includes('Supabase credentials')) {
+      errorMessage = 'Supabase credentials not configured. This should be automatic.'
+      errorCode = 'MISSING_SUPABASE_CREDENTIALS'
+    }
+    
     return new Response(
       JSON.stringify({ 
-        error: error.message,
-        code: 'COACHING_ERROR'
+        error: errorMessage,
+        code: errorCode,
+        details: process.env.NODE_ENV === 'development' ? errorDetails : undefined
       }),
       { 
         status: 500, 
@@ -390,6 +419,88 @@ async function handleEndSession(supabase: any, sessionId: string) {
 /**
  * Handler: Analyze Screenshot
  */
+/**
+ * Esegue funzione chiamata da GPT Realtime API
+ */
+async function handleExecuteFunction(supabase: any, userId: string, functionName: string, args: any) {
+  if (!functionName) {
+    return new Response(
+      JSON.stringify({ error: 'Missing function_name' }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+  }
+
+  try {
+    let result
+    switch (functionName) {
+      case 'save_player_to_supabase':
+        result = await functions.savePlayerToSupabase(
+          supabase,
+          userId,
+          args.player_data,
+          args.rosa_id
+        )
+        break
+
+      case 'load_rosa':
+        result = await functions.loadRosa(
+          supabase,
+          userId,
+          args.rosa_id
+        )
+        break
+
+      case 'search_player':
+        result = await functions.searchPlayer(
+          supabase,
+          args.query
+        )
+        break
+
+      case 'update_rosa':
+        result = await functions.updateRosa(
+          supabase,
+          userId,
+          args.rosa_id,
+          args.player_build_ids
+        )
+        break
+
+      case 'analyze_screenshot':
+        result = await functions.analyzeScreenshot(
+          supabase,
+          userId,
+          args.image_url,
+          args.image_type
+        )
+        break
+
+      default:
+        return new Response(
+          JSON.stringify({ error: `Unknown function: ${functionName}` }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+    }
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        result: result
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+  } catch (error) {
+    console.error('Error executing function:', error)
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: error.message
+      }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+  }
+}
+
 async function handleAnalyzeScreenshot(supabase: any, userId: string, sessionId: string | undefined, imageUrl: string, imageType: string, context: any) {
   // Se c'è una sessione, usa quella, altrimenti analisi standalone
   if (sessionId) {
