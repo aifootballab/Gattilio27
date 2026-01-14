@@ -34,8 +34,20 @@ function RosaLocalPage() {
   const [rawJson, setRawJson] = React.useState<string>('')
   const [selectedSlot, setSelectedSlot] = React.useState<number>(0)
   const [rosa, setRosa] = React.useState<RosaSlot[]>(() => Array.from({ length: 21 }, () => null))
+  const [envInfo, setEnvInfo] = React.useState<{ vercelEnv: string | null; hasOpenaiKey: boolean | null }>({
+    vercelEnv: null,
+    hasOpenaiKey: null,
+  })
 
   const fileInputRef = React.useRef<HTMLInputElement | null>(null)
+
+  React.useEffect(() => {
+    // Diagnostica: mostra chiaramente se siamo in production e se la key è presente
+    fetch('/api/env-check')
+      .then((r) => r.json())
+      .then((j) => setEnvInfo({ vercelEnv: j?.vercelEnv ?? null, hasOpenaiKey: !!j?.hasOpenaiKey }))
+      .catch(() => setEnvInfo({ vercelEnv: null, hasOpenaiKey: null }))
+  }, [])
 
   const compressImageToDataUrl = async (file: File) => {
     // Riduce dimensioni per evitare body troppo grande su Vercel/Next
@@ -138,6 +150,9 @@ function RosaLocalPage() {
       <header className="header">
         <h1>Rosa (Local)</h1>
         <p className="subtitle">Drag & drop screenshot giocatore → estrazione dati → inserimento in rosa (solo memoria)</p>
+        <p className="subtitle" style={{ marginTop: 6, fontSize: 12, opacity: 0.85 }}>
+          Env: <b>{envInfo.vercelEnv ?? '—'}</b> · OPENAI_API_KEY: <b>{envInfo.hasOpenaiKey === null ? '—' : envInfo.hasOpenaiKey ? 'OK' : 'MISSING'}</b>
+        </p>
       </header>
 
       <section className="card">
