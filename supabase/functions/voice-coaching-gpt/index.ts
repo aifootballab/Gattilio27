@@ -79,13 +79,13 @@ async function transcribeAudio(audioBase64: string): Promise<string> {
     const formData = new FormData()
     
     // ✅ Whisper supporta: mp3, mp4, mpeg, mpga, m4a, wav, webm
-    // Prova webm prima, se fallisce possiamo provare altri formati
-    // Nota: Il nome file deve avere estensione corretta per Whisper
+    // Deno supporta Blob ma potrebbe non supportare File constructor
+    // Usiamo Blob con nome file esplicito
     const audioBlob = new Blob([audioBuffer], { type: 'audio/webm' })
     
-    // ✅ Usa File invece di Blob per avere più controllo
-    const audioFile = new File([audioBlob], 'audio.webm', { type: 'audio/webm' })
-    formData.append('file', audioFile)
+    // ✅ Aggiungi file con nome esplicito (importante per Whisper)
+    // Deno FormData.append accetta Blob direttamente
+    formData.append('file', audioBlob, 'audio.webm')
     formData.append('model', 'whisper-1')
     formData.append('language', 'it') // Italiano
     formData.append('response_format', 'json')
