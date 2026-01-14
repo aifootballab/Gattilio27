@@ -2,27 +2,25 @@ import { NextResponse } from 'next/server'
 
 export const runtime = 'nodejs'
 
-type Player = any
-
-function truncate(value: any, max = 2000) {
+function truncate(value, max = 2000) {
   const s = typeof value === 'string' ? value : JSON.stringify(value)
   if (s.length <= max) return s
   return s.slice(0, max) + '…(truncated)'
 }
 
-function pickJsonObject(text: string): string | null {
+function pickJsonObject(text) {
   const start = text.indexOf('{')
   const end = text.lastIndexOf('}')
   if (start === -1 || end === -1 || end <= start) return null
   return text.slice(start, end + 1)
 }
 
-function normName(name: string | null | undefined) {
+function normName(name) {
   if (!name) return null
-  return name.trim().toLowerCase()
+  return String(name).trim().toLowerCase()
 }
 
-async function openaiJson(apiKey: string, input: any, maxTokens = 500) {
+async function openaiJson(apiKey, input, maxTokens = 500) {
   const res = await fetch('https://api.openai.com/v1/responses', {
     method: 'POST',
     headers: {
@@ -39,31 +37,27 @@ async function openaiJson(apiKey: string, input: any, maxTokens = 500) {
   })
 
   const json = await res.json().catch(() => null)
-  if (!res.ok) {
-    throw new Error(json?.error?.message || `OpenAI error (${res.status})`)
-  }
+  if (!res.ok) throw new Error(json?.error?.message || `OpenAI error (${res.status})`)
+
   const outputText =
     json?.output_text ??
-    json?.output?.map((o: any) => o?.content?.map((c: any) => c?.text).join('')).join('') ??
+    json?.output?.map((o) => o?.content?.map((c) => c?.text).join('')).join('') ??
     ''
   const jsonStr = pickJsonObject(String(outputText)) ?? String(outputText)
   return JSON.parse(jsonStr)
 }
 
-export async function POST(req: Request) {
+export async function POST(req) {
   try {
     const apiKey = process.env.OPENAI_API_KEY
-    if (!apiKey) {
-      return NextResponse.json({ error: 'OPENAI_API_KEY mancante' }, { status: 500 })
-    }
+    if (!apiKey) return NextResponse.json({ error: 'OPENAI_API_KEY mancante' }, { status: 500 })
 
     const body = await req.json().catch(() => null)
     const images = Array.isArray(body?.images) ? body.images : []
     if (!images.length) return NextResponse.json({ error: 'images richieste' }, { status: 400 })
 
-    // 1) Fingerprint per ogni immagine (minimo) per raggruppare anche se miste
-    const items: { id: string; player_name: string | null; overall_rating: number | null; position: string | null; screen_type: string; confidence: number }[] = []
-
+    // 1) Fingerprint minimo per raggruppare anche se miste
+    const items = []
     for (const img of images.slice(0, 6)) {
       const id = String(img?.id || '')
       const imageDataUrl = img?.imageDataUrl
@@ -78,18 +72,21 @@ Rispondi solo JSON:
  "position": string|null,
  "screen_type": "profile"|"skills"|"stats"|"boosters"|"unknown",
  "confidence": number
-}
-`
+}`
 
-      const out = await openaiJson(apiKey, [
-        {
-          role: 'user',
-          content: [
-            { type: 'input_text', text: prompt },
-            { type: 'input_image', image_url: imageDataUrl, detail: 'high' },
-          ],
-        },
-      ], 250)
+      const out = await openaiJson(
+        apiKey,
+        [
+          {
+            role: 'user',
+            content: [
+              { type: 'input_text', text: prompt },
+              { type: 'input_image', image_url: imageDataUrl, detail: 'high' },
+            ],
+          },
+        ],
+        250
+      )
 
       items.push({
         id,
@@ -101,21 +98,19 @@ Rispondi solo JSON:
       })
     }
 
-    // 2) Raggruppa per nome (fallback: unknown)
-    const groupsMap = new Map<string, { label: string; image_ids: string[] }>()
+    // 2) Raggruppa per nome (fallback su ovr/pos)
+    const groupsMap = new Map()
     for (const it of items) {
       const key = normName(it.player_name) || `unknown-${it.overall_rating ?? 'x'}-${it.position ?? 'x'}`
-      if (!groupsMap.has(key)) {
-        groupsMap.set(key, { label: it.player_name || 'Giocatore (non riconosciuto)', image_ids: [] })
-      }
-      groupsMap.get(key)!.image_ids.push(it.id)
+      if (!groupsMap.has(key)) groupsMap.set(key, { label: it.player_name || 'Giocatore (non riconosciuto)', image_ids: [] })
+      groupsMap.get(key).image_ids.push(it.id)
     }
 
-    // 3) Estrazione completa per ogni gruppo (merge multi-foto)
-    const resultGroups: any[] = []
+    // 3) Estrazione completa per gruppo (1–3 immagini)
+    const resultGroups = []
     let gi = 1
-    for (const [key, g] of groupsMap.entries()) {
-      const groupImages = images.filter((im: any) => g.image_ids.includes(String(im?.id)))
+    for (const [, g] of groupsMap.entries()) {
+      const groupImages = images.filter((im) => g.image_ids.includes(String(im?.id)))
       const content = [
         {
           role: 'user',
@@ -123,24 +118,19 @@ Rispondi solo JSON:
             {
               type: 'input_text',
               text: `
-Hai 1-3 immagini dello STESSO giocatore (ordine casuale, possono essere schermate diverse).
-Fondi le informazioni: se un campo non è visibile in nessuna immagine -> null (o [] per liste).
-Non inventare.
-Rispondi JSON con:
-{
-  "player": { ...campi giocatore... },
-  "missing_screens": string[],
-  "notes": string[]
-}
+Hai 1-3 immagini dello STESSO giocatore (ordine casuale, schermate diverse).
+Fondi le informazioni. Se un campo non è visibile in nessuna immagine -> null (o [] per liste). Non inventare.
+Rispondi JSON:
+{ "player": { ... }, "missing_screens": string[], "notes": string[] }
 
-Campi player richiesti:
+Campi player:
 player_name, overall_rating, position, role, card_type, team, region_or_nationality, form, preferred_foot,
 height_cm, weight_kg, age, nationality, club_name,
 level_current, level_cap, progression_points, matches_played, goals, assists,
 boosters: [{name,effect}], skills: string[]
 `,
             },
-            ...groupImages.map((im: any) => ({ type: 'input_image', image_url: im.imageDataUrl, detail: 'high' })),
+            ...groupImages.map((im) => ({ type: 'input_image', image_url: im.imageDataUrl, detail: 'high' })),
           ],
         },
       ]
@@ -157,7 +147,7 @@ boosters: [{name,effect}], skills: string[]
     }
 
     return NextResponse.json({ groups: resultGroups, items })
-  } catch (e: any) {
+  } catch (e) {
     console.error('extract-batch error', e)
     return NextResponse.json({ error: e?.message || 'Errore server', details: truncate(e, 2000) }, { status: 500 })
   }

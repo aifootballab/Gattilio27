@@ -7,7 +7,6 @@ export async function GET() {
   return NextResponse.json({
     ok: true,
     hasOpenaiKey,
-    // Nota: non esporre mai il valore della key
     vercelEnv: process.env.VERCEL_ENV || null,
   })
 }
