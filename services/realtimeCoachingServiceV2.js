@@ -165,8 +165,20 @@ class RealtimeCoachingServiceV2 {
       // NOTA: Per sicurezza, considera di usare un proxy Edge Function invece di esporre API key nel client
       // Usa gpt-realtime (nuovo modello stabile) invece di gpt-4o-realtime-preview
       const model = 'gpt-realtime'
-      // ✅ OpenAI Realtime API richiede api_key come query parameter
-      const wsUrl = `wss://api.openai.com/v1/realtime?model=${model}&api_key=${encodeURIComponent(apiKey)}`
+      
+      // ✅ Verifica che l'API key sia correttamente codificata
+      const trimmedKey = apiKey?.trim()
+      if (!trimmedKey || trimmedKey.length === 0) {
+        const error = new Error('API key is empty or invalid')
+        console.error('❌', error.message)
+        reject(error)
+        return
+      }
+      
+      // ✅ OpenAI Realtime API: Usa api_key come query parameter (formato standard documentato)
+      // IMPORTANTE: Se OpenAI richiede Authorization header, serve un proxy Edge Function
+      // Per ora proviamo con il formato standard api_key
+      const wsUrl = `wss://api.openai.com/v1/realtime?model=${encodeURIComponent(model)}&api_key=${encodeURIComponent(trimmedKey)}`
       
       console.log('🔌 Connecting to OpenAI Realtime API...', {
         model,
