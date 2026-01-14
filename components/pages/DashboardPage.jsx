@@ -8,7 +8,7 @@ import AIBrainButton from '@/components/dashboard/AIBrainButton'
 import Link from 'next/link'
 import { 
   TrendingUp, Users, 
-  ArrowRight, FileText
+  ArrowRight, FileText, Target
 } from 'lucide-react'
 import './DashboardPage.css'
 
