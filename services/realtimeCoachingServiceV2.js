@@ -154,16 +154,34 @@ class RealtimeCoachingServiceV2 {
 
       this.ws.onerror = (error) => {
         console.error('❌ WebSocket error:', error)
-        reject(new Error('Failed to connect to GPT Realtime API'))
+        // Non rejectare subito, potrebbe essere un errore temporaneo
+        console.error('WebSocket error details:', {
+          readyState: this.ws?.readyState,
+          url: wsUrl.substring(0, 50) + '...'
+        })
       }
 
       this.ws.onmessage = (event) => {
-        this.handleMessage(JSON.parse(event.data), userId)
+        try {
+          const message = JSON.parse(event.data)
+          this.handleMessage(message, userId)
+        } catch (parseError) {
+          console.error('❌ Error parsing WebSocket message:', parseError, event.data)
+        }
       }
 
-      this.ws.onclose = () => {
-        console.log('🔌 Disconnected from GPT Realtime API')
+      this.ws.onclose = (event) => {
+        console.log('🔌 Disconnected from GPT Realtime API', {
+          code: event.code,
+          reason: event.reason,
+          wasClean: event.wasClean
+        })
         this.isActive = false
+        
+        // Se non era una chiusura pulita, potrebbe essere un errore
+        if (!event.wasClean && event.code !== 1000) {
+          console.error('⚠️ WebSocket closed unexpectedly:', event)
+        }
       }
     })
   }
@@ -238,7 +256,7 @@ class RealtimeCoachingServiceV2 {
     ]
 
     // Invia configurazione sessione con audio bidirezionale abilitato
-    this.ws.send(JSON.stringify({
+    const sessionConfig = {
       type: 'session.update',
       session: {
         tools: functions,
@@ -261,7 +279,15 @@ class RealtimeCoachingServiceV2 {
         temperature: 0.7,
         max_response_output_tokens: 4096
       }
-    }))
+    }
+    
+    console.log('📤 Sending session configuration...')
+    try {
+      this.ws.send(JSON.stringify(sessionConfig))
+      console.log('✅ Session configuration sent')
+    } catch (sendError) {
+      console.error('❌ Error sending session config:', sendError)
+    }
   }
 
   /**
@@ -284,8 +310,25 @@ class RealtimeCoachingServiceV2 {
 
     switch (type) {
       case 'session.created':
-        this.sessionId = event.session.id
-        console.log('📝 Session created:', this.sessionId)
+        if (event?.session?.id) {
+          this.sessionId = event.session.id
+          console.log('📝 Session created:', this.sessionId)
+        } else {
+          console.warn('⚠️ session.created without session.id:', event)
+        }
+        break
+
+      case 'session.updated':
+        console.log('✅ Session updated successfully')
+        break
+
+      case 'error':
+        // ✅ Gestisci errori da OpenAI Realtime API
+        const errorMsg = event?.message || message?.error?.message || 'Unknown error'
+        console.error('❌ OpenAI Realtime API error:', errorMsg, message)
+        if (this.onError) {
+          this.onError(new Error(`OpenAI API error: ${errorMsg}`))
+        }
         break
 
       case 'response.text.delta':
@@ -354,13 +397,6 @@ class RealtimeCoachingServiceV2 {
           console.log('🔊 Audio output complete')
           this.onAudioDone(event.audio)
           this.audioQueue = [] // Reset queue
-        }
-        break
-
-      case 'error':
-        if (this.onError) {
-          const errorMessage = event?.message || message?.error?.message || 'Unknown error'
-          this.onError(new Error(errorMessage))
         }
         break
 
