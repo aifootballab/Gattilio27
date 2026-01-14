@@ -383,8 +383,29 @@ export default function VoiceCoachingPanel() {
   const handleStartRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      
+      // ✅ Prova formati compatibili con Whisper
+      // Whisper supporta webm, ma potrebbe non accettare opus codec
+      // Prova prima webm senza codec specifico, poi fallback a opus
+      let mimeType = 'audio/webm'
+      const supportedTypes = [
+        'audio/webm',
+        'audio/webm;codecs=opus',
+        'audio/ogg;codecs=opus',
+        'audio/mp4'
+      ]
+      
+      // Trova il primo formato supportato
+      for (const type of supportedTypes) {
+        if (MediaRecorder.isTypeSupported(type)) {
+          mimeType = type
+          console.log(`✅ Using audio format: ${mimeType}`)
+          break
+        }
+      }
+      
       const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'audio/webm;codecs=opus'
+        mimeType: mimeType
       })
 
       mediaRecorderRef.current = mediaRecorder

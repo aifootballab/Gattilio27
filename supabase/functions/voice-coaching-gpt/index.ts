@@ -79,27 +79,38 @@ async function transcribeAudio(audioBase64: string): Promise<string> {
     const formData = new FormData()
     
     // ✅ Whisper supporta: mp3, mp4, mpeg, mpga, m4a, wav, webm
-    // IMPORTANTE: Whisper richiede che il file abbia un nome con estensione
-    // In Deno, dobbiamo usare File per avere il nome file
-    // Se File non è disponibile, proviamo un workaround
+    // IMPORTANTE: Whisper potrebbe non accettare webm con codec opus
+    // WORKAROUND: Proviamo a usare estensione .wav anche se i dati sono webm
+    // Whisper è più permissivo con wav e potrebbe accettare il file
     
     let audioFile: File | Blob
     
-    // ✅ Prova a creare File (supportato in Deno 1.37+)
+    // ✅ Prova a creare File con estensione .wav (workaround per webm opus)
+    // Whisper potrebbe accettare il file anche se i dati sono webm
     try {
-      audioFile = new File([audioBuffer], 'audio.webm', { 
-        type: 'audio/webm',
+      // Prova prima con .wav (più compatibile)
+      audioFile = new File([audioBuffer], 'audio.wav', { 
+        type: 'audio/wav',
         lastModified: Date.now()
       })
-      console.log('✅ Using File constructor')
+      console.log('✅ Using File constructor with .wav extension (workaround for webm opus)')
     } catch (fileError) {
-      // Fallback: usa Blob (meno ideale ma funziona)
-      console.warn('⚠️ File constructor not available, using Blob:', fileError)
-      audioFile = new Blob([audioBuffer], { type: 'audio/webm' })
+      try {
+        // Fallback: prova con .webm
+        audioFile = new File([audioBuffer], 'audio.webm', { 
+          type: 'audio/webm',
+          lastModified: Date.now()
+        })
+        console.log('✅ Using File constructor with .webm extension')
+      } catch (fileError2) {
+        // Ultimo fallback: usa Blob
+        console.warn('⚠️ File constructor not available, using Blob:', fileError2)
+        audioFile = new Blob([audioBuffer], { type: 'audio/wav' })
+      }
     }
     
     // ✅ Aggiungi file a FormData
-    // In Deno, FormData.append con File dovrebbe funzionare
+    // IMPORTANTE: In Deno, FormData.append con File dovrebbe funzionare
     formData.append('file', audioFile)
     formData.append('model', 'whisper-1')
     formData.append('language', 'it') // Italiano
@@ -109,13 +120,15 @@ async function transcribeAudio(audioBase64: string): Promise<string> {
       hasFile: formData.has('file'),
       fileType: audioFile instanceof File ? 'File' : 'Blob',
       fileName: audioFile instanceof File ? (audioFile as File).name : 'unknown',
+      fileMimeType: audioFile instanceof File ? (audioFile as File).type : (audioFile as Blob).type,
       size: audioBuffer.length
     })
 
     console.log('📤 Sending audio to Whisper API:', {
       size: audioBuffer.length,
       sizeKB: Math.round(audioBuffer.length / 1024),
-      type: 'audio/webm'
+      type: audioFile instanceof File ? (audioFile as File).type : (audioFile as Blob).type,
+      fileName: audioFile instanceof File ? (audioFile as File).name : 'unknown'
     })
 
     const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
