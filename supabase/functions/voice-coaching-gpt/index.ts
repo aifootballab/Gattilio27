@@ -630,9 +630,18 @@ async function loadRosa(
       query = query.order('created_at', { ascending: false }).limit(1)
     }
 
-    const { data: rosa, error } = await query.single()
+    const { data: rosa, error } = await query.maybeSingle() // ✅ Usa maybeSingle() invece di single()
 
-    if (error) throw error
+    if (error && error.code !== 'PGRST116') {
+      throw error
+    }
+
+    if (!rosa) {
+      return {
+        success: false,
+        error: 'Rosa not found'
+      }
+    }
 
     return {
       success: true,
