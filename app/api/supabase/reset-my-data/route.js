@@ -32,6 +32,14 @@ export async function POST(req) {
     const r3 = await admin.from('screenshot_processing_log').delete().eq('user_id', userId)
     results.screenshot_processing_log = { error: r3.error?.message || null }
 
+    // Cancella SOLO i players_base creati da questa app per questo user_id (tag in metadata)
+    const r4 = await admin
+      .from('players_base')
+      .delete()
+      .eq('source', 'screenshot_extractor')
+      .contains('metadata', { source: 'screenshot_extractor', user_id: userId })
+    results.players_base_test_only = { error: r4.error?.message || null }
+
     return NextResponse.json({ success: true, user_id: userId, results })
   } catch (e) {
     console.error('reset-my-data error', e)

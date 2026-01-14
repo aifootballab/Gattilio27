@@ -44,7 +44,8 @@ export async function POST(req) {
       return NextResponse.json({ error: 'Invalid input: player + slotIndex(0-20) required' }, { status: 400 })
     }
 
-    // 1) players_base: cerca per player_name + team (se presente), altrimenti solo player_name
+    // 1) players_base: cerchiamo per player_name + team (se presente).
+    // IMPORTANTE: non sovrascrivere record "globali" già esistenti (database base).
     const playerName = toText(player.player_name)
     if (!playerName) return NextResponse.json({ error: 'player_name required' }, { status: 400 })
 
@@ -73,10 +74,12 @@ export async function POST(req) {
       },
       metadata: {
         source: 'screenshot_extractor',
+        user_id: userId,
         extracted: player,
         saved_at: new Date().toISOString(),
       },
-      source: 'user_upload',
+      // tag per poter pulire facilmente i dati test senza toccare il DB base
+      source: 'screenshot_extractor',
     }
 
     let playerBaseId = existingBase?.id || null
@@ -89,8 +92,13 @@ export async function POST(req) {
       if (insErr) throw insErr
       playerBaseId = inserted.id
     } else {
-      // aggiorna i campi che abbiamo
-      await admin.from('players_base').update(basePayload).eq('id', playerBaseId)
+      // NON sovrascriviamo i record esistenti (potrebbero essere del DB base).
+      // Aggiorniamo solo se è un record creato da noi (taggato).
+      await admin
+        .from('players_base')
+        .update({ metadata: basePayload.metadata, updated_at: new Date().toISOString() })
+        .eq('id', playerBaseId)
+        .contains('metadata', { source: 'screenshot_extractor' })
     }
 
     // 2) player_builds: 1 build per user_id + player_base_id
