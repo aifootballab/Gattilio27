@@ -45,8 +45,9 @@ class RealtimeCoachingServiceV2 {
         throw new Error('Invalid session: missing access_token')
       }
 
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL
-      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY
+      // ✅ Vite usa import.meta.env, Next.js usa process.env - supporta entrambi
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || import.meta.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
+      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
       
       if (!supabaseUrl || !supabaseAnonKey) {
         throw new Error('Supabase URL or Anon Key not configured')
@@ -127,8 +128,9 @@ class RealtimeCoachingServiceV2 {
    */
   async connectToRealtimeAPI(userId, context) {
     return new Promise((resolve, reject) => {
-      // Ottieni API key da variabile d'ambiente Vercel
-      const apiKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY || import.meta.env.VITE_OPENAI_API_KEY
+      // ✅ Ottieni API key da variabile d'ambiente (Vite usa import.meta.env)
+      // Supporta sia VITE_* (Vite) che NEXT_PUBLIC_* (Next.js) per compatibilità
+      const apiKey = import.meta.env.VITE_OPENAI_API_KEY || import.meta.env.NEXT_PUBLIC_OPENAI_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY
       
       if (!apiKey) {
         const error = new Error('OPENAI_API_KEY not configured. Verifica variabili d\'ambiente in Vercel.')
@@ -462,8 +464,9 @@ class RealtimeCoachingServiceV2 {
         throw new Error('User not authenticated. Please log in.')
       }
 
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL
-      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY
+      // ✅ Vite usa import.meta.env, Next.js usa process.env - supporta entrambi
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || import.meta.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
+      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
       
       if (!supabaseUrl || !supabaseAnonKey) {
         throw new Error('Supabase URL or Anon Key not configured')
