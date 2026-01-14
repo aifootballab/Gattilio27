@@ -131,30 +131,29 @@ async function transcribeAudio(audioBase64: string): Promise<string> {
     }
 
     // ✅ Crea FormData con file audio
+    // Whisper supporta: mp3, mp4, mpeg, mpga, m4a, wav, webm
+    // Il client invia webm (potrebbe essere opus codec)
+    // Proviamo prima webm, se fallisce proviamo con estensione diversa
+    
     const formData = new FormData()
-    
-    // ✅ Whisper supporta: mp3, mp4, mpeg, mpga, m4a, wav, webm
-    // IMPORTANTE: Il client ora converte webm opus in WAV prima di inviare
-    // Quindi riceviamo già dati WAV reali, non webm
-    // Creiamo File con estensione .wav e tipo audio/wav
-    
     let audioFile: File | Blob
+    let fileName = 'audio.webm'
+    let mimeType = 'audio/webm'
     
-    // ✅ Crea File WAV (il client ha già convertito l'audio da webm opus a WAV)
+    // ✅ Crea File con webm (formato originale dal client)
     try {
-      audioFile = new File([audioBuffer], 'audio.wav', { 
-        type: 'audio/wav',
+      audioFile = new File([audioBuffer], fileName, { 
+        type: mimeType,
         lastModified: Date.now()
       })
-      console.log('✅ Using File constructor with .wav (client converted from webm opus)')
+      console.log('✅ Using File constructor with .webm')
     } catch (fileError) {
       // Fallback: usa Blob
       console.warn('⚠️ File constructor not available, using Blob:', fileError)
-      audioFile = new Blob([audioBuffer], { type: 'audio/wav' })
+      audioFile = new Blob([audioBuffer], { type: mimeType })
     }
     
     // ✅ Aggiungi file a FormData
-    // IMPORTANTE: In Deno, FormData.append con File dovrebbe funzionare
     formData.append('file', audioFile)
     formData.append('model', 'whisper-1')
     formData.append('language', 'it') // Italiano
@@ -168,14 +167,14 @@ async function transcribeAudio(audioBase64: string): Promise<string> {
       size: audioBuffer.length
     })
 
-    console.log('📤 Sending audio to Whisper API:', {
+    console.log('📤 Sending audio to Whisper API (attempt 1 - webm):', {
       size: audioBuffer.length,
       sizeKB: Math.round(audioBuffer.length / 1024),
-      type: audioFile instanceof File ? (audioFile as File).type : (audioFile as Blob).type,
-      fileName: audioFile instanceof File ? (audioFile as File).name : 'unknown'
+      type: mimeType,
+      fileName: fileName
     })
 
-    const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+    let response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${openaiApiKey}`,
@@ -183,9 +182,45 @@ async function transcribeAudio(audioBase64: string): Promise<string> {
       body: formData
     })
 
+    // ✅ Se webm fallisce, prova con estensione .wav (workaround)
     if (!response.ok) {
       const errorText = await response.text()
-      console.error('❌ Whisper API error:', {
+      console.warn('⚠️ Whisper rejected webm, trying with .wav extension:', {
+        status: response.status,
+        error: errorText.substring(0, 200)
+      })
+      
+      // Prova con estensione .wav (Whisper potrebbe essere più permissivo)
+      const formDataWav = new FormData()
+      let audioFileWav: File | Blob
+      
+      try {
+        audioFileWav = new File([audioBuffer], 'audio.wav', { 
+          type: 'audio/wav',
+          lastModified: Date.now()
+        })
+      } catch (fileError) {
+        audioFileWav = new Blob([audioBuffer], { type: 'audio/wav' })
+      }
+      
+      formDataWav.append('file', audioFileWav)
+      formDataWav.append('model', 'whisper-1')
+      formDataWav.append('language', 'it')
+      formDataWav.append('response_format', 'json')
+      
+      console.log('📤 Retrying with .wav extension...')
+      response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openaiApiKey}`,
+        },
+        body: formDataWav
+      })
+    }
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('❌ Whisper API error (both attempts failed):', {
         status: response.status,
         statusText: response.statusText,
         error: errorText

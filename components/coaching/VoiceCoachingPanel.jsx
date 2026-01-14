@@ -466,37 +466,20 @@ export default function VoiceCoachingPanel() {
       }
 
       mediaRecorder.onstop = async () => {
-        try {
-          // ✅ Converti webm opus in WAV per compatibilità Whisper
-          const webmBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
-          console.log('🔄 Converting webm to WAV for Whisper compatibility...')
-          
-          // Converti Blob in ArrayBuffer
-          const arrayBuffer = await webmBlob.arrayBuffer()
-          
-          // Decodifica audio usando AudioContext
-          const audioContext = new (window.AudioContext || window.webkitAudioContext)()
-          const audioBuffer = await audioContext.decodeAudioData(arrayBuffer)
-          
-          // ✅ Converti AudioBuffer in WAV
-          const wavBlob = audioBufferToWav(audioBuffer)
-          
-          console.log('✅ Audio converted to WAV:', {
-            originalSize: webmBlob.size,
-            wavSize: wavBlob.size,
-            duration: audioBuffer.duration
-          })
-          
-          await sendAudioMessage(wavBlob)
-          
-          // Chiudi AudioContext
-          await audioContext.close()
-        } catch (conversionError) {
-          console.error('❌ Error converting audio to WAV, sending original:', conversionError)
-          // Fallback: invia webm originale se conversione fallisce
-          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
-          await sendAudioMessage(audioBlob)
-        }
+        // ✅ Invia webm direttamente al server
+        // Il server gestirà la conversione se necessario
+        // Whisper supporta webm, ma potrebbe richiedere conversione lato server
+        const audioBlob = new Blob(audioChunksRef.current, { 
+          type: mimeType || 'audio/webm' 
+        })
+        
+        console.log('📤 Sending audio to server:', {
+          size: audioBlob.size,
+          sizeKB: Math.round(audioBlob.size / 1024),
+          type: mimeType || 'audio/webm'
+        })
+        
+        await sendAudioMessage(audioBlob)
         
         // Stop stream
         stream.getTracks().forEach(track => track.stop())
