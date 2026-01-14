@@ -313,18 +313,42 @@ class RealtimeCoachingServiceV2 {
     try {
       const args = JSON.parse(call.arguments)
       
-      // Chiama Edge Function per eseguire funzione
-      const { data, error } = await supabase.functions.invoke('voice-coaching-gpt', {
-        body: {
+      // ✅ Fix: Usa fetch diretto con serializzazione esplicita per evitare problemi body vuoto
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      
+      if (!supabaseUrl || !supabaseAnonKey) {
+        throw new Error('Supabase URL or Anon Key not configured')
+      }
+      
+      const response = await fetch(`${supabaseUrl}/functions/v1/voice-coaching-gpt`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'apikey': supabaseAnonKey
+        },
+        body: JSON.stringify({
           action: 'execute_function',
           function_name: call.name,
           arguments: args,
           user_id: userId,
           session_id: this.sessionId
-        }
+        })
       })
 
-      if (error) throw error
+      if (!response.ok) {
+        const errorText = await response.text()
+        let errorData
+        try {
+          errorData = JSON.parse(errorText)
+        } catch {
+          errorData = { error: errorText, status: response.status }
+        }
+        throw new Error(errorData.error || `Edge Function returned ${response.status}`)
+      }
+
+      const data = await response.json()
 
       // Invia risultato a GPT
       this.ws.send(JSON.stringify({
