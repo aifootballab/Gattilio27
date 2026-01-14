@@ -6,17 +6,21 @@ export const runtime = 'nodejs'
 export async function POST(req) {
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-    if (!supabaseUrl || !serviceKey) {
-      return NextResponse.json({ error: 'Supabase server env missing (SUPABASE_SERVICE_ROLE_KEY / SUPABASE_URL)' }, { status: 500 })
+    if (!supabaseUrl || !serviceKey || !anonKey) {
+      return NextResponse.json(
+        { error: 'Supabase server env missing (NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY)' },
+        { status: 500 }
+      )
     }
 
     const auth = req.headers.get('authorization') || ''
     const token = auth.toLowerCase().startsWith('bearer ') ? auth.slice(7) : null
     if (!token) return NextResponse.json({ error: 'Missing Authorization bearer token' }, { status: 401 })
 
-    const admin = createClient(supabaseUrl, serviceKey)
-    const { data: userData, error: userErr } = await admin.auth.getUser(token)
+    const authClient = createClient(supabaseUrl, anonKey)
+    const { data: userData, error: userErr } = await authClient.auth.getUser(token)
     if (userErr || !userData?.user?.id) {
       return NextResponse.json(
         {
@@ -27,6 +31,7 @@ export async function POST(req) {
       )
     }
     const userId = userData.user.id
+    const admin = createClient(supabaseUrl, serviceKey)
 
     // Cancella SOLO i dati dell’utente corrente (anon): non tocca players_base globali
     const results = {}
