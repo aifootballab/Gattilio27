@@ -3,6 +3,25 @@
   width: 100%;
   min-height: calc(100vh - 70px);
   padding: 2rem 0;
+  position: relative;
+}
+
+/* AI Brain Container - Centrale */
+.dashboard-brain-container {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 768px) {
+  .dashboard-brain-container {
+    bottom: 1rem;
+    right: 1rem;
+  }
 }
 
 .dashboard-container {

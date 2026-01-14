@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { useRosa } from '../../contexts/RosaContext'
+import { useRosa } from '@/contexts/RosaContext'
 import './RosaVoiceInput.css'
 
 function RosaVoiceInput({ onBack, onRosaCreated }) {

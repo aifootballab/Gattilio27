@@ -1,13 +1,13 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { useRosa } from '../../contexts/RosaContext'
+import { useRosa } from '@/contexts/RosaContext'
 import { 
   X, Save, Sparkles, BarChart3, ChevronLeft, ChevronRight,
   User, Ruler, Weight, Calendar, Globe, Building2, Square, Triangle, FileText
 } from 'lucide-react'
-import * as playerService from '../../services/playerService'
-import * as importService from '../../services/importService'
+import * as playerService from '@/services/playerService'
+import * as importService from '@/services/importService'
 import { supabase } from '@/lib/supabase'
 import PlayerAutocomplete from './PlayerAutocomplete'
 import NumberInput from './NumberInput'

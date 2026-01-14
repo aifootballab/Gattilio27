@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import { Search, Loader2, User } from 'lucide-react'
-import { searchPlayer } from '../../services/playerService'
+import { searchPlayer } from '@/services/playerService'
 import './PlayerAutocomplete.css'
 
 function PlayerAutocomplete({ value, onSelect, onInputChange, placeholder = "Cerca giocatore..." }) {

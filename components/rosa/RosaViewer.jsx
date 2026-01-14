@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { useRosa } from '../../contexts/RosaContext'
+import { useRosa } from '@/contexts/RosaContext'
 import PlayerCard from './PlayerCard'
 import PlayerProfileView from './PlayerProfileView'
 import './RosaViewer.css'

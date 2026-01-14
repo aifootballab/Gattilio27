@@ -12,9 +12,13 @@ const corsHeaders = {
 }
 
 interface VoiceCoachingRequest {
+  action?: 'start_session' | 'send_message' | 'keep_alive' | 'end_session' | 'analyze_screenshot'
   user_id: string
+  session_id?: string // ID sessione persistente
   message?: string // Testo o trascrizione audio
   audio_base64?: string // Audio in base64 (opzionale)
+  image_url?: string // URL screenshot
+  image_type?: string // Tipo screenshot
   context?: {
     rosa?: any // Rosa utente
     match_stats?: any // Statistiche partita corrente
@@ -41,7 +45,7 @@ serve(async (req) => {
   }
 
   try {
-    const { user_id, message, audio_base64, context, mode = 'text' }: VoiceCoachingRequest = await req.json()
+    const { action = 'send_message', user_id, session_id, message, audio_base64, image_url, image_type, context, mode = 'text' }: VoiceCoachingRequest = await req.json()
 
     if (!user_id) {
       return new Response(
@@ -59,8 +63,63 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    // 1. Carica contesto utente se non fornito
-    let userContext = context || {}
+    // Gestione azioni sessione
+    if (action === 'start_session') {
+      return await handleStartSession(supabase, user_id, context || {})
+    }
+
+    if (action === 'keep_alive') {
+      return await handleKeepAlive(supabase, session_id!)
+    }
+
+    if (action === 'end_session') {
+      return await handleEndSession(supabase, session_id!)
+    }
+
+    if (action === 'analyze_screenshot') {
+      return await handleAnalyzeScreenshot(supabase, user_id, session_id, image_url!, image_type!, context)
+    }
+
+    // Action: send_message (default) - Richiede sessione
+    if (!session_id) {
+      return new Response(
+        JSON.stringify({ error: 'Missing session_id for send_message action' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Recupera sessione esistente
+    const { data: session, error: sessionError } = await supabase
+      .from('coaching_sessions')
+      .select('*')
+      .eq('session_id', session_id)
+      .eq('user_id', user_id)
+      .eq('is_active', true)
+      .single()
+
+    if (sessionError || !session) {
+      return new Response(
+        JSON.stringify({ error: 'Session not found or expired' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Verifica se sessione è scaduta
+    if (new Date(session.expires_at) < new Date()) {
+      await supabase
+        .from('coaching_sessions')
+        .update({ is_active: false })
+        .eq('session_id', session_id)
+      
+      return new Response(
+        JSON.stringify({ error: 'Session expired' }),
+        { status: 410, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Carica contesto dalla sessione o usa quello fornito
+    let userContext = session.context_snapshot || context || {}
+    let conversationHistory = session.conversation_history || []
     
     if (!userContext.rosa) {
       // Carica rosa principale utente
@@ -103,8 +162,8 @@ serve(async (req) => {
       )
     }
 
-    // 3. Costruisci prompt contestuale per GPT-Realtime
-    const coachingPrompt = buildCoachingPrompt(transcribedMessage, userContext)
+    // 3. Costruisci prompt contestuale per GPT-Realtime (con history)
+    const coachingPrompt = buildCoachingPrompt(transcribedMessage, userContext, conversationHistory)
 
     // 4. Chiama GPT-4o Realtime API
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY')
@@ -115,10 +174,27 @@ serve(async (req) => {
     const coachingResponse = await callGPTRealtimeCoaching(
       coachingPrompt,
       userContext,
-      openaiApiKey
+      openaiApiKey,
+      conversationHistory
     )
 
-    // 5. Salva conversazione in database (opzionale, per memoria)
+    // 5. Aggiorna sessione con nuovo messaggio e risposta
+    const updatedHistory = [
+      ...conversationHistory,
+      { role: 'user', content: transcribedMessage, timestamp: new Date().toISOString() },
+      { role: 'assistant', content: coachingResponse, timestamp: new Date().toISOString() }
+    ]
+
+    await supabase
+      .from('coaching_sessions')
+      .update({
+        conversation_history: updatedHistory,
+        context_snapshot: userContext,
+        last_activity: new Date().toISOString()
+      })
+      .eq('session_id', session_id)
+
+    // 6. Salva anche in voice_coaching_sessions per log completo
     try {
       await supabase
         .from('voice_coaching_sessions')
@@ -134,12 +210,13 @@ serve(async (req) => {
       // Non bloccare la risposta se il log fallisce
     }
 
-    // 6. Return risposta coaching
+    // 7. Return risposta coaching
     return new Response(
       JSON.stringify({
         success: true,
         response: coachingResponse,
         transcribed_message: transcribedMessage,
+        session_id: session_id,
         context_used: {
           has_rosa: !!userContext.rosa,
           has_match_stats: !!userContext.match_stats,
@@ -203,15 +280,277 @@ async function transcribeAudio(audioBase64: string): Promise<string> {
 }
 
 /**
- * Costruisci prompt contestuale per coaching
+ * Handler: Start Session
  */
-function buildCoachingPrompt(userMessage: string, context: any): string {
+async function handleStartSession(supabase: any, userId: string, context: any) {
+  const sessionId = `session_${userId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+
+  // Carica contesto utente se non fornito
+  let userContext = context || {}
+  
+  if (!userContext.rosa) {
+    const { data: rosa } = await supabase
+      .from('user_rosa')
+      .select('*, players:player_builds(*)')
+      .eq('user_id', userId)
+      .eq('is_main', true)
+      .single()
+    
+    if (rosa) {
+      userContext.rosa = rosa
+    }
+  }
+
+  if (!userContext.user_profile) {
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select('*')
+      .eq('user_id', userId)
+      .single()
+    
+    if (profile) {
+      userContext.user_profile = profile
+    }
+  }
+
+  // Crea sessione
+  const { data, error } = await supabase
+    .from('coaching_sessions')
+    .insert({
+      user_id: userId,
+      session_id: sessionId,
+      conversation_history: [],
+      context_snapshot: userContext,
+      is_active: true
+    })
+    .select()
+    .single()
+
+  if (error) {
+    throw new Error(`Failed to create session: ${error.message}`)
+  }
+
+  return new Response(
+    JSON.stringify({
+      success: true,
+      session_id: sessionId,
+      message: 'Session started'
+    }),
+    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  )
+}
+
+/**
+ * Handler: Keep Alive
+ */
+async function handleKeepAlive(supabase: any, sessionId: string) {
+  const { error } = await supabase
+    .from('coaching_sessions')
+    .update({
+      last_activity: new Date().toISOString()
+    })
+    .eq('session_id', sessionId)
+    .eq('is_active', true)
+
+  if (error) {
+    return new Response(
+      JSON.stringify({ error: 'Session not found' }),
+      { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+  }
+
+  return new Response(
+    JSON.stringify({ success: true, message: 'Session kept alive' }),
+    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  )
+}
+
+/**
+ * Handler: End Session
+ */
+async function handleEndSession(supabase: any, sessionId: string) {
+  const { error } = await supabase
+    .from('coaching_sessions')
+    .update({ is_active: false })
+    .eq('session_id', sessionId)
+
+  if (error) {
+    return new Response(
+      JSON.stringify({ error: 'Failed to end session' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+  }
+
+  return new Response(
+    JSON.stringify({ success: true, message: 'Session ended' }),
+    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  )
+}
+
+/**
+ * Handler: Analyze Screenshot
+ */
+async function handleAnalyzeScreenshot(supabase: any, userId: string, sessionId: string | undefined, imageUrl: string, imageType: string, context: any) {
+  // Se c'è una sessione, usa quella, altrimenti analisi standalone
+  if (sessionId) {
+    const { data: session } = await supabase
+      .from('coaching_sessions')
+      .select('*')
+      .eq('session_id', sessionId)
+      .eq('user_id', userId)
+      .eq('is_active', true)
+      .single()
+
+    if (session) {
+      // Analizza screenshot e aggiungi alla conversazione
+      const openaiApiKey = Deno.env.get('OPENAI_API_KEY')
+      if (!openaiApiKey) {
+        throw new Error('OPENAI_API_KEY not configured')
+      }
+
+      // Chiama GPT-4o Vision per analisi screenshot
+      const analysis = await analyzeScreenshotWithGPT(imageUrl, imageType, openaiApiKey)
+
+      // Aggiorna sessione
+      const updatedHistory = [
+        ...(session.conversation_history || []),
+        { role: 'user', content: `[Screenshot: ${imageType}]`, image_url: imageUrl, timestamp: new Date().toISOString() },
+        { role: 'assistant', content: analysis.response, timestamp: new Date().toISOString() }
+      ]
+
+      await supabase
+        .from('coaching_sessions')
+        .update({
+          conversation_history: updatedHistory,
+          last_activity: new Date().toISOString()
+        })
+        .eq('session_id', sessionId)
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          response: analysis.response,
+          analysis: analysis.data
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+  }
+
+  // Analisi standalone (senza sessione)
+  const openaiApiKey = Deno.env.get('OPENAI_API_KEY')
+  if (!openaiApiKey) {
+    throw new Error('OPENAI_API_KEY not configured')
+  }
+
+  const analysis = await analyzeScreenshotWithGPT(imageUrl, imageType, openaiApiKey)
+
+  return new Response(
+    JSON.stringify({
+      success: true,
+      response: analysis.response,
+      analysis: analysis.data
+    }),
+    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  )
+}
+
+/**
+ * Analizza screenshot con GPT-4o Vision
+ */
+async function analyzeScreenshotWithGPT(imageUrl: string, imageType: string, apiKey: string) {
+  // Usa process-screenshot-gpt Edge Function o chiama direttamente GPT-4o Vision
+  // Per ora, restituisci analisi base
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o',
+      messages: [
+        {
+          role: 'system',
+          content: `Sei un coach professionista di eFootball. Analizza screenshot e fornisci informazioni dettagliate.
+
+REGOLE CRITICHE:
+1. Estrai SOLO dati che vedi con certezza
+2. Per ogni campo, indica: value, status ("certain" | "uncertain" | "missing"), confidence (0.0-1.0)
+3. NON inventare valori - se non vedi un dato: value=null, status="missing", confidence=0.0
+4. Se sei incerto: status="uncertain", confidence < 0.8
+5. Mostra sempre cosa riconosciuto, cosa incerto, cosa mancante
+6. Chiedi come procedere prima di salvare
+
+FORMATO RISPOSTA:
+✅ DATI RICONOSCIUTI (con confidence)
+⚠️ DATI INCERTI
+❌ DATI NON RICONOSCIUTI
+💡 COSA POSSIAMO FARE (con opzioni)
+Come preferisci procedere?`
+        },
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: `Analizza questo screenshot di tipo ${imageType} e fornisci un'analisi dettagliata.` },
+            { type: 'image_url', image_url: { url: imageUrl } }
+          ]
+        }
+      ],
+      max_tokens: 1000
+    })
+  })
+
+  if (!response.ok) {
+    throw new Error(`GPT Vision API error: ${response.status}`)
+  }
+
+  const data = await response.json()
+  return {
+    response: data.choices[0].message.content,
+    data: { image_type: imageType, image_url: imageUrl }
+  }
+}
+
+/**
+ * Costruisci prompt contestuale per coaching (con history)
+ */
+function buildCoachingPrompt(userMessage: string, context: any, conversationHistory: any[] = []): string {
   const userLevel = context.user_profile?.coaching_level || 'intermedio'
   const hasRosa = !!context.rosa
   const hasMatch = !!context.match_stats
   const hasOpponent = !!context.opponent_formation
 
-  let prompt = `Sei un coach personale esperto di eFootball. Il tuo obiettivo è aiutare l'utente a migliorare le sue performance, gestire la rosa, e vincere partite.
+  let prompt = `Sei un coach professionista di eFootball. Il tuo obiettivo è aiutare il cliente a costruire e gestire la sua rosa, migliorare nel gioco, e vincere partite.
+
+**REGOLE FONDAMENTALI**:
+
+1. **SOLO DATI VERIFICABILI**
+   - Estrai SOLO dati che vedi con certezza
+   - Se non sei certo, dillo esplicitamente
+   - Non inventare mai statistiche o valori
+
+2. **CHIEDI SEMPRE CONFERMA**
+   - Mostra cosa hai riconosciuto (con confidence)
+   - Mostra cosa manca
+   - Chiedi come procedere
+   - Non salvare senza consenso esplicito
+
+3. **SPIEGA SEMPRE**
+   - Perché un dato è importante
+   - Cosa fare quando manca un dato
+   - Come procedere nel prossimo passo
+
+4. **ORIENTATO AI DATI**
+   - Usa rosa attuale per consigli
+   - Basa suggerimenti su statistiche reali
+   - Non dare consigli generici
+
+5. **COMPANION E GESTORE**
+   - Sii un compagno che guida
+   - Aiuta a costruire la rosa completa (11+10)
+   - Mostra progresso e cosa manca
+   - Suggerisci come completare
 
 **PROFILO UTENTE:**
 - Livello coaching: ${userLevel}
@@ -238,6 +577,18 @@ function buildCoachingPrompt(userMessage: string, context: any): string {
     prompt += `- Stile avversario: ${context.opponent_formation.tactical_style || 'N/A'}\n`
   }
 
+  // Aggiungi history conversazione se presente
+  if (conversationHistory.length > 0) {
+    prompt += `\n**STORIA CONVERSAZIONE:**\n`
+    conversationHistory.slice(-5).forEach((msg: any) => {
+      if (msg.role === 'user') {
+        prompt += `Utente: "${msg.content}"\n`
+      } else if (msg.role === 'assistant') {
+        prompt += `Coach: "${msg.content}"\n`
+      }
+    })
+  }
+
   prompt += `\n**DOMANDA UTENTE:**
 "${userMessage}"
 
@@ -248,8 +599,40 @@ function buildCoachingPrompt(userMessage: string, context: any): string {
 4. Usa il contesto disponibile (rosa, partita, avversario) per risposte personalizzate
 5. Se mancano informazioni, chiedi all'utente o suggerisci come ottenerle
 6. Sii empatico e supportivo, specialmente se l'utente è frustrato
-7. Fornisci sempre consigli pratici e azionabili
+7. Fornisci sempre consigli pratici e azionabili basati su dati reali
 8. Puoi rispondere a QUALSIASI domanda su eFootball: tattica, giocatori, formazioni, statistiche, sviluppo giocatori, booster, skills, etc.
+
+**FORMATO RISPOSTE**:
+
+Quando analizzi uno screenshot o fornisci consigli, usa sempre questo formato:
+
+✅ DATI RICONOSCIUTI (con confidence):
+- Campo 1: Valore (X% certo)
+- Campo 2: Valore (X% certo)
+
+⚠️ DATI INCERTI:
+- Campo 3: Potrebbe essere X (Y% certo)
+
+❌ DATI NON RICONOSCIUTI:
+- Campo 4: non visibile/non leggibile
+
+💡 COSA POSSIAMO FARE:
+1. Opzione A
+2. Opzione B
+3. Opzione C
+
+Come preferisci procedere?
+
+**MEMORIA**:
+- Non hai memoria propria tra sessioni
+- Contesto viene ricaricato da Supabase ogni volta
+- Puoi proporre cosa salvare, ma devi attendere conferma
+
+**COMPORTAMENTO**:
+- Analitico, non creativo
+- Prudente, non supponente
+- Contestualizzato, non generico
+- Guidato, non autonomo
 
 **RISPOSTA:**`
 
@@ -257,12 +640,13 @@ function buildCoachingPrompt(userMessage: string, context: any): string {
 }
 
 /**
- * Chiama GPT-4o Realtime API per coaching
+ * Chiama GPT-4o Realtime API per coaching (con history)
  */
 async function callGPTRealtimeCoaching(
   prompt: string,
   context: any,
-  apiKey: string
+  apiKey: string,
+  conversationHistory: any[] = []
 ): Promise<string> {
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -274,10 +658,24 @@ async function callGPTRealtimeCoaching(
       body: JSON.stringify({
         model: 'gpt-4o', // GPT-4o per risposte intelligenti
         messages: [
-          {
-            role: 'system',
-            content: `Sei un coach personale esperto di eFootball. Aiuti gli utenti a migliorare le loro performance, gestire la rosa, e vincere partite. Sei sempre disponibile, empatico, e fornisci consigli pratici e azionabili.`
-          },
+        {
+          role: 'system',
+          content: `Sei un coach professionista di eFootball. Il tuo obiettivo è aiutare il cliente a costruire e gestire la sua rosa, migliorare nel gioco, e vincere partite.
+
+REGOLE FONDAMENTALI:
+1. SOLO DATI VERIFICABILI - Estrai SOLO dati che vedi con certezza. Non inventare mai statistiche.
+2. CHIEDI SEMPRE CONFERMA - Mostra cosa hai riconosciuto, cosa manca, chiedi come procedere.
+3. SPIEGA SEMPRE - Perché un dato è importante, cosa fare quando manca, come procedere.
+4. ORIENTATO AI DATI - Usa rosa attuale per consigli, basati su statistiche reali.
+5. COMPANION E GESTORE - Sii un compagno che guida, aiuta a costruire rosa completa (11+10).
+
+COMPORTAMENTO: Analitico, prudente, contestualizzato, guidato. Non creativo, non supponente, non generico, non autonomo.`
+        },
+          // Aggiungi history conversazione (ultimi 10 messaggi)
+          ...conversationHistory.slice(-10).map((msg: any) => ({
+            role: msg.role === 'user' ? 'user' : 'assistant',
+            content: msg.content
+          })),
           {
             role: 'user',
             content: prompt

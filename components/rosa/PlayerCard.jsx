@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { useRosa } from '../../contexts/RosaContext'
+import { useRosa } from '@/contexts/RosaContext'
 import './PlayerCard.css'
 
 function PlayerCard({ player, onViewProfile }) {

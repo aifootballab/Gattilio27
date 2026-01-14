@@ -4,6 +4,7 @@ import React from 'react'
 import { useRosa } from '@/contexts/RosaContext'
 import DashboardLayout from '@/components/dashboard/DashboardLayout'
 import RosaStatusPanel from '@/components/dashboard/RosaStatusPanel'
+import AIBrainButton from '@/components/dashboard/AIBrainButton'
 import Link from 'next/link'
 import { 
   TrendingUp, Target, BarChart3, Users, 
@@ -18,6 +19,11 @@ function DashboardPage() {
     <DashboardLayout>
       <div className="dashboard-page">
         <div className="dashboard-container">
+          {/* AI Brain Button - Centrale */}
+          <div className="dashboard-brain-container">
+            <AIBrainButton />
+          </div>
+
           {/* Hero Section - Rosa Status */}
           <div className="dashboard-hero">
             <RosaStatusPanel />

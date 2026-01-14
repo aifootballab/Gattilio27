@@ -2,7 +2,7 @@
 
 import React from 'react'
 import ScreenshotUpload from './ScreenshotUpload'
-import { useRosa } from '../../contexts/RosaContext'
+import { useRosa } from '@/contexts/RosaContext'
 import './RosaScreenshotInput.css'
 
 function RosaScreenshotInput({ onBack, onRosaCreated }) {

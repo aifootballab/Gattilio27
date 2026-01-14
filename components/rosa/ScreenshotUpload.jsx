@@ -2,11 +2,11 @@
 
 import React, { useState, useRef } from 'react'
 import { Upload, X, Check, AlertCircle, Loader } from 'lucide-react'
-import { uploadAndProcessScreenshot } from '../../services/visionService'
-import { useRosa } from '../../contexts/RosaContext'
-import { supabase } from '../../lib/supabase'
-import * as playerService from '../../services/playerService'
-import * as rosaService from '../../services/rosaService'
+import { uploadAndProcessScreenshot } from '@/services/visionService'
+import { useRosa } from '@/contexts/RosaContext'
+import { supabase } from '@/lib/supabase'
+import * as playerService from '@/services/playerService'
+import * as rosaService from '@/services/rosaService'
 import PlayerDestinationSelector from './PlayerDestinationSelector'
 import './ScreenshotUpload.css'
 

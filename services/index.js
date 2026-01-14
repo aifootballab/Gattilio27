@@ -11,4 +11,4 @@ export * from './strengthService'
 export * from './suggestionService'
 
 // Re-export supabase client per comodità
-export { supabase } from '../lib/supabase'
+export { supabase } from '@/lib/supabase'

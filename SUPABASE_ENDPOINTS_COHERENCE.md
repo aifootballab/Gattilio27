@@ -1,6 +1,12 @@
 # 🔗 Coerenza Endpoint Supabase
 ## Documentazione Completa Endpoint e Salvataggi
 
+**Data**: 2025-01-14  
+**Status**: 🟢 **AGGIORNATO** - Coerente con codice Next.js  
+**Versione**: 2.0
+
+**⚠️ NOTA**: Questo documento è stato aggiornato. Vedi `ENDPOINTS_COMPLETE_REFERENCE.md` per versione completa e aggiornata.
+
 ---
 
 ## 📋 ENDPOINT EDGE FUNCTIONS
@@ -86,45 +92,57 @@
 
 ## 🗄️ ENDPOINT DATABASE (Diretti)
 
-### **Rosa Service** (`rosaService.js`)
+### **Rosa Service** (`services/rosaService.js`)
 
-| Funzione | Tabella | Operazione | Note |
-|----------|---------|------------|------|
+**Import**: `@/services/rosaService`
+
+| Funzione | Tabella/Endpoint | Operazione | Note |
+|----------|------------------|------------|------|
 | `createRosa()` | `user_rosa` | INSERT | Crea nuova rosa |
 | `getUserRosas()` | `user_rosa` | SELECT | Lista tutte le rose utente |
-| `getRosaById()` | `user_rosa` + `player_builds` + `players_base` | SELECT JOIN | Rosa completa con giocatori |
+| `getRosaById()` | `user_rosa` + JOIN | SELECT | Rosa completa con giocatori |
 | `updateRosa()` | `user_rosa` | UPDATE | Aggiorna rosa |
 | `deleteRosa()` | `user_rosa` | DELETE | Elimina rosa |
 | `addPlayerToRosa()` | `user_rosa` | UPDATE | Aggiunge `player_build_id` all'array |
 | `removePlayerFromRosa()` | `user_rosa` | UPDATE | Rimuove `player_build_id` dall'array |
+| `addPlayerToRosaInSlot()` | `user_rosa` | UPDATE | Aggiunge giocatore in slot specifico (0-20) |
+| `analyzeRosa()` | Edge Function `analyze-rosa` | INVOKE | Analizza rosa e genera suggerimenti |
 
 ---
 
-### **Player Service** (`playerService.js`)
+### **Player Service** (`services/playerService.js`)
+
+**Import**: `@/services/playerService`
 
 | Funzione | Tabella | Operazione | Note |
 |----------|---------|------------|------|
 | `searchPlayer()` | `players_base` | SELECT | Ricerca per nome |
 | `getPlayerBase()` | `players_base` | SELECT | Giocatore base per ID |
 | `upsertPlayerBuild()` | `player_builds` | UPSERT | Crea/aggiorna build (UNIQUE: user_id, player_base_id) |
-| `getPlayerBuild()` | `player_builds` + `players_base` | SELECT JOIN | Build completa con dati base |
-| `getUserBuilds()` | `player_builds` + `players_base` | SELECT JOIN | Tutte le build utente |
+| `getPlayerBuild()` | `player_builds` + JOIN | SELECT | Build completa con dati base |
+| `getUserBuilds()` | `player_builds` + JOIN | SELECT | Tutte le build utente |
 | `deletePlayerBuild()` | `player_builds` | DELETE | Elimina build |
 
 ---
 
-### **Vision Service** (`visionService.js`)
+### **Vision Service** (`services/visionService.js`)
+
+**Import**: `@/services/visionService`
 
 | Funzione | Storage/Function | Operazione | Note |
 |----------|------------------|------------|------|
 | `uploadScreenshot()` | `player-screenshots` bucket | UPLOAD | Upload file a Storage |
-| `processScreenshot()` | Edge Function `process-screenshot` | INVOKE | Chiama processing OCR |
+| `processScreenshot()` | Edge Function `process-screenshot` | INVOKE | ⚠️ Chiama Google Vision OCR (non GPT) |
 | `getProcessingLog()` | `screenshot_processing_log` | SELECT | Recupera log processing |
 | `uploadAndProcessScreenshot()` | Storage + Function | UPLOAD + INVOKE | Combinazione upload + process |
 
+**⚠️ NOTA**: `visionService.js` chiama `process-screenshot` (Google Vision). Esiste `process-screenshot-gpt` (GPT-Realtime) ma non viene usato.
+
 ---
 
-### **Coaching Service** (`coachingService.js`)
+### **Coaching Service** (`services/coachingService.js`)
+
+**Import**: `@/services/coachingService`
 
 | Funzione | Tabella | Operazione | Note |
 |----------|---------|------------|------|
@@ -132,6 +150,32 @@
 | `getMatchContexts()` | `unified_match_contexts` | SELECT | Lista contesti utente |
 | `getCoachingSuggestions()` | `coaching_suggestions` | SELECT | Suggerimenti per contesto |
 | `getRosaCoachingSuggestions()` | `coaching_suggestions` | SELECT | Suggerimenti per rosa |
+
+---
+
+### **Realtime Coaching Service** (`services/realtimeCoachingService.js`)
+
+**Import**: `@/services/realtimeCoachingService`
+
+| Funzione | Edge Function | Action | Note |
+|----------|---------------|--------|------|
+| `startSession()` | `voice-coaching-gpt` | `start_session` | Crea sessione persistente |
+| `sendMessage()` | `voice-coaching-gpt` | `send_message` | Invia messaggio/audio |
+| `uploadScreenshot()` | `voice-coaching-gpt` | `analyze_screenshot` | Analizza screenshot in sessione |
+| `endSession()` | `voice-coaching-gpt` | `end_session` | Chiude sessione |
+| `startKeepAlive()` | `voice-coaching-gpt` | `keep_alive` | Mantiene sessione attiva (auto) |
+
+---
+
+### **Import Service** (`services/importService.js`)
+
+**Import**: `@/services/importService`
+
+| Funzione | Edge Function | Operazione | Note |
+|----------|---------------|------------|------|
+| `importPlayersFromJSON()` | `import-players-json` | INVOKE | Import batch giocatori |
+| `getPositionStats()` | `players_base` | SELECT | Stats medie per posizione |
+| `getCommonSkillsForPosition()` | `players_base` | SELECT | Skills comuni per posizione |
 
 ---
 
@@ -268,4 +312,33 @@
 
 ---
 
-**Status**: 🟢 Coerenza garantita in tutto il sistema
+---
+
+## 📋 ENDPOINT AGGIUNTIVI (GPT-Realtime)
+
+### **Edge Functions GPT Deployate ma Non Integrate**:
+
+1. **`process-screenshot-gpt`** ✅ Deployato
+   - Status: 🟢 ACTIVE
+   - Tecnologia: GPT-4o Realtime (Vision)
+   - ⚠️ **NON usato** da `visionService.js`
+
+2. **`analyze-squad-formation-gpt`** ✅ Deployato
+   - Status: 🟢 ACTIVE
+   - ⚠️ **NON usato** - Nessun servizio frontend
+
+3. **`analyze-heatmap-screenshot-gpt`** ✅ Deployato
+   - Status: 🟢 ACTIVE
+   - ⚠️ **NON usato** - Nessun servizio frontend
+
+4. **`analyze-player-ratings-gpt`** ✅ Deployato
+   - Status: 🟢 ACTIVE
+   - ⚠️ **NON usato** - Nessun servizio frontend
+
+**Vedi**: `ENDPOINTS_COMPLETE_REFERENCE.md` per documentazione completa.
+
+---
+
+**Status**: 🟢 Coerenza garantita in tutto il sistema  
+**Ultimo aggiornamento**: 2025-01-14  
+**Versione**: 2.0 (Next.js)

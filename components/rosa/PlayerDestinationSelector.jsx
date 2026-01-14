@@ -5,7 +5,7 @@
 
 import React, { useState } from 'react'
 import { Users, UserPlus, X, Check } from 'lucide-react'
-import { useRosa } from '../../contexts/RosaContext'
+import { useRosa } from '@/contexts/RosaContext'
 import './PlayerDestinationSelector.css'
 
 const POSITIONS = [

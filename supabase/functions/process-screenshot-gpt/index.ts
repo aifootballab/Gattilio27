@@ -323,10 +323,31 @@ Analizza questo screenshot di un profilo giocatore eFootball e estrai TUTTI i da
 **SEZIONE 7: Stili di Gioco IA**
 - Lista completa stili IA (es. Funambolo, Serpentina, etc.)
 
-IMPORTANTE:
-- Per ogni campo, indica: value (valore estratto o null se non visibile), status ("certain" | "uncertain" | "missing"), confidence (0.0-1.0)
-- NON inventare valori - se non vedi un dato, status="missing" e value=null
-- Rispondi in JSON strutturato completo
+**REGOLE CRITICHE**:
+
+1. **SOLO DATI VERIFICABILI**
+   - Estrai SOLO dati che vedi con certezza nello screenshot
+   - Se non vedi un dato, NON inventarlo
+
+2. **PER OGNI CAMPO**:
+   - value: valore estratto o null se non visibile
+   - status: "certain" | "uncertain" | "missing"
+   - confidence: 0.0-1.0 (0.0 = non visibile, 0.8+ = certo, 0.5-0.8 = incerto)
+
+3. **NON INVENTARE VALORI**:
+   - Se non vedi un dato: value=null, status="missing", confidence=0.0
+   - Se sei incerto: status="uncertain", confidence < 0.8
+   - Solo se sei certo: status="certain", confidence >= 0.8
+
+4. **FORMATO OUTPUT**:
+   - Rispondi in JSON strutturato completo
+   - Ogni campo deve avere value, status, confidence
+   - Se un'intera sezione non è visibile, tutti i campi hanno status="missing"
+
+5. **TRASPARENZA**:
+   - Sii esplicito su cosa manca
+   - Indica chiaramente cosa è certo vs incerto
+   - Non procedere senza dati verificabili
 `
 }
 

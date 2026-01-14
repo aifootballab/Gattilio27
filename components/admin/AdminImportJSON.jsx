@@ -2,7 +2,7 @@
 
 import React, { useState, useRef } from 'react'
 import { Upload, CheckCircle, XCircle, Loader2, FileText, Clipboard, Download, AlertCircle } from 'lucide-react'
-import * as importService from '../../services/importService'
+import * as importService from '@/services/importService'
 import './AdminImportJSON.css'
 
 function AdminImportJSON() {

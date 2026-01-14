@@ -1,7 +1,10 @@
 # 🔍 Verifica Endpoint, Coerenza e Scalabilità
 
-**Data**: 2025-01-12  
-**Status**: ✅ Analisi Completa
+**Data**: 2025-01-14  
+**Status**: ✅ **AGGIORNATO** - Coerente con codice Next.js  
+**Versione**: 2.0
+
+**⚠️ NOTA**: Questo documento è stato aggiornato. Vedi `ENDPOINTS_COMPLETE_REFERENCE.md` per versione completa.
 
 ---
 
@@ -11,19 +14,27 @@
 
 | Endpoint | Status | Uso | Scalabilità |
 |----------|--------|-----|-------------|
-| `process-screenshot` | ✅ ATTIVO | OCR screenshot giocatori | ⚠️ Rate limit Google Vision |
-| `analyze-rosa` | ✅ ATTIVO | Analisi rosa base | ✅ OK |
+| `process-screenshot` | ✅ ATTIVO | OCR screenshot (Google Vision) | ⚠️ Rate limit Google Vision |
+| `process-screenshot-gpt` | ✅ ATTIVO | GPT-Realtime Vision | ⚠️ **NON usato** da visionService |
+| `voice-coaching-gpt` | ✅ ATTIVO | GPT-Realtime coaching | ✅ OK - Usato da realtimeCoachingService |
+| `analyze-rosa` | ✅ ATTIVO | Analisi rosa base | ✅ OK - Usato da rosaService |
 | `import-players-json` | ✅ ATTIVO | Import JSON giocatori | ⚠️ Batch processing necessario |
+| `analyze-squad-formation-gpt` | ✅ ATTIVO | GPT-Realtime formazione | ⚠️ **NON usato** |
+| `analyze-heatmap-screenshot-gpt` | ✅ ATTIVO | GPT-Realtime heatmap | ⚠️ **NON usato** |
+| `analyze-player-ratings-gpt` | ✅ ATTIVO | GPT-Realtime ratings | ⚠️ **NON usato** |
 | `import-players-from-drive` | ⚠️ DEPRECATO | Google Drive (rimosso) | ❌ Non più usato |
 | `test-efootballhub` | ✅ TEST | Test scraping | ✅ OK |
+| `scrape-players` | ✅ TEST | Scraping giocatori | ✅ OK |
+| `scrape-managers` | ✅ TEST | Scraping allenatori | ✅ OK |
 
 ### Servizi Frontend (services/)
 
 | Servizio | Funzioni | Endpoint Usati | Status |
 |----------|----------|----------------|--------|
-| `playerService.js` | searchPlayer, getPlayerBase, createPlayerWithBuild | Direct DB | ✅ OK |
-| `rosaService.js` | createRosa, getRosaById, analyzeRosa | analyze-rosa | ✅ OK |
-| `visionService.js` | uploadScreenshot, processScreenshot | process-screenshot | ✅ OK |
+| `playerService.js` | searchPlayer, getPlayerBase, upsertPlayerBuild | Direct DB | ✅ OK |
+| `rosaService.js` | createRosa, getRosaById, analyzeRosa | analyze-rosa + Direct DB | ✅ OK |
+| `visionService.js` | uploadScreenshot, processScreenshot | process-screenshot ⚠️ | ⚠️ Usa Google Vision, non GPT |
+| `realtimeCoachingService.js` | startSession, sendMessage, endSession | voice-coaching-gpt | ✅ OK |
 | `importService.js` | importPlayersFromJSON | import-players-json | ✅ OK |
 | `coachingService.js` | getCoachingSuggestions | Direct DB | ✅ OK |
 
