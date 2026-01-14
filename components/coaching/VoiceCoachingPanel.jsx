@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
-import { Mic, MicOff, Send, Volume2, Loader, Sparkles, Square } from 'lucide-react'
+import { Mic, MicOff, Send, Volume2, Loader, Sparkles, Square, Image as ImageIcon, X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useRosa } from '@/contexts/RosaContext'
 import realtimeCoachingServiceV2 from '@/services/realtimeCoachingServiceV2'
@@ -21,11 +21,14 @@ export default function VoiceCoachingPanel() {
   const [streamingResponse, setStreamingResponse] = useState('')
   const [currentFunctionCall, setCurrentFunctionCall] = useState(null)
   const [canInterrupt, setCanInterrupt] = useState(false)
+  const [selectedImage, setSelectedImage] = useState(null) // Immagine selezionata per inviare
+  const [imagePreview, setImagePreview] = useState(null) // Preview immagine
   
   const mediaRecorderRef = useRef(null)
   const audioChunksRef = useRef([])
   const messagesEndRef = useRef(null)
   const streamingMessageRef = useRef(null)
+  const imageInputRef = useRef(null)
   const { rosa } = useRosa()
   const sessionInitialized = useRef(false)
 
@@ -258,6 +261,26 @@ export default function VoiceCoachingPanel() {
             }, 2000)
           })
 
+          // Setup callback per trascrizione audio utente
+          realtimeCoachingServiceV2.onAudioTranscriptionCallback((transcribedText) => {
+            // Aggiorna ultimo messaggio utente con trascrizione
+            setMessages(prev => {
+              const updated = [...prev]
+              // Trova ultimo messaggio utente (se esiste)
+              for (let i = updated.length - 1; i >= 0; i--) {
+                if (updated[i].role === 'user' && updated[i].isAudio) {
+                  updated[i] = {
+                    ...updated[i],
+                    content: transcribedText,
+                    transcribed: true
+                  }
+                  break
+                }
+              }
+              return updated
+            })
+          })
+
           // Setup callback per errori
           realtimeCoachingServiceV2.onErrorCallback((error) => {
             const errorMsg = {
@@ -348,6 +371,70 @@ export default function VoiceCoachingPanel() {
     await sendTextMessage(userMessage)
   }
 
+  // Gestisce selezione immagine
+  const handleImageSelect = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Verifica tipo file
+    if (!file.type.startsWith('image/')) {
+      alert('Seleziona un file immagine valido')
+      return
+    }
+
+    // Verifica dimensione (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      alert('Immagine troppo grande. Massimo 10MB')
+      return
+    }
+
+    // Crea preview
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      setImagePreview(reader.result)
+      setSelectedImage(file)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  // Rimuovi immagine selezionata
+  const handleRemoveImage = () => {
+    setSelectedImage(null)
+    setImagePreview(null)
+    if (imageInputRef.current) {
+      imageInputRef.current.value = ''
+    }
+  }
+
+  // Upload immagine a Supabase Storage e ottieni URL
+  const uploadImageToStorage = async (imageFile) => {
+    try {
+      const fileExt = imageFile.name.split('.').pop()
+      const fileName = `chat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`
+      const filePath = `chat-images/${fileName}`
+
+      // Upload a Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('screenshots')
+        .upload(filePath, imageFile, {
+          cacheControl: '3600',
+          upsert: false
+        })
+
+      if (uploadError) throw uploadError
+
+      // Ottieni URL pubblico
+      const { data: urlData } = supabase.storage
+        .from('screenshots')
+        .getPublicUrl(filePath)
+
+      return urlData.publicUrl
+    } catch (error) {
+      console.error('Error uploading image:', error)
+      throw error
+    }
+  }
+
   // Invia messaggio testuale usando Realtime API
   const sendTextMessage = async (text) => {
     if (!realtimeCoachingServiceV2.isActive) {
@@ -366,17 +453,44 @@ export default function VoiceCoachingPanel() {
     setCanInterrupt(false)
     streamingMessageRef.current = null
 
+    // Upload immagine se presente
+    let imageUrl = null
+    if (selectedImage) {
+      try {
+        imageUrl = await uploadImageToStorage(selectedImage)
+      } catch (error) {
+        console.error('Error uploading image:', error)
+        const errorMsg = {
+          role: 'error',
+          content: `Errore caricamento immagine: ${error.message}`,
+          timestamp: new Date()
+        }
+        setMessages(prev => [...prev, errorMsg])
+        setIsProcessing(false)
+        return
+      }
+    }
+
     // Aggiungi messaggio utente alla chat
     const userMsg = {
       role: 'user',
-      content: text,
-      timestamp: new Date()
+      content: text || (imageUrl ? '📷 [Immagine]' : ''),
+      timestamp: new Date(),
+      isAudio: false,
+      imageUrl: imageUrl || null
     }
     setMessages(prev => [...prev, userMsg])
 
+    // Rimuovi immagine dopo invio
+    handleRemoveImage()
+
     try {
-      // Invia messaggio via Realtime API (streaming)
-      realtimeCoachingServiceV2.sendMessage({ text })
+      // Invia messaggio via Realtime API (streaming) con immagine se presente
+      const messageInput = { text: text || undefined }
+      if (imageUrl) {
+        messageInput.image = imageUrl
+      }
+      realtimeCoachingServiceV2.sendMessage(messageInput)
       // La risposta arriverà tramite callback onTextDelta (streaming word-by-word)
     } catch (error) {
       console.error('Error sending message:', error)
@@ -410,14 +524,46 @@ export default function VoiceCoachingPanel() {
     streamingMessageRef.current = null
 
     try {
+      // Upload immagine se presente
+      let imageUrl = null
+      if (selectedImage) {
+        try {
+          imageUrl = await uploadImageToStorage(selectedImage)
+        } catch (error) {
+          console.error('Error uploading image:', error)
+          // Continua anche se upload immagine fallisce
+        }
+      }
+
       // Converti audio a base64
       const reader = new FileReader()
       reader.onloadend = async () => {
         const base64Audio = reader.result.split(',')[1]
 
         try {
-          // Invia audio via Realtime API (multimodale)
-          realtimeCoachingServiceV2.sendMessage({ audio: base64Audio })
+          // Aggiungi messaggio utente placeholder (verrà aggiornato con trascrizione)
+          const audioMsg = {
+            role: 'user',
+            content: '🎤 Registrando...',
+            timestamp: new Date(),
+            isAudio: true,
+            transcribed: false,
+            imageUrl: imageUrl || null
+          }
+          setMessages(prev => [...prev, audioMsg])
+
+          // Rimuovi immagine dopo invio
+          if (selectedImage) {
+            handleRemoveImage()
+          }
+
+          // Invia audio via Realtime API (multimodale: audio + immagine se presente)
+          const messageInput = { audio: base64Audio }
+          if (imageUrl) {
+            messageInput.image = imageUrl
+          }
+          realtimeCoachingServiceV2.sendMessage(messageInput)
+          // La trascrizione arriverà tramite callback onAudioTranscription
           // La risposta arriverà tramite callback onTextDelta (streaming word-by-word)
         } catch (error) {
           console.error('Error sending audio:', error)
@@ -510,9 +656,21 @@ export default function VoiceCoachingPanel() {
               )}
               <div className="message-text">
                 {msg.isAudio && <span className="audio-badge">🎤</span>}
-                <div className="message-content-formatted">
-                  {formatMessageContent(msg.content)}
-                </div>
+                {msg.imageUrl && (
+                  <div className="message-image-container">
+                    <img 
+                      src={msg.imageUrl} 
+                      alt="Immagine inviata" 
+                      className="message-image"
+                      onClick={() => window.open(msg.imageUrl, '_blank')}
+                    />
+                  </div>
+                )}
+                {msg.content && (
+                  <div className="message-content-formatted">
+                    {formatMessageContent(msg.content)}
+                  </div>
+                )}
                 <span className="message-time">
                   {new Date(msg.timestamp).toLocaleTimeString('it-IT', { 
                     hour: '2-digit', 
@@ -592,6 +750,23 @@ export default function VoiceCoachingPanel() {
             </button>
           )}
 
+          {/* Image Upload Button */}
+          <button
+            onClick={() => imageInputRef.current?.click()}
+            className="image-button"
+            disabled={(isProcessing && !canInterrupt) || isRecording}
+            title="Carica immagine"
+          >
+            <ImageIcon size={20} />
+          </button>
+          <input
+            ref={imageInputRef}
+            type="file"
+            accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+            onChange={handleImageSelect}
+            style={{ display: 'none' }}
+          />
+
           {/* Microphone Button */}
           <button
             className={`mic-button ${isRecording ? 'recording' : ''} ${isListening ? 'listening' : ''}`}
@@ -624,18 +799,36 @@ export default function VoiceCoachingPanel() {
           {/* Send Button */}
           <button
             onClick={handleSendMessage}
-            disabled={!currentMessage.trim() || (isProcessing && !canInterrupt) || isRecording}
+            disabled={(!currentMessage.trim() && !selectedImage) || (isProcessing && !canInterrupt) || isRecording}
             className="send-button"
           >
             <Send size={18} />
           </button>
         </div>
 
+        {/* Image Preview */}
+        {imagePreview && (
+          <div className="image-preview-container">
+            <div className="image-preview">
+              <img src={imagePreview} alt="Preview" className="preview-image" />
+              <button
+                onClick={handleRemoveImage}
+                className="remove-image-button"
+                title="Rimuovi immagine"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="input-hint">
           {isRecording ? (
             <span className="recording-hint">🎤 Registrando... Rilascia per inviare</span>
+          ) : selectedImage ? (
+            <span className="image-hint">📷 Immagine selezionata. Scrivi un messaggio o invia solo l'immagine</span>
           ) : (
-            <span>💡 Tieni premuto il microfono per parlare o scrivi qui sopra</span>
+            <span>💡 Tieni premuto il microfono per parlare, carica un'immagine o scrivi qui sopra</span>
           )}
         </div>
       </div>

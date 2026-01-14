@@ -14,6 +14,7 @@ class RealtimeCoachingServiceV2 {
     this.onTextDelta = null
     this.onFunctionCall = null
     this.onError = null
+    this.onAudioTranscription = null // Callback per trascrizione audio utente
     this.currentResponse = ''
   }
 
@@ -61,7 +62,8 @@ class RealtimeCoachingServiceV2 {
 
       // OpenAI Realtime API WebSocket endpoint
       // NOTA: Per sicurezza, considera di usare un proxy Edge Function invece di esporre API key nel client
-      const model = 'gpt-4o-realtime-preview-2024-12-17'
+      // Usa gpt-realtime (nuovo modello stabile) invece di gpt-4o-realtime-preview
+      const model = 'gpt-realtime'
       const wsUrl = `wss://api.openai.com/v1/realtime?model=${model}&api_key=${apiKey}`
       
       console.log('🔌 Connecting to OpenAI Realtime API...')
@@ -203,6 +205,29 @@ class RealtimeCoachingServiceV2 {
       case 'response.function_call':
         // Function call richiesta da GPT
         this.handleFunctionCall(event, userId)
+        break
+
+      case 'input_audio_transcription.completed':
+        // Trascrizione audio utente completata
+        if (event?.text && this.onAudioTranscription) {
+          console.log('🎤 Audio transcribed:', event.text)
+          this.onAudioTranscription(event.text)
+        }
+        break
+
+      case 'input_audio_transcription.failed':
+        // Errore trascrizione audio
+        console.error('❌ Audio transcription failed:', event.error)
+        if (this.onError) {
+          this.onError(new Error(`Audio transcription failed: ${event.error || 'Unknown error'}`))
+        }
+        break
+
+      case 'response.audio_transcript.done':
+        // Trascrizione risposta audio completata (opzionale)
+        if (event?.text) {
+          console.log('🎤 Response audio transcribed:', event.text)
+        }
         break
 
       case 'error':
@@ -355,6 +380,10 @@ Puoi usare le funzioni disponibili per:
 
   onErrorCallback(callback) {
     this.onError = callback
+  }
+
+  onAudioTranscriptionCallback(callback) {
+    this.onAudioTranscription = callback
   }
 
   /**

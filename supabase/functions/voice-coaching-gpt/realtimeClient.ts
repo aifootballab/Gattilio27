@@ -40,7 +40,8 @@ export class RealtimeClient {
 
   constructor(config: RealtimeConfig) {
     this.apiKey = config.apiKey
-    this.model = config.model || 'gpt-4o-realtime-preview-2024-12-17'
+    // Usa gpt-realtime (nuovo modello stabile) invece di preview
+    this.model = config.model || 'gpt-realtime'
   }
 
   /**
