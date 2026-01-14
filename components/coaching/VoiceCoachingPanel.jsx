@@ -432,15 +432,16 @@ export default function VoiceCoachingPanel() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       
-      // ✅ Prova formati compatibili con Whisper
-      // Whisper supporta webm, ma potrebbe non accettare opus codec
-      // Prova prima webm senza codec specifico, poi fallback a opus
+      // ✅ Prova formati compatibili con AudioContext.decodeAudioData
+      // IMPORTANTE: decodeAudioData NON supporta webm opus in Chrome
+      // Preferiamo formati che possono essere decodificati per la conversione WAV
       let mimeType = 'audio/webm'
       const supportedTypes = [
-        'audio/webm',
-        'audio/webm;codecs=opus',
-        'audio/ogg;codecs=opus',
-        'audio/mp4'
+        'audio/webm;codecs=vp9', // VP9 codec (se supportato, può essere decodificato)
+        'audio/webm', // webm generico (potrebbe essere opus)
+        'audio/mp4', // MP4 (se supportato)
+        'audio/webm;codecs=opus', // Opus (fallback, non decodificabile)
+        'audio/ogg;codecs=opus' // OGG Opus (fallback)
       ]
       
       // Trova il primo formato supportato
@@ -450,6 +451,11 @@ export default function VoiceCoachingPanel() {
           console.log(`✅ Using audio format: ${mimeType}`)
           break
         }
+      }
+      
+      // ⚠️ Avviso se stiamo usando opus (non decodificabile)
+      if (mimeType.includes('opus')) {
+        console.warn('⚠️ Using opus codec - conversion to WAV may fail, will send webm directly')
       }
       
       const mediaRecorder = new MediaRecorder(stream, {
