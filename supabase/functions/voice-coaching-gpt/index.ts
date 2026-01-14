@@ -41,15 +41,60 @@ interface VoiceCoachingRequest {
 async function transcribeAudio(audioBase64: string): Promise<string> {
   const openaiApiKey = Deno.env.get('OPENAI_API_KEY')
   
+  if (!openaiApiKey) {
+    throw new Error('OPENAI_API_KEY not configured')
+  }
+
   try {
-    // Converti base64 a file
-    const audioBuffer = Uint8Array.from(atob(audioBase64), c => c.charCodeAt(0))
-    
+    // ✅ Rimuovi prefisso data: se presente
+    let cleanBase64 = audioBase64
+    if (audioBase64.includes(',')) {
+      cleanBase64 = audioBase64.split(',')[1]
+    }
+
+    // ✅ Verifica che base64 sia valido
+    if (!cleanBase64 || cleanBase64.length === 0) {
+      throw new Error('Empty audio base64 data')
+    }
+
+    // ✅ Converti base64 a buffer
+    let audioBuffer: Uint8Array
+    try {
+      audioBuffer = Uint8Array.from(atob(cleanBase64), c => c.charCodeAt(0))
+    } catch (decodeError) {
+      throw new Error(`Invalid base64 audio data: ${decodeError.message}`)
+    }
+
+    // ✅ Verifica dimensione (Whisper max 25MB)
+    const maxSize = 25 * 1024 * 1024 // 25MB
+    if (audioBuffer.length > maxSize) {
+      throw new Error(`Audio file too large: ${audioBuffer.length} bytes (max: ${maxSize})`)
+    }
+
+    if (audioBuffer.length === 0) {
+      throw new Error('Audio buffer is empty')
+    }
+
+    // ✅ Crea FormData con file audio
     const formData = new FormData()
+    
+    // ✅ Whisper supporta: mp3, mp4, mpeg, mpga, m4a, wav, webm
+    // Prova webm prima, se fallisce possiamo provare altri formati
+    // Nota: Il nome file deve avere estensione corretta per Whisper
     const audioBlob = new Blob([audioBuffer], { type: 'audio/webm' })
-    formData.append('file', audioBlob, 'audio.webm')
+    
+    // ✅ Usa File invece di Blob per avere più controllo
+    const audioFile = new File([audioBlob], 'audio.webm', { type: 'audio/webm' })
+    formData.append('file', audioFile)
     formData.append('model', 'whisper-1')
     formData.append('language', 'it') // Italiano
+    formData.append('response_format', 'json')
+
+    console.log('📤 Sending audio to Whisper API:', {
+      size: audioBuffer.length,
+      sizeKB: Math.round(audioBuffer.length / 1024),
+      type: 'audio/webm'
+    })
 
     const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
@@ -60,14 +105,27 @@ async function transcribeAudio(audioBase64: string): Promise<string> {
     })
 
     if (!response.ok) {
-      throw new Error(`Whisper API error: ${response.status}`)
+      const errorText = await response.text()
+      console.error('❌ Whisper API error:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText
+      })
+      throw new Error(`Whisper API error: ${response.status} - ${errorText}`)
     }
 
     const data = await response.json()
-    return data.text || ''
+    const transcribedText = data.text || ''
+    
+    console.log('✅ Audio transcribed:', {
+      textLength: transcribedText.length,
+      preview: transcribedText.substring(0, 50) + '...'
+    })
+
+    return transcribedText
 
   } catch (error) {
-    console.error('Error transcribing audio:', error)
+    console.error('❌ Error transcribing audio:', error)
     throw new Error(`Audio transcription failed: ${error.message}`)
   }
 }
