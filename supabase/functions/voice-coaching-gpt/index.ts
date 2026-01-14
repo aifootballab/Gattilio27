@@ -79,34 +79,23 @@ async function transcribeAudio(audioBase64: string): Promise<string> {
     const formData = new FormData()
     
     // ✅ Whisper supporta: mp3, mp4, mpeg, mpga, m4a, wav, webm
-    // IMPORTANTE: Whisper potrebbe non accettare webm con codec opus
-    // WORKAROUND: Proviamo a usare estensione .wav anche se i dati sono webm
-    // Whisper è più permissivo con wav e potrebbe accettare il file
+    // IMPORTANTE: Il client ora converte webm opus in WAV prima di inviare
+    // Quindi riceviamo già dati WAV reali, non webm
+    // Creiamo File con estensione .wav e tipo audio/wav
     
     let audioFile: File | Blob
     
-    // ✅ Prova a creare File con estensione .wav (workaround per webm opus)
-    // Whisper potrebbe accettare il file anche se i dati sono webm
+    // ✅ Crea File WAV (il client ha già convertito l'audio da webm opus a WAV)
     try {
-      // Prova prima con .wav (più compatibile)
       audioFile = new File([audioBuffer], 'audio.wav', { 
         type: 'audio/wav',
         lastModified: Date.now()
       })
-      console.log('✅ Using File constructor with .wav extension (workaround for webm opus)')
+      console.log('✅ Using File constructor with .wav (client converted from webm opus)')
     } catch (fileError) {
-      try {
-        // Fallback: prova con .webm
-        audioFile = new File([audioBuffer], 'audio.webm', { 
-          type: 'audio/webm',
-          lastModified: Date.now()
-        })
-        console.log('✅ Using File constructor with .webm extension')
-      } catch (fileError2) {
-        // Ultimo fallback: usa Blob
-        console.warn('⚠️ File constructor not available, using Blob:', fileError2)
-        audioFile = new Blob([audioBuffer], { type: 'audio/wav' })
-      }
+      // Fallback: usa Blob
+      console.warn('⚠️ File constructor not available, using Blob:', fileError)
+      audioFile = new Blob([audioBuffer], { type: 'audio/wav' })
     }
     
     // ✅ Aggiungi file a FormData
