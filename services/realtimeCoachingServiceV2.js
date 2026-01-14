@@ -112,8 +112,14 @@ class RealtimeCoachingServiceV2 {
 
       this.sessionId = sessionData.session_id
 
-      // Connetti a OpenAI Realtime API
-      await this.connectToRealtimeAPI(userId, context)
+      // ✅ SOLUZIONE: NON connettere direttamente a OpenAI Realtime API
+      // Usa invece l'Edge Function che gestisce l'autenticazione lato server
+      // Questo risolve il problema "Missing bearer or basic authentication in header"
+      // L'Edge Function gestisce la connessione WebSocket a OpenAI con header corretto
+      
+      // Per ora, non connettiamo WebSocket diretto
+      // Useremo l'Edge Function per tutte le comunicazioni
+      console.log('✅ Session started, using Edge Function for all communications')
 
       this.isActive = true
       return this.sessionId
@@ -161,30 +167,32 @@ class RealtimeCoachingServiceV2 {
         return
       }
 
-      // OpenAI Realtime API WebSocket endpoint
-      // NOTA: Per sicurezza, considera di usare un proxy Edge Function invece di esporre API key nel client
-      // Usa gpt-realtime (nuovo modello stabile) invece di gpt-4o-realtime-preview
+      // ✅ SOLUZIONE: Usa proxy Edge Function invece di connessione diretta
+      // Il proxy gestisce l'autenticazione lato server (header Authorization)
+      // Questo risolve il problema "Missing bearer or basic authentication in header"
+      
       const model = 'gpt-realtime'
       
-      // ✅ Verifica che l'API key sia correttamente codificata
-      const trimmedKey = apiKey?.trim()
-      if (!trimmedKey || trimmedKey.length === 0) {
-        const error = new Error('API key is empty or invalid')
+      // ✅ Ottieni URL Supabase dal client
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      if (!supabaseUrl) {
+        const error = new Error('NEXT_PUBLIC_SUPABASE_URL not configured')
         console.error('❌', error.message)
         reject(error)
         return
       }
       
-      // ✅ OpenAI Realtime API: Usa api_key come query parameter (formato standard documentato)
-      // IMPORTANTE: Se OpenAI richiede Authorization header, serve un proxy Edge Function
-      // Per ora proviamo con il formato standard api_key
-      const wsUrl = `wss://api.openai.com/v1/realtime?model=${encodeURIComponent(model)}&api_key=${encodeURIComponent(trimmedKey)}`
+      // ✅ Connetti al proxy Edge Function invece che direttamente a OpenAI
+      // Il proxy aggiunge l'header Authorization: Bearer <token> lato server
+      const proxyUrl = `${supabaseUrl}/functions/v1/realtime-proxy?model=${encodeURIComponent(model)}`
       
-      console.log('🔌 Connecting to OpenAI Realtime API...', {
+      // ✅ Converti URL HTTP a WebSocket (wss://)
+      const wsUrl = proxyUrl.replace(/^https?:\/\//, 'wss://')
+      
+      console.log('🔌 Connecting to OpenAI Realtime API via proxy...', {
         model,
-        apiKeyPrefix: apiKey.substring(0, 7) + '...',
-        apiKeyLength: apiKey.length,
-        urlPrefix: wsUrl.substring(0, 60) + '...'
+        proxyUrl: proxyUrl.substring(0, 80) + '...',
+        wsUrl: wsUrl.substring(0, 80) + '...'
       })
       
       try {
