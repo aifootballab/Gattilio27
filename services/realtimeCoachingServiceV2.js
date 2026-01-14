@@ -132,9 +132,24 @@ class RealtimeCoachingServiceV2 {
       // Supporta sia VITE_* (Vite) che NEXT_PUBLIC_* (Next.js) per compatibilità
       const apiKey = import.meta.env.VITE_OPENAI_API_KEY || import.meta.env.NEXT_PUBLIC_OPENAI_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY
       
+      // ✅ Debug: Verifica accesso variabili d'ambiente
+      console.log('🔍 Environment variables check:', {
+        hasViteKey: !!import.meta.env.VITE_OPENAI_API_KEY,
+        hasNextKey: !!import.meta.env.NEXT_PUBLIC_OPENAI_API_KEY,
+        hasProcessKey: !!process.env.NEXT_PUBLIC_OPENAI_API_KEY,
+        finalApiKey: apiKey ? `${apiKey.substring(0, 7)}...` : 'undefined',
+        apiKeyLength: apiKey?.length || 0
+      })
+      
       if (!apiKey) {
-        const error = new Error('OPENAI_API_KEY not configured. Verifica variabili d\'ambiente in Vercel.')
-        console.error('❌', error.message)
+        const error = new Error('OPENAI_API_KEY not configured. Verifica variabili d\'ambiente in Vercel. Configura VITE_OPENAI_API_KEY o NEXT_PUBLIC_OPENAI_API_KEY.')
+        console.error('❌', error.message, {
+          availableEnv: {
+            VITE_OPENAI_API_KEY: import.meta.env.VITE_OPENAI_API_KEY ? 'present' : 'missing',
+            NEXT_PUBLIC_OPENAI_API_KEY: import.meta.env.NEXT_PUBLIC_OPENAI_API_KEY ? 'present' : 'missing',
+            processEnv: process.env.NEXT_PUBLIC_OPENAI_API_KEY ? 'present' : 'missing'
+          }
+        })
         reject(error)
         return
       }
@@ -142,7 +157,11 @@ class RealtimeCoachingServiceV2 {
       // ✅ Verifica formato API key (dovrebbe iniziare con sk-)
       if (!apiKey.startsWith('sk-') && !apiKey.startsWith('sk-proj-')) {
         const error = new Error('Invalid OpenAI API key format. Expected to start with "sk-" or "sk-proj-". Verifica NEXT_PUBLIC_OPENAI_API_KEY in Vercel.')
-        console.error('❌', error.message, { apiKeyPrefix: apiKey.substring(0, 10) })
+        console.error('❌', error.message, { 
+          apiKeyPrefix: apiKey.substring(0, 10),
+          apiKeyLength: apiKey.length,
+          apiKeyType: typeof apiKey
+        })
         reject(error)
         return
       }
