@@ -37,10 +37,29 @@ export async function POST(req) {
     if (!token) return NextResponse.json({ error: 'Missing Authorization bearer token' }, { status: 401 })
 
     // IMPORTANT:
-    // Validiamo il token con la "public key" (anon/publishable) perché è la stessa key usata dal client per ottenere la sessione.
-    // Poi usiamo la Service Role SOLO per scrivere nel DB (bypass RLS).
+    // I token anon sono sempre JWT e richiedono la chiave legacy JWT (anon) per essere validati.
+    // Se anonKey è una publishable moderna (sb_publishable_...), dobbiamo usare la legacy JWT.
+    // Per ora, proviamo prima con anonKey, poi se fallisce con "Invalid API key", usiamo la legacy.
+    let userData = null
+    let userErr = null
+    let userId = null
+    
+    // Prova con la chiave configurata
     const authClient = createClient(supabaseUrl, anonKey)
-    const { data: userData, error: userErr } = await authClient.auth.getUser(token)
+    const authResult = await authClient.auth.getUser(token)
+    userData = authResult.data
+    userErr = authResult.error
+    
+    // Se fallisce con "Invalid API key" e anonKey è publishable, prova con legacy JWT
+    if (userErr?.message?.includes('Invalid API key') && anonKey?.startsWith('sb_publishable_')) {
+      // Usa la legacy JWT anon key (hardcoded per questo progetto)
+      const legacyAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsaXV1b3Jyd2RldHlsb2xscnVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc5MDk0MTksImV4cCI6MjA4MzQ4NTQxOX0.pGnglOpSQ4gJ1JClB_zyBIB3-94eKHJfgveuCfoyffo'
+      const legacyAuthClient = createClient(supabaseUrl, legacyAnonKey)
+      const legacyResult = await legacyAuthClient.auth.getUser(token)
+      userData = legacyResult.data
+      userErr = legacyResult.error
+    }
+    
     if (userErr || !userData?.user?.id) {
       return NextResponse.json(
         {
@@ -50,7 +69,7 @@ export async function POST(req) {
         { status: 401 }
       )
     }
-    const userId = userData.user.id
+    userId = userData.user.id
     const admin = createClient(supabaseUrl, serviceKey)
 
     const body = await req.json().catch(() => null)
