@@ -874,6 +874,54 @@ serve(async (req) => {
   }
 
   try {
+    // ✅ Verifica JWT manuale (accetta anche utenti anonymous)
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ error: 'Missing or invalid Authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const token = authHeader.replace('Bearer ', '')
+    if (!token) {
+      return new Response(
+        JSON.stringify({ error: 'Missing JWT token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Verifica JWT usando Supabase Auth (accetta anche anonymous users)
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? Deno.env.get('SB_PUBLISHABLE_KEY') ?? ''
+    
+    if (!supabaseUrl || !supabaseAnonKey) {
+      // Se non abbiamo le chiavi, saltiamo la verifica (per sviluppo)
+      console.warn('⚠️ Supabase keys not found, skipping JWT verification')
+    } else {
+      try {
+        const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey)
+        const { data: { user }, error: authError } = await supabaseAuth.auth.getUser(token)
+        
+        if (authError || !user) {
+          console.error('JWT verification failed:', authError)
+          return new Response(
+            JSON.stringify({ error: 'Invalid JWT token', details: authError?.message }),
+            { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+        
+        // ✅ JWT valido - accetta anche utenti anonymous
+        console.log('✅ JWT verified for user:', user.id, 'is_anonymous:', user.is_anonymous)
+      } catch (verifyError) {
+        console.error('Error verifying JWT:', verifyError)
+        return new Response(
+          JSON.stringify({ error: 'JWT verification failed', details: verifyError.message }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+    }
+
     // ✅ Verifica che il body esista e non sia vuoto prima di fare parsing
     let requestBody: VoiceCoachingRequest
     
