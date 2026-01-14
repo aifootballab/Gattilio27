@@ -44,6 +44,34 @@ export async function POST(req) {
       return NextResponse.json({ error: 'Invalid input: player + slotIndex(0-20) required' }, { status: 400 })
     }
 
+    // Log diagnostico su Supabase (per capire se la chiamata arriva davvero in produzione)
+    // NB: screenshot_processing_log richiede image_url e image_type NOT NULL.
+    let logId = null
+    try {
+      const { data: logRow } = await admin
+        .from('screenshot_processing_log')
+        .insert({
+          user_id: userId,
+          image_url: 'inline://save-player',
+          image_type: 'save_player',
+          processing_status: 'processing',
+          processing_started_at: new Date().toISOString(),
+          processing_method: 'next_api',
+          extracted_data: {
+            action: 'save_player',
+            slotIndex,
+            player_name: player?.player_name ?? null,
+            overall_rating: player?.overall_rating ?? null,
+            position: player?.position ?? null,
+          },
+        })
+        .select('id')
+        .single()
+      logId = logRow?.id || null
+    } catch {
+      // se il log fallisce, non blocchiamo il salvataggio
+    }
+
     // 1) players_base: cerchiamo per player_name + team (se presente).
     // IMPORTANTE: non sovrascrivere record "globali" già esistenti (database base).
     const playerName = toText(player.player_name)
@@ -160,6 +188,25 @@ export async function POST(req) {
       .update({ player_build_ids: updated, updated_at: new Date().toISOString() })
       .eq('id', rosa.id)
     if (upErr) throw upErr
+
+    if (logId) {
+      await admin
+        .from('screenshot_processing_log')
+        .update({
+          processing_status: 'completed',
+          processing_completed_at: new Date().toISOString(),
+          matched_player_id: playerBaseId,
+          extracted_data: {
+            action: 'save_player',
+            ok: true,
+            slotIndex,
+            player_base_id: playerBaseId,
+            player_build_id: buildId,
+            rosa_id: rosa.id,
+          },
+        })
+        .eq('id', logId)
+    }
 
     return NextResponse.json({
       success: true,
