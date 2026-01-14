@@ -25,6 +25,13 @@ class RealtimeCoachingService {
     }
 
     try {
+      // ✅ Verifica sessione prima di chiamare Edge Function
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      
+      if (sessionError || !session) {
+        throw new Error('User not authenticated. Please log in.')
+      }
+
       // Crea sessione nel backend
       const { data, error } = await supabase.functions.invoke('voice-coaching-gpt', {
         body: {
@@ -59,6 +66,13 @@ class RealtimeCoachingService {
     }
 
     try {
+      // ✅ Verifica sessione prima di chiamare Edge Function
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      
+      if (sessionError || !session) {
+        throw new Error('User not authenticated. Please log in.')
+      }
+
       const { data, error } = await supabase.functions.invoke('voice-coaching-gpt', {
         body: {
           action: 'send_message',
@@ -130,6 +144,13 @@ class RealtimeCoachingService {
         .from('screenshots')
         .getPublicUrl(filePath)
 
+      // ✅ Verifica sessione prima di chiamare Edge Function
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      
+      if (sessionError || !session) {
+        throw new Error('User not authenticated. Please log in.')
+      }
+
       // Invia screenshot al coach
       const { data, error } = await supabase.functions.invoke('voice-coaching-gpt', {
         body: {
@@ -184,6 +205,15 @@ class RealtimeCoachingService {
     this.keepAliveInterval = setInterval(async () => {
       if (this.isActive && this.sessionId) {
         try {
+          // ✅ Verifica sessione prima di chiamare Edge Function
+          const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+          
+          if (sessionError || !session) {
+            console.warn('Keep-alive: User not authenticated, stopping keep-alive')
+            this.endSession()
+            return
+          }
+
           await supabase.functions.invoke('voice-coaching-gpt', {
             body: {
               action: 'keep_alive',
@@ -192,8 +222,11 @@ class RealtimeCoachingService {
           })
         } catch (error) {
           console.error('Keep-alive error:', error)
-          // Se keep-alive fallisce, la sessione potrebbe essere scaduta
-          // Non interrompiamo la sessione, ma loggiamo l'errore
+          // Se keep-alive fallisce con 401, la sessione è scaduta
+          if (error.status === 401 || error.message?.includes('401')) {
+            console.warn('Keep-alive: Authentication failed, ending session')
+            this.endSession()
+          }
         }
       }
     }, 30000) // 30 secondi
@@ -207,12 +240,18 @@ class RealtimeCoachingService {
 
     try {
       if (this.sessionId) {
-        await supabase.functions.invoke('voice-coaching-gpt', {
-          body: {
-            action: 'end_session',
-            session_id: this.sessionId
-          }
-        })
+        // ✅ Verifica sessione prima di chiamare Edge Function (se disponibile)
+        const { data: { session } } = await supabase.auth.getSession()
+        
+        // Se c'è sessione, chiama Edge Function, altrimenti solo cleanup locale
+        if (session) {
+          await supabase.functions.invoke('voice-coaching-gpt', {
+            body: {
+              action: 'end_session',
+              session_id: this.sessionId
+            }
+          })
+        }
       }
 
       // Stop keep-alive

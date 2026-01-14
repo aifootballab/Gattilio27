@@ -75,7 +75,7 @@ async function transcribeAudio(audioBase64: string): Promise<string> {
 /**
  * Handler: Start Session
  */
-async function handleStartSession(supabase: any, userId: string, context: any) {
+const handleStartSession = async (supabase: any, userId: string, context: any) => {
   const sessionId = `session_${userId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
 
   // Carica contesto utente se non fornito
@@ -148,7 +148,7 @@ async function handleStartSession(supabase: any, userId: string, context: any) {
 /**
  * Handler: Keep Alive
  */
-async function handleKeepAlive(supabase: any, sessionId: string) {
+const handleKeepAlive = async (supabase: any, sessionId: string) => {
   const { error } = await supabase
     .from('coaching_sessions')
     .update({
@@ -173,7 +173,7 @@ async function handleKeepAlive(supabase: any, sessionId: string) {
 /**
  * Handler: End Session
  */
-async function handleEndSession(supabase: any, sessionId: string) {
+const handleEndSession = async (supabase: any, sessionId: string) => {
   const { error } = await supabase
     .from('coaching_sessions')
     .update({ is_active: false })
@@ -513,7 +513,7 @@ Come preferisci procedere?`
 /**
  * Handler: Analyze Screenshot
  */
-async function handleAnalyzeScreenshot(supabase: any, userId: string, sessionId: string | undefined, imageUrl: string, imageType: string, context: any) {
+const handleAnalyzeScreenshot = async (supabase: any, userId: string, sessionId: string | undefined, imageUrl: string, imageType: string, context: any) => {
   // Se c'è una sessione, usa quella, altrimenti analisi standalone
   if (sessionId) {
     const { data: session, error: sessionError } = await supabase
@@ -581,7 +581,7 @@ async function handleAnalyzeScreenshot(supabase: any, userId: string, sessionId:
 /**
  * Esegue funzione chiamata da GPT Realtime API
  */
-async function handleExecuteFunction(supabase: any, userId: string, functionName: string, args: any) {
+const handleExecuteFunction = async (supabase: any, userId: string, functionName: string, args: any) => {
   if (!functionName) {
     return new Response(
       JSON.stringify({ error: 'Missing function_name' }),

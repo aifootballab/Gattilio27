@@ -26,20 +26,26 @@ class RealtimeCoachingServiceV2 {
    */
   async startSession(userId, context = {}) {
     try {
-      // ✅ Fix: Usa fetch diretto con serializzazione esplicita per evitare problemi body vuoto
-      // supabase.functions.invoke() potrebbe non serializzare correttamente il body
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      // ✅ Fix: Ottieni JWT token dalla sessione Supabase invece di usare anon key
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      
+      if (sessionError || !session) {
+        throw new Error('User not authenticated. Please log in.')
+      }
+
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY
       
       if (!supabaseUrl || !supabaseAnonKey) {
         throw new Error('Supabase URL or Anon Key not configured')
       }
       
+      // ✅ Usa JWT token dell'utente autenticato invece di anon key
       const response = await fetch(`${supabaseUrl}/functions/v1/voice-coaching-gpt`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'Authorization': `Bearer ${session.access_token}`, // ✅ JWT token utente
           'apikey': supabaseAnonKey
         },
         body: JSON.stringify({
@@ -313,19 +319,26 @@ class RealtimeCoachingServiceV2 {
     try {
       const args = JSON.parse(call.arguments)
       
-      // ✅ Fix: Usa fetch diretto con serializzazione esplicita per evitare problemi body vuoto
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      // ✅ Fix: Ottieni JWT token dalla sessione Supabase invece di usare anon key
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      
+      if (sessionError || !session) {
+        throw new Error('User not authenticated. Please log in.')
+      }
+
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY
       
       if (!supabaseUrl || !supabaseAnonKey) {
         throw new Error('Supabase URL or Anon Key not configured')
       }
       
+      // ✅ Usa JWT token dell'utente autenticato invece di anon key
       const response = await fetch(`${supabaseUrl}/functions/v1/voice-coaching-gpt`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'Authorization': `Bearer ${session.access_token}`, // ✅ JWT token utente
           'apikey': supabaseAnonKey
         },
         body: JSON.stringify({
