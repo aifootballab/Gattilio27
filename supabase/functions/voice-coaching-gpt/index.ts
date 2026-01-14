@@ -79,31 +79,38 @@ async function transcribeAudio(audioBase64: string): Promise<string> {
     const formData = new FormData()
     
     // ✅ Whisper supporta: mp3, mp4, mpeg, mpga, m4a, wav, webm
-    // IMPORTANTE: Whisper potrebbe non accettare webm con codec opus
-    // Prova a usare File se disponibile, altrimenti Blob
-    // In Deno, File potrebbe non essere disponibile, quindi usiamo Blob
-    const audioBlob = new Blob([audioBuffer], { type: 'audio/webm' })
+    // IMPORTANTE: Whisper richiede che il file abbia un nome con estensione
+    // In Deno, dobbiamo usare File per avere il nome file
+    // Se File non è disponibile, proviamo un workaround
     
-    // ✅ Deno FormData: prova prima con File se disponibile, altrimenti Blob
-    // Il nome file è importante per Whisper per determinare il formato
+    let audioFile: File | Blob
+    
+    // ✅ Prova a creare File (supportato in Deno 1.37+)
     try {
-      // Prova a creare File (potrebbe non essere disponibile in Deno)
-      if (typeof File !== 'undefined') {
-        const audioFile = new File([audioBlob], 'audio.webm', { type: 'audio/webm' })
-        formData.append('file', audioFile)
-      } else {
-        // Fallback: usa Blob (Deno potrebbe non supportare terzo parametro)
-        formData.append('file', audioBlob)
-      }
+      audioFile = new File([audioBuffer], 'audio.webm', { 
+        type: 'audio/webm',
+        lastModified: Date.now()
+      })
+      console.log('✅ Using File constructor')
     } catch (fileError) {
-      // Se File non è disponibile, usa Blob
-      console.warn('File constructor not available, using Blob:', fileError)
-      formData.append('file', audioBlob)
+      // Fallback: usa Blob (meno ideale ma funziona)
+      console.warn('⚠️ File constructor not available, using Blob:', fileError)
+      audioFile = new Blob([audioBuffer], { type: 'audio/webm' })
     }
     
+    // ✅ Aggiungi file a FormData
+    // In Deno, FormData.append con File dovrebbe funzionare
+    formData.append('file', audioFile)
     formData.append('model', 'whisper-1')
     formData.append('language', 'it') // Italiano
     formData.append('response_format', 'json')
+    
+    console.log('📤 FormData prepared:', {
+      hasFile: formData.has('file'),
+      fileType: audioFile instanceof File ? 'File' : 'Blob',
+      fileName: audioFile instanceof File ? (audioFile as File).name : 'unknown',
+      size: audioBuffer.length
+    })
 
     console.log('📤 Sending audio to Whisper API:', {
       size: audioBuffer.length,
