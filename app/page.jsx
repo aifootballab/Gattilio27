@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import { supabase } from '@/lib/supabaseClient'
 
 export default function Home() {
   return <RosaLocalPage />
@@ -15,6 +16,8 @@ function RosaLocalPage() {
   const [rosa, setRosa] = React.useState(() => Array.from({ length: 21 }, () => null))
   const [envInfo, setEnvInfo] = React.useState({ vercelEnv: null, hasOpenaiKey: null })
   const [groups, setGroups] = React.useState([])
+  const [authStatus, setAuthStatus] = React.useState({ ready: false, userId: null, token: null })
+  const [supabaseMsg, setSupabaseMsg] = React.useState(null)
 
   const fileInputRef = React.useRef(null)
 
@@ -23,6 +26,31 @@ function RosaLocalPage() {
       .then((r) => r.json())
       .then((j) => setEnvInfo({ vercelEnv: j?.vercelEnv ?? null, hasOpenaiKey: !!j?.hasOpenaiKey }))
       .catch(() => setEnvInfo({ vercelEnv: null, hasOpenaiKey: null }))
+  }, [])
+
+  React.useEffect(() => {
+    const initAnon = async () => {
+      try {
+        if (!supabase) {
+          setAuthStatus({ ready: true, userId: null, token: null })
+          return
+        }
+        let { data } = await supabase.auth.getSession()
+        let session = data?.session
+        if (!session) {
+          const res = await supabase.auth.signInAnonymously()
+          session = res?.data?.session || null
+        }
+        setAuthStatus({
+          ready: true,
+          userId: session?.user?.id || null,
+          token: session?.access_token || null,
+        })
+      } catch {
+        setAuthStatus({ ready: true, userId: null, token: null })
+      }
+    }
+    initAnon()
   }, [])
 
   const compressImageToDataUrl = async (file, maxDim = 1200, quality = 0.88) => {
@@ -113,6 +141,39 @@ function RosaLocalPage() {
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
+  const resetMySupabaseData = async () => {
+    setSupabaseMsg(null)
+    try {
+      if (!authStatus.token) throw new Error('Anon auth non pronta')
+      const res = await fetch('/api/supabase/reset-my-data', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${authStatus.token}` },
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data?.error || `Reset failed (${res.status})`)
+      setSupabaseMsg('✅ Dati Supabase resettati per questo utente anonimo')
+    } catch (e) {
+      setSupabaseMsg(`❌ ${e?.message || 'Errore reset'}`)
+    }
+  }
+
+  const saveToSupabase = async (player, slotIndex) => {
+    setSupabaseMsg(null)
+    try {
+      if (!authStatus.token) throw new Error('Anon auth non pronta')
+      const res = await fetch('/api/supabase/save-player', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authStatus.token}` },
+        body: JSON.stringify({ player, slotIndex }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data?.error || `Save failed (${res.status})`)
+      setSupabaseMsg(`✅ Salvato in Supabase (slot ${data.slot})`)
+    } catch (e) {
+      setSupabaseMsg(`❌ ${e?.message || 'Errore salvataggio'}`)
+    }
+  }
+
   return (
     <main className="container">
       <header className="header">
@@ -122,6 +183,16 @@ function RosaLocalPage() {
           Env: <b>{envInfo.vercelEnv ?? '—'}</b> · OPENAI_API_KEY:{' '}
           <b>{envInfo.hasOpenaiKey === null ? '—' : envInfo.hasOpenaiKey ? 'OK' : 'MISSING'}</b>
         </p>
+        <p className="subtitle" style={{ marginTop: 6, fontSize: 12, opacity: 0.85 }}>
+          Supabase anon: <b>{authStatus.userId ? 'OK' : authStatus.ready ? 'MISSING' : '…'}</b>
+          {authStatus.userId ? <span> · user_id: <b>{authStatus.userId}</b></span> : null}
+        </p>
+        <div style={{ display: 'flex', gap: 10, marginTop: 10, flexWrap: 'wrap' }}>
+          <button className="btn" onClick={resetMySupabaseData} disabled={!authStatus.token}>
+            Reset miei dati Supabase
+          </button>
+          {supabaseMsg ? <span style={{ opacity: 0.9 }}>{supabaseMsg}</span> : null}
+        </div>
       </header>
 
       <section className="card">
@@ -200,6 +271,9 @@ function RosaLocalPage() {
                     </label>
                     <button className="btn primary" onClick={() => insertIntoRosa(g.player, selectedSlot)}>
                       Inserisci questo giocatore
+                    </button>
+                    <button className="btn" style={{ marginTop: 10 }} onClick={() => saveToSupabase(g.player, selectedSlot)} disabled={!authStatus.token}>
+                      Salva in Supabase (slot selezionato)
                     </button>
                   </div>
                 ))}

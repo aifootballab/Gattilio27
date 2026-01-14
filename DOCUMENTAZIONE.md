@@ -8,7 +8,9 @@ Una web app minimale che permette:
 - Visualizzare il JSON estratto
 - Inserire il giocatore in una **rosa da 21 slot** (in memoria)
 
-> In questa fase **non** c’è persistenza DB e **non** si usa Supabase.
+> In questa fase abbiamo **2 modalità**:
+> - Rosa in memoria (sempre)
+> - **Salvataggio su Supabase** (opzionale) per test end-to-end
 
 ---
 
@@ -49,7 +51,16 @@ Opzionale:
 
 Pulizia sicurezza (consigliata):
 - Rimuovere `NEXT_PUBLIC_OPENAI_API_KEY`
-- Rimuovere `SUPABASE_SERVICE_ROLE_KEY`
+- **NON rimuovere** `SUPABASE_SERVICE_ROLE_KEY` se vuoi usare il salvataggio Supabase (serve server-side).
+
+### Env vars Supabase (per salvataggio)
+
+Client (già su Vercel):
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+
+Server-only (Vercel, Production):
+- `SUPABASE_SERVICE_ROLE_KEY`
 
 ---
 
@@ -78,6 +89,26 @@ Error response (esempio):
 ```
 
 ---
+
+## Salvataggio su Supabase (test)
+
+### Cosa salva
+- `players_base`: upsert/insert del profilo base (nome, team, pos, ecc.) + `metadata.extracted`
+- `player_builds`: build per utente anonimo + `source_data.extracted`
+- `user_rosa`: crea/aggiorna rosa principale e setta lo slot (0–20)
+
+### Endpoint
+
+#### `POST /api/supabase/save-player`
+- Auth: `Authorization: Bearer <supabase_access_token>`
+- Body: `{ player, slotIndex }`
+
+#### `POST /api/supabase/reset-my-data`
+Cancella SOLO i dati del tuo utente anonimo:
+- `user_rosa` (per user_id)
+- `player_builds` (per user_id)
+- `screenshot_processing_log` (per user_id)
+
 
 ## Schema JSON estratto (`player`)
 

@@ -1,0 +1,41 @@
+import { NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
+
+export const runtime = 'nodejs'
+
+export async function POST(req) {
+  try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    if (!supabaseUrl || !serviceKey) {
+      return NextResponse.json({ error: 'Supabase server env missing (SUPABASE_SERVICE_ROLE_KEY / SUPABASE_URL)' }, { status: 500 })
+    }
+
+    const auth = req.headers.get('authorization') || ''
+    const token = auth.toLowerCase().startsWith('bearer ') ? auth.slice(7) : null
+    if (!token) return NextResponse.json({ error: 'Missing Authorization bearer token' }, { status: 401 })
+
+    const admin = createClient(supabaseUrl, serviceKey)
+    const { data: userData, error: userErr } = await admin.auth.getUser(token)
+    if (userErr || !userData?.user?.id) return NextResponse.json({ error: 'Invalid auth' }, { status: 401 })
+    const userId = userData.user.id
+
+    // Cancella SOLO i dati dell’utente corrente (anon): non tocca players_base globali
+    const results = {}
+
+    const r1 = await admin.from('user_rosa').delete().eq('user_id', userId)
+    results.user_rosa = { error: r1.error?.message || null }
+
+    const r2 = await admin.from('player_builds').delete().eq('user_id', userId)
+    results.player_builds = { error: r2.error?.message || null }
+
+    const r3 = await admin.from('screenshot_processing_log').delete().eq('user_id', userId)
+    results.screenshot_processing_log = { error: r3.error?.message || null }
+
+    return NextResponse.json({ success: true, user_id: userId, results })
+  } catch (e) {
+    console.error('reset-my-data error', e)
+    return NextResponse.json({ error: e?.message || 'Errore server' }, { status: 500 })
+  }
+}
+
