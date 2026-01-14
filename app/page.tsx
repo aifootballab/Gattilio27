@@ -11,11 +11,23 @@ type ExtractedPlayer = {
   overall_rating: number | null
   position: string | null
   role: string | null
+  card_type: string | null
+  team: string | null
+  region_or_nationality: string | null
+  form: string | null
+  preferred_foot: string | null
   height_cm: number | null
   weight_kg: number | null
   age: number | null
   nationality: string | null
   club_name: string | null
+  level_current: number | null
+  level_cap: number | null
+  progression_points: number | null
+  matches_played: number | null
+  goals: number | null
+  assists: number | null
+  boosters: { name: string | null; effect: string | null }[]
   skills: string[]
 }
 
@@ -62,7 +74,7 @@ function RosaLocalPage() {
     img.src = original
     await img.decode()
 
-    const maxDim = 1100
+    const maxDim = 1400
     const scale = Math.min(1, maxDim / Math.max(img.width, img.height))
     const w = Math.max(1, Math.round(img.width * scale))
     const h = Math.max(1, Math.round(img.height * scale))
@@ -79,7 +91,7 @@ function RosaLocalPage() {
     ctx.drawImage(img, 0, 0, w, h)
 
     // jpeg riduce molto la size
-    const out = canvas.toDataURL('image/jpeg', 0.85)
+    const out = canvas.toDataURL('image/jpeg', 0.9)
     return out
   }
 
@@ -205,8 +217,15 @@ function RosaLocalPage() {
                     <div><b>OVR</b>: {extracted.overall_rating ?? '—'}</div>
                     <div><b>Pos</b>: {extracted.position ?? '—'}</div>
                     <div><b>Ruolo</b>: {extracted.role ?? '—'}</div>
-                    <div><b>Nazione</b>: {extracted.nationality ?? '—'}</div>
+                    <div><b>Carta</b>: {extracted.card_type ?? '—'}</div>
+                    <div><b>Team</b>: {extracted.team ?? '—'}</div>
+                    <div><b>Nazione/Regione</b>: {extracted.nationality ?? extracted.region_or_nationality ?? '—'}</div>
                     <div><b>Club</b>: {extracted.club_name ?? '—'}</div>
+                    <div><b>Altezza/Peso/Età</b>: {(extracted.height_cm ?? '—')} / {(extracted.weight_kg ?? '—')} / {(extracted.age ?? '—')}</div>
+                    <div><b>Forma</b>: {extracted.form ?? '—'} · <b>Piede</b>: {extracted.preferred_foot ?? '—'}</div>
+                    <div><b>Livello</b>: {extracted.level_current ?? '—'} / {extracted.level_cap ?? '—'} · <b>Punti</b>: {extracted.progression_points ?? '—'}</div>
+                    <div><b>Partite/Gol/Assist</b>: {extracted.matches_played ?? '—'} / {extracted.goals ?? '—'} / {extracted.assists ?? '—'}</div>
+                    <div><b>Boosters</b>: {extracted.boosters?.filter(b => b?.name || b?.effect).map((b) => `${b.name ?? '—'} (${b.effect ?? '—'})`).join(', ') || '—'}</div>
                   </div>
                   <textarea className="json" value={rawJson} readOnly />
                 </div>
