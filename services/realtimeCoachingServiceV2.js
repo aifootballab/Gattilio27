@@ -26,16 +26,45 @@ class RealtimeCoachingServiceV2 {
    */
   async startSession(userId, context = {}) {
     try {
-      // Ottieni API key da Edge Function (per sicurezza)
-      const { data: sessionData, error } = await supabase.functions.invoke('voice-coaching-gpt', {
-        body: {
+      // ✅ Fix: Usa fetch diretto con serializzazione esplicita per evitare problemi body vuoto
+      // supabase.functions.invoke() potrebbe non serializzare correttamente il body
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      
+      if (!supabaseUrl || !supabaseAnonKey) {
+        throw new Error('Supabase URL or Anon Key not configured')
+      }
+      
+      const response = await fetch(`${supabaseUrl}/functions/v1/voice-coaching-gpt`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'apikey': supabaseAnonKey
+        },
+        body: JSON.stringify({
           action: 'start_session',
           user_id: userId,
           context: context
-        }
+        })
       })
 
-      if (error) throw error
+      if (!response.ok) {
+        const errorText = await response.text()
+        let errorData
+        try {
+          errorData = JSON.parse(errorText)
+        } catch {
+          errorData = { error: errorText, status: response.status }
+        }
+        throw new Error(errorData.error || `Edge Function returned ${response.status}`)
+      }
+
+      const sessionData = await response.json()
+
+      if (!sessionData.session_id) {
+        throw new Error('Session ID not returned from Edge Function')
+      }
 
       this.sessionId = sessionData.session_id
 
