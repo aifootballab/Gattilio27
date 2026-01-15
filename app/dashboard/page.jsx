@@ -173,7 +173,7 @@ export default function DashboardPage() {
             <QuickLink href="/my-players" icon={<PlayersIcon size={18} />} text={t('players')} />
             <QuickLink href="/rosa" icon={<LayoutGrid size={18} />} text={t('squadBuilder')} />
             <QuickLink href="/dashboard" icon={<BarChart3 size={18} />} text={t('dataAnalytics')} />
-            <QuickLink href="/dashboard" icon={<Brain size={18} />} text={t('memoryHub')} />
+            <QuickLink href="/dashboard" icon={<Target size={18} />} text={t('memoryHub')} />
             <QuickLink href="/dashboard" icon={<ClipboardList size={18} />} text={t('coaching')} />
           </div>
         </NeonPanel>
