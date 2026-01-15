@@ -1,54 +1,80 @@
 'use client'
 
 import React from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import { useTranslation } from '@/lib/i18n'
+import { supabase } from '@/lib/supabaseClient'
 import { ArrowLeft, User, Target, Zap, Shield, Activity, Award, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
 
 export default function PlayerDetailPage() {
   const params = useParams()
-  const router = useRouter()
   const { t, lang, changeLanguage } = useTranslation()
   const [player, setPlayer] = React.useState(null)
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState(null)
+  const [authStatus, setAuthStatus] = React.useState({ ready: false, token: null })
 
   React.useEffect(() => {
+    const initAuth = async () => {
+      try {
+        if (!supabase) {
+          setAuthStatus({ ready: true, token: null })
+          return
+        }
+        
+        let { data } = await supabase.auth.getSession()
+        if (!data?.session?.access_token) {
+          const { data: signInData } = await supabase.auth.signInAnonymously()
+          data = signInData
+        }
+        
+        setAuthStatus({
+          ready: true,
+          token: data?.session?.access_token || null,
+        })
+      } catch (err) {
+        console.error('[PlayerDetail] Auth init failed:', err)
+        setAuthStatus({ ready: true, token: null })
+      }
+    }
+    
+    initAuth()
+  }, [])
+
+  React.useEffect(() => {
+    if (!authStatus.ready || !authStatus.token) return
+
     const fetchPlayer = async () => {
       try {
         setLoading(true)
-        // TODO: Implementare endpoint per recuperare singolo giocatore
-        // Per ora recuperiamo da get-my-players e filtriamo
+        setError(null)
+
         const res = await fetch('/api/supabase/get-my-players', {
-          headers: { Authorization: `Bearer ${await getToken()}` },
+          headers: { Authorization: `Bearer ${authStatus.token}` },
         })
-        const data = await res.json()
+        const apiData = await res.json()
         
         if (!res.ok) {
-          throw new Error(data?.error || 'Failed to fetch player')
+          throw new Error(apiData?.error || 'Failed to fetch player')
         }
         
-        const found = data.players?.find(p => p.build_id === params.id)
+        const found = apiData.players?.find(p => p.build_id === params.id)
         if (!found) {
-          throw new Error('Player not found')
+          throw new Error(lang === 'it' ? 'Giocatore non trovato' : 'Player not found')
         }
         
         setPlayer(found)
       } catch (err) {
-        setError(err?.message || 'Error loading player')
+        console.error('[PlayerDetail] Fetch failed:', err)
+        setError(err?.message || (lang === 'it' ? 'Errore caricamento giocatore' : 'Error loading player'))
       } finally {
         setLoading(false)
       }
     }
     
     fetchPlayer()
-  }, [params.id])
-
-  const getToken = async () => {
-    // TODO: Implementare recupero token
-    return null
-  }
+  }, [authStatus.ready, authStatus.token, params.id, lang])
 
   if (loading) {
     return (
@@ -68,7 +94,7 @@ export default function PlayerDetailPage() {
           {lang === 'it' ? 'Torna ai Giocatori' : 'Back to Players'}
         </Link>
         <div className="error" style={{ padding: '24px', textAlign: 'center' }}>
-          {error || 'Player not found'}
+          {error || (lang === 'it' ? 'Giocatore non trovato' : 'Player not found')}
         </div>
       </main>
     )
@@ -78,7 +104,6 @@ export default function PlayerDetailPage() {
 }
 
 function PlayerDetailView({ player, t, lang, changeLanguage }) {
-  const router = useRouter()
   const baseStats = player.base_stats || {}
   const attacking = baseStats.attacking || {}
   const defending = baseStats.defending || {}
