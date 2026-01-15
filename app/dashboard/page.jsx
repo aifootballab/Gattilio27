@@ -6,7 +6,7 @@ import { useTranslation } from '@/lib/i18n'
 import { 
   Users, Home, Users as PlayersIcon, LayoutGrid, BarChart3, 
   ClipboardList, ChevronRight, User, CheckCircle2,
-  Target, Zap
+  Target, Zap, Shield
 } from 'lucide-react'
 
 export default function DashboardPage() {
@@ -172,6 +172,7 @@ export default function DashboardPage() {
             <QuickLink href="/dashboard" icon={<Home size={18} />} text={t('home')} />
             <QuickLink href="/my-players" icon={<PlayersIcon size={18} />} text={t('players')} />
             <QuickLink href="/rosa" icon={<LayoutGrid size={18} />} text={t('squadBuilder')} />
+            <QuickLink href="/opponent-formation" icon={<Shield size={18} />} text={t('opponentFormation')} />
             <QuickLink href="/dashboard" icon={<BarChart3 size={18} />} text={t('dataAnalytics')} />
             <QuickLink href="/dashboard" icon={<Target size={18} />} text={t('memoryHub')} />
             <QuickLink href="/dashboard" icon={<ClipboardList size={18} />} text={t('coaching')} />
@@ -248,6 +249,7 @@ function QuickLink({ href, icon, text }) {
     '/dashboard': '/dashboard',
     '/my-players': '/my-players',
     '/rosa': '/rosa',
+    '/opponent-formation': '/opponent-formation',
   }
   const finalHref = hrefMap[href] || href
   
