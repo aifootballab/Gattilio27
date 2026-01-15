@@ -366,8 +366,8 @@ function OpponentFormationView() {
         </p>
       </header>
 
-      {/* Upload Area */}
-      {!formation && (
+      {/* Upload Area - Solo se non c'è foto caricata */}
+      {!imageDataUrl && (
         <div
           onDragOver={(e) => { e.preventDefault(); setIsDragging(true) }}
           onDragLeave={() => setIsDragging(false)}
@@ -401,46 +401,61 @@ function OpponentFormationView() {
         </div>
       )}
 
-      {/* Image Preview */}
-      {imageDataUrl && !formation && (
-        <div style={{ marginBottom: '24px', textAlign: 'center' }}>
-          <img 
-            src={imageDataUrl} 
-            alt="Screenshot" 
-            style={{ 
-              maxWidth: '100%', 
-              maxHeight: '400px', 
-              borderRadius: '8px',
-              border: '1px solid rgba(0, 212, 255, 0.3)'
-            }} 
-          />
-          <div style={{ marginTop: '16px', display: 'flex', gap: '12px', justifyContent: 'center' }}>
-            <button
-              onClick={extractFormation}
-              disabled={isExtracting}
-              className="btn"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
-            >
-              {isExtracting ? (
-                <>
-                  <Loader2 size={16} className="spin" />
-                  {lang === 'it' ? 'Estrazione...' : 'Extracting...'}
-                </>
-              ) : (
-                <>
-                  <Target size={16} />
-                  {lang === 'it' ? 'Estrai Formazione' : 'Extract Formation'}
-                </>
-              )}
-            </button>
-            <button
-              onClick={() => { setImageDataUrl(null); setError(null) }}
-              className="btn"
-              style={{ background: 'rgba(236, 72, 153, 0.2)', borderColor: 'var(--neon-pink)' }}
-            >
-              <X size={16} />
-            </button>
+      {/* Image Preview - Sempre visibile se caricata */}
+      {imageDataUrl && (
+        <div className="neon-panel" style={{ marginBottom: '24px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h3 style={{ margin: 0 }}>
+              {lang === 'it' ? 'Screenshot Caricato' : 'Uploaded Screenshot'}
+            </h3>
+            {!formation && (
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <button
+                  onClick={extractFormation}
+                  disabled={isExtracting}
+                  className="btn"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+                >
+                  {isExtracting ? (
+                    <>
+                      <Loader2 size={16} className="spin" />
+                      {lang === 'it' ? 'Estrazione...' : 'Extracting...'}
+                    </>
+                  ) : (
+                    <>
+                      <Target size={16} />
+                      {lang === 'it' ? 'Estrai Formazione' : 'Extract Formation'}
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={() => { setImageDataUrl(null); setFormation(null); setError(null); setSaveMsg(null) }}
+                  className="btn"
+                  style={{ background: 'rgba(236, 72, 153, 0.2)', borderColor: 'var(--neon-pink)' }}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            )}
           </div>
+          <div style={{ textAlign: 'center' }}>
+            <img 
+              src={imageDataUrl} 
+              alt="Screenshot formazione" 
+              style={{ 
+                maxWidth: '100%', 
+                maxHeight: '600px', 
+                borderRadius: '8px',
+                border: '1px solid rgba(0, 212, 255, 0.3)',
+                boxShadow: '0 4px 12px rgba(0, 212, 255, 0.2)'
+              }} 
+            />
+          </div>
+          {formation && (
+            <div style={{ marginTop: '16px', padding: '12px', background: 'rgba(0, 255, 0, 0.1)', borderRadius: '8px', border: '1px solid rgba(0, 255, 0, 0.3)', textAlign: 'center', fontSize: '14px', color: 'rgba(0, 255, 0, 0.9)' }}>
+              ✅ {lang === 'it' ? 'Formazione estratta correttamente' : 'Formation extracted successfully'} - {formation.players?.length || 0} {lang === 'it' ? 'giocatori rilevati' : 'players detected'}
+            </div>
+          )}
         </div>
       )}
 
