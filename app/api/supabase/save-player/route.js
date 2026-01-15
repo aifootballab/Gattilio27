@@ -217,15 +217,35 @@ export async function POST(req) {
       // se il log fallisce, non blocchiamo il salvataggio
     }
 
+    // Funzione per normalizzare nome (come in extract-batch)
+    const normName = (name) => {
+      if (!name) return null
+      return String(name).trim().toLowerCase()
+    }
+
     // 1) players_base: cerchiamo per player_name + team (se presente).
+    // IMPORTANTE: normalizziamo il nome per matchare anche con variazioni maiuscole/minuscole
     // IMPORTANTE: non sovrascrivere record "globali" già esistenti (database base).
     const playerName = toText(player.player_name)
     if (!playerName) return NextResponse.json({ error: 'player_name required' }, { status: 400 })
 
     const team = toText(player.team)
-    let q = admin.from('players_base').select('id').eq('player_name', playerName)
-    if (team) q = q.eq('team', team)
-    const { data: existingBase } = await q.maybeSingle()
+    const normalizedName = normName(playerName)
+    
+    // Cerca con nome normalizzato (case-insensitive)
+    let q = admin.from('players_base').select('id, player_name, team')
+    // Usa il filtro ilike per match case-insensitive (PostgreSQL)
+    q = q.ilike('player_name', normalizedName)
+    if (team) {
+      const normalizedTeam = normName(team)
+      q = q.ilike('team', normalizedTeam)
+    }
+    const { data: existingBases } = await q
+    
+    // Se ci sono più match, preferisci quello con team esatto, altrimenti il primo
+    const existingBase = existingBases?.length > 0 
+      ? (team ? existingBases.find(b => normName(b.team) === normName(team)) || existingBases[0] : existingBases[0])
+      : null
 
     // Costruisci base_stats completo
     const baseStats = player.base_stats && typeof player.base_stats === 'object' 

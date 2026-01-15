@@ -368,33 +368,53 @@ function PlayerDetailView({ player, t, lang, changeLanguage }) {
             {metadata.weak_foot_frequency && (
               <div>
                 <div style={{ fontSize: '12px', opacity: 0.8, marginBottom: '4px' }}>
-                  {lang === 'it' ? 'Frequenza piede debole' : 'Weak foot frequency'}
+                  {t('weakFootFrequency')}
                 </div>
-                <div style={{ fontWeight: 600 }}>{metadata.weak_foot_frequency}</div>
+                <div style={{ fontWeight: 600 }}>{t(metadata.weak_foot_frequency.toLowerCase()) || metadata.weak_foot_frequency}</div>
               </div>
             )}
             {metadata.weak_foot_accuracy && (
               <div>
                 <div style={{ fontSize: '12px', opacity: 0.8, marginBottom: '4px' }}>
-                  {lang === 'it' ? 'Precisione piede debole' : 'Weak foot accuracy'}
+                  {t('weakFootAccuracy')}
                 </div>
-                <div style={{ fontWeight: 600 }}>{metadata.weak_foot_accuracy}</div>
+                <div style={{ fontWeight: 600 }}>{t(metadata.weak_foot_accuracy.toLowerCase()) || metadata.weak_foot_accuracy}</div>
               </div>
             )}
             {metadata.form_detailed && (
               <div>
                 <div style={{ fontSize: '12px', opacity: 0.8, marginBottom: '4px' }}>
-                  {lang === 'it' ? 'Forma' : 'Form'}
+                  {t('formDetailed')}
                 </div>
-                <div style={{ fontWeight: 600 }}>{metadata.form_detailed}</div>
+                <div style={{ fontWeight: 600 }}>{t(metadata.form_detailed.toLowerCase()) || metadata.form_detailed}</div>
               </div>
             )}
             {metadata.injury_resistance && (
               <div>
                 <div style={{ fontSize: '12px', opacity: 0.8, marginBottom: '4px' }}>
-                  {lang === 'it' ? 'Resistenza infortuni' : 'Injury resistance'}
+                  {t('injuryResistance')}
                 </div>
-                <div style={{ fontWeight: 600 }}>{metadata.injury_resistance}</div>
+                <div style={{ fontWeight: 600 }}>{t(metadata.injury_resistance.toLowerCase()) || metadata.injury_resistance}</div>
+              </div>
+            )}
+            {Array.isArray(metadata.ai_playstyles) && metadata.ai_playstyles.length > 0 && (
+              <div style={{ gridColumn: '1 / -1' }}>
+                <div style={{ fontSize: '12px', opacity: 0.8, marginBottom: '8px' }}>
+                  {t('aiPlaystyles')}
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                  {metadata.ai_playstyles.map((style, idx) => (
+                    <span key={idx} style={{
+                      padding: '4px 10px',
+                      background: 'rgba(168, 85, 247, 0.1)',
+                      border: '1px solid var(--neon-purple)',
+                      borderRadius: '4px',
+                      fontSize: '12px'
+                    }}>
+                      {style}
+                    </span>
+                  ))}
+                </div>
               </div>
             )}
           </div>

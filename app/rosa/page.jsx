@@ -451,8 +451,31 @@ function RosaProductionPage() {
                         <div><b>{t('skills')}</b>: {g.player.skills.slice(0, 5).join(', ')}{g.player.skills.length > 5 ? ` +${g.player.skills.length - 5}` : ''}</div>
                       )}
                       {Array.isArray(g.missing_screens) && g.missing_screens.length > 0 && (
-                        <div style={{ marginTop: '12px', padding: '8px', background: 'rgba(255, 107, 53, 0.1)', borderRadius: '6px', border: '1px solid rgba(255, 107, 53, 0.3)' }}>
-                          <b style={{ color: 'var(--neon-orange)' }}>⚠️ {t('missing')}:</b> {g.missing_screens.join(', ')}
+                        <div style={{ marginTop: '12px', padding: '12px', background: 'rgba(255, 107, 53, 0.1)', borderRadius: '8px', border: '1px solid rgba(255, 107, 53, 0.3)' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                            <AlertCircle size={18} style={{ color: 'var(--neon-orange)' }} />
+                            <b style={{ color: 'var(--neon-orange)', fontSize: '14px' }}>{t('missingData')}</b>
+                          </div>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                            {g.missing_screens.map((missing, idx) => (
+                              <span
+                                key={idx}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  padding: '4px 8px',
+                                  background: 'rgba(255, 107, 53, 0.15)',
+                                  border: '1px solid rgba(255, 107, 53, 0.4)',
+                                  borderRadius: '4px',
+                                  fontSize: '12px',
+                                  color: 'var(--neon-orange)',
+                                  fontWeight: 500
+                                }}
+                              >
+                                {t(`missing_${missing}`) || missing}
+                              </span>
+                            ))}
+                          </div>
                         </div>
                       )}
                     </div>
