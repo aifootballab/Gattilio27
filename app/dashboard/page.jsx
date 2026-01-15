@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useTranslation } from '@/lib/i18n'
 import { 
   Users, Home, Users as PlayersIcon, LayoutGrid, BarChart3, 
-  Brain, ClipboardList, ChevronRight, User, CheckCircle2,
+  ClipboardList, ChevronRight, User, CheckCircle2,
   Target, Zap
 } from 'lucide-react'
 
@@ -84,10 +84,10 @@ export default function DashboardPage() {
             }}>
               <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Users size={16} />
-                {lang === 'it' ? 'Visualizza Giocatori' : 'View Players'}
+                {t('viewPlayers')}
               </div>
               <div style={{ fontSize: '12px', opacity: 0.8 }}>
-                {lang === 'it' ? 'Gestisci la tua collezione' : 'Manage your collection'}
+                {t('manageCollection')}
               </div>
             </div>
           </Link>
@@ -105,10 +105,10 @@ export default function DashboardPage() {
             }}>
               <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <LayoutGrid size={16} />
-                {lang === 'it' ? 'Rosa (21 slot)' : 'Squad (21 slots)'}
+                {t('squadSlots')}
               </div>
               <div style={{ fontSize: '12px', opacity: 0.8 }}>
-                {lang === 'it' ? 'Titolari e panchina' : 'Starters and bench'}
+                {t('startersAndBench')}
               </div>
             </div>
           </Link>
@@ -122,7 +122,7 @@ export default function DashboardPage() {
             border: '1px solid rgba(236, 72, 153, 0.3)'
           }}>
             <div style={{ fontSize: '12px', opacity: 0.9 }}>
-              {lang === 'it' ? 'Prossimamente...' : 'Coming soon...'}
+              {t('comingSoon')}
             </div>
           </div>
         </NeonPanel>
@@ -155,48 +155,6 @@ export default function DashboardPage() {
           </div>
         </NeonPanel>
 
-        {/* AI Core - Elemento Centrale (senza emoji) */}
-        <div style={{
-          width: '280px',
-          height: '280px',
-          position: 'relative',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}>
-          <div style={{
-            width: '100%',
-            height: '100%',
-            background: 'radial-gradient(circle, rgba(0, 212, 255, 0.2) 0%, transparent 70%)',
-            borderRadius: '50%',
-            position: 'absolute',
-            animation: 'pulse 4s ease-in-out infinite'
-          }} />
-          <div style={{
-            width: '120px',
-            height: '120px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            filter: 'drop-shadow(0 0 30px rgba(0, 212, 255, 0.8))',
-            color: 'var(--neon-blue)',
-            zIndex: 1
-          }}>
-            <Brain size={120} strokeWidth={1.5} />
-          </div>
-          <div style={{
-            position: 'absolute',
-            width: '200%',
-            height: '200%',
-            top: '-50%',
-            left: '-50%',
-            background: `
-              linear-gradient(45deg, transparent 48%, rgba(0, 212, 255, 0.1) 49%, rgba(0, 212, 255, 0.1) 51%, transparent 52%),
-              linear-gradient(-45deg, transparent 48%, rgba(168, 85, 247, 0.1) 49%, rgba(168, 85, 247, 0.1) 51%, transparent 52%)
-            `,
-            pointerEvents: 'none'
-          }} />
-        </div>
       </div>
 
       {/* RIGHT PANEL */}
