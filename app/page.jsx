@@ -61,21 +61,48 @@ function RosaProductionPage() {
     const initAnon = async () => {
       try {
         if (!supabase) {
+          console.error('[initAnon] Supabase client non disponibile')
           setAuthStatus({ ready: true, userId: null, token: null })
           return
         }
-        let { data } = await supabase.auth.getSession()
-        let session = data?.session
-        if (!session) {
-          const res = await supabase.auth.signInAnonymously()
-          session = res?.data?.session || null
+        
+        // Prova a recuperare la sessione esistente
+        let { data, error } = await supabase.auth.getSession()
+        
+        // Se non c'è sessione valida, fai sign-in anonimo
+        if (!data?.session?.access_token || error) {
+          console.log('[initAnon] Sessione non valida, faccio sign-in anonimo...')
+          const { data: signInData, error: signInError } = await supabase.auth.signInAnonymously()
+          
+          if (signInError) {
+            console.error('[initAnon] Sign-in anonimo fallito:', signInError)
+            setAuthStatus({ ready: true, userId: null, token: null })
+            return
+          }
+          
+          data = signInData
         }
+        
+        const session = data?.session
+        const userId = session?.user?.id || null
+        const token = session?.access_token || null
+        
+        // Validazione token
+        if (token && typeof token === 'string' && token.length >= 10) {
+          const isJWT = token.includes('.') && token.split('.').length >= 3
+          setTokenKind(isJWT ? 'jwt' : 'opaque')
+          console.log('[initAnon] Auth OK:', { userId, tokenKind: isJWT ? 'jwt' : 'opaque' })
+        } else {
+          console.error('[initAnon] Token invalido:', { type: typeof token, length: token?.length })
+        }
+        
         setAuthStatus({
           ready: true,
-          userId: session?.user?.id || null,
-          token: session?.access_token || null,
+          userId,
+          token,
         })
-      } catch {
+      } catch (err) {
+        console.error('[initAnon] Errore:', err)
         setAuthStatus({ ready: true, userId: null, token: null })
       }
     }
@@ -83,12 +110,46 @@ function RosaProductionPage() {
   }, [])
 
   const getFreshToken = async () => {
-    if (!supabase) return null
-    const { data } = await supabase.auth.getSession()
-    const t = data?.session?.access_token || null
-    // safe debug: non mostra token, solo "jwt" vs "opaque"
-    setTokenKind(t && typeof t === 'string' && t.includes('.') && t.split('.').length >= 3 ? 'jwt' : t ? 'opaque' : null)
-    return t
+    if (!supabase) {
+      console.error('[getFreshToken] Supabase client non disponibile')
+      return null
+    }
+    
+    try {
+      // Prova a recuperare la sessione esistente
+      let { data, error } = await supabase.auth.getSession()
+      
+      // Se non c'è sessione o è scaduta, fai sign-in anonimo
+      if (!data?.session?.access_token || error) {
+        console.log('[getFreshToken] Sessione non valida, faccio sign-in anonimo...')
+        const { data: signInData, error: signInError } = await supabase.auth.signInAnonymously()
+        
+        if (signInError || !signInData?.session?.access_token) {
+          console.error('[getFreshToken] Sign-in anonimo fallito:', signInError)
+          return null
+        }
+        
+        data = signInData
+      }
+      
+      const token = data?.session?.access_token
+      
+      // Validazione: il token deve essere una stringa non vuota
+      if (!token || typeof token !== 'string' || token.length < 10) {
+        console.error('[getFreshToken] Token invalido:', { type: typeof token, length: token?.length })
+        return null
+      }
+      
+      // Safe debug: non mostra token, solo "jwt" vs "opaque"
+      const isJWT = token.includes('.') && token.split('.').length >= 3
+      setTokenKind(isJWT ? 'jwt' : 'opaque')
+      
+      console.log('[getFreshToken] Token recuperato:', { isJWT, tokenPrefix: token.substring(0, 20) + '...' })
+      return token
+    } catch (err) {
+      console.error('[getFreshToken] Errore:', err)
+      return null
+    }
   }
 
   const compressImageToDataUrl = async (file, maxDim = 1200, quality = 0.88) => {
@@ -182,16 +243,32 @@ function RosaProductionPage() {
   const resetMySupabaseData = async () => {
     setSupabaseMsg(null)
     try {
+      console.log('[resetMySupabaseData] Inizio reset...')
+      
       const token = await getFreshToken()
-      if (!token) throw new Error('Anon auth non pronta')
+      if (!token || typeof token !== 'string' || token.length < 10) {
+        console.error('[resetMySupabaseData] Token invalido:', { type: typeof token, length: token?.length })
+        throw new Error('Token di autenticazione non valido. Ricarica la pagina e riprova.')
+      }
+      
+      console.log('[resetMySupabaseData] Token valido, invio richiesta...')
+      
       const res = await fetch('/api/supabase/reset-my-data', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       })
+      
       const data = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(`${data?.error || `Reset failed (${res.status})`}${data?.details ? ` — ${data.details}` : ''}`)
+      
+      if (!res.ok) {
+        console.error('[resetMySupabaseData] Errore server:', { status: res.status, error: data?.error, details: data?.details })
+        throw new Error(`${data?.error || `Errore reset (${res.status})`}${data?.details ? ` — ${data.details}` : ''}`)
+      }
+      
+      console.log('[resetMySupabaseData] Reset completato')
       setSupabaseMsg('✅ Dati Supabase resettati per questo utente anonimo')
     } catch (e) {
+      console.error('[resetMySupabaseData] Errore:', e)
       setSupabaseMsg(`❌ ${e?.message || 'Errore reset'}`)
     }
   }
@@ -199,17 +276,36 @@ function RosaProductionPage() {
   const saveToSupabase = async (player, slotIndex) => {
     setSupabaseMsg(null)
     try {
+      console.log('[saveToSupabase] Inizio salvataggio...', { playerName: player?.player_name, slotIndex })
+      
       const token = await getFreshToken()
-      if (!token) throw new Error('Anon auth non pronta')
+      if (!token || typeof token !== 'string' || token.length < 10) {
+        console.error('[saveToSupabase] Token invalido:', { type: typeof token, length: token?.length })
+        throw new Error('Token di autenticazione non valido. Ricarica la pagina e riprova.')
+      }
+      
+      console.log('[saveToSupabase] Token valido, invio richiesta...', { tokenPrefix: token.substring(0, 20) + '...' })
+      
       const res = await fetch('/api/supabase/save-player', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 
+          'Content-Type': 'application/json', 
+          Authorization: `Bearer ${token}` 
+        },
         body: JSON.stringify({ player, slotIndex }),
       })
+      
       const data = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(`${data?.error || `Save failed (${res.status})`}${data?.details ? ` — ${data.details}` : ''}`)
+      
+      if (!res.ok) {
+        console.error('[saveToSupabase] Errore server:', { status: res.status, error: data?.error, details: data?.details })
+        throw new Error(`${data?.error || `Errore salvataggio (${res.status})`}${data?.details ? ` — ${data.details}` : ''}`)
+      }
+      
+      console.log('[saveToSupabase] Salvataggio completato:', data)
       setSupabaseMsg(`✅ Salvato in Supabase (slot ${data.slot})`)
     } catch (e) {
+      console.error('[saveToSupabase] Errore:', e)
       setSupabaseMsg(`❌ ${e?.message || 'Errore salvataggio'}`)
     }
   }
