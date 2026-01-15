@@ -105,11 +105,32 @@ export default function PlayerDetailPage() {
 }
 
 function PlayerDetailView({ player, t, lang, changeLanguage }) {
+  const [showEditModal, setShowEditModal] = React.useState(false)
+  const [authToken, setAuthToken] = React.useState(null)
   const baseStats = player.base_stats || {}
   const attacking = baseStats.attacking || {}
   const defending = baseStats.defending || {}
   const athleticism = baseStats.athleticism || {}
   const metadata = player.metadata || {}
+  const completeness = player.completeness || { percentage: 100, missing: [], missingDetails: {} }
+  const hasMissingData = completeness.percentage < 100
+
+  React.useEffect(() => {
+    const getToken = async () => {
+      if (!supabase) return
+      try {
+        let { data } = await supabase.auth.getSession()
+        if (!data?.session?.access_token) {
+          const { data: signInData } = await supabase.auth.signInAnonymously()
+          data = signInData
+        }
+        setAuthToken(data?.session?.access_token || null)
+      } catch (err) {
+        console.error('[PlayerDetail] Token fetch failed:', err)
+      }
+    }
+    getToken()
+  }, [])
 
   return (
     <main className="container" style={{ padding: '24px', minHeight: '100vh' }}>
@@ -195,9 +216,32 @@ function PlayerDetailView({ player, t, lang, changeLanguage }) {
 
           {/* Player Info */}
           <div style={{ flex: 1, minWidth: '300px' }}>
-            <h1 className="neon-text" style={{ fontSize: '36px', fontWeight: 700, marginBottom: '12px' }}>
-              {player.player_name}
-            </h1>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap', marginBottom: '12px' }}>
+              <h1 className="neon-text" style={{ fontSize: '36px', fontWeight: 700, flex: 1, minWidth: '200px' }}>
+                {player.player_name}
+              </h1>
+              {hasMissingData && (
+                <button
+                  onClick={() => setShowEditModal(true)}
+                  className="btn"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    background: 'rgba(255, 107, 53, 0.1)',
+                    border: '1px solid var(--neon-orange)',
+                    color: 'var(--neon-orange)',
+                    padding: '10px 16px',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <Edit size={16} />
+                  {t('completeData')}
+                </button>
+              )}
+            </div>
             <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '24px' }}>
               {player.position && (
                 <div style={{ padding: '8px 16px', background: 'rgba(0, 212, 255, 0.1)', border: '1px solid var(--neon-blue)', borderRadius: '8px' }}>
