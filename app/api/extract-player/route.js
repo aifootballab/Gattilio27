@@ -133,17 +133,29 @@ export async function POST(req) {
 
     const prompt = `
 Sei un estrattore dati da screenshot di eFootball (profilo giocatore).
-Regole:
+Regole CRITICHE:
 - Estrai SOLO ciò che vedi con certezza. Se un campo non è visibile: null.
 - Non inventare.
 - Rispondi SOLO con JSON valido.
+- **IMPORTANTE**: Se vedi un radar chart (grafico esagonale) con statistiche, estrai TUTTI i valori visibili (TIR, DRI, PAS, FRZ, DIF, VEL).
 
 Campi base:
 player_name, overall_rating, position, role, card_type, team, region_or_nationality, form, preferred_foot,
 height_cm, weight_kg, age, nationality, club_name,
 level_current, level_cap, progression_points, matches_played, goals, assists
 
-Statistiche dettagliate (se visibili):
+Statistiche dal RADAR CHART (se presente):
+Il radar chart mostra 6 statistiche principali:
+- TIR (Tiro/Shooting) → mappa a: finishing, place_kicking, heading
+- DRI (Dribbling) → mappa a: dribbling, ball_control, tight_possession
+- PAS (Passing) → mappa a: low_pass, lofted_pass, offensive_awareness
+- FRZ (Forza/Physical) → mappa a: physical_contact, balance, stamina
+- DIF (Difesa/Defending) → mappa a: defensive_awareness, defensive_engagement, tackling, aggression
+- VEL (Velocità/Speed) → mappa a: speed, acceleration
+
+Se vedi il radar chart, estrai i valori numerici (0-99) per TIR, DRI, PAS, FRZ, DIF, VEL e inseriscili in base_stats.
+
+Statistiche dettagliate (se visibili in tabelle/elenchi):
 base_stats: {
   overall_rating: number,
   attacking: {
@@ -159,11 +171,21 @@ base_stats: {
   }
 }
 
+**MAPPATURA RADAR CHART → base_stats**:
+- Se vedi solo il radar chart (TIR, DRI, PAS, FRZ, DIF, VEL):
+  - TIR → attacking.finishing, attacking.place_kicking (stesso valore)
+  - DRI → attacking.dribbling, attacking.ball_control (stesso valore)
+  - PAS → attacking.low_pass, attacking.lofted_pass (stesso valore)
+  - FRZ → athleticism.physical_contact
+  - DIF → defending.defensive_awareness, defending.tackling (stesso valore)
+  - VEL → athleticism.speed, athleticism.acceleration (stesso valore)
+- Se vedi statistiche dettagliate, usa quelle invece del radar chart.
+
 Abilità e caratteristiche:
-skills: string[] (Abilità giocatore principali)
-com_skills: string[] (Abilità aggiuntive/complementari)
-ai_playstyles: string[] (Stili di gioco IA, es: "Funambolo", "Serpentina")
-additional_positions: string[] (Competenza posizione aggiuntiva, es: "CLD", "EDA")
+skills: string[] (lista "Abilità giocatore" - tutte le abilità visibili),
+com_skills: string[] (lista "Abilità aggiuntive" o "Abilità complementari" - se presente),
+ai_playstyles: string[] (lista "Stili di gioco IA" - se presente),
+additional_positions: string[] (posizioni aggiuntive/competenza posizione - se presente)
 
 Caratteristiche:
 weak_foot_frequency: string (es: "Raramente", "Spesso")
@@ -173,6 +195,8 @@ injury_resistance: string (es: "Media", "Alta", "Bassa")
 
 Boosters:
 boosters: [{name: string, effect: string, activation_condition: string}]
+
+**Nazionalità**: Estrai da "Nazionalità/Regione" o da bandiere/emblemi visibili.
 `
 
     const openaiRes = await fetch('https://api.openai.com/v1/responses', {
