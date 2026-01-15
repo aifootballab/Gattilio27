@@ -4,7 +4,7 @@ import React from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
 import { useTranslation } from '@/lib/i18n'
-import { ArrowLeft, Upload, X, CheckCircle2, AlertCircle, Loader2, Users, Target, Save } from 'lucide-react'
+import { ArrowLeft, Upload, X, CheckCircle2, AlertCircle, Loader2, Users, Target, Save, MapPin, Star } from 'lucide-react'
 
 export default function OpponentFormationPage() {
   return <OpponentFormationView />
@@ -162,18 +162,144 @@ function OpponentFormationView() {
     }
   }
 
-  const fieldPositions = {
-    goalkeeper: { x: 50, y: 95 },
-    left_back: { x: 15, y: 75 },
-    left_center_back: { x: 35, y: 75 },
-    right_center_back: { x: 65, y: 75 },
-    right_back: { x: 85, y: 75 },
-    left_midfielder: { x: 20, y: 50 },
-    center_midfielder: { x: 50, y: 50 },
-    right_midfielder: { x: 80, y: 50 },
-    left_forward: { x: 25, y: 25 },
-    center_forward: { x: 50, y: 25 },
-    right_forward: { x: 75, y: 25 },
+  // Mappatura posizioni campo in italiano
+  const fieldPositionLabels = {
+    it: {
+      goalkeeper: 'Portiere',
+      left_back: 'Terzino Sinistro',
+      left_center_back: 'Difensore Centrale Sinistro',
+      right_center_back: 'Difensore Centrale Destro',
+      right_back: 'Terzino Destro',
+      left_midfielder: 'Centrocampista Sinistro',
+      center_midfielder: 'Centrocampista Centrale',
+      right_midfielder: 'Centrocampista Destro',
+      left_forward: 'Ala Sinistra',
+      center_forward: 'Attaccante Centrale',
+      right_forward: 'Ala Destra',
+    },
+    en: {
+      goalkeeper: 'Goalkeeper',
+      left_back: 'Left Back',
+      left_center_back: 'Left Center Back',
+      right_center_back: 'Right Center Back',
+      right_back: 'Right Back',
+      left_midfielder: 'Left Midfielder',
+      center_midfielder: 'Center Midfielder',
+      right_midfielder: 'Right Midfielder',
+      left_forward: 'Left Forward',
+      center_forward: 'Center Forward',
+      right_forward: 'Right Forward',
+    }
+  }
+
+  // Organizza giocatori per linee
+  const organizePlayersByLine = (players) => {
+    if (!Array.isArray(players)) return { goalkeeper: [], defense: [], midfield: [], attack: [] }
+    
+    const lines = { goalkeeper: [], defense: [], midfield: [], attack: [] }
+    
+    players.forEach(player => {
+      const fp = player.field_position
+      if (fp === 'goalkeeper') {
+        lines.goalkeeper.push(player)
+      } else if (fp?.includes('back') || fp?.includes('center_back')) {
+        lines.defense.push(player)
+      } else if (fp?.includes('midfielder')) {
+        lines.midfield.push(player)
+      } else if (fp?.includes('forward')) {
+        lines.attack.push(player)
+      }
+    })
+    
+    // Ordina difesa: left_back, left_center_back, right_center_back, right_back
+    lines.defense.sort((a, b) => {
+      const order = ['left_back', 'left_center_back', 'right_center_back', 'right_back']
+      return order.indexOf(a.field_position) - order.indexOf(b.field_position)
+    })
+    
+    // Ordina centrocampo: left, center, right
+    lines.midfield.sort((a, b) => {
+      const order = ['left_midfielder', 'center_midfielder', 'right_midfielder']
+      return order.indexOf(a.field_position) - order.indexOf(b.field_position)
+    })
+    
+    // Ordina attacco: left, center, right
+    lines.attack.sort((a, b) => {
+      const order = ['left_forward', 'center_forward', 'right_forward']
+      return order.indexOf(a.field_position) - order.indexOf(b.field_position)
+    })
+    
+    return lines
+  }
+
+  // Componente Card Giocatore
+  const PlayerCard = ({ player, lang, fieldPositionLabels }) => {
+    const positionLabel = fieldPositionLabels[player.field_position] || player.field_position
+    const roleLabel = player.position || '-'
+    
+    return (
+      <div
+        className="neon-panel"
+        style={{
+          padding: '16px',
+          background: 'rgba(0, 212, 255, 0.1)',
+          border: '1px solid var(--neon-blue)',
+          borderRadius: '12px',
+          transition: 'all 0.3s',
+          cursor: 'default'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = 'rgba(0, 212, 255, 0.15)'
+          e.currentTarget.style.transform = 'translateY(-2px)'
+          e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 212, 255, 0.3)'
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = 'rgba(0, 212, 255, 0.1)'
+          e.currentTarget.style.transform = 'translateY(0)'
+          e.currentTarget.style.boxShadow = 'none'
+        }}
+      >
+        {/* Nome e Rating */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: '16px', fontWeight: 700, marginBottom: '4px', color: 'white' }}>
+              {player.name || '-'}
+            </div>
+            {player.rating && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', color: 'var(--neon-purple)' }}>
+                <Star size={14} style={{ fill: 'var(--neon-purple)', color: 'var(--neon-purple)' }} />
+                <span style={{ fontWeight: 600 }}>{player.rating}</span>
+              </div>
+            )}
+          </div>
+        </div>
+        
+        {/* Posizione e Ruolo */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--neon-blue)' }}>
+            <MapPin size={14} />
+            <span style={{ fontWeight: 600 }}>{positionLabel}</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', opacity: 0.8 }}>
+            <span style={{ fontSize: '12px' }}>
+              {lang === 'it' ? 'Ruolo:' : 'Role:'} <strong>{roleLabel}</strong>
+            </span>
+          </div>
+          
+          {/* Squadra e Nazionalità */}
+          {(player.team_logo || player.nationality_flag) && (
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginTop: '4px', fontSize: '12px', opacity: 0.7 }}>
+              {player.team_logo && (
+                <span>🏟️ {player.team_logo}</span>
+              )}
+              {player.nationality_flag && (
+                <span>🏴 {player.nationality_flag}</span>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -409,86 +535,7 @@ function OpponentFormationView() {
             )}
           </div>
 
-          {/* Field Visualization */}
-          <div className="neon-panel">
-            <h3 style={{ marginBottom: '24px' }}>
-              {lang === 'it' ? 'Disposizione in Campo' : 'Field Layout'}
-            </h3>
-            <div style={{ position: 'relative', width: '100%', maxWidth: '800px', margin: '0 auto', aspectRatio: '2/3', background: 'linear-gradient(180deg, rgba(0, 212, 255, 0.1) 0%, rgba(168, 85, 247, 0.1) 100%)', borderRadius: '12px', border: '2px solid var(--neon-blue)', padding: '20px' }}>
-              {/* Field Lines */}
-              <div style={{ position: 'absolute', inset: '20px', border: '2px solid rgba(0, 212, 255, 0.3)', borderRadius: '8px' }}>
-                {/* Center Line */}
-                <div style={{ position: 'absolute', left: 0, right: 0, top: '50%', height: '2px', background: 'rgba(0, 212, 255, 0.3)', transform: 'translateY(-50%)' }} />
-                {/* Center Circle */}
-                <div style={{ position: 'absolute', left: '50%', top: '50%', width: '30%', height: '30%', border: '2px solid rgba(0, 212, 255, 0.3)', borderRadius: '50%', transform: 'translate(-50%, -50%)' }} />
-              </div>
-
-              {/* Players */}
-              {formation.players && formation.players.map((player, idx) => {
-                const pos = fieldPositions[player.field_position] || { x: 50, y: 50 }
-                return (
-                  <div
-                    key={idx}
-                    style={{
-                      position: 'absolute',
-                      left: `${pos.x}%`,
-                      top: `${pos.y}%`,
-                      transform: 'translate(-50%, -50%)',
-                      minWidth: '80px',
-                      textAlign: 'center'
-                    }}
-                  >
-                    <div
-                      className="neon-panel"
-                      style={{
-                        padding: '8px 12px',
-                        fontSize: '11px',
-                        background: 'rgba(0, 212, 255, 0.2)',
-                        border: '1px solid var(--neon-blue)',
-                        boxShadow: 'var(--glow-blue)'
-                      }}
-                    >
-                      <div style={{ fontWeight: 700, marginBottom: '4px' }}>
-                        {player.name || `Player ${idx + 1}`}
-                      </div>
-                      <div style={{ fontSize: '10px', opacity: 0.8 }}>
-                        {player.position} {player.rating ? `• ${player.rating}` : ''}
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-
-          {/* Players List */}
-          <div className="neon-panel" style={{ marginTop: '24px' }}>
-            <h3 style={{ marginBottom: '16px' }}>
-              {lang === 'it' ? 'Giocatori Titolari' : 'Starting XI'} ({formation.players?.length || 0})
-            </h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '12px' }}>
-              {formation.players && formation.players.map((player, idx) => (
-                <div
-                  key={idx}
-                  style={{
-                    padding: '12px',
-                    background: 'rgba(0, 212, 255, 0.1)',
-                    border: '1px solid var(--neon-blue)',
-                    borderRadius: '8px'
-                  }}
-                >
-                  <div style={{ fontWeight: 600, marginBottom: '4px' }}>
-                    {player.name || `Giocatore ${idx + 1}`}
-                  </div>
-                  <div style={{ fontSize: '12px', opacity: 0.8, display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                    {player.position && <span>{player.position}</span>}
-                    {player.rating && <span>• {player.rating}</span>}
-                    {player.field_position && <span>• {player.field_position}</span>}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          {/* Players List - Organized by Lines */}
 
           {/* Substitutes & Reserves */}
           {(formation.substitutes?.length > 0 || formation.reserves?.length > 0) && (
