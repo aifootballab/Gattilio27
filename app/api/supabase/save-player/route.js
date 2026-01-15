@@ -96,9 +96,47 @@ export async function POST(req) {
     }
     userId = userData.user.id
     console.log('[save-player] Auth OK, userId:', userId)
+    
+    // Verifica tipo service key
+    const serviceKeyKind = serviceKey?.startsWith('sb_secret_') ? 'sb_secret' : 
+                          serviceKey?.startsWith('sb_publishable_') ? 'sb_publishable' : 
+                          serviceKey?.includes('.') && serviceKey.split('.').length >= 3 ? 'jwt' : 'unknown'
+    console.log('[save-player] Service key kind:', serviceKeyKind, { prefix: serviceKey?.substring(0, 20) + '...' })
+    
     let admin = null
     try {
-      admin = createClient(supabaseUrl, serviceKey)
+      // IMPORTANT: Il service role key deve essere di tipo 'service_role' (JWT legacy) o 'sb_secret_...'
+      // Se è 'sb_publishable_...', non può essere usato come service role
+      if (serviceKeyKind === 'sb_publishable') {
+        console.error('[save-player] Service key è publishable, non può essere usato come service role!')
+        return NextResponse.json({ 
+          error: 'Invalid service role key type', 
+          details: 'SUPABASE_SERVICE_ROLE_KEY deve essere una service role key (sb_secret_... o JWT legacy), non una publishable key' 
+        }, { status: 500 })
+      }
+      
+      admin = createClient(supabaseUrl, serviceKey, {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      })
+      
+      // Test: prova a fare una query semplice per verificare che il client funzioni
+      const { data: testData, error: testError } = await admin
+        .from('players_base')
+        .select('id')
+        .limit(1)
+      
+      if (testError) {
+        console.error('[save-player] Admin client test failed:', { error: testError.message, code: testError.code, details: testError.details })
+        return NextResponse.json({ 
+          error: 'Admin client test failed', 
+          details: `Service role key non valida: ${testError.message}${testError.hint ? ` (${testError.hint})` : ''}` 
+        }, { status: 500 })
+      }
+      
+      console.log('[save-player] Admin client OK, test query successful')
     } catch (adminErr) {
       console.error('[save-player] Failed to create admin client:', adminErr?.message || adminErr)
       return NextResponse.json({ error: 'Failed to initialize Supabase admin client', details: adminErr?.message }, { status: 500 })
