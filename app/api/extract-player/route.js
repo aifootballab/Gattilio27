@@ -29,7 +29,7 @@ function toNumber(v) {
 
 function normalizePlayer(p) {
   const boostersRaw = Array.isArray(p?.boosters) ? p.boosters : []
-  const boosters = boostersRaw.slice(0, 4).map((b) => ({
+  const boosters = boostersRaw.slice(0, 2).map((b) => ({
     name: typeof b?.name === 'string' ? b.name : null,
     effect: typeof b?.effect === 'string' ? b.effect : null,
     activation_condition: typeof b?.activation_condition === 'string' ? b.activation_condition : null,
@@ -144,10 +144,10 @@ player_name, overall_rating, position, role, card_type, team, region_or_national
 height_cm, weight_kg, age, nationality, club_name,
 level_current, level_cap, progression_points, matches_played, goals, assists
 
-**PRIORITÀ ESTRAZIONE STATISTICHE**:
-1. Se vedi una TABELLA con statistiche dettagliate (es: sezione "Attacco", "Difesa", "Forza" con valori numerici per ogni stat), usa QUELLE.
-2. Se vedi solo il RADAR CHART (grafico esagonale con TIR, DRI, PAS, FRZ, DIF, VEL), estrai quei valori e mappali.
-3. Se vedi ENTRAMBI, usa la tabella dettagliata (è più precisa).
+**ESTRAZIONE STATISTICHE**:
+- Usa SOLO la TABELLA con statistiche dettagliate (colonne "Attacco", "Difesa", "Forza" con valori numerici precisi per ogni stat).
+- IGNORA completamente il radar chart (grafico esagonale TIR/DRI/PAS/FRZ/VEL/DIF) - non fornisce valori precisi, non usarlo.
+- Se vedi solo il radar chart e non la tabella, lascia base_stats con solo overall_rating.
 
 base_stats: {
   overall_rating: number,

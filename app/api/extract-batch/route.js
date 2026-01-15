@@ -119,14 +119,17 @@ Rispondi solo JSON:
               type: 'input_text',
               text: `
 Hai 1-3 immagini dello STESSO giocatore (ordine casuale, schermate diverse).
-Fondi le informazioni. Se un campo non è visibile in nessuna immagine -> null (o [] per liste). Non inventare.
+Fondi TUTTE le informazioni da TUTTE le immagini. Se un campo non è visibile in nessuna immagine -> null (o [] per liste). Non inventare.
+
+**IMPORTANTE - FUSIONE DATI**:
+1. **Array (skills, com_skills, ai_playstyles, additional_positions, boosters)**: Unisci TUTTI gli elementi da TUTTE le immagini, rimuovi duplicati mantenendo l'ordine.
+2. **Stats**: Se vedi una TABELLA con statistiche dettagliate (colonne "Attacco", "Difesa", "Forza" con valori numerici precisi), usa SOLO QUELLA. IGNORA completamente il radar chart (grafico esagonale TIR/DRI/PAS/FRZ/VEL/DIF) - non usare quei valori.
+3. **Valori singoli**: Se un campo è presente in più immagini, usa il valore più completo/dettagliato.
+
+**BOOSTERS**: Massimo 2 boosters (POTW card = 1, giocatori vecchi = 1-2). Se vedi più di 2, prendi i primi 2.
+
 Rispondi JSON:
 { "player": { ... }, "missing_screens": string[], "notes": string[] }
-
-**PRIORITÀ ESTRAZIONE STATISTICHE**:
-1. Se vedi una TABELLA con statistiche dettagliate (es: "Attacco", "Difesa", "Forza" con valori numerici), usa QUELLE (sono più precise).
-2. Se vedi solo il RADAR CHART (grafico esagonale), estrai TIR, DRI, PAS, FRZ, DIF, VEL e mappali.
-3. Se vedi ENTRAMBI, usa la tabella dettagliata e ignora il radar chart.
 
 Campi player:
 player_name, overall_rating, position, role, card_type, team, region_or_nationality, form, preferred_foot,
@@ -169,13 +172,7 @@ base_stats: {
   }
 }
 
-**MAPPATURA RADAR CHART → base_stats** (SOLO se NON vedi tabella dettagliata):
-- TIR → attacking.finishing, attacking.place_kicking
-- DRI → attacking.dribbling, attacking.ball_control
-- PAS → attacking.low_pass, attacking.lofted_pass
-- FRZ → athleticism.physical_contact
-- DIF → defending.defensive_awareness, defending.tackling
-- VEL → athleticism.speed, athleticism.acceleration
+**NOTA SUL RADAR CHART**: Il radar chart (grafico esagonale) NON fornisce valori precisi. Usa SOLO la tabella dettagliata con valori numerici. Se vedi solo il radar chart e non la tabella, lascia base_stats con solo overall_rating (non estrarre valori dal radar chart).
 
 skills: string[] (TUTTE le "Abilità giocatore" visibili - lista completa),
 com_skills: string[] (TUTTE le "Abilità aggiuntive" o "Abilità complementari" visibili - lista completa),
@@ -187,7 +184,7 @@ weak_foot_accuracy (es: "Alta", "Media", "Bassa"),
 form_detailed (es: "Incrollabile", "Stabile", "B"),
 injury_resistance (es: "Media", "Alta", "Bassa"),
 
-boosters: [{name: string, effect: string, activation_condition: string}] (TUTTI i boosters visibili con nome, effetto e condizione)
+boosters: [{name: string, effect: string, activation_condition: string}] (Massimo 2 boosters. Unisci da tutte le immagini, rimuovi duplicati, prendi i primi 2)
 
 **Nazionalità**: Estrai da "Nazionalità/Regione" o da bandiere/emblemi visibili (es: bandiera Brasile → "Brasile").
 `,
