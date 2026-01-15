@@ -137,66 +137,78 @@ Regole CRITICHE:
 - Estrai SOLO ciò che vedi con certezza. Se un campo non è visibile: null.
 - Non inventare.
 - Rispondi SOLO con JSON valido.
-- **IMPORTANTE**: Se vedi un radar chart (grafico esagonale) con statistiche, estrai TUTTI i valori visibili (TIR, DRI, PAS, FRZ, DIF, VEL).
+- **PRIORITÀ**: Se vedi una TABELLA con statistiche dettagliate, usa QUELLE (sono più precise del radar chart).
 
 Campi base:
 player_name, overall_rating, position, role, card_type, team, region_or_nationality, form, preferred_foot,
 height_cm, weight_kg, age, nationality, club_name,
 level_current, level_cap, progression_points, matches_played, goals, assists
 
-Statistiche dal RADAR CHART (se presente):
-Il radar chart mostra 6 statistiche principali:
-- TIR (Tiro/Shooting) → mappa a: finishing, place_kicking, heading
-- DRI (Dribbling) → mappa a: dribbling, ball_control, tight_possession
-- PAS (Passing) → mappa a: low_pass, lofted_pass, offensive_awareness
-- FRZ (Forza/Physical) → mappa a: physical_contact, balance, stamina
-- DIF (Difesa/Defending) → mappa a: defensive_awareness, defensive_engagement, tackling, aggression
-- VEL (Velocità/Speed) → mappa a: speed, acceleration
+**PRIORITÀ ESTRAZIONE STATISTICHE**:
+1. Se vedi una TABELLA con statistiche dettagliate (es: sezione "Attacco", "Difesa", "Forza" con valori numerici per ogni stat), usa QUELLE.
+2. Se vedi solo il RADAR CHART (grafico esagonale con TIR, DRI, PAS, FRZ, DIF, VEL), estrai quei valori e mappali.
+3. Se vedi ENTRAMBI, usa la tabella dettagliata (è più precisa).
 
-Se vedi il radar chart, estrai i valori numerici (0-99) per TIR, DRI, PAS, FRZ, DIF, VEL e inseriscili in base_stats.
-
-Statistiche dettagliate (se visibili in tabelle/elenchi):
 base_stats: {
   overall_rating: number,
   attacking: {
-    offensive_awareness, ball_control, dribbling, tight_possession,
-    low_pass, lofted_pass, finishing, heading, place_kicking, curl
+    offensive_awareness (o "Comportamento offensivo"),
+    ball_control (o "Controllo palla"),
+    dribbling,
+    tight_possession (o "Possesso stretto"),
+    low_pass (o "Passaggio rasoterra"),
+    lofted_pass (o "Passaggio alto"),
+    finishing (o "Finalizzazione"),
+    heading (o "Colpo di testa"),
+    place_kicking (o "Calci da fermo"),
+    curl (o "Tiro a giro")
   },
   defending: {
-    defensive_awareness, defensive_engagement, tackling, aggression,
-    goalkeeping, gk_catching, gk_parrying, gk_reflexes, gk_reach
+    defensive_awareness (o "Comportamento difensivo"),
+    defensive_engagement (o "Coinvolgimento difensivo"),
+    tackling (o "Contrasto"),
+    aggression (o "Aggressività"),
+    goalkeeping (o "Comportamento PT"),
+    gk_catching (o "Presa PT"),
+    gk_parrying (o "Parata PT"),
+    gk_reflexes (o "Riflessi PT"),
+    gk_reach (o "Estensione PT")
   },
   athleticism: {
-    speed, acceleration, kicking_power, jump, physical_contact, balance, stamina
+    speed (o "Velocità"),
+    acceleration (o "Accelerazione"),
+    kicking_power (o "Potenza di tiro"),
+    jump (o "Salto"),
+    physical_contact (o "Contatto fisico"),
+    balance (o "Controllo corpo"),
+    stamina (o "Resistenza")
   }
 }
 
-**MAPPATURA RADAR CHART → base_stats**:
-- Se vedi solo il radar chart (TIR, DRI, PAS, FRZ, DIF, VEL):
-  - TIR → attacking.finishing, attacking.place_kicking (stesso valore)
-  - DRI → attacking.dribbling, attacking.ball_control (stesso valore)
-  - PAS → attacking.low_pass, attacking.lofted_pass (stesso valore)
-  - FRZ → athleticism.physical_contact
-  - DIF → defending.defensive_awareness, defending.tackling (stesso valore)
-  - VEL → athleticism.speed, athleticism.acceleration (stesso valore)
-- Se vedi statistiche dettagliate, usa quelle invece del radar chart.
+**MAPPATURA RADAR CHART → base_stats** (SOLO se NON vedi tabella dettagliata):
+- TIR → attacking.finishing, attacking.place_kicking
+- DRI → attacking.dribbling, attacking.ball_control
+- PAS → attacking.low_pass, attacking.lofted_pass
+- FRZ → athleticism.physical_contact
+- DIF → defending.defensive_awareness, defending.tackling
+- VEL → athleticism.speed, athleticism.acceleration
 
 Abilità e caratteristiche:
-skills: string[] (lista "Abilità giocatore" - tutte le abilità visibili),
-com_skills: string[] (lista "Abilità aggiuntive" o "Abilità complementari" - se presente),
-ai_playstyles: string[] (lista "Stili di gioco IA" - se presente),
-additional_positions: string[] (posizioni aggiuntive/competenza posizione - se presente)
+skills: string[] (TUTTE le "Abilità giocatore" visibili - lista completa),
+com_skills: string[] (TUTTE le "Abilità aggiuntive" o "Abilità complementari" visibili - lista completa),
+ai_playstyles: string[] (TUTTI gli "Stili di gioco IA" visibili - lista completa),
+additional_positions: string[] (TUTTE le posizioni aggiuntive/competenza posizione visibili - es: "CLD", "EDA")
 
 Caratteristiche:
 weak_foot_frequency: string (es: "Raramente", "Spesso")
 weak_foot_accuracy: string (es: "Alta", "Media", "Bassa")
-form_detailed: string (es: "Incrollabile", "Stabile")
+form_detailed: string (es: "Incrollabile", "Stabile", "B")
 injury_resistance: string (es: "Media", "Alta", "Bassa")
 
 Boosters:
-boosters: [{name: string, effect: string, activation_condition: string}]
+boosters: [{name: string, effect: string, activation_condition: string}] (TUTTI i boosters visibili con nome, effetto e condizione)
 
-**Nazionalità**: Estrai da "Nazionalità/Regione" o da bandiere/emblemi visibili.
+**Nazionalità**: Estrai da "Nazionalità/Regione" o da bandiere/emblemi visibili (es: bandiera Brasile → "Brasile").
 `
 
     const openaiRes = await fetch('https://api.openai.com/v1/responses', {

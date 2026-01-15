@@ -123,7 +123,10 @@ Fondi le informazioni. Se un campo non è visibile in nessuna immagine -> null (
 Rispondi JSON:
 { "player": { ... }, "missing_screens": string[], "notes": string[] }
 
-**REGOLA CRITICA**: Se vedi un radar chart (grafico esagonale) con statistiche, estrai TUTTI i valori (TIR, DRI, PAS, FRZ, DIF, VEL) e mappali in base_stats.
+**PRIORITÀ ESTRAZIONE STATISTICHE**:
+1. Se vedi una TABELLA con statistiche dettagliate (es: "Attacco", "Difesa", "Forza" con valori numerici), usa QUELLE (sono più precise).
+2. Se vedi solo il RADAR CHART (grafico esagonale), estrai TIR, DRI, PAS, FRZ, DIF, VEL e mappali.
+3. Se vedi ENTRAMBI, usa la tabella dettagliata e ignora il radar chart.
 
 Campi player:
 player_name, overall_rating, position, role, card_type, team, region_or_nationality, form, preferred_foot,
@@ -133,37 +136,60 @@ level_current, level_cap, progression_points, matches_played, goals, assists,
 base_stats: {
   overall_rating: number,
   attacking: {
-    offensive_awareness, ball_control, dribbling, tight_possession,
-    low_pass, lofted_pass, finishing, heading, place_kicking, curl
+    offensive_awareness (o "Comportamento offensivo"),
+    ball_control (o "Controllo palla"),
+    dribbling,
+    tight_possession (o "Possesso stretto"),
+    low_pass (o "Passaggio rasoterra"),
+    lofted_pass (o "Passaggio alto"),
+    finishing (o "Finalizzazione"),
+    heading (o "Colpo di testa"),
+    place_kicking (o "Calci da fermo"),
+    curl (o "Tiro a giro")
   },
   defending: {
-    defensive_awareness, defensive_engagement, tackling, aggression,
-    goalkeeping, gk_catching, gk_parrying, gk_reflexes, gk_reach
+    defensive_awareness (o "Comportamento difensivo"),
+    defensive_engagement (o "Coinvolgimento difensivo"),
+    tackling (o "Contrasto"),
+    aggression (o "Aggressività"),
+    goalkeeping (o "Comportamento PT"),
+    gk_catching (o "Presa PT"),
+    gk_parrying (o "Parata PT"),
+    gk_reflexes (o "Riflessi PT"),
+    gk_reach (o "Estensione PT")
   },
   athleticism: {
-    speed, acceleration, kicking_power, jump, physical_contact, balance, stamina
+    speed (o "Velocità"),
+    acceleration (o "Accelerazione"),
+    kicking_power (o "Potenza di tiro"),
+    jump (o "Salto"),
+    physical_contact (o "Contatto fisico"),
+    balance (o "Controllo corpo"),
+    stamina (o "Resistenza")
   }
 }
 
-**MAPPATURA RADAR CHART → base_stats** (se vedi solo il radar chart):
-- TIR (Tiro) → attacking.finishing, attacking.place_kicking (stesso valore)
-- DRI (Dribbling) → attacking.dribbling, attacking.ball_control (stesso valore)
-- PAS (Passing) → attacking.low_pass, attacking.lofted_pass (stesso valore)
-- FRZ (Forza) → athleticism.physical_contact
-- DIF (Difesa) → defending.defensive_awareness, defending.tackling (stesso valore)
-- VEL (Velocità) → athleticism.speed, athleticism.acceleration (stesso valore)
+**MAPPATURA RADAR CHART → base_stats** (SOLO se NON vedi tabella dettagliata):
+- TIR → attacking.finishing, attacking.place_kicking
+- DRI → attacking.dribbling, attacking.ball_control
+- PAS → attacking.low_pass, attacking.lofted_pass
+- FRZ → athleticism.physical_contact
+- DIF → defending.defensive_awareness, defending.tackling
+- VEL → athleticism.speed, athleticism.acceleration
 
-Se vedi statistiche dettagliate in tabelle, usa quelle invece del radar chart.
+skills: string[] (TUTTE le "Abilità giocatore" visibili - lista completa),
+com_skills: string[] (TUTTE le "Abilità aggiuntive" o "Abilità complementari" visibili - lista completa),
+ai_playstyles: string[] (TUTTI gli "Stili di gioco IA" visibili - lista completa),
+additional_positions: string[] (TUTTE le posizioni aggiuntive/competenza posizione visibili - es: "CLD", "EDA"),
 
-skills: string[] (tutte le "Abilità giocatore" visibili),
-com_skills: string[] (tutte le "Abilità aggiuntive" o "Abilità complementari" visibili),
-ai_playstyles: string[] (tutti gli "Stili di gioco IA" visibili),
-additional_positions: string[] (posizioni aggiuntive/competenza posizione),
+weak_foot_frequency (es: "Raramente", "Spesso"),
+weak_foot_accuracy (es: "Alta", "Media", "Bassa"),
+form_detailed (es: "Incrollabile", "Stabile", "B"),
+injury_resistance (es: "Media", "Alta", "Bassa"),
 
-weak_foot_frequency, weak_foot_accuracy, form_detailed, injury_resistance,
-boosters: [{name, effect, activation_condition}]
+boosters: [{name: string, effect: string, activation_condition: string}] (TUTTI i boosters visibili con nome, effetto e condizione)
 
-**Nazionalità**: Estrai da "Nazionalità/Regione" o da bandiere/emblemi visibili.
+**Nazionalità**: Estrai da "Nazionalità/Regione" o da bandiere/emblemi visibili (es: bandiera Brasile → "Brasile").
 `,
             },
             ...groupImages.map((im) => ({ type: 'input_image', image_url: im.imageDataUrl, detail: 'high' })),
