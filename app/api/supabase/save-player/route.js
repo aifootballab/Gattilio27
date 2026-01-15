@@ -103,43 +103,72 @@ export async function POST(req) {
                           serviceKey?.includes('.') && serviceKey.split('.').length >= 3 ? 'jwt' : 'unknown'
     console.log('[save-player] Service key kind:', serviceKeyKind, { prefix: serviceKey?.substring(0, 20) + '...' })
     
+    // IMPORTANT: Le chiavi sb_secret_ moderne non sono supportate dal client JS.
+    // Usiamo fetch diretto con header apikey per sb_secret_, client JS per JWT legacy.
+    const useDirectFetch = serviceKeyKind === 'sb_secret'
+    
+    if (serviceKeyKind === 'sb_publishable') {
+      console.error('[save-player] Service key è publishable, non può essere usato come service role!')
+      return NextResponse.json({ 
+        error: 'Invalid service role key type', 
+        details: 'SUPABASE_SERVICE_ROLE_KEY deve essere una service role key (sb_secret_... o JWT legacy), non una publishable key' 
+      }, { status: 500 })
+    }
+    
     let admin = null
-    try {
-      // IMPORTANT: Il service role key deve essere di tipo 'service_role' (JWT legacy) o 'sb_secret_...'
-      // Se è 'sb_publishable_...', non può essere usato come service role
-      if (serviceKeyKind === 'sb_publishable') {
-        console.error('[save-player] Service key è publishable, non può essere usato come service role!')
-        return NextResponse.json({ 
-          error: 'Invalid service role key type', 
-          details: 'SUPABASE_SERVICE_ROLE_KEY deve essere una service role key (sb_secret_... o JWT legacy), non una publishable key' 
-        }, { status: 500 })
+    if (!useDirectFetch) {
+      // Usa client JS per chiavi JWT legacy
+      try {
+        admin = createClient(supabaseUrl, serviceKey, {
+          auth: {
+            autoRefreshToken: false,
+            persistSession: false
+          }
+        })
+        
+        // Test: prova a fare una query semplice per verificare che il client funzioni
+        const { data: testData, error: testError } = await admin
+          .from('players_base')
+          .select('id')
+          .limit(1)
+        
+        if (testError) {
+          console.error('[save-player] Admin client test failed:', { error: testError.message, code: testError.code, details: testError.details })
+          return NextResponse.json({ 
+            error: 'Admin client test failed', 
+            details: `Service role key non valida: ${testError.message}${testError.hint ? ` (${testError.hint})` : ''}` 
+          }, { status: 500 })
+        }
+        
+        console.log('[save-player] Admin client OK, test query successful')
+      } catch (adminErr) {
+        console.error('[save-player] Failed to create admin client:', adminErr?.message || adminErr)
+        return NextResponse.json({ error: 'Failed to initialize Supabase admin client', details: adminErr?.message }, { status: 500 })
       }
-      
-      admin = createClient(supabaseUrl, serviceKey, {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
+    } else {
+      // Per sb_secret_, useremo fetch diretto - il client sarà null
+      console.log('[save-player] Usando fetch diretto per chiave sb_secret_')
+      // Test rapido con fetch
+      const testUrl = `${supabaseUrl}/rest/v1/players_base?select=id&limit=1`
+      const testRes = await fetch(testUrl, {
+        headers: {
+          'apikey': serviceKey,
+          'Authorization': `Bearer ${serviceKey}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal'
         }
       })
       
-      // Test: prova a fare una query semplice per verificare che il client funzioni
-      const { data: testData, error: testError } = await admin
-        .from('players_base')
-        .select('id')
-        .limit(1)
-      
-      if (testError) {
-        console.error('[save-player] Admin client test failed:', { error: testError.message, code: testError.code, details: testError.details })
+      if (!testRes.ok) {
+        const testErrorText = await testRes.text().catch(() => '')
+        console.error('[save-player] Fetch test failed:', { status: testRes.status, statusText: testRes.statusText, body: testErrorText })
         return NextResponse.json({ 
-          error: 'Admin client test failed', 
-          details: `Service role key non valida: ${testError.message}${testError.hint ? ` (${testError.hint})` : ''}` 
+          error: 'Service role key test failed', 
+          details: `sb_secret_ key non valida: ${testRes.status} ${testRes.statusText}` 
         }, { status: 500 })
       }
       
-      console.log('[save-player] Admin client OK, test query successful')
-    } catch (adminErr) {
-      console.error('[save-player] Failed to create admin client:', adminErr?.message || adminErr)
-      return NextResponse.json({ error: 'Failed to initialize Supabase admin client', details: adminErr?.message }, { status: 500 })
+      console.log('[save-player] Fetch diretto OK, sb_secret_ key valida')
     }
 
     let body = null

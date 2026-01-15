@@ -3,27 +3,21 @@
 import React from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
+import { useTranslation } from '@/lib/i18n'
+import { ArrowLeft, Upload, X, CheckCircle2, AlertCircle, Loader2, Users } from 'lucide-react'
 
 export default function RosaPage() {
   return <RosaProductionPage />
 }
 
 function RosaProductionPage() {
+  const { t, lang, changeLanguage } = useTranslation()
   const [isDragging, setIsDragging] = React.useState(false)
   const [images, setImages] = React.useState([])
   const [isExtracting, setIsExtracting] = React.useState(false)
   const [error, setError] = React.useState(null)
   const [selectedSlot, setSelectedSlot] = React.useState(0)
   const [rosa, setRosa] = React.useState(() => Array.from({ length: 21 }, () => null))
-  const [envInfo, setEnvInfo] = React.useState({
-    vercelEnv: null,
-    hasOpenaiKey: null,
-    hasSupabaseUrl: null,
-    hasSupabaseAnonKey: null,
-    hasSupabaseServiceRoleKey: null,
-    supabaseAnonKeyKind: null,
-    supabaseServiceRoleKeyKind: null,
-  })
   const [groups, setGroups] = React.useState([])
   const [authStatus, setAuthStatus] = React.useState({ ready: false, userId: null, token: null })
   const [supabaseMsg, setSupabaseMsg] = React.useState(null)
@@ -32,37 +26,9 @@ function RosaProductionPage() {
   const fileInputRef = React.useRef(null)
 
   React.useEffect(() => {
-    fetch('/api/env-check')
-      .then((r) => r.json())
-      .then((j) =>
-        setEnvInfo({
-          vercelEnv: j?.vercelEnv ?? null,
-          hasOpenaiKey: j?.hasOpenaiKey ?? null,
-          hasSupabaseUrl: j?.hasSupabaseUrl ?? null,
-          hasSupabaseAnonKey: j?.hasSupabaseAnonKey ?? null,
-          hasSupabaseServiceRoleKey: j?.hasSupabaseServiceRoleKey ?? null,
-          supabaseAnonKeyKind: j?.supabaseAnonKeyKind ?? null,
-          supabaseServiceRoleKeyKind: j?.supabaseServiceRoleKeyKind ?? null,
-        })
-      )
-      .catch(() =>
-        setEnvInfo({
-          vercelEnv: null,
-          hasOpenaiKey: null,
-          hasSupabaseUrl: null,
-          hasSupabaseAnonKey: null,
-          hasSupabaseServiceRoleKey: null,
-          supabaseAnonKeyKind: null,
-          supabaseServiceRoleKeyKind: null,
-        })
-      )
-  }, [])
-
-  React.useEffect(() => {
     const initAnon = async () => {
       try {
         if (!supabase) {
-          console.error('[initAnon] Supabase client non disponibile')
           setAuthStatus({ ready: true, userId: null, token: null })
           return
         }
@@ -70,11 +36,9 @@ function RosaProductionPage() {
         let { data, error } = await supabase.auth.getSession()
         
         if (!data?.session?.access_token || error) {
-          console.log('[initAnon] Sessione non valida, faccio sign-in anonimo...')
           const { data: signInData, error: signInError } = await supabase.auth.signInAnonymously()
           
           if (signInError) {
-            console.error('[initAnon] Sign-in anonimo fallito:', signInError)
             setAuthStatus({ ready: true, userId: null, token: null })
             return
           }
@@ -89,9 +53,6 @@ function RosaProductionPage() {
         if (token && typeof token === 'string' && token.length >= 10) {
           const isJWT = token.includes('.') && token.split('.').length >= 3
           setTokenKind(isJWT ? 'jwt' : 'opaque')
-          console.log('[initAnon] Auth OK:', { userId, tokenKind: isJWT ? 'jwt' : 'opaque' })
-        } else {
-          console.error('[initAnon] Token invalido:', { type: typeof token, length: token?.length })
         }
         
         setAuthStatus({
@@ -100,7 +61,6 @@ function RosaProductionPage() {
           token,
         })
       } catch (err) {
-        console.error('[initAnon] Errore:', err)
         setAuthStatus({ ready: true, userId: null, token: null })
       }
     }
@@ -108,20 +68,15 @@ function RosaProductionPage() {
   }, [])
 
   const getFreshToken = async () => {
-    if (!supabase) {
-      console.error('[getFreshToken] Supabase client non disponibile')
-      return null
-    }
+    if (!supabase) return null
     
     try {
       let { data, error } = await supabase.auth.getSession()
       
       if (!data?.session?.access_token || error) {
-        console.log('[getFreshToken] Sessione non valida, faccio sign-in anonimo...')
         const { data: signInData, error: signInError } = await supabase.auth.signInAnonymously()
         
         if (signInError || !signInData?.session?.access_token) {
-          console.error('[getFreshToken] Sign-in anonimo fallito:', signInError)
           return null
         }
         
@@ -131,17 +86,14 @@ function RosaProductionPage() {
       const token = data?.session?.access_token
       
       if (!token || typeof token !== 'string' || token.length < 10) {
-        console.error('[getFreshToken] Token invalido:', { type: typeof token, length: token?.length })
         return null
       }
       
       const isJWT = token.includes('.') && token.split('.').length >= 3
       setTokenKind(isJWT ? 'jwt' : 'opaque')
       
-      console.log('[getFreshToken] Token recuperato:', { isJWT, tokenPrefix: token.substring(0, 20) + '...' })
       return token
     } catch (err) {
-      console.error('[getFreshToken] Errore:', err)
       return null
     }
   }
@@ -237,15 +189,10 @@ function RosaProductionPage() {
   const resetMySupabaseData = async () => {
     setSupabaseMsg(null)
     try {
-      console.log('[resetMySupabaseData] Inizio reset...')
-      
       const token = await getFreshToken()
       if (!token || typeof token !== 'string' || token.length < 10) {
-        console.error('[resetMySupabaseData] Token invalido:', { type: typeof token, length: token?.length })
-        throw new Error('Token di autenticazione non valido. Ricarica la pagina e riprova.')
+        throw new Error(lang === 'it' ? 'Token di autenticazione non valido. Ricarica la pagina e riprova.' : 'Invalid authentication token. Reload the page and try again.')
       }
-      
-      console.log('[resetMySupabaseData] Token valido, invio richiesta...')
       
       const res = await fetch('/api/supabase/reset-my-data', {
         method: 'POST',
@@ -255,30 +202,22 @@ function RosaProductionPage() {
       const data = await res.json().catch(() => ({}))
       
       if (!res.ok) {
-        console.error('[resetMySupabaseData] Errore server:', { status: res.status, error: data?.error, details: data?.details })
         throw new Error(`${data?.error || `Errore reset (${res.status})`}${data?.details ? ` — ${data.details}` : ''}`)
       }
       
-      console.log('[resetMySupabaseData] Reset completato')
-      setSupabaseMsg('✅ Dati Supabase resettati per questo utente anonimo')
+      setSupabaseMsg(lang === 'it' ? '✅ Dati Supabase resettati' : '✅ Supabase data reset')
     } catch (e) {
-      console.error('[resetMySupabaseData] Errore:', e)
-      setSupabaseMsg(`❌ ${e?.message || 'Errore reset'}`)
+      setSupabaseMsg(`❌ ${e?.message || (lang === 'it' ? 'Errore reset' : 'Reset error')}`)
     }
   }
 
   const saveToSupabase = async (player, slotIndex) => {
     setSupabaseMsg(null)
     try {
-      console.log('[saveToSupabase] Inizio salvataggio...', { playerName: player?.player_name, slotIndex })
-      
       const token = await getFreshToken()
       if (!token || typeof token !== 'string' || token.length < 10) {
-        console.error('[saveToSupabase] Token invalido:', { type: typeof token, length: token?.length })
-        throw new Error('Token di autenticazione non valido. Ricarica la pagina e riprova.')
+        throw new Error(lang === 'it' ? 'Token di autenticazione non valido. Ricarica la pagina e riprova.' : 'Invalid authentication token. Reload the page and try again.')
       }
-      
-      console.log('[saveToSupabase] Token valido, invio richiesta...', { tokenPrefix: token.substring(0, 20) + '...' })
       
       const res = await fetch('/api/supabase/save-player', {
         method: 'POST',
@@ -292,60 +231,102 @@ function RosaProductionPage() {
       const data = await res.json().catch(() => ({}))
       
       if (!res.ok) {
-        console.error('[saveToSupabase] Errore server:', { status: res.status, error: data?.error, details: data?.details })
         throw new Error(`${data?.error || `Errore salvataggio (${res.status})`}${data?.details ? ` — ${data.details}` : ''}`)
       }
       
-      console.log('[saveToSupabase] Salvataggio completato:', data)
-      setSupabaseMsg(`✅ Salvato in Supabase (slot ${data.slot})`)
+      setSupabaseMsg(lang === 'it' ? `✅ Salvato in Supabase (slot ${data.slot})` : `✅ Saved to Supabase (slot ${data.slot})`)
     } catch (e) {
-      console.error('[saveToSupabase] Errore:', e)
-      setSupabaseMsg(`❌ ${e?.message || 'Errore salvataggio'}`)
+      setSupabaseMsg(`❌ ${e?.message || (lang === 'it' ? 'Errore salvataggio' : 'Save error')}`)
     }
   }
 
   return (
     <main className="container">
-      <div style={{ marginBottom: '16px' }}>
-        <Link href="/dashboard" className="btn" style={{ textDecoration: 'none', display: 'inline-block', marginBottom: '12px' }}>
-          ← Dashboard Principale
+      {/* Language Switcher */}
+      <div style={{
+        position: 'fixed',
+        top: '20px',
+        right: '20px',
+        zIndex: 1000,
+        display: 'flex',
+        gap: '8px',
+        background: 'rgba(10, 14, 39, 0.9)',
+        padding: '8px',
+        borderRadius: '8px',
+        border: '1px solid rgba(0, 212, 255, 0.3)',
+        backdropFilter: 'blur(10px)'
+      }}>
+        <button
+          onClick={() => changeLanguage('it')}
+          style={{
+            padding: '6px 12px',
+            background: lang === 'it' ? 'rgba(0, 212, 255, 0.2)' : 'transparent',
+            border: '1px solid rgba(0, 212, 255, 0.3)',
+            borderRadius: '6px',
+            color: lang === 'it' ? 'var(--neon-blue)' : 'rgba(255, 255, 255, 0.7)',
+            cursor: 'pointer',
+            fontSize: '12px',
+            fontWeight: 600
+          }}
+        >
+          IT
+        </button>
+        <button
+          onClick={() => changeLanguage('en')}
+          style={{
+            padding: '6px 12px',
+            background: lang === 'en' ? 'rgba(0, 212, 255, 0.2)' : 'transparent',
+            border: '1px solid rgba(0, 212, 255, 0.3)',
+            borderRadius: '6px',
+            color: lang === 'en' ? 'var(--neon-blue)' : 'rgba(255, 255, 255, 0.7)',
+            cursor: 'pointer',
+            fontSize: '12px',
+            fontWeight: 600
+          }}
+        >
+          EN
+        </button>
+      </div>
+
+      <div style={{ marginBottom: '24px' }}>
+        <Link href="/dashboard" className="btn" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+          <ArrowLeft size={16} />
+          {t('backToDashboard')}
         </Link>
       </div>
+
       <header className="header">
-        <h1>Rosa (Production)</h1>
-        <p className="subtitle">Carica 1–6 screenshot (anche mischiati) → raggruppo per giocatore → estraggo dati → inserisci in rosa</p>
-        <p className="subtitle" style={{ marginTop: 6, fontSize: 12, opacity: 0.85 }}>
-          Env: <b>{envInfo.vercelEnv ?? '—'}</b> · OPENAI_API_KEY:{' '}
-          <b>{envInfo.hasOpenaiKey === null ? '—' : envInfo.hasOpenaiKey ? 'OK' : 'MISSING'}</b>
+        <h1>{t('squad')}</h1>
+        <p className="subtitle">
+          {lang === 'it' 
+            ? 'Carica 1–6 screenshot (anche mischiati) → raggruppo per giocatore → estraggo dati → inserisci in rosa'
+            : 'Upload 1–6 screenshots (even mixed) → group by player → extract data → insert into squad'}
         </p>
-        <p className="subtitle" style={{ marginTop: 6, fontSize: 12, opacity: 0.85 }}>
-          Supabase env:{' '}
-          <b>
-            {envInfo.hasSupabaseUrl === null
-              ? '—'
-              : envInfo.hasSupabaseUrl && envInfo.hasSupabaseAnonKey
-                ? 'PUBLIC OK'
-                : 'PUBLIC MISSING'}
-          </b>
-          {' · '}Service key:{' '}
-          <b>
-            {envInfo.hasSupabaseServiceRoleKey === null ? '—' : envInfo.hasSupabaseServiceRoleKey ? 'OK' : 'MISSING'}
-          </b>
-          {envInfo.supabaseServiceRoleKeyKind ? <span> ({envInfo.supabaseServiceRoleKeyKind})</span> : null}
-        </p>
-        <p className="subtitle" style={{ marginTop: 6, fontSize: 12, opacity: 0.85 }}>
-          Supabase anon: <b>{authStatus.userId ? 'OK' : authStatus.ready ? 'MISSING' : '…'}</b>
-          {authStatus.userId ? <span> · user_id: <b>{authStatus.userId}</b></span> : null}
-          {tokenKind ? <span> · token: <b>{tokenKind}</b></span> : null}
-        </p>
-        <div style={{ display: 'flex', gap: 10, marginTop: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-          <a href="/my-players" className="btn primary" style={{ textDecoration: 'none' }}>
-            I Miei Giocatori
+        <div style={{ display: 'flex', gap: 10, marginTop: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+          <a href="/my-players" className="btn primary" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+            <Users size={16} />
+            {t('myPlayers')}
           </a>
-          <button className="btn" onClick={resetMySupabaseData} disabled={!authStatus.token}>
-            Reset miei dati Supabase
+          <button className="btn" onClick={resetMySupabaseData} disabled={!authStatus.token} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+            <X size={16} />
+            {t('resetMyData')}
           </button>
-          {supabaseMsg ? <span style={{ opacity: 0.9 }}>{supabaseMsg}</span> : null}
+          {supabaseMsg && (
+            <div style={{ 
+              display: 'inline-flex', 
+              alignItems: 'center', 
+              gap: '8px',
+              padding: '8px 12px',
+              borderRadius: '8px',
+              background: supabaseMsg.includes('✅') ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+              border: `1px solid ${supabaseMsg.includes('✅') ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
+              fontSize: '14px',
+              color: supabaseMsg.includes('✅') ? '#22C55E' : '#EF4444'
+            }}>
+              {supabaseMsg.includes('✅') ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+              {supabaseMsg.replace('✅', '').replace('❌', '')}
+            </div>
+          )}
         </div>
       </header>
 
@@ -372,62 +353,101 @@ function RosaProductionPage() {
                 if (files && files.length) await onPickFiles(files)
               }}
             />
-            <div className="dropzone-title">Carica Screenshot</div>
-            <div className="dropzone-hint">Trascina qui oppure clicca. Puoi caricare 2 o 3 foto per giocatore, anche miste.</div>
+            <div className="dropzone-title" style={{ display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'center' }}>
+              <Upload size={32} />
+              {t('uploadScreenshots')}
+            </div>
+            <div className="dropzone-hint">{t('dragDropHint')}</div>
           </div>
         ) : (
           <div className="preview">
             <div className="preview-row">
-              <div className="card inner" style={{ padding: 12 }}>
-                <b>Immagini caricate: {images.length}</b>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8, marginTop: 10 }}>
+              <div className="card inner" style={{ padding: 16 }}>
+                <b style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Upload size={18} />
+                  {t('imagesLoaded')}: {images.length}
+                </b>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 12, marginTop: 16 }}>
                   {images.map((img) => (
-                    <img key={img.id} src={img.dataUrl} alt="thumb" style={{ width: '100%', borderRadius: 10, border: '1px solid rgba(255,255,255,0.12)' }} />
+                    <div key={img.id} style={{ position: 'relative' }}>
+                      <img src={img.dataUrl} alt="thumb" style={{ width: '100%', borderRadius: 10, border: '1px solid rgba(255,255,255,0.12)' }} />
+                      <button
+                        onClick={() => setImages(images.filter(i => i.id !== img.id))}
+                        style={{
+                          position: 'absolute',
+                          top: '4px',
+                          right: '4px',
+                          background: 'rgba(239, 68, 68, 0.8)',
+                          border: 'none',
+                          borderRadius: '50%',
+                          width: '24px',
+                          height: '24px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          color: 'white'
+                        }}
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
                   ))}
                 </div>
               </div>
               <div className="preview-actions">
-                <button className="btn primary" onClick={analyzeBatch} disabled={isExtracting}>
-                  {isExtracting ? 'Analisi…' : 'Analizza batch'}
+                <button className="btn primary" onClick={analyzeBatch} disabled={isExtracting} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                  {isExtracting ? <Loader2 size={16} className="spin" /> : <CheckCircle2 size={16} />}
+                  {isExtracting ? t('analyzing') : t('analyzeBatch')}
                 </button>
-                <button className="btn" onClick={reset} disabled={isExtracting}>
-                  Reset
+                <button className="btn" onClick={reset} disabled={isExtracting} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                  <X size={16} />
+                  {t('reset')}
                 </button>
               </div>
             </div>
 
-            {error && <div className="error">Errore: {error}</div>}
+            {error && (
+              <div className="error" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: 16 }}>
+                <AlertCircle size={18} />
+                {t('error')}: {error}
+              </div>
+            )}
 
             {groups.length > 0 && (
-              <div className="grid">
+              <div className="grid" style={{ marginTop: 24 }}>
                 {groups.map((g) => (
                   <div key={g.group_id} className="card inner">
                     <h2>{g.label}</h2>
                     <div className="kv">
-                      <div><b>Nome</b>: {g.player?.player_name ?? '—'}</div>
-                      <div><b>OVR</b>: {g.player?.overall_rating ?? '—'} · <b>Pos</b>: {g.player?.position ?? '—'}</div>
-                      <div><b>Ruolo</b>: {g.player?.role ?? '—'}</div>
-                      <div><b>Carta</b>: {g.player?.card_type ?? '—'} · <b>Team</b>: {g.player?.team ?? '—'}</div>
-                      <div><b>Boosters</b>: {Array.isArray(g.player?.boosters) ? g.player.boosters.filter((b) => b?.name || b?.effect).map((b) => `${b.name ?? '—'} (${b.effect ?? '—'})`).join(', ') : '—'}</div>
-                      {Array.isArray(g.missing_screens) && g.missing_screens.length ? <div><b>Manca</b>: {g.missing_screens.join(', ')}</div> : null}
+                      <div><b>{t('name')}</b>: {g.player?.player_name ?? '—'}</div>
+                      <div><b>OVR</b>: {g.player?.overall_rating ?? '—'} · <b>{t('role')}</b>: {g.player?.position ?? '—'}</div>
+                      <div><b>{t('role')}</b>: {g.player?.role ?? '—'}</div>
+                      <div><b>{t('card')}</b>: {g.player?.card_type ?? '—'} · <b>{t('team')}</b>: {g.player?.team ?? '—'}</div>
+                      <div><b>{t('boosters')}</b>: {Array.isArray(g.player?.boosters) ? g.player.boosters.filter((b) => b?.name || b?.effect).map((b) => `${b.name ?? '—'} (${b.effect ?? '—'})`).join(', ') : '—'}</div>
+                      {Array.isArray(g.missing_screens) && g.missing_screens.length ? <div><b>{t('missing')}</b>: {g.missing_screens.join(', ')}</div> : null}
                     </div>
                     <textarea className="json" value={JSON.stringify(g.player ?? {}, null, 2)} readOnly />
 
                     <label className="label">
-                      Slot (0-10 titolari, 11-20 panchina)
+                      {t('slot')} ({lang === 'it' ? '0-10 titolari, 11-20 panchina' : '0-10 starters, 11-20 bench'})
                       <select className="select" value={selectedSlot} onChange={(e) => setSelectedSlot(Number(e.target.value))}>
                         {Array.from({ length: 21 }, (_, i) => (
                           <option key={i} value={i}>
-                            {i <= 10 ? `Titolare ${i + 1}` : `Panchina ${i - 10}`}
+                            {i <= 10 
+                              ? (lang === 'it' ? `Titolare ${i + 1}` : `Starter ${i + 1}`)
+                              : (lang === 'it' ? `Panchina ${i - 10}` : `Bench ${i - 10}`)}
                           </option>
                         ))}
                       </select>
                     </label>
-                    <button className="btn primary" onClick={() => insertIntoRosa(g.player, selectedSlot)}>
-                      Inserisci questo giocatore
+                    <button className="btn primary" onClick={() => insertIntoRosa(g.player, selectedSlot)} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                      <CheckCircle2 size={16} />
+                      {t('insertPlayer')}
                     </button>
-                    <button className="btn" style={{ marginTop: 10 }} onClick={() => saveToSupabase(g.player, selectedSlot)} disabled={!authStatus.token}>
-                      Salva in Supabase (slot selezionato)
+                    <button className="btn" style={{ marginTop: 10, display: 'inline-flex', alignItems: 'center', gap: '8px' }} onClick={() => saveToSupabase(g.player, selectedSlot)} disabled={!authStatus.token}>
+                      <CheckCircle2 size={16} />
+                      {t('saveToSupabase')} ({t('slotSelected')})
                     </button>
                   </div>
                 ))}
@@ -438,15 +458,15 @@ function RosaProductionPage() {
       </section>
 
       <section className="card">
-        <h2>Rosa (21 slot)</h2>
+        <h2>{t('squad')} (21 {t('slot')})</h2>
         <div className="rosa-grid">
           {rosa.map((slot, idx) => (
             <div key={idx} className={`rosa-slot ${slot ? 'filled' : ''}`}>
-              <div className="slot-title">{idx <= 10 ? `T ${idx + 1}` : `P ${idx - 10}`}</div>
+              <div className="slot-title">{idx <= 10 ? `${lang === 'it' ? 'T' : 'S'} ${idx + 1}` : `${lang === 'it' ? 'P' : 'B'} ${idx - 10}`}</div>
               <div className="slot-body">
                 {slot ? (
                   <>
-                    <div className="slot-name">{slot.extracted?.player_name ?? 'Senza nome'}</div>
+                    <div className="slot-name">{slot.extracted?.player_name ?? (lang === 'it' ? 'Senza nome' : 'No name')}</div>
                     <div className="slot-meta">
                       {slot.extracted?.position ?? '—'} · OVR {slot.extracted?.overall_rating ?? '—'}
                     </div>
@@ -457,12 +477,14 @@ function RosaProductionPage() {
                         next[idx] = null
                         return next
                       })}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                     >
-                      Rimuovi
+                      <X size={14} />
+                      {lang === 'it' ? 'Rimuovi' : 'Remove'}
                     </button>
                   </>
                 ) : (
-                  <div className="slot-empty">Vuoto</div>
+                  <div className="slot-empty">{lang === 'it' ? 'Vuoto' : 'Empty'}</div>
                 )}
               </div>
             </div>

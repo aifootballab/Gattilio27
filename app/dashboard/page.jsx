@@ -2,89 +2,135 @@
 
 import React from 'react'
 import Link from 'next/link'
+import { useTranslation } from '@/lib/i18n'
+import { 
+  Users, Home, Users as PlayersIcon, LayoutGrid, BarChart3, 
+  Brain, ClipboardList, ChevronRight, User, CheckCircle2,
+  Target, Zap
+} from 'lucide-react'
 
 export default function DashboardPage() {
+  const { t, lang, changeLanguage } = useTranslation()
+
   return (
     <div style={{ 
       minHeight: '100vh', 
-      padding: '32px',
+      padding: '24px',
       display: 'grid',
-      gridTemplateColumns: '300px 1fr 300px',
+      gridTemplateColumns: 'minmax(280px, 300px) 1fr minmax(280px, 300px)',
       gap: '24px',
       maxWidth: '1600px',
       margin: '0 auto'
-    }}>
+    }}
+    className="dashboard-container"
+    >
+      {/* Language Switcher */}
+      <div style={{
+        position: 'fixed',
+        top: '20px',
+        right: '20px',
+        zIndex: 1000,
+        display: 'flex',
+        gap: '8px',
+        background: 'rgba(10, 14, 39, 0.9)',
+        padding: '8px',
+        borderRadius: '8px',
+        border: '1px solid rgba(0, 212, 255, 0.3)',
+        backdropFilter: 'blur(10px)'
+      }}>
+        <button
+          onClick={() => changeLanguage('it')}
+          style={{
+            padding: '6px 12px',
+            background: lang === 'it' ? 'rgba(0, 212, 255, 0.2)' : 'transparent',
+            border: '1px solid rgba(0, 212, 255, 0.3)',
+            borderRadius: '6px',
+            color: lang === 'it' ? 'var(--neon-blue)' : 'rgba(255, 255, 255, 0.7)',
+            cursor: 'pointer',
+            fontSize: '12px',
+            fontWeight: 600
+          }}
+        >
+          IT
+        </button>
+        <button
+          onClick={() => changeLanguage('en')}
+          style={{
+            padding: '6px 12px',
+            background: lang === 'en' ? 'rgba(0, 212, 255, 0.2)' : 'transparent',
+            border: '1px solid rgba(0, 212, 255, 0.3)',
+            borderRadius: '6px',
+            color: lang === 'en' ? 'var(--neon-blue)' : 'rgba(255, 255, 255, 0.7)',
+            cursor: 'pointer',
+            fontSize: '12px',
+            fontWeight: 600
+          }}
+        >
+          EN
+        </button>
+      </div>
+
       {/* LEFT PANEL */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        {/* Player Roster */}
-        <NeonPanel title="Roster" subtitle="I tuoi giocatori">
+        <NeonPanel title={t('roster')} subtitle={t('yourPlayers')}>
           <Link href="/my-players" style={{ textDecoration: 'none', color: 'inherit' }}>
-            <div style={{ 
+            <div className="clickable-card" style={{ 
               padding: '12px', 
               borderRadius: '8px', 
               background: 'rgba(0, 212, 255, 0.1)',
               border: '1px solid rgba(0, 212, 255, 0.3)',
               cursor: 'pointer',
               transition: 'all 0.3s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(0, 212, 255, 0.2)'
-              e.currentTarget.style.boxShadow = '0 0 20px rgba(0, 212, 255, 0.4)'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'rgba(0, 212, 255, 0.1)'
-              e.currentTarget.style.boxShadow = 'none'
-            }}
-            >
-              <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '8px' }}>Visualizza Giocatori</div>
-              <div style={{ fontSize: '12px', opacity: 0.8 }}>Gestisci la tua collezione</div>
+            }}>
+              <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Users size={16} />
+                {lang === 'it' ? 'Visualizza Giocatori' : 'View Players'}
+              </div>
+              <div style={{ fontSize: '12px', opacity: 0.8 }}>
+                {lang === 'it' ? 'Gestisci la tua collezione' : 'Manage your collection'}
+              </div>
             </div>
           </Link>
         </NeonPanel>
 
-        {/* Squad Overview */}
-        <NeonPanel title="Squad Overview" subtitle="La tua rosa">
+        <NeonPanel title={t('squadOverview')} subtitle={t('yourSquad')}>
           <Link href="/rosa" style={{ textDecoration: 'none', color: 'inherit' }}>
-            <div style={{ 
+            <div className="clickable-card" style={{ 
               padding: '12px', 
               borderRadius: '8px', 
               background: 'rgba(168, 85, 247, 0.1)',
               border: '1px solid rgba(168, 85, 247, 0.3)',
               cursor: 'pointer',
               transition: 'all 0.3s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(168, 85, 247, 0.2)'
-              e.currentTarget.style.boxShadow = '0 0 20px rgba(168, 85, 247, 0.4)'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'rgba(168, 85, 247, 0.1)'
-              e.currentTarget.style.boxShadow = 'none'
-            }}
-            >
-              <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '8px' }}>Rosa (21 slot)</div>
-              <div style={{ fontSize: '12px', opacity: 0.8 }}>Titolari e panchina</div>
+            }}>
+              <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <LayoutGrid size={16} />
+                {lang === 'it' ? 'Rosa (21 slot)' : 'Squad (21 slots)'}
+              </div>
+              <div style={{ fontSize: '12px', opacity: 0.8 }}>
+                {lang === 'it' ? 'Titolari e panchina' : 'Starters and bench'}
+              </div>
             </div>
           </Link>
         </NeonPanel>
 
-        {/* Tactical Goals */}
-        <NeonPanel title="Open Tactical Goals" subtitle="Obiettivi">
+        <NeonPanel title={t('tacticalGoals')} subtitle={t('goals')}>
           <div style={{ 
             padding: '12px', 
             borderRadius: '8px', 
             background: 'rgba(236, 72, 153, 0.1)',
             border: '1px solid rgba(236, 72, 153, 0.3)'
           }}>
-            <div style={{ fontSize: '12px', opacity: 0.9 }}>Prossimamente...</div>
+            <div style={{ fontSize: '12px', opacity: 0.9 }}>
+              {lang === 'it' ? 'Prossimamente...' : 'Coming soon...'}
+            </div>
           </div>
         </NeonPanel>
       </div>
 
       {/* CENTER PANEL */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '24px' }}>
-        {/* User Profile */}
-        <NeonPanel title="User Profile" style={{ width: '100%', maxWidth: '400px' }}>
+        <NeonPanel title={t('userProfile')} style={{ width: '100%', maxWidth: '400px' }}>
           <div style={{ textAlign: 'center' }}>
             <div style={{ 
               width: '80px', 
@@ -95,24 +141,24 @@ export default function DashboardPage() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '32px',
-              fontWeight: 700,
               boxShadow: '0 0 30px rgba(0, 212, 255, 0.5)'
             }}>
-              👤
+              <User size={40} color="white" />
             </div>
             <div className="neon-text" style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px' }}>
-              Utente Anonimo
+              {t('anonymousUser')}
             </div>
-            <div style={{ fontSize: '12px', opacity: 0.8, marginBottom: '4px' }}>Master Level</div>
-            <div style={{ fontSize: '12px', opacity: 0.8 }}>AI Knowledge: High ✓</div>
+            <div style={{ fontSize: '12px', opacity: 0.8, marginBottom: '4px' }}>{t('masterLevel')}</div>
+            <div style={{ fontSize: '12px', opacity: 0.8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+              {t('aiKnowledge')}: {t('high')} <CheckCircle2 size={14} style={{ color: 'var(--neon-blue)' }} />
+            </div>
           </div>
         </NeonPanel>
 
-        {/* AI Brain - Elemento Centrale */}
+        {/* AI Core - Elemento Centrale (senza emoji) */}
         <div style={{
-          width: '300px',
-          height: '300px',
+          width: '280px',
+          height: '280px',
           position: 'relative',
           display: 'flex',
           alignItems: 'center',
@@ -127,14 +173,17 @@ export default function DashboardPage() {
             animation: 'pulse 4s ease-in-out infinite'
           }} />
           <div style={{
-            fontSize: '120px',
+            width: '120px',
+            height: '120px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
             filter: 'drop-shadow(0 0 30px rgba(0, 212, 255, 0.8))',
             color: 'var(--neon-blue)',
             zIndex: 1
           }}>
-            🧠
+            <Brain size={120} strokeWidth={1.5} />
           </div>
-          {/* Linee di connessione (decorative) */}
           <div style={{
             position: 'absolute',
             width: '200%',
@@ -152,36 +201,34 @@ export default function DashboardPage() {
 
       {/* RIGHT PANEL */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        {/* Match Insights */}
-        <NeonPanel title="Match Insights" subtitle="Analisi">
+        <NeonPanel title={t('matchInsights')} subtitle={t('analysis')}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <InsightItem text="Struggles coaching press" />
-            <InsightItem text="Reluctant to change formation" />
-            <InsightItem text="Prefers quick, actionable tips" />
+            <InsightItem text={t('strugglesCoachingPress')} />
+            <InsightItem text={t('reluctantChangeFormation')} />
+            <InsightItem text={t('prefersQuickTips')} />
           </div>
         </NeonPanel>
 
-        {/* Quick Links */}
-        <NeonPanel title="Quick Links" subtitle="Navigazione">
+        <NeonPanel title={t('quickLinks')} subtitle={t('navigation')}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <QuickLink href="/dashboard" icon="🏠" text="Home" />
-            <QuickLink href="/my-players" icon="👥" text="Players" />
-            <QuickLink href="/rosa" icon="⚽" text="Squad Builder" />
-            <QuickLink href="/dashboard" icon="📊" text="Data & Analytics" />
-            <QuickLink href="/dashboard" icon="🧠" text="Memory Hub" />
-            <QuickLink href="/dashboard" icon="📋" text="Coaching" />
+            <QuickLink href="/dashboard" icon={<Home size={18} />} text={t('home')} />
+            <QuickLink href="/my-players" icon={<PlayersIcon size={18} />} text={t('players')} />
+            <QuickLink href="/rosa" icon={<LayoutGrid size={18} />} text={t('squadBuilder')} />
+            <QuickLink href="/dashboard" icon={<BarChart3 size={18} />} text={t('dataAnalytics')} />
+            <QuickLink href="/dashboard" icon={<Brain size={18} />} text={t('memoryHub')} />
+            <QuickLink href="/dashboard" icon={<ClipboardList size={18} />} text={t('coaching')} />
           </div>
         </NeonPanel>
 
-        {/* Memory Insights */}
-        <NeonPanel title="Memory Insights" subtitle="AI Learning">
+        <NeonPanel title={t('memoryInsights')} subtitle={t('aiLearning')}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <InsightItem text="Struggles against high press" color="orange" />
-            <InsightItem text="Reluctant to change formation" color="orange" />
-            <InsightItem text="Prefers quick, actionable tips" color="orange" />
+            <InsightItem text={t('strugglesHighPress')} color="orange" />
+            <InsightItem text={t('reluctantChangeFormation')} color="orange" />
+            <InsightItem text={t('prefersQuickTips')} color="orange" />
           </div>
-          <button className="neon-button" style={{ marginTop: '16px', width: '100%' }}>
-            Start Session
+          <button className="neon-button" style={{ marginTop: '16px', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+            <Zap size={16} />
+            {t('startSession')}
           </button>
         </NeonPanel>
       </div>
@@ -232,27 +279,23 @@ function InsightItem({ text, color = 'blue' }) {
       e.currentTarget.style.background = `rgba(${color === 'blue' ? '0, 212, 255' : color === 'orange' ? '255, 107, 53' : '168, 85, 247'}, 0.1)`
     }}
     >
-      <span style={{ color: colorMap[color] }}>→</span>
+      <ChevronRight size={14} style={{ color: colorMap[color] }} />
       <span style={{ flex: 1, opacity: 0.9 }}>{text}</span>
     </div>
   )
 }
 
 function QuickLink({ href, icon, text }) {
-  // Mappa href corretti
   const hrefMap = {
-    '/': '/rosa',
+    '/dashboard': '/dashboard',
     '/my-players': '/my-players',
-    '/squad': '/rosa',
-    '/analytics': '/dashboard',
-    '/memory': '/dashboard',
-    '/coaching': '/dashboard'
+    '/rosa': '/rosa',
   }
   const finalHref = hrefMap[href] || href
   
   return (
     <Link href={finalHref} style={{ textDecoration: 'none', color: 'inherit' }}>
-      <div style={{ 
+      <div className="clickable-card" style={{ 
         display: 'flex', 
         alignItems: 'center', 
         gap: '12px',
@@ -263,21 +306,10 @@ function QuickLink({ href, icon, text }) {
         fontSize: '14px',
         cursor: 'pointer',
         transition: 'all 0.3s ease'
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.background = 'rgba(0, 212, 255, 0.2)'
-        e.currentTarget.style.boxShadow = '0 0 20px rgba(0, 212, 255, 0.4)'
-        e.currentTarget.style.transform = 'translateX(4px)'
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.background = 'rgba(0, 212, 255, 0.1)'
-        e.currentTarget.style.boxShadow = 'none'
-        e.currentTarget.style.transform = 'translateX(0)'
-      }}
-      >
-        <span style={{ fontSize: '18px' }}>{icon}</span>
+      }}>
+        <span style={{ color: 'var(--neon-blue)' }}>{icon}</span>
         <span style={{ flex: 1, fontWeight: 500 }}>{text}</span>
-        <span style={{ color: 'var(--neon-blue)', opacity: 0.7 }}>→</span>
+        <ChevronRight size={16} style={{ color: 'var(--neon-blue)', opacity: 0.7 }} />
       </div>
     </Link>
   )

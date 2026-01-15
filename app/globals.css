@@ -482,12 +482,62 @@ body > * {
   padding: 24px;
 }
 
+/* Clickable Card Hover Effect */
+.clickable-card:hover {
+  background: rgba(0, 212, 255, 0.2) !important;
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.4) !important;
+  transform: translateY(-2px);
+}
+
+/* Spin Animation */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Dashboard Responsive */
+.dashboard-container {
+  grid-template-columns: minmax(280px, 300px) 1fr minmax(280px, 300px) !important;
+}
+
 /* Responsive */
+@media (max-width: 1200px) {
+  .dashboard-container {
+    grid-template-columns: 1fr !important;
+    gap: 20px !important;
+  }
+  
+  .dashboard-container > div {
+    max-width: 100% !important;
+  }
+}
+
 @media (max-width: 920px) {
   .preview-row { grid-template-columns: 1fr; }
   .grid { grid-template-columns: 1fr; }
   .grid-futuristic { grid-template-columns: 1fr; }
   .rosa-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  
+  .dashboard-container {
+    padding: 16px !important;
+  }
+  
+  .neon-panel {
+    padding: 16px !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .rosa-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  
+  .dashboard-container {
+    padding: 12px !important;
+    gap: 16px !important;
+  }
 }
 
 /* Scrollbar styling */

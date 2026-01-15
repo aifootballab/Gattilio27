@@ -3,6 +3,8 @@
 import React from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
+import { useTranslation } from '@/lib/i18n'
+import { ArrowLeft, Users, Upload, ChevronDown, ChevronUp, Edit, AlertCircle, CheckCircle2 } from 'lucide-react'
 
 export default function MyPlayersPage() {
   const [players, setPlayers] = React.useState([])
