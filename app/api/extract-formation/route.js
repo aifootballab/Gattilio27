@@ -62,9 +62,19 @@ export async function POST(req) {
     }
 
     const body = await req.json().catch(() => null)
+    if (!body) {
+      return NextResponse.json({ error: 'Request body required' }, { status: 400 })
+    }
+    
     const imageDataUrl = body?.imageDataUrl
     if (typeof imageDataUrl !== 'string' || !imageDataUrl.startsWith('data:image/')) {
       return NextResponse.json({ error: 'imageDataUrl non valido' }, { status: 400 })
+    }
+    
+    // Validazione dimensione (max 10MB quando decodificato)
+    const base64Data = imageDataUrl.split(',')[1]
+    if (base64Data && base64Data.length > 10 * 1024 * 1024) {
+      return NextResponse.json({ error: 'Immagine troppo grande (max 10MB)' }, { status: 400 })
     }
 
     const prompt = `

@@ -115,13 +115,13 @@ function OpponentFormationView() {
       const data = await res.json()
       
       if (!res.ok) {
-        throw new Error(data?.error || `Errore estrazione (${res.status})`)
+        throw new Error(data?.error || `${t('extractionError')} (${res.status})`)
       }
       
       setFormation(data.formation)
-      setFormationName(data.formation?.team_name || `Formazione Avversaria - ${new Date().toLocaleDateString('it-IT')}`)
+      setFormationName(data.formation?.team_name || `${t('opponentFormationTitle')} - ${new Date().toLocaleDateString(lang === 'it' ? 'it-IT' : 'en-US')}`)
     } catch (err) {
-      setError(err?.message || (lang === 'it' ? 'Errore estrazione' : 'Extraction error'))
+      setError(err?.message || t('extractionError'))
     } finally {
       setIsExtracting(false)
     }
@@ -134,7 +134,7 @@ function OpponentFormationView() {
     try {
       const token = authStatus.token
       if (!token || typeof token !== 'string' || token.length < 10) {
-        throw new Error(lang === 'it' ? 'Token di autenticazione non valido. Ricarica la pagina e riprova.' : 'Invalid authentication token. Reload the page and try again.')
+        throw new Error(t('invalidAuthToken'))
       }
       
       const res = await fetch('/api/supabase/save-opponent-formation', {
@@ -153,19 +153,19 @@ function OpponentFormationView() {
       const data = await res.json()
       
       if (!res.ok) {
-        throw new Error(`${data?.error || `Errore salvataggio (${res.status})`}${data?.details ? ` — ${data.details}` : ''}`)
+        throw new Error(`${data?.error || `${t('saveError')} (${res.status})`}${data?.details ? ` — ${data.details}` : ''}`)
       }
       
-      setSaveMsg(lang === 'it' ? '✅ Formazione avversaria salvata' : '✅ Opponent formation saved')
+      setSaveMsg(`✅ ${t('formationSaved')}`)
     } catch (e) {
-      setSaveMsg(`❌ ${e?.message || (lang === 'it' ? 'Errore salvataggio' : 'Save error')}`)
+      setSaveMsg(`❌ ${e?.message || t('saveError')}`)
     }
   }
 
-  // Mappatura posizioni campo in italiano
+  // Mappatura posizioni campo
   const fieldPositionLabels = {
     it: {
-      goalkeeper: 'Portiere',
+      goalkeeper: t('goalkeeper'),
       left_back: 'Terzino Sinistro',
       left_center_back: 'Difensore Centrale Sinistro',
       right_center_back: 'Difensore Centrale Destro',
@@ -178,7 +178,7 @@ function OpponentFormationView() {
       right_forward: 'Ala Destra',
     },
     en: {
-      goalkeeper: 'Goalkeeper',
+      goalkeeper: t('goalkeeper'),
       left_back: 'Left Back',
       left_center_back: 'Left Center Back',
       right_center_back: 'Right Center Back',
@@ -234,12 +234,12 @@ function OpponentFormationView() {
 
   // Componente Card Giocatore
   const PlayerCard = ({ player, lang, fieldPositionLabels }) => {
-    const positionLabel = fieldPositionLabels[player.field_position] || player.field_position
+    const positionLabel = fieldPositionLabels[lang][player.field_position] || player.field_position
     const roleLabel = player.position || '-'
     
     return (
       <div
-        className="neon-panel"
+        className="neon-panel player-card"
         style={{
           padding: '16px',
           background: 'rgba(0, 212, 255, 0.1)',
@@ -282,7 +282,7 @@ function OpponentFormationView() {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', opacity: 0.8 }}>
             <span style={{ fontSize: '12px' }}>
-              {lang === 'it' ? 'Ruolo:' : 'Role:'} <strong>{roleLabel}</strong>
+              {t('role')}: <strong>{roleLabel}</strong>
             </span>
           </div>
           
@@ -303,9 +303,9 @@ function OpponentFormationView() {
   }
 
   return (
-    <main className="container" style={{ padding: '24px', minHeight: '100vh' }}>
+    <main className="container opponent-formation-page" style={{ padding: '24px', minHeight: '100vh' }}>
       {/* Language Switcher */}
-      <div style={{
+      <div className="language-switcher" style={{
         position: 'fixed',
         top: '20px',
         right: '20px',
@@ -353,16 +353,14 @@ function OpponentFormationView() {
       <div style={{ marginBottom: '24px' }}>
         <Link href="/dashboard" className="btn" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
           <ArrowLeft size={16} />
-          {lang === 'it' ? 'Torna alla Dashboard' : 'Back to Dashboard'}
+          {t('backToDashboardBtn')}
         </Link>
       </div>
 
       <header className="header">
-        <h1>{lang === 'it' ? 'Formazione Avversaria' : 'Opponent Formation'}</h1>
+        <h1>{t('opponentFormationTitle')}</h1>
         <p style={{ opacity: 0.8, marginTop: '8px' }}>
-          {lang === 'it' 
-            ? 'Carica screenshot della formazione avversaria per analisi e contromisure'
-            : 'Upload opponent formation screenshot for analysis and countermeasures'}
+          {t('opponentFormationSubtitle')}
         </p>
       </header>
 
@@ -373,6 +371,7 @@ function OpponentFormationView() {
           onDragLeave={() => setIsDragging(false)}
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
+          className="upload-area"
           style={{
             border: `2px dashed ${isDragging ? 'var(--neon-blue)' : 'rgba(0, 212, 255, 0.3)'}`,
             borderRadius: '12px',
@@ -386,10 +385,10 @@ function OpponentFormationView() {
         >
           <Upload size={48} style={{ color: 'var(--neon-blue)', marginBottom: '16px' }} />
           <div style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>
-            {lang === 'it' ? 'Trascina screenshot qui' : 'Drag screenshot here'}
+            {t('dragScreenshotHere')}
           </div>
           <div style={{ opacity: 0.7, fontSize: '14px' }}>
-            {lang === 'it' ? 'o clicca per selezionare' : 'or click to select'}
+            {t('orClickToSelect')}
           </div>
           <input
             ref={fileInputRef}
@@ -404,12 +403,12 @@ function OpponentFormationView() {
       {/* Image Preview - Sempre visibile se caricata */}
       {imageDataUrl && (
         <div className="neon-panel" style={{ marginBottom: '24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
             <h3 style={{ margin: 0 }}>
-              {lang === 'it' ? 'Screenshot Caricato' : 'Uploaded Screenshot'}
+              {t('uploadedScreenshot')}
             </h3>
             {!formation && (
-              <div style={{ display: 'flex', gap: '12px' }}>
+              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                 <button
                   onClick={extractFormation}
                   disabled={isExtracting}
@@ -419,12 +418,12 @@ function OpponentFormationView() {
                   {isExtracting ? (
                     <>
                       <Loader2 size={16} className="spin" />
-                      {lang === 'it' ? 'Estrazione...' : 'Extracting...'}
+                      {t('extracting')}
                     </>
                   ) : (
                     <>
                       <Target size={16} />
-                      {lang === 'it' ? 'Estrai Formazione' : 'Extract Formation'}
+                      {t('extractFormation')}
                     </>
                   )}
                 </button>
@@ -442,6 +441,7 @@ function OpponentFormationView() {
             <img 
               src={imageDataUrl} 
               alt="Screenshot formazione" 
+              className="formation-screenshot"
               style={{ 
                 maxWidth: '100%', 
                 maxHeight: '600px', 
@@ -453,7 +453,7 @@ function OpponentFormationView() {
           </div>
           {formation && (
             <div style={{ marginTop: '16px', padding: '12px', background: 'rgba(0, 255, 0, 0.1)', borderRadius: '8px', border: '1px solid rgba(0, 255, 0, 0.3)', textAlign: 'center', fontSize: '14px', color: 'rgba(0, 255, 0, 0.9)' }}>
-              ✅ {lang === 'it' ? 'Formazione estratta correttamente' : 'Formation extracted successfully'} - {formation.players?.length || 0} {lang === 'it' ? 'giocatori rilevati' : 'players detected'}
+              ✅ {t('formationExtractedSuccess')} - {formation.players?.length || 0} {t('playersDetected')}
             </div>
           )}
         </div>
@@ -472,11 +472,11 @@ function OpponentFormationView() {
         <div>
           {/* Formation Info */}
           <div className="neon-panel" style={{ marginBottom: '24px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '16px' }}>
+            <div className="formation-info-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '16px' }}>
               {formation.formation && (
                 <div>
                   <div style={{ fontSize: '12px', opacity: 0.8, marginBottom: '4px' }}>
-                    {lang === 'it' ? 'Formazione' : 'Formation'}
+                    {t('formation')}
                   </div>
                   <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--neon-blue)' }}>
                     {formation.formation}
@@ -486,7 +486,7 @@ function OpponentFormationView() {
               {formation.overall_strength && (
                 <div>
                   <div style={{ fontSize: '12px', opacity: 0.8, marginBottom: '4px' }}>
-                    {lang === 'it' ? 'Forza Complessiva' : 'Overall Strength'}
+                    {t('overallStrength')}
                   </div>
                   <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--neon-purple)' }}>
                     {formation.overall_strength}
@@ -496,7 +496,7 @@ function OpponentFormationView() {
               {formation.tactical_style && (
                 <div>
                   <div style={{ fontSize: '12px', opacity: 0.8, marginBottom: '4px' }}>
-                    {lang === 'it' ? 'Stile Tattico' : 'Tactical Style'}
+                    {t('tacticalStyle')}
                   </div>
                   <div style={{ fontSize: '18px', fontWeight: 600 }}>
                     {formation.tactical_style}
@@ -506,7 +506,7 @@ function OpponentFormationView() {
               {formation.team_name && (
                 <div>
                   <div style={{ fontSize: '12px', opacity: 0.8, marginBottom: '4px' }}>
-                    {lang === 'it' ? 'Squadra' : 'Team'}
+                    {t('team')}
                   </div>
                   <div style={{ fontSize: '18px', fontWeight: 600 }}>
                     {formation.team_name}
@@ -516,12 +516,12 @@ function OpponentFormationView() {
             </div>
 
             {/* Save Form */}
-            <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', marginTop: '16px' }}>
+            <div className="save-form" style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', marginTop: '16px' }}>
               <input
                 type="text"
                 value={formationName}
                 onChange={(e) => setFormationName(e.target.value)}
-                placeholder={lang === 'it' ? 'Nome formazione (opzionale)' : 'Formation name (optional)'}
+                placeholder={t('formationNameOptional')}
                 style={{
                   flex: 1,
                   minWidth: '200px',
@@ -540,7 +540,7 @@ function OpponentFormationView() {
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
               >
                 <Save size={16} />
-                {lang === 'it' ? 'Salva Formazione' : 'Save Formation'}
+                {t('saveFormation')}
               </button>
             </div>
             {saveMsg && (
@@ -551,14 +551,89 @@ function OpponentFormationView() {
           </div>
 
           {/* Players List - Organized by Lines */}
+          <div className="neon-panel" style={{ marginTop: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
+              <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <Users size={24} style={{ color: 'var(--neon-blue)' }} />
+                {t('playersDetectedFromScreenshot')} ({formation.players?.length || 0})
+              </h3>
+              <div style={{ fontSize: '12px', opacity: 0.7, fontStyle: 'italic' }}>
+                {t('verifyPlayersRead')}
+              </div>
+            </div>
+            
+            {(() => {
+              const lines = organizePlayersByLine(formation.players)
+              
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                  {/* Portiere */}
+                  {lines.goalkeeper.length > 0 && (
+                    <div>
+                      <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--neon-blue)', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                        {t('goalkeeper')}
+                      </div>
+                      <div className="players-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px' }}>
+                        {lines.goalkeeper.map((player, idx) => (
+                          <PlayerCard key={idx} player={player} lang={lang} fieldPositionLabels={fieldPositionLabels} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Difesa */}
+                  {lines.defense.length > 0 && (
+                    <div>
+                      <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--neon-blue)', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                        {t('defense')} ({lines.defense.length})
+                      </div>
+                      <div className="players-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px' }}>
+                        {lines.defense.map((player, idx) => (
+                          <PlayerCard key={idx} player={player} lang={lang} fieldPositionLabels={fieldPositionLabels} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Centrocampo */}
+                  {lines.midfield.length > 0 && (
+                    <div>
+                      <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--neon-purple)', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                        {t('midfield')} ({lines.midfield.length})
+                      </div>
+                      <div className="players-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px' }}>
+                        {lines.midfield.map((player, idx) => (
+                          <PlayerCard key={idx} player={player} lang={lang} fieldPositionLabels={fieldPositionLabels} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Attacco */}
+                  {lines.attack.length > 0 && (
+                    <div>
+                      <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--neon-pink)', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                        {t('attack')} ({lines.attack.length})
+                      </div>
+                      <div className="players-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px' }}>
+                        {lines.attack.map((player, idx) => (
+                          <PlayerCard key={idx} player={player} lang={lang} fieldPositionLabels={fieldPositionLabels} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
+          </div>
 
           {/* Substitutes & Reserves */}
           {(formation.substitutes?.length > 0 || formation.reserves?.length > 0) && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px', marginTop: '24px' }}>
+            <div className="substitutes-reserves-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px', marginTop: '24px' }}>
               {formation.substitutes?.length > 0 && (
                 <div className="neon-panel">
                   <h3 style={{ marginBottom: '16px' }}>
-                    {lang === 'it' ? 'Sostituti' : 'Substitutes'} ({formation.substitutes.length})
+                    {t('substitutes')} ({formation.substitutes.length})
                   </h3>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     {formation.substitutes.map((sub, idx) => (
@@ -572,7 +647,7 @@ function OpponentFormationView() {
               {formation.reserves?.length > 0 && (
                 <div className="neon-panel">
                   <h3 style={{ marginBottom: '16px' }}>
-                    {lang === 'it' ? 'Riserve' : 'Reserves'} ({formation.reserves.length})
+                    {t('reserves')} ({formation.reserves.length})
                   </h3>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     {formation.reserves.map((res, idx) => (
@@ -593,7 +668,7 @@ function OpponentFormationView() {
               className="btn"
               style={{ background: 'rgba(236, 72, 153, 0.2)', borderColor: 'var(--neon-pink)' }}
             >
-              {lang === 'it' ? 'Carica Altra Formazione' : 'Load Another Formation'}
+              {t('loadAnotherFormation')}
             </button>
           </div>
         </div>

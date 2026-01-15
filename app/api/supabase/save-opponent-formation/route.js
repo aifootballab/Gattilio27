@@ -99,7 +99,26 @@ export async function POST(req) {
     }
 
     const formation = body.formation
-    const name = typeof body.name === 'string' ? body.name : `Formazione Avversaria - ${new Date().toLocaleDateString('it-IT')}`
+    
+    // Validazione struttura formation
+    if (typeof formation !== 'object' || !Array.isArray(formation.players)) {
+      return NextResponse.json({ error: 'Invalid formation structure' }, { status: 400 })
+    }
+    
+    // Limite giocatori (max 11 titolari + sostituti/riserve)
+    if (formation.players.length > 11) {
+      return NextResponse.json({ error: 'Too many players (max 11)' }, { status: 400 })
+    }
+    
+    // Sanitizzazione nome (max 200 caratteri)
+    const name = typeof body.name === 'string' 
+      ? body.name.slice(0, 200).trim() 
+      : `Formazione Avversaria - ${new Date().toLocaleDateString('it-IT')}`
+    
+    // Sanitizzazione screenshot_url (max 2000 caratteri)
+    const screenshotUrl = typeof body.screenshot_url === 'string' && body.screenshot_url.length <= 2000
+      ? body.screenshot_url
+      : null
 
     // Prepara payload per squad_formations
     const payload = {
@@ -111,9 +130,9 @@ export async function POST(req) {
       overall_strength: formation.overall_strength || null,
       tactical_style: formation.tactical_style || null,
       manager_name: formation.manager_name || null,
-      players: Array.isArray(formation.players) ? formation.players : [],
+      players: Array.isArray(formation.players) ? formation.players.slice(0, 11) : [],
       selected_player: null,
-      screenshot_url: body.screenshot_url || null,
+      screenshot_url: screenshotUrl,
       metadata: {
         substitutes: Array.isArray(formation.substitutes) ? formation.substitutes : [],
         reserves: Array.isArray(formation.reserves) ? formation.reserves : [],

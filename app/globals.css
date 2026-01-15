@@ -547,6 +547,46 @@ body > * {
   .player-detail-header {
     flex-direction: column !important;
   }
+  
+  /* Opponent Formation Responsive */
+  .opponent-formation-page {
+    padding: 16px !important;
+  }
+  
+  .language-switcher {
+    top: 10px !important;
+    right: 10px !important;
+    padding: 6px !important;
+  }
+  
+  .formation-info-grid {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .players-grid {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .substitutes-reserves-grid {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .save-form {
+    flex-direction: column !important;
+  }
+  
+  .save-form input {
+    width: 100% !important;
+    min-width: unset !important;
+  }
+  
+  .formation-screenshot {
+    max-height: 400px !important;
+  }
+  
+  .upload-area {
+    padding: 32px 16px !important;
+  }
 }
 
 /* Scrollbar styling */
