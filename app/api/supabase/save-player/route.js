@@ -370,68 +370,23 @@ export async function POST(req) {
       console.log('[save-player] user_rosa exists, id:', rosa.id)
     }
 
-    // Funzione per confrontare build (skills, boosters, stats)
-    const compareBuilds = (existingBuildData, newPlayer) => {
-      // Confronta skills
-      const existingSkills = Array.isArray(existingBuildData?.source_data?.extracted?.skills) 
-        ? existingBuildData.source_data.extracted.skills.sort().join(',')
-        : ''
-      const newSkills = Array.isArray(newPlayer?.skills) 
-        ? newPlayer.skills.sort().join(',')
-        : ''
-      if (existingSkills !== newSkills) {
-        console.log('[save-player] Build diverso: skills cambiate')
-        return false
-      }
-      
-      // Confronta boosters (nome del booster attivo)
-      const existingBooster = existingBuildData?.active_booster_name || null
-      const newBooster = Array.isArray(newPlayer?.boosters) && newPlayer.boosters[0]?.name 
-        ? String(newPlayer.boosters[0].name)
-        : null
-      if (existingBooster !== newBooster) {
-        console.log('[save-player] Build diverso: booster cambiato', { existing: existingBooster, new: newBooster })
-        return false
-      }
-      
-      // Confronta OVR (se cambia significativamente, potrebbe essere un build diverso)
-      const existingOVR = existingBuildData?.final_overall_rating || null
-      const newOVR = typeof newPlayer?.overall_rating === 'number' ? newPlayer.overall_rating : toInt(newPlayer?.overall_rating)
-      if (existingOVR !== null && newOVR !== null && Math.abs(existingOVR - newOVR) > 2) {
-        console.log('[save-player] Build diverso: OVR cambiato significativamente', { existing: existingOVR, new: newOVR })
-        return false
-      }
-      
-      // Confronta level
-      const existingLevel = existingBuildData?.current_level || null
-      const newLevel = toInt(newPlayer?.level_current)
-      if (existingLevel !== null && newLevel !== null && existingLevel !== newLevel) {
-        console.log('[save-player] Build diverso: level cambiato', { existing: existingLevel, new: newLevel })
-        return false
-      }
-      
-      return true // Build identico
-    }
-
-    // Controllo duplicati: verifica se lo stesso player_base_id è già presente nella rosa
+    // Controllo: rosa piena (21 slot occupati)?
     const existingBuildIds = ensureArrayLen(rosa.player_build_ids || [], 21).filter(id => id !== null && id !== undefined)
+    const isRosaFull = existingBuildIds.length >= 21
+    
+    // Controllo: giocatore già presente in rosa?
     let existingBuildIdInRosa = null
     let existingSlotIndex = null
-    let existingBuildData = null
     
     if (existingBuildIds.length > 0) {
-      // Recupera tutti i build esistenti con dati completi per confronto
       const { data: existingBuilds } = await admin
         .from('player_builds')
-        .select('id, player_base_id, active_booster_name, final_overall_rating, current_level, source_data')
+        .select('id, player_base_id')
         .in('id', existingBuildIds)
       
-      // Cerca se c'è già un build con lo stesso player_base_id
       const duplicateBuild = existingBuilds?.find(b => b.player_base_id === playerBaseId)
       if (duplicateBuild) {
         existingBuildIdInRosa = duplicateBuild.id
-        existingBuildData = duplicateBuild
-        // Trova lo slot dove si trova
         existingSlotIndex = rosa.player_build_ids.findIndex(id => id === duplicateBuild.id)
         console.log('[save-player] Giocatore già presente nella rosa:', { 
           player_name: playerName, 
@@ -442,13 +397,19 @@ export async function POST(req) {
       }
     }
 
-    // 2) player_builds: confronta build e decide se creare nuovo o aggiornare esistente
-    let buildId = null
-    let isNewBuild = false
-    let wasMoved = false
-    let buildChanged = false
+    // Se rosa piena E giocatore non è già in rosa → errore
+    if (isRosaFull && !existingBuildIdInRosa) {
+      return NextResponse.json(
+        { 
+          error: 'Rosa piena',
+          message: 'La rosa è completa (21 giocatori). Vai a "I Miei Giocatori" per rimuovere un giocatore prima di aggiungerne uno nuovo.',
+          rosa_full: true
+        },
+        { status: 400 }
+      )
+    }
 
-    // Prepara payload per nuovo build
+    // Prepara payload per build
     const buildPayload = {
       user_id: userId,
       player_base_id: playerBaseId,
@@ -461,69 +422,31 @@ export async function POST(req) {
       source_data: { extracted: player },
     }
 
-    if (existingBuildIdInRosa && existingBuildData) {
-      // Giocatore già presente nella rosa: confronta build
-      const buildsAreIdentical = compareBuilds(existingBuildData, player)
-      
-      if (buildsAreIdentical) {
-        // Build identico: aggiorna e sposta se necessario
-        buildId = existingBuildIdInRosa
-        console.log('[save-player] Build identico, aggiornando build esistente dalla rosa, id:', buildId)
-        const { error: updateErr } = await admin.from('player_builds').update(buildPayload).eq('id', buildId)
-        if (updateErr) {
-          console.error('[save-player] player_builds update failed:', { error: updateErr.message, code: updateErr.code, details: updateErr.details })
-          throw new Error(`player_builds update failed: ${updateErr.message}${updateErr.details ? ` (${updateErr.details})` : ''}`)
-        }
-        wasMoved = existingSlotIndex !== slotIndex
-      } else {
-        // Build diverso: crea nuovo build (stesso giocatore ma build diversa)
-        buildId = null // Forza creazione nuovo build
-        buildChanged = true
-        console.log('[save-player] Build diverso per giocatore già presente, creando nuovo build')
-      }
-    }
+    let buildId = null
+    let isNewBuild = false
+    let wasMoved = false
 
-    if (!buildId) {
-      // Cerca se esiste un build per user_id + player_base_id (ma non nella rosa)
-      const { data: existingBuild } = await admin
-        .from('player_builds')
-        .select('id, active_booster_name, final_overall_rating, current_level, source_data')
-        .eq('user_id', userId)
-        .eq('player_base_id', playerBaseId)
-        .maybeSingle()
-
-      if (existingBuild && !buildChanged) {
-        // Build esiste ma non è nella rosa: confronta
-        const buildsAreIdentical = compareBuilds(existingBuild, player)
-        
-        if (buildsAreIdentical) {
-          // Build identico: riutilizza
-          buildId = existingBuild.id
-          console.log('[save-player] Riutilizzando build esistente (non in rosa), id:', buildId)
-          const { error: updateErr } = await admin.from('player_builds').update(buildPayload).eq('id', buildId)
-          if (updateErr) {
-            console.error('[save-player] player_builds update failed:', { error: updateErr.message, code: updateErr.code, details: updateErr.details })
-            throw new Error(`player_builds update failed: ${updateErr.message}${updateErr.details ? ` (${updateErr.details})` : ''}`)
-          }
-        } else {
-          // Build diverso: crea nuovo
-          buildId = null // Forza creazione
-          console.log('[save-player] Build diverso per giocatore esistente (non in rosa), creando nuovo build')
-        }
+    if (existingBuildIdInRosa) {
+      // Giocatore già presente in rosa → sempre aggiorna build esistente (sovrascrivi)
+      buildId = existingBuildIdInRosa
+      console.log('[save-player] Giocatore già in rosa, aggiornando build esistente, id:', buildId)
+      const { error: updateErr } = await admin.from('player_builds').update(buildPayload).eq('id', buildId)
+      if (updateErr) {
+        console.error('[save-player] player_builds update failed:', { error: updateErr.message, code: updateErr.code, details: updateErr.details })
+        throw new Error(`player_builds update failed: ${updateErr.message}${updateErr.details ? ` (${updateErr.details})` : ''}`)
       }
-
-      if (!buildId) {
-        // Crea nuovo build (primo build o build diverso)
-        console.log('[save-player] Inserting new player_build...')
-        const { data: b, error: bErr } = await admin.from('player_builds').insert(buildPayload).select('id').single()
-        if (bErr) {
-          console.error('[save-player] player_builds insert failed:', { error: bErr.message, code: bErr.code, details: bErr.details, hint: bErr.hint })
-          throw new Error(`player_builds insert failed: ${bErr.message}${bErr.details ? ` (${bErr.details})` : ''}${bErr.hint ? ` Hint: ${bErr.hint}` : ''}`)
-        }
-        buildId = b.id
-        isNewBuild = true
-        console.log('[save-player] player_builds inserted, id:', buildId, buildChanged ? '(nuovo build per giocatore esistente)' : '(primo build)')
+      wasMoved = existingSlotIndex !== slotIndex
+    } else {
+      // Giocatore nuovo → crea nuovo build
+      console.log('[save-player] Giocatore nuovo, creando nuovo player_build...')
+      const { data: b, error: bErr } = await admin.from('player_builds').insert(buildPayload).select('id').single()
+      if (bErr) {
+        console.error('[save-player] player_builds insert failed:', { error: bErr.message, code: bErr.code, details: bErr.details, hint: bErr.hint })
+        throw new Error(`player_builds insert failed: ${bErr.message}${bErr.details ? ` (${bErr.details})` : ''}${bErr.hint ? ` Hint: ${bErr.hint}` : ''}`)
       }
+      buildId = b.id
+      isNewBuild = true
+      console.log('[save-player] player_builds inserted, id:', buildId)
     }
 
     // Aggiorna rosa: sposta build nello slot nuovo, svuota slot precedente se diverso
@@ -584,7 +507,6 @@ export async function POST(req) {
       was_moved: wasMoved,
       previous_slot: wasMoved ? existingSlotIndex : null,
       is_new_build: isNewBuild,
-      build_changed: buildChanged,
     })
   } catch (e) {
     console.error('[save-player] Unhandled exception:', {

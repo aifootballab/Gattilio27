@@ -231,19 +231,31 @@ function RosaProductionPage() {
       const data = await res.json().catch(() => ({}))
       
       if (!res.ok) {
+        // Se rosa piena, mostra messaggio con link a /my-players
+        if (data.rosa_full) {
+          const errorMsg = data.message || (lang === 'it' 
+            ? 'Rosa piena. Vai a "I Miei Giocatori" per rimuovere un giocatore.'
+            : 'Squad full. Go to "My Players" to remove a player.')
+          setSupabaseMsg(
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ color: '#EF4444' }}>❌ {errorMsg}</div>
+              <Link href="/my-players" className="btn" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', alignSelf: 'flex-start' }}>
+                <Users size={16} />
+                {t('myPlayers')}
+              </Link>
+            </div>
+          )
+          return
+        }
         throw new Error(`${data?.error || `Errore salvataggio (${res.status})`}${data?.details ? ` — ${data.details}` : ''}`)
       }
       
       // Messaggio informativo basato sul risultato
       let msg = ''
-      if (data.build_changed) {
+      if (data.was_duplicate && data.was_moved) {
         msg = lang === 'it' 
-          ? `✅ Nuovo build creato (giocatore già presente ma con build diversa - nuove abilità/booster) - slot ${data.slot}`
-          : `✅ New build created (player already present but with different build - new skills/booster) - slot ${data.slot}`
-      } else if (data.was_duplicate && data.was_moved) {
-        msg = lang === 'it' 
-          ? `✅ Giocatore già presente (slot ${data.previous_slot}), spostato in slot ${data.slot}`
-          : `✅ Player already present (slot ${data.previous_slot}), moved to slot ${data.slot}`
+          ? `✅ Giocatore già presente (slot ${data.previous_slot}), aggiornato e spostato in slot ${data.slot}`
+          : `✅ Player already present (slot ${data.previous_slot}), updated and moved to slot ${data.slot}`
       } else if (data.was_duplicate) {
         msg = lang === 'it'
           ? `✅ Giocatore già presente, dati aggiornati (slot ${data.slot})`
