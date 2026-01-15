@@ -438,12 +438,20 @@ function RosaProductionPage() {
                     <div className="kv">
                       <div><b>{t('name')}</b>: {g.player?.player_name ?? '—'}</div>
                       <div><b>OVR</b>: {g.player?.overall_rating ?? '—'} · <b>{t('role')}</b>: {g.player?.position ?? '—'}</div>
-                      <div><b>{t('role')}</b>: {g.player?.role ?? '—'}</div>
+                      {g.player?.role && <div><b>{t('role')}</b>: {g.player.role}</div>}
                       <div><b>{t('card')}</b>: {g.player?.card_type ?? '—'} · <b>{t('team')}</b>: {g.player?.team ?? '—'}</div>
-                      <div><b>{t('boosters')}</b>: {Array.isArray(g.player?.boosters) ? g.player.boosters.filter((b) => b?.name || b?.effect).map((b) => `${b.name ?? '—'} (${b.effect ?? '—'})`).join(', ') : '—'}</div>
-                      {Array.isArray(g.missing_screens) && g.missing_screens.length ? <div><b>{t('missing')}</b>: {g.missing_screens.join(', ')}</div> : null}
+                      {Array.isArray(g.player?.boosters) && g.player.boosters.length > 0 && (
+                        <div><b>{t('boosters')}</b>: {g.player.boosters.filter((b) => b?.name || b?.effect).map((b) => `${b.name ?? '—'} (${b.effect ?? '—'})`).join(', ')}</div>
+                      )}
+                      {Array.isArray(g.player?.skills) && g.player.skills.length > 0 && (
+                        <div><b>{t('skills')}</b>: {g.player.skills.slice(0, 5).join(', ')}{g.player.skills.length > 5 ? ` +${g.player.skills.length - 5}` : ''}</div>
+                      )}
+                      {Array.isArray(g.missing_screens) && g.missing_screens.length > 0 && (
+                        <div style={{ marginTop: '12px', padding: '8px', background: 'rgba(255, 107, 53, 0.1)', borderRadius: '6px', border: '1px solid rgba(255, 107, 53, 0.3)' }}>
+                          <b style={{ color: 'var(--neon-orange)' }}>⚠️ {t('missing')}:</b> {g.missing_screens.join(', ')}
+                        </div>
+                      )}
                     </div>
-                    <textarea className="json" value={JSON.stringify(g.player ?? {}, null, 2)} readOnly />
 
                     <label className="label">
                       {t('slot')} ({lang === 'it' ? '0-10 titolari, 11-20 panchina' : '0-10 starters, 11-20 bench'})
