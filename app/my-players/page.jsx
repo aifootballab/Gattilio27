@@ -247,10 +247,14 @@ function PlayerCard({ player, t, lang }) {
           {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
           {isExpanded ? t('hide') : t('details')}
         </button>
-        <button className="btn small primary" style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-          <Edit size={14} />
-          {t('edit')}
-        </button>
+        <Link 
+          href={`/player/${player.build_id}`}
+          className="btn small primary" 
+          style={{ flex: 1, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+        >
+          <Target size={14} />
+          {lang === 'it' ? 'Scheda Completa' : 'Full Profile'}
+        </Link>
       </div>
 
       {isExpanded && (
