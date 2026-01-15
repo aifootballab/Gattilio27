@@ -32,9 +32,57 @@ function normalizePlayer(p) {
   const boosters = boostersRaw.slice(0, 4).map((b) => ({
     name: typeof b?.name === 'string' ? b.name : null,
     effect: typeof b?.effect === 'string' ? b.effect : null,
+    activation_condition: typeof b?.activation_condition === 'string' ? b.activation_condition : null,
   }))
 
   const skills = Array.isArray(p?.skills) ? p.skills.filter((s) => typeof s === 'string').slice(0, 40) : []
+  const comSkills = Array.isArray(p?.com_skills) ? p.com_skills.filter((s) => typeof s === 'string').slice(0, 20) : []
+  const aiPlaystyles = Array.isArray(p?.ai_playstyles) ? p.ai_playstyles.filter((s) => typeof s === 'string').slice(0, 10) : []
+  const additionalPositions = Array.isArray(p?.additional_positions) ? p.additional_positions.filter((s) => typeof s === 'string').slice(0, 10) : []
+
+  // Normalizza base_stats se presente
+  let baseStats = null
+  if (p?.base_stats && typeof p.base_stats === 'object') {
+    baseStats = {
+      overall_rating: toNumber(p.base_stats.overall_rating) || toNumber(p?.overall_rating),
+      attacking: p.base_stats.attacking && typeof p.base_stats.attacking === 'object' ? {
+        offensive_awareness: toNumber(p.base_stats.attacking.offensive_awareness),
+        ball_control: toNumber(p.base_stats.attacking.ball_control),
+        dribbling: toNumber(p.base_stats.attacking.dribbling),
+        tight_possession: toNumber(p.base_stats.attacking.tight_possession),
+        low_pass: toNumber(p.base_stats.attacking.low_pass),
+        lofted_pass: toNumber(p.base_stats.attacking.lofted_pass),
+        finishing: toNumber(p.base_stats.attacking.finishing),
+        heading: toNumber(p.base_stats.attacking.heading),
+        place_kicking: toNumber(p.base_stats.attacking.place_kicking),
+        curl: toNumber(p.base_stats.attacking.curl),
+      } : null,
+      defending: p.base_stats.defending && typeof p.base_stats.defending === 'object' ? {
+        defensive_awareness: toNumber(p.base_stats.defending.defensive_awareness),
+        defensive_engagement: toNumber(p.base_stats.defending.defensive_engagement),
+        tackling: toNumber(p.base_stats.defending.tackling),
+        aggression: toNumber(p.base_stats.defending.aggression),
+        goalkeeping: toNumber(p.base_stats.defending.goalkeeping),
+        gk_catching: toNumber(p.base_stats.defending.gk_catching),
+        gk_parrying: toNumber(p.base_stats.defending.gk_parrying),
+        gk_reflexes: toNumber(p.base_stats.defending.gk_reflexes),
+        gk_reach: toNumber(p.base_stats.defending.gk_reach),
+      } : null,
+      athleticism: p.base_stats.athleticism && typeof p.base_stats.athleticism === 'object' ? {
+        speed: toNumber(p.base_stats.athleticism.speed),
+        acceleration: toNumber(p.base_stats.athleticism.acceleration),
+        kicking_power: toNumber(p.base_stats.athleticism.kicking_power),
+        jump: toNumber(p.base_stats.athleticism.jump),
+        physical_contact: toNumber(p.base_stats.athleticism.physical_contact),
+        balance: toNumber(p.base_stats.athleticism.balance),
+        stamina: toNumber(p.base_stats.athleticism.stamina),
+      } : null,
+    }
+    // Rimuovi chiavi null
+    if (baseStats.attacking && Object.values(baseStats.attacking).every(v => v === null)) baseStats.attacking = null
+    if (baseStats.defending && Object.values(baseStats.defending).every(v => v === null)) baseStats.defending = null
+    if (baseStats.athleticism && Object.values(baseStats.athleticism).every(v => v === null)) baseStats.athleticism = null
+  }
 
   return {
     player_name: typeof p?.player_name === 'string' ? p.player_name : null,
@@ -57,8 +105,16 @@ function normalizePlayer(p) {
     matches_played: toNumber(p?.matches_played),
     goals: toNumber(p?.goals),
     assists: toNumber(p?.assists),
-    boosters,
+    base_stats: baseStats,
     skills,
+    com_skills: comSkills,
+    ai_playstyles: aiPlaystyles,
+    additional_positions: additionalPositions,
+    weak_foot_frequency: typeof p?.weak_foot_frequency === 'string' ? p.weak_foot_frequency : null,
+    weak_foot_accuracy: typeof p?.weak_foot_accuracy === 'string' ? p.weak_foot_accuracy : null,
+    form_detailed: typeof p?.form_detailed === 'string' ? p.form_detailed : null,
+    injury_resistance: typeof p?.injury_resistance === 'string' ? p.injury_resistance : null,
+    boosters,
   }
 }
 
@@ -82,11 +138,41 @@ Regole:
 - Non inventare.
 - Rispondi SOLO con JSON valido.
 
-Campi:
+Campi base:
 player_name, overall_rating, position, role, card_type, team, region_or_nationality, form, preferred_foot,
 height_cm, weight_kg, age, nationality, club_name,
-level_current, level_cap, progression_points, matches_played, goals, assists,
-boosters: [{name,effect}], skills: string[]
+level_current, level_cap, progression_points, matches_played, goals, assists
+
+Statistiche dettagliate (se visibili):
+base_stats: {
+  overall_rating: number,
+  attacking: {
+    offensive_awareness, ball_control, dribbling, tight_possession,
+    low_pass, lofted_pass, finishing, heading, place_kicking, curl
+  },
+  defending: {
+    defensive_awareness, defensive_engagement, tackling, aggression,
+    goalkeeping, gk_catching, gk_parrying, gk_reflexes, gk_reach
+  },
+  athleticism: {
+    speed, acceleration, kicking_power, jump, physical_contact, balance, stamina
+  }
+}
+
+Abilità e caratteristiche:
+skills: string[] (Abilità giocatore principali)
+com_skills: string[] (Abilità aggiuntive/complementari)
+ai_playstyles: string[] (Stili di gioco IA, es: "Funambolo", "Serpentina")
+additional_positions: string[] (Competenza posizione aggiuntiva, es: "CLD", "EDA")
+
+Caratteristiche:
+weak_foot_frequency: string (es: "Raramente", "Spesso")
+weak_foot_accuracy: string (es: "Alta", "Media", "Bassa")
+form_detailed: string (es: "Incrollabile", "Stabile")
+injury_resistance: string (es: "Media", "Alta", "Bassa")
+
+Boosters:
+boosters: [{name: string, effect: string, activation_condition: string}]
 `
 
     const openaiRes = await fetch('https://api.openai.com/v1/responses', {
@@ -108,7 +194,7 @@ boosters: [{name,effect}], skills: string[]
           },
         ],
         temperature: 0,
-        max_output_tokens: 1200,
+        max_output_tokens: 2500,
       }),
     })
 

@@ -227,6 +227,41 @@ export async function POST(req) {
     if (team) q = q.eq('team', team)
     const { data: existingBase } = await q.maybeSingle()
 
+    // Costruisci base_stats completo
+    const baseStats = player.base_stats && typeof player.base_stats === 'object' 
+      ? player.base_stats 
+      : (typeof player.overall_rating === 'number' ? { overall_rating: player.overall_rating } : {})
+
+    // Costruisci position_ratings da additional_positions
+    const positionRatings = {}
+    if (Array.isArray(player.additional_positions) && player.additional_positions.length > 0) {
+      player.additional_positions.forEach(pos => {
+        if (typeof pos === 'string' && pos.trim()) {
+          positionRatings[pos.trim()] = { competency_level: 1, is_learned: true }
+        }
+      })
+    }
+
+    // Costruisci metadata con caratteristiche extra
+    const metadata = {
+      source: 'screenshot_extractor',
+      user_id: userId,
+      extracted: player,
+      saved_at: new Date().toISOString(),
+    }
+    
+    // Aggiungi caratteristiche se presenti
+    if (player.weak_foot_frequency) metadata.weak_foot_frequency = player.weak_foot_frequency
+    if (player.weak_foot_accuracy) metadata.weak_foot_accuracy = player.weak_foot_accuracy
+    if (player.form_detailed) metadata.form_detailed = player.form_detailed
+    if (player.injury_resistance) metadata.injury_resistance = player.injury_resistance
+    if (Array.isArray(player.ai_playstyles) && player.ai_playstyles.length > 0) {
+      metadata.ai_playstyles = player.ai_playstyles
+    }
+    if (player.matches_played !== null && player.matches_played !== undefined) metadata.matches_played = player.matches_played
+    if (player.goals !== null && player.goals !== undefined) metadata.goals = player.goals
+    if (player.assists !== null && player.assists !== undefined) metadata.assists = player.assists
+
     const basePayload = {
       player_name: playerName,
       position: toText(player.position),
@@ -241,16 +276,17 @@ export async function POST(req) {
       form: toText(player.form),
       role: toText(player.role),
       skills: Array.isArray(player.skills) ? player.skills : [],
-      com_skills: [],
-      base_stats: {
-        ...(typeof player.overall_rating === 'number' ? { overall_rating: player.overall_rating } : {}),
-      },
-      metadata: {
-        source: 'screenshot_extractor',
-        user_id: userId,
-        extracted: player,
-        saved_at: new Date().toISOString(),
-      },
+      com_skills: Array.isArray(player.com_skills) ? player.com_skills : [],
+      base_stats: baseStats,
+      position_ratings: Object.keys(positionRatings).length > 0 ? positionRatings : null,
+      available_boosters: Array.isArray(player.boosters) && player.boosters.length > 0 
+        ? player.boosters.map(b => ({
+            name: b.name || null,
+            effect: b.effect || null,
+            activation_condition: b.activation_condition || null
+          }))
+        : null,
+      metadata: metadata,
       // tag per poter pulire facilmente i dati test senza toccare il DB base
       source: 'screenshot_extractor',
     }

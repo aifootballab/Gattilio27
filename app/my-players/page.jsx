@@ -4,7 +4,7 @@ import React from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
 import { useTranslation } from '@/lib/i18n'
-import { ArrowLeft, Users, Upload, ChevronDown, ChevronUp, Edit, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react'
+import { ArrowLeft, Users, Upload, ChevronDown, ChevronUp, Edit, AlertCircle, CheckCircle2, Loader2, Target } from 'lucide-react'
 
 export default function MyPlayersPage() {
   const { t, lang, changeLanguage } = useTranslation()

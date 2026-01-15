@@ -538,6 +538,15 @@ body > * {
     padding: 12px !important;
     gap: 16px !important;
   }
+  
+  /* Player Detail Responsive */
+  .player-detail-grid {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .player-detail-header {
+    flex-direction: column !important;
+  }
 }
 
 /* Scrollbar styling */

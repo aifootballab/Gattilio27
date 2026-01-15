@@ -127,7 +127,10 @@ Campi player:
 player_name, overall_rating, position, role, card_type, team, region_or_nationality, form, preferred_foot,
 height_cm, weight_kg, age, nationality, club_name,
 level_current, level_cap, progression_points, matches_played, goals, assists,
-boosters: [{name,effect}], skills: string[]
+base_stats: {overall_rating, attacking: {...}, defending: {...}, athleticism: {...}},
+skills: string[], com_skills: string[], ai_playstyles: string[], additional_positions: string[],
+weak_foot_frequency, weak_foot_accuracy, form_detailed, injury_resistance,
+boosters: [{name, effect, activation_condition}]
 `,
             },
             ...groupImages.map((im) => ({ type: 'input_image', image_url: im.imageDataUrl, detail: 'high' })),
@@ -135,7 +138,7 @@ boosters: [{name,effect}], skills: string[]
         },
       ]
 
-      const out = await openaiJson(apiKey, content, 1400)
+      const out = await openaiJson(apiKey, content, 3000)
       resultGroups.push({
         group_id: `g${gi++}`,
         label: g.label,
