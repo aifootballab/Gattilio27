@@ -320,48 +320,7 @@ export async function POST(req) {
       }
     }
 
-    // 2) player_builds: 1 build per user_id + player_base_id
-    const { data: existingBuild } = await admin
-      .from('player_builds')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('player_base_id', playerBaseId)
-      .maybeSingle()
-
-    const buildPayload = {
-      user_id: userId,
-      player_base_id: playerBaseId,
-      development_points: {}, // NOT NULL, required
-      current_level: toInt(player.level_current),
-      level_cap: toInt(player.level_cap),
-      final_overall_rating: typeof player.overall_rating === 'number' ? player.overall_rating : toInt(player.overall_rating),
-      active_booster_name: Array.isArray(player.boosters) && player.boosters[0]?.name ? String(player.boosters[0].name) : null,
-      source: 'screenshot',
-      source_data: { extracted: player },
-    }
-
-    console.log('[save-player] buildPayload:', { user_id: userId, player_base_id: playerBaseId, has_dev_points: !!buildPayload.development_points })
-
-    let buildId = existingBuild?.id || null
-    if (!buildId) {
-      console.log('[save-player] Inserting new player_build...')
-      const { data: b, error: bErr } = await admin.from('player_builds').insert(buildPayload).select('id').single()
-      if (bErr) {
-        console.error('[save-player] player_builds insert failed:', { error: bErr.message, code: bErr.code, details: bErr.details, hint: bErr.hint })
-        throw new Error(`player_builds insert failed: ${bErr.message}${bErr.details ? ` (${bErr.details})` : ''}${bErr.hint ? ` Hint: ${bErr.hint}` : ''}`)
-      }
-      buildId = b.id
-      console.log('[save-player] player_builds inserted, id:', buildId)
-    } else {
-      console.log('[save-player] Updating existing player_build, id:', buildId)
-      const { error: updateErr } = await admin.from('player_builds').update(buildPayload).eq('id', buildId)
-      if (updateErr) {
-        console.error('[save-player] player_builds update failed:', { error: updateErr.message, code: updateErr.code, details: updateErr.details })
-        throw new Error(`player_builds update failed: ${updateErr.message}${updateErr.details ? ` (${updateErr.details})` : ''}`)
-      }
-    }
-
-    // 3) user_rosa: crea se non esiste main, poi setta lo slot
+    // 3) user_rosa: crea se non esiste main, poi controlla duplicati
     let { data: rosa } = await admin
       .from('user_rosa')
       .select('id, player_build_ids')
@@ -391,9 +350,121 @@ export async function POST(req) {
       console.log('[save-player] user_rosa exists, id:', rosa.id)
     }
 
+    // Controllo duplicati: verifica se lo stesso player_base_id è già presente nella rosa
+    const existingBuildIds = ensureArrayLen(rosa.player_build_ids || [], 21).filter(id => id !== null && id !== undefined)
+    let existingBuildIdInRosa = null
+    let existingSlotIndex = null
+    
+    if (existingBuildIds.length > 0) {
+      // Recupera tutti i build esistenti per verificare player_base_id
+      const { data: existingBuilds } = await admin
+        .from('player_builds')
+        .select('id, player_base_id')
+        .in('id', existingBuildIds)
+      
+      // Cerca se c'è già un build con lo stesso player_base_id
+      const duplicateBuild = existingBuilds?.find(b => b.player_base_id === playerBaseId)
+      if (duplicateBuild) {
+        existingBuildIdInRosa = duplicateBuild.id
+        // Trova lo slot dove si trova
+        existingSlotIndex = rosa.player_build_ids.findIndex(id => id === duplicateBuild.id)
+        console.log('[save-player] Giocatore già presente nella rosa:', { 
+          player_name: playerName, 
+          existing_build_id: existingBuildIdInRosa, 
+          existing_slot: existingSlotIndex,
+          new_slot: slotIndex 
+        })
+      }
+    }
+
+    // 2) player_builds: riutilizza build esistente se presente, altrimenti crea/aggiorna
+    let buildId = existingBuildIdInRosa || null
+    let isNewBuild = false
+    let wasMoved = false
+
+    if (buildId) {
+      // Riutilizza build esistente (già presente nella rosa)
+      console.log('[save-player] Riutilizzando build esistente dalla rosa, id:', buildId)
+      // Aggiorna i dati del build con le nuove informazioni
+      const buildPayload = {
+        development_points: {}, // NOT NULL, required
+        current_level: toInt(player.level_current),
+        level_cap: toInt(player.level_cap),
+        final_overall_rating: typeof player.overall_rating === 'number' ? player.overall_rating : toInt(player.overall_rating),
+        active_booster_name: Array.isArray(player.boosters) && player.boosters[0]?.name ? String(player.boosters[0].name) : null,
+        source: 'screenshot',
+        source_data: { extracted: player },
+      }
+      const { error: updateErr } = await admin.from('player_builds').update(buildPayload).eq('id', buildId)
+      if (updateErr) {
+        console.error('[save-player] player_builds update failed:', { error: updateErr.message, code: updateErr.code, details: updateErr.details })
+        throw new Error(`player_builds update failed: ${updateErr.message}${updateErr.details ? ` (${updateErr.details})` : ''}`)
+      }
+      wasMoved = existingSlotIndex !== slotIndex
+    } else {
+      // Cerca se esiste un build per user_id + player_base_id (ma non nella rosa)
+      const { data: existingBuild } = await admin
+        .from('player_builds')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('player_base_id', playerBaseId)
+        .maybeSingle()
+
+      const buildPayload = {
+        user_id: userId,
+        player_base_id: playerBaseId,
+        development_points: {}, // NOT NULL, required
+        current_level: toInt(player.level_current),
+        level_cap: toInt(player.level_cap),
+        final_overall_rating: typeof player.overall_rating === 'number' ? player.overall_rating : toInt(player.overall_rating),
+        active_booster_name: Array.isArray(player.boosters) && player.boosters[0]?.name ? String(player.boosters[0].name) : null,
+        source: 'screenshot',
+        source_data: { extracted: player },
+      }
+
+      console.log('[save-player] buildPayload:', { user_id: userId, player_base_id: playerBaseId, has_dev_points: !!buildPayload.development_points })
+
+      if (existingBuild) {
+        // Build esiste ma non è nella rosa, riutilizzalo
+        buildId = existingBuild.id
+        console.log('[save-player] Riutilizzando build esistente (non in rosa), id:', buildId)
+        const { error: updateErr } = await admin.from('player_builds').update(buildPayload).eq('id', buildId)
+        if (updateErr) {
+          console.error('[save-player] player_builds update failed:', { error: updateErr.message, code: updateErr.code, details: updateErr.details })
+          throw new Error(`player_builds update failed: ${updateErr.message}${updateErr.details ? ` (${updateErr.details})` : ''}`)
+        }
+      } else {
+        // Crea nuovo build
+        console.log('[save-player] Inserting new player_build...')
+        const { data: b, error: bErr } = await admin.from('player_builds').insert(buildPayload).select('id').single()
+        if (bErr) {
+          console.error('[save-player] player_builds insert failed:', { error: bErr.message, code: bErr.code, details: bErr.details, hint: bErr.hint })
+          throw new Error(`player_builds insert failed: ${bErr.message}${bErr.details ? ` (${bErr.details})` : ''}${bErr.hint ? ` Hint: ${bErr.hint}` : ''}`)
+        }
+        buildId = b.id
+        isNewBuild = true
+        console.log('[save-player] player_builds inserted, id:', buildId)
+      }
+    }
+
+    // Aggiorna rosa: sposta build nello slot nuovo, svuota slot precedente se diverso
     const updated = ensureArrayLen(rosa.player_build_ids, 21)
+    
+    // Se il giocatore era già in un altro slot, svuota quello precedente
+    if (wasMoved && existingSlotIndex !== null && existingSlotIndex >= 0 && existingSlotIndex < 21) {
+      updated[existingSlotIndex] = null
+      console.log('[save-player] Svuotato slot precedente:', existingSlotIndex)
+    }
+    
+    // Se lo slot nuovo è occupato da un altro giocatore, lo spostiamo in riserva (null per ora)
+    const previousBuildInSlot = updated[slotIndex]
+    if (previousBuildInSlot && previousBuildInSlot !== buildId) {
+      console.log('[save-player] Slot', slotIndex, 'era occupato da build:', previousBuildInSlot, '- verrà sostituito')
+      // TODO: In futuro potremmo spostare il giocatore esistente in un altro slot disponibile
+    }
+    
     updated[slotIndex] = buildId
-    console.log('[save-player] Updating user_rosa slot', slotIndex, 'with build_id:', buildId)
+    console.log('[save-player] Updating user_rosa slot', slotIndex, 'with build_id:', buildId, wasMoved ? '(spostato da slot ' + existingSlotIndex + ')' : isNewBuild ? '(nuovo build)' : '(build esistente)')
 
     const { error: upErr } = await admin
       .from('user_rosa')
@@ -430,6 +501,10 @@ export async function POST(req) {
       player_build_id: buildId,
       rosa_id: rosa.id,
       slot: slotIndex,
+      was_duplicate: !!existingBuildIdInRosa,
+      was_moved: wasMoved,
+      previous_slot: wasMoved ? existingSlotIndex : null,
+      is_new_build: isNewBuild,
     })
   } catch (e) {
     console.error('[save-player] Unhandled exception:', {

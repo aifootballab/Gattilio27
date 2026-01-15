@@ -234,7 +234,23 @@ function RosaProductionPage() {
         throw new Error(`${data?.error || `Errore salvataggio (${res.status})`}${data?.details ? ` — ${data.details}` : ''}`)
       }
       
-      setSupabaseMsg(lang === 'it' ? `✅ Salvato in Supabase (slot ${data.slot})` : `✅ Saved to Supabase (slot ${data.slot})`)
+      // Messaggio informativo basato sul risultato
+      let msg = ''
+      if (data.was_duplicate && data.was_moved) {
+        msg = lang === 'it' 
+          ? `✅ Giocatore già presente (slot ${data.previous_slot}), spostato in slot ${data.slot}`
+          : `✅ Player already present (slot ${data.previous_slot}), moved to slot ${data.slot}`
+      } else if (data.was_duplicate) {
+        msg = lang === 'it'
+          ? `✅ Giocatore già presente, dati aggiornati (slot ${data.slot})`
+          : `✅ Player already present, data updated (slot ${data.slot})`
+      } else {
+        msg = lang === 'it' 
+          ? `✅ Salvato in Supabase (slot ${data.slot})`
+          : `✅ Saved to Supabase (slot ${data.slot})`
+      }
+      
+      setSupabaseMsg(msg)
     } catch (e) {
       setSupabaseMsg(`❌ ${e?.message || (lang === 'it' ? 'Errore salvataggio' : 'Save error')}`)
     }
