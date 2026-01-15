@@ -1,22 +1,11 @@
 'use client'
 
 import React from 'react'
+import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
 
-export default function Home() {
-  // Redirect alla dashboard principale
-  if (typeof window !== 'undefined') {
-    window.location.href = '/dashboard'
-    return null
-  }
-  return (
-    <div style={{ padding: '40px', textAlign: 'center' }}>
-      <div className="neon-text" style={{ fontSize: '24px', marginBottom: '20px' }}>Caricamento Dashboard...</div>
-      <Link href="/dashboard" className="btn primary" style={{ textDecoration: 'none' }}>
-        Vai alla Dashboard
-      </Link>
-    </div>
-  )
+export default function RosaPage() {
+  return <RosaProductionPage />
 }
 
 function RosaProductionPage() {
@@ -78,10 +67,8 @@ function RosaProductionPage() {
           return
         }
         
-        // Prova a recuperare la sessione esistente
         let { data, error } = await supabase.auth.getSession()
         
-        // Se non c'è sessione valida, fai sign-in anonimo
         if (!data?.session?.access_token || error) {
           console.log('[initAnon] Sessione non valida, faccio sign-in anonimo...')
           const { data: signInData, error: signInError } = await supabase.auth.signInAnonymously()
@@ -99,7 +86,6 @@ function RosaProductionPage() {
         const userId = session?.user?.id || null
         const token = session?.access_token || null
         
-        // Validazione token
         if (token && typeof token === 'string' && token.length >= 10) {
           const isJWT = token.includes('.') && token.split('.').length >= 3
           setTokenKind(isJWT ? 'jwt' : 'opaque')
@@ -128,10 +114,8 @@ function RosaProductionPage() {
     }
     
     try {
-      // Prova a recuperare la sessione esistente
       let { data, error } = await supabase.auth.getSession()
       
-      // Se non c'è sessione o è scaduta, fai sign-in anonimo
       if (!data?.session?.access_token || error) {
         console.log('[getFreshToken] Sessione non valida, faccio sign-in anonimo...')
         const { data: signInData, error: signInError } = await supabase.auth.signInAnonymously()
@@ -146,13 +130,11 @@ function RosaProductionPage() {
       
       const token = data?.session?.access_token
       
-      // Validazione: il token deve essere una stringa non vuota
       if (!token || typeof token !== 'string' || token.length < 10) {
         console.error('[getFreshToken] Token invalido:', { type: typeof token, length: token?.length })
         return null
       }
       
-      // Safe debug: non mostra token, solo "jwt" vs "opaque"
       const isJWT = token.includes('.') && token.split('.').length >= 3
       setTokenKind(isJWT ? 'jwt' : 'opaque')
       
@@ -490,4 +472,3 @@ function RosaProductionPage() {
     </main>
   )
 }
-

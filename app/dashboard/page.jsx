@@ -44,7 +44,7 @@ export default function DashboardPage() {
 
         {/* Squad Overview */}
         <NeonPanel title="Squad Overview" subtitle="La tua rosa">
-          <Link href="/" style={{ textDecoration: 'none', color: 'inherit' }}>
+          <Link href="/rosa" style={{ textDecoration: 'none', color: 'inherit' }}>
             <div style={{ 
               padding: '12px', 
               borderRadius: '8px', 
@@ -164,12 +164,12 @@ export default function DashboardPage() {
         {/* Quick Links */}
         <NeonPanel title="Quick Links" subtitle="Navigazione">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <QuickLink href="/" icon="🏠" text="Home" />
+            <QuickLink href="/dashboard" icon="🏠" text="Home" />
             <QuickLink href="/my-players" icon="👥" text="Players" />
-            <QuickLink href="/" icon="⚽" text="Squad Builder" />
-            <QuickLink href="/" icon="📊" text="Data & Analytics" />
-            <QuickLink href="/" icon="🧠" text="Memory Hub" />
-            <QuickLink href="/" icon="📋" text="Coaching" />
+            <QuickLink href="/rosa" icon="⚽" text="Squad Builder" />
+            <QuickLink href="/dashboard" icon="📊" text="Data & Analytics" />
+            <QuickLink href="/dashboard" icon="🧠" text="Memory Hub" />
+            <QuickLink href="/dashboard" icon="📋" text="Coaching" />
           </div>
         </NeonPanel>
 
@@ -239,8 +239,19 @@ function InsightItem({ text, color = 'blue' }) {
 }
 
 function QuickLink({ href, icon, text }) {
+  // Mappa href corretti
+  const hrefMap = {
+    '/': '/rosa',
+    '/my-players': '/my-players',
+    '/squad': '/rosa',
+    '/analytics': '/dashboard',
+    '/memory': '/dashboard',
+    '/coaching': '/dashboard'
+  }
+  const finalHref = hrefMap[href] || href
+  
   return (
-    <Link href={href} style={{ textDecoration: 'none', color: 'inherit' }}>
+    <Link href={finalHref} style={{ textDecoration: 'none', color: 'inherit' }}>
       <div style={{ 
         display: 'flex', 
         alignItems: 'center', 

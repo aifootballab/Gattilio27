@@ -76,9 +76,12 @@ export default function MyPlayersPage() {
             {loading ? 'Caricamento...' : `${players.length} giocatori salvati`}
           </p>
         </div>
-        <Link href="/" className="btn">
-          ← Torna alla Rosa
-        </Link>
+          <Link href="/dashboard" className="btn">
+            ← Dashboard
+          </Link>
+          <Link href="/rosa" className="btn" style={{ marginLeft: '10px' }}>
+            Rosa
+          </Link>
       </div>
 
       {error && (
@@ -99,7 +102,7 @@ export default function MyPlayersPage() {
           <p style={{ opacity: 0.8, marginBottom: '24px' }}>
             Carica screenshot e salva giocatori per vederli qui
           </p>
-          <Link href="/" className="btn primary">
+          <Link href="/rosa" className="btn primary">
             Carica Screenshot
           </Link>
         </div>
