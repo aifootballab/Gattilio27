@@ -236,7 +236,11 @@ function RosaProductionPage() {
       
       // Messaggio informativo basato sul risultato
       let msg = ''
-      if (data.was_duplicate && data.was_moved) {
+      if (data.build_changed) {
+        msg = lang === 'it' 
+          ? `✅ Nuovo build creato (giocatore già presente ma con build diversa - nuove abilità/booster) - slot ${data.slot}`
+          : `✅ New build created (player already present but with different build - new skills/booster) - slot ${data.slot}`
+      } else if (data.was_duplicate && data.was_moved) {
         msg = lang === 'it' 
           ? `✅ Giocatore già presente (slot ${data.previous_slot}), spostato in slot ${data.slot}`
           : `✅ Player already present (slot ${data.previous_slot}), moved to slot ${data.slot}`
