@@ -1,60 +1,129 @@
-# Gattilio27 — RESET (solo locale)
+# Gattilio27 - Rosa (Production)
 
-Obiettivo minimo: **testare in locale** il flusso
-
-**drop screenshot giocatore → estrazione dati visibile → inserimento in rosa (21 slot, solo memoria)**.
-
-Niente Supabase, niente Vercel, niente Realtime in questa fase.
-
----
-
-## Requisiti (obbligatori per lavorare in locale)
-
-- **Node.js 18+** (serve per avviare Next.js localmente)
-
-> Senza Node installato sul PC non puoi eseguire `next dev` in locale.
-
----
-
-## Env vars (server-only)
-
-Crea un file **`.env.local`** nella root (`Gattilio27-master/Gattilio27-master/.env.local`) con:
-
-```
-OPENAI_API_KEY=sk-...
-```
-
-Nota: questa key viene usata **solo** dall’endpoint server `POST /api/extract-player` e **non** finisce nel browser.
-
----
-
-## Avvio locale
-
-```bash
-npm install
-npm run dev
-```
-
-Apri `http://localhost:3000`.
-
----
-
-## Come testare
-
-1) Trascina uno screenshot di un giocatore nella dropzone  
-2) Clicca **“Estrai dati”**  
-3) Vedi il JSON estratto  
-4) Scegli lo slot (0–20) e clicca **“Inserisci”**  
-
-La rosa è **solo in RAM** (refresh = reset).
-
----
-
-## File chiave
-
-- UI: `app/page.tsx`
-- Estrazione (server): `app/api/extract-player/route.ts`
+> Analizzatore screenshot eFootball → Estrazione dati → Rosa da 21 slot
 
 ## Documentazione
 
-- `DOCUMENTAZIONE.md`
+### 📘 Documentazione Completa
+Vedi [DOCUMENTAZIONE_COMPLETA.md](./DOCUMENTAZIONE_COMPLETA.md) per documentazione completa su:
+- **Architettura del Sistema**: Stack tecnologico, struttura progetto, flussi principali
+- **Struttura Database**: Tabelle principali (`players_base`, `player_builds`, `user_rosa`, etc.) con schema dettagliato
+- **Gestione Autenticazione e Chiavi**: Tipi di chiavi Supabase (anon, service role), flusso autenticazione, configurazione
+- **Row Level Security (RLS) Policies**: Strategia RLS, policies implementate, note performance
+- **API Endpoints**: Documentazione completa di tutti gli endpoint con request/response
+- **Flusso Dati**: Diagrammi flusso estrazione → database e recupero → visualizzazione
+- **Configurazione Ambiente**: Variabili Vercel, configurazione Supabase
+- **Troubleshooting**: Problemi comuni e soluzioni
+
+### 📄 Documentazione Rapida
+Vedi [DOCUMENTAZIONE.md](./DOCUMENTAZIONE.md) per guida rapida su:
+- Architettura base
+- Endpoints principali
+- Schema JSON estratto
+- Troubleshooting rapido
+
+---
+
+## Quick Start
+
+### Requisiti
+- **Node.js 18+** (per sviluppo locale)
+- **Vercel Account** (per deployment)
+- **Supabase Project** (per database)
+- **OpenAI API Key** (per estrazione dati)
+
+### Setup Locale
+
+1. **Clona repository**
+   ```bash
+   git clone <repository-url>
+   cd Gattilio27-master
+   ```
+
+2. **Installa dipendenze**
+   ```bash
+   npm install
+   ```
+
+3. **Configura variabili ambiente**
+   Crea `.env.local`:
+   ```
+   OPENAI_API_KEY=sk-...
+   NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+   SUPABASE_SERVICE_ROLE_KEY=...
+   ```
+
+4. **Avvia sviluppo**
+   ```bash
+   npm run dev
+   ```
+
+5. **Apri browser**
+   ```
+   http://localhost:3000
+   ```
+
+### Deployment Vercel
+
+1. **Collega repository a Vercel**
+2. **Configura Environment Variables** (vedi [DOCUMENTAZIONE_COMPLETA.md](./DOCUMENTAZIONE_COMPLETA.md#configurazione-ambiente))
+3. **Deploy automatico** su push a `master`
+
+---
+
+## Funzionalità
+
+- ✅ **Upload Screenshot**: Drag & drop 1-6 screenshot giocatore
+- ✅ **Estrazione Batch**: Raggruppamento automatico per giocatore
+- ✅ **Estrazione Dati**: OpenAI Vision API per estrarre tutti i dati
+- ✅ **Salvataggio Supabase**: Persistenza dati in database
+- ✅ **Rosa 21 Slot**: Gestione squadra con 21 slot
+- ✅ **Visualizzazione Giocatori**: Lista e scheda completa con UX screenshot-like
+- ✅ **Internazionalizzazione**: Supporto IT/EN
+- ✅ **Design System**: Futuristic dark theme con neon colors
+
+---
+
+## Stack Tecnologico
+
+- **Frontend**: Next.js 14+ (App Router)
+- **Backend**: Next.js API Routes
+- **Database**: Supabase (PostgreSQL)
+- **Autenticazione**: Supabase Anonymous Auth
+- **AI Vision**: OpenAI GPT-4o Vision API
+- **Deployment**: Vercel
+- **Linguaggio**: JavaScript/JSX
+
+---
+
+## Struttura Progetto
+
+```
+Gattilio27-master/
+├── app/
+│   ├── api/                    # API Routes (server-side)
+│   ├── dashboard/              # Dashboard principale (home)
+│   ├── rosa/                   # Gestione rosa (upload screenshot)
+│   ├── my-players/             # Lista giocatori salvati
+│   └── player/[id]/            # Dettaglio singolo giocatore
+├── lib/
+│   ├── supabaseClient.js       # Client Supabase (anon)
+│   └── i18n.js                 # Sistema internazionalizzazione (IT/EN)
+└── public/
+    └── backgrounds/            # Sfondi personalizzati
+```
+
+---
+
+## Supporto
+
+Per problemi o domande, consulta:
+- [DOCUMENTAZIONE_COMPLETA.md](./DOCUMENTAZIONE_COMPLETA.md) - Documentazione completa
+- [DOCUMENTAZIONE.md](./DOCUMENTAZIONE.md) - Guida rapida
+- [Troubleshooting](./DOCUMENTAZIONE_COMPLETA.md#troubleshooting) - Problemi comuni
+
+---
+
+**Versione**: 1.0.0  
+**Ultimo Aggiornamento**: Gennaio 2025
