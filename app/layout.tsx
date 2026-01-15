@@ -14,6 +14,8 @@ export default function RootLayout({
   return (
     <html lang="it">
       <body>
+        {/* Custom Background Layer - QUI PUOI INSERIRE IL TUO SFONDO */}
+        <div className="custom-background" />
         {children}
       </body>
     </html>

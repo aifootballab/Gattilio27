@@ -1,19 +1,78 @@
-/* Global Styles */
+/* Global Styles - Futuristic Dark Theme */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
+:root {
+  /* Neon Colors */
+  --neon-blue: #00D4FF;
+  --neon-purple: #A855F7;
+  --neon-pink: #EC4899;
+  --neon-orange: #FF6B35;
+  --neon-cyan: #00F5FF;
+  
+  /* Background Colors */
+  --bg-dark: #0A0E27;
+  --bg-darker: #050815;
+  --bg-overlay: rgba(10, 14, 39, 0.85);
+  
+  /* Glow Effects */
+  --glow-blue: 0 0 20px rgba(0, 212, 255, 0.3), 0 0 40px rgba(0, 212, 255, 0.1);
+  --glow-purple: 0 0 20px rgba(168, 85, 247, 0.3), 0 0 40px rgba(168, 85, 247, 0.1);
+  --glow-pink: 0 0 20px rgba(236, 72, 153, 0.3), 0 0 40px rgba(236, 72, 153, 0.1);
+  --glow-orange: 0 0 20px rgba(255, 107, 53, 0.3), 0 0 40px rgba(255, 107, 53, 0.1);
+  
+  /* Text Glow */
+  --text-glow-blue: 0 0 10px rgba(0, 212, 255, 0.8);
+  --text-glow-purple: 0 0 10px rgba(168, 85, 247, 0.8);
+}
+
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: #0b1020;
+  background: var(--bg-darker);
   min-height: 100vh;
   color: white;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Custom Background Layer - QUI PUOI INSERIRE IL TUO SFONDO */
+.custom-background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  /* INSERISCI QUI IL TUO SFONDO */
+  /* Esempio: background-image: url('/path/to/your/background.jpg'); */
+  /* Esempio: background: linear-gradient(135deg, #0A0E27 0%, #1a1a3e 100%); */
+  background: var(--bg-darker);
+  opacity: 0.6;
+}
+
+/* Overlay per leggibilità */
+.custom-background::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--bg-overlay);
+  z-index: 1;
+}
+
+/* Main Content Layer */
+body > * {
+  position: relative;
+  z-index: 1;
 }
 
 .container {
@@ -31,12 +90,58 @@ body {
   margin-top: 8px;
 }
 
+/* Neon Card - Stile Futuristico */
 .card {
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 12px;
-  padding: 16px;
+  background: rgba(10, 14, 39, 0.6);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-radius: 16px;
+  padding: 20px;
   margin-top: 16px;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--neon-blue), transparent);
+  opacity: 0.6;
+}
+
+.card:hover {
+  border-color: rgba(0, 212, 255, 0.5);
+  box-shadow: var(--glow-blue);
+  transform: translateY(-2px);
+}
+
+.neon-card {
+  background: rgba(10, 14, 39, 0.7);
+  border: 2px solid var(--neon-blue);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: var(--glow-blue);
+  backdrop-filter: blur(20px);
+  transition: all 0.3s ease;
+}
+
+.neon-card:hover {
+  box-shadow: 0 0 30px rgba(0, 212, 255, 0.5), 0 0 60px rgba(0, 212, 255, 0.2);
+  transform: translateY(-4px);
+}
+
+.neon-panel {
+  background: rgba(10, 14, 39, 0.8);
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  border-radius: 20px;
+  padding: 24px;
+  backdrop-filter: blur(15px);
+  box-shadow: var(--glow-purple);
 }
 
 .card.inner {
@@ -89,27 +194,82 @@ body {
   gap: 10px;
 }
 
+/* Neon Buttons */
 .btn {
-  border: 1px solid rgba(255,255,255,0.18);
-  background: rgba(255,255,255,0.08);
-  color: white;
-  padding: 10px 12px;
-  border-radius: 10px;
+  border: 2px solid rgba(0, 212, 255, 0.4);
+  background: rgba(0, 212, 255, 0.1);
+  color: var(--neon-blue);
+  padding: 12px 20px;
+  border-radius: 12px;
   cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  text-shadow: var(--text-glow-blue);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(0, 212, 255, 0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+.btn:hover::before {
+  left: 100%;
 }
 
 .btn:hover {
-  background: rgba(255,255,255,0.12);
+  background: rgba(0, 212, 255, 0.2);
+  border-color: var(--neon-blue);
+  box-shadow: var(--glow-blue);
+  transform: translateY(-2px);
+}
+
+.btn:active {
+  transform: translateY(0);
 }
 
 .btn:disabled {
-  opacity: 0.6;
+  opacity: 0.4;
   cursor: not-allowed;
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .btn.primary {
-  background: rgba(168,85,247,0.25);
-  border-color: rgba(168,85,247,0.5);
+  background: rgba(168, 85, 247, 0.2);
+  border-color: var(--neon-purple);
+  color: var(--neon-purple);
+  text-shadow: var(--text-glow-purple);
+}
+
+.btn.primary:hover {
+  background: rgba(168, 85, 247, 0.3);
+  box-shadow: var(--glow-purple);
+}
+
+.neon-button {
+  border: 2px solid var(--neon-cyan);
+  background: rgba(0, 245, 255, 0.1);
+  color: var(--neon-cyan);
+  padding: 14px 24px;
+  border-radius: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  box-shadow: 0 0 20px rgba(0, 245, 255, 0.3);
+  transition: all 0.3s ease;
+}
+
+.neon-button:hover {
+  box-shadow: 0 0 30px rgba(0, 245, 255, 0.6);
+  transform: scale(1.05);
 }
 
 .btn.small {
@@ -212,9 +372,112 @@ body {
   font-size: 12px;
 }
 
+/* Neon Text Effects */
+.neon-text {
+  text-shadow: var(--text-glow-blue);
+  color: var(--neon-blue);
+}
+
+.neon-text-purple {
+  text-shadow: var(--text-glow-purple);
+  color: var(--neon-purple);
+}
+
+/* Progress Bars with Glow */
+.progress-glow {
+  height: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-glow::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: linear-gradient(90deg, var(--neon-blue), var(--neon-cyan));
+  box-shadow: 0 0 10px rgba(0, 212, 255, 0.6);
+  transition: width 0.3s ease;
+}
+
+/* Player Card Futuristic */
+.player-card-futuristic {
+  background: linear-gradient(135deg, rgba(10, 14, 39, 0.9), rgba(26, 26, 62, 0.9));
+  border: 2px solid var(--neon-blue);
+  border-radius: 20px;
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(20px);
+  box-shadow: var(--glow-blue);
+  transition: all 0.4s ease;
+}
+
+.player-card-futuristic::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(0, 212, 255, 0.1) 0%, transparent 70%);
+  animation: pulse 4s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.1); }
+}
+
+.player-card-futuristic:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 0 40px rgba(0, 212, 255, 0.6), 0 0 80px rgba(0, 212, 255, 0.3);
+  border-color: var(--neon-cyan);
+}
+
+/* Completeness Badge */
+.completeness-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: rgba(0, 212, 255, 0.1);
+  border: 1px solid var(--neon-blue);
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--neon-blue);
+  text-shadow: var(--text-glow-blue);
+}
+
+.completeness-badge.complete {
+  background: rgba(34, 197, 94, 0.1);
+  border-color: #22C55E;
+  color: #22C55E;
+}
+
+.completeness-badge.incomplete {
+  background: rgba(255, 107, 53, 0.1);
+  border-color: var(--neon-orange);
+  color: var(--neon-orange);
+}
+
+/* Grid Layout Futuristic */
+.grid-futuristic {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 24px;
+  padding: 24px;
+}
+
+/* Responsive */
 @media (max-width: 920px) {
   .preview-row { grid-template-columns: 1fr; }
   .grid { grid-template-columns: 1fr; }
+  .grid-futuristic { grid-template-columns: 1fr; }
   .rosa-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 

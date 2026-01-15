@@ -339,7 +339,10 @@ function RosaProductionPage() {
           {authStatus.userId ? <span> · user_id: <b>{authStatus.userId}</b></span> : null}
           {tokenKind ? <span> · token: <b>{tokenKind}</b></span> : null}
         </p>
-        <div style={{ display: 'flex', gap: 10, marginTop: 10, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 10, marginTop: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+          <a href="/my-players" className="btn primary" style={{ textDecoration: 'none' }}>
+            I Miei Giocatori
+          </a>
           <button className="btn" onClick={resetMySupabaseData} disabled={!authStatus.token}>
             Reset miei dati Supabase
           </button>
