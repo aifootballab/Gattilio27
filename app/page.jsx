@@ -312,6 +312,11 @@ function RosaProductionPage() {
 
   return (
     <main className="container">
+      <div style={{ marginBottom: '16px' }}>
+        <Link href="/dashboard" className="btn" style={{ textDecoration: 'none', display: 'inline-block', marginBottom: '12px' }}>
+          ← Dashboard Principale
+        </Link>
+      </div>
       <header className="header">
         <h1>Rosa (Production)</h1>
         <p className="subtitle">Carica 1–6 screenshot (anche mischiati) → raggruppo per giocatore → estraggo dati → inserisci in rosa</p>
