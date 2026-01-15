@@ -55,10 +55,10 @@ body {
   background-position: center;
   background-repeat: no-repeat;
   background-attachment: fixed;
-  opacity: 0.7;
+  opacity: 1;
 }
 
-/* Overlay per leggibilità */
+/* Overlay per leggibilità - RIDOTTO per far vedere lo sfondo */
 .custom-background::after {
   content: '';
   position: absolute;
@@ -66,7 +66,7 @@ body {
   left: 0;
   width: 100%;
   height: 100%;
-  background: var(--bg-overlay);
+  background: rgba(5, 8, 21, 0.4); /* Overlay più trasparente (40% invece di 85%) */
   z-index: 1;
 }
 
