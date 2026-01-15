@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { X, Save, ChevronDown, ChevronUp, Plus, Trash2, AlertCircle } from 'lucide-react'
+import { X, Save, ChevronDown, ChevronUp, Plus, Trash2, AlertCircle, Edit, Zap, User, Award, TrendingUp, Activity, Target, Shield } from 'lucide-react'
 
 export default function EditPlayerDataModal({ player, authToken, onClose, onSave, t, lang }) {
   const [loading, setLoading] = React.useState(false)
