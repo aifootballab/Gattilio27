@@ -4,8 +4,9 @@ import React from 'react'
 import { useParams } from 'next/navigation'
 import { useTranslation } from '@/lib/i18n'
 import { supabase } from '@/lib/supabaseClient'
-import { ArrowLeft, User, Target, Zap, Shield, Activity, Award, TrendingUp } from 'lucide-react'
+import { ArrowLeft, User, Target, Zap, Shield, Activity, Award, TrendingUp, Edit } from 'lucide-react'
 import Link from 'next/link'
+import EditPlayerDataModal from './EditPlayerDataModal'
 
 export default function PlayerDetailPage() {
   const params = useParams()
@@ -419,6 +420,22 @@ function PlayerDetailView({ player, t, lang, changeLanguage }) {
             )}
           </div>
         </div>
+      )}
+
+      {/* Edit Player Data Modal */}
+      {showEditModal && (
+        <EditPlayerDataModal
+          player={player}
+          authToken={authToken}
+          onClose={() => setShowEditModal(false)}
+          onSave={() => {
+            setShowEditModal(false)
+            // Ricarica i dati del giocatore
+            window.location.reload()
+          }}
+          t={t}
+          lang={lang}
+        />
       )}
     </main>
   )

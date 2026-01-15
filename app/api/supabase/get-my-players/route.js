@@ -130,6 +130,30 @@ function calculateCompleteness(base, build) {
     nationality: !!base?.nationality
   }
   
+  // Dettaglio campi mancanti specifici
+  const missingDetails = {
+    // Stats dettagliate
+    missing_stats: {
+      has_attacking: !!(base?.base_stats?.attacking && Object.keys(base.base_stats.attacking).length > 0),
+      has_defending: !!(base?.base_stats?.defending && Object.keys(base.base_stats.defending).length > 0),
+      has_athleticism: !!(base?.base_stats?.athleticism && Object.keys(base.base_stats.athleticism).length > 0),
+    },
+    // Skills e caratteristiche
+    missing_skills: !Array.isArray(base?.skills) || base.skills.length === 0,
+    missing_com_skills: !Array.isArray(base?.com_skills) || base.com_skills.length === 0,
+    missing_ai_playstyles: !Array.isArray(base?.metadata?.ai_playstyles) || base.metadata?.ai_playstyles?.length === 0,
+    missing_additional_positions: !base?.position_ratings || Object.keys(base.position_ratings || {}).length === 0,
+    missing_boosters: !Array.isArray(base?.available_boosters) || base.available_boosters.length === 0,
+    // Caratteristiche
+    missing_weak_foot: !base?.metadata?.weak_foot_frequency || !base?.metadata?.weak_foot_accuracy,
+    missing_form_detailed: !base?.metadata?.form_detailed,
+    missing_injury_resistance: !base?.metadata?.injury_resistance,
+    // Dati base
+    missing_physical: !base?.height || !base?.weight || !base?.age,
+    missing_team: !base?.team,
+    missing_nationality: !base?.nationality,
+  }
+  
   const total = Object.keys(fields).length
   const completed = Object.values(fields).filter(Boolean).length
   const percentage = Math.round((completed / total) * 100)
@@ -138,5 +162,5 @@ function calculateCompleteness(base, build) {
     .filter(([_, value]) => !value)
     .map(([key]) => key)
   
-  return { percentage, missing, fields }
+  return { percentage, missing, fields, missingDetails }
 }
