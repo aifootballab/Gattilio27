@@ -123,14 +123,47 @@ Fondi le informazioni. Se un campo non è visibile in nessuna immagine -> null (
 Rispondi JSON:
 { "player": { ... }, "missing_screens": string[], "notes": string[] }
 
+**REGOLA CRITICA**: Se vedi un radar chart (grafico esagonale) con statistiche, estrai TUTTI i valori (TIR, DRI, PAS, FRZ, DIF, VEL) e mappali in base_stats.
+
 Campi player:
 player_name, overall_rating, position, role, card_type, team, region_or_nationality, form, preferred_foot,
 height_cm, weight_kg, age, nationality, club_name,
 level_current, level_cap, progression_points, matches_played, goals, assists,
-base_stats: {overall_rating, attacking: {...}, defending: {...}, athleticism: {...}},
-skills: string[], com_skills: string[], ai_playstyles: string[], additional_positions: string[],
+
+base_stats: {
+  overall_rating: number,
+  attacking: {
+    offensive_awareness, ball_control, dribbling, tight_possession,
+    low_pass, lofted_pass, finishing, heading, place_kicking, curl
+  },
+  defending: {
+    defensive_awareness, defensive_engagement, tackling, aggression,
+    goalkeeping, gk_catching, gk_parrying, gk_reflexes, gk_reach
+  },
+  athleticism: {
+    speed, acceleration, kicking_power, jump, physical_contact, balance, stamina
+  }
+}
+
+**MAPPATURA RADAR CHART → base_stats** (se vedi solo il radar chart):
+- TIR (Tiro) → attacking.finishing, attacking.place_kicking (stesso valore)
+- DRI (Dribbling) → attacking.dribbling, attacking.ball_control (stesso valore)
+- PAS (Passing) → attacking.low_pass, attacking.lofted_pass (stesso valore)
+- FRZ (Forza) → athleticism.physical_contact
+- DIF (Difesa) → defending.defensive_awareness, defending.tackling (stesso valore)
+- VEL (Velocità) → athleticism.speed, athleticism.acceleration (stesso valore)
+
+Se vedi statistiche dettagliate in tabelle, usa quelle invece del radar chart.
+
+skills: string[] (tutte le "Abilità giocatore" visibili),
+com_skills: string[] (tutte le "Abilità aggiuntive" o "Abilità complementari" visibili),
+ai_playstyles: string[] (tutti gli "Stili di gioco IA" visibili),
+additional_positions: string[] (posizioni aggiuntive/competenza posizione),
+
 weak_foot_frequency, weak_foot_accuracy, form_detailed, injury_resistance,
 boosters: [{name, effect, activation_condition}]
+
+**Nazionalità**: Estrai da "Nazionalità/Regione" o da bandiere/emblemi visibili.
 `,
             },
             ...groupImages.map((im) => ({ type: 'input_image', image_url: im.imageDataUrl, detail: 'high' })),
