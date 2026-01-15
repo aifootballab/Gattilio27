@@ -2,6 +2,7 @@
 
 import React from 'react'
 import { X, Save, ChevronDown, ChevronUp, Plus, Trash2, AlertCircle, Edit, Zap, User, Award, TrendingUp, Activity, Target, Shield } from 'lucide-react'
+import AutocompleteInput from './AutocompleteInput'
 
 export default function EditPlayerDataModal({ player, authToken, onClose, onSave, t, lang }) {
   const [loading, setLoading] = React.useState(false)
@@ -357,7 +358,9 @@ export default function EditPlayerDataModal({ player, authToken, onClose, onSave
                 onRemove={(i) => removeSkill('com_skill', i)}
                 onChange={(i, v) => updateSkill('com_skill', i, v)}
                 placeholder={lang === 'it' ? 'Nome abilità aggiuntiva' : 'Additional skill name'}
+                type="skills"
                 t={t}
+                lang={lang}
               />
             </Section>
           )}
@@ -377,7 +380,9 @@ export default function EditPlayerDataModal({ player, authToken, onClose, onSave
                 onRemove={(i) => removeSkill('playstyle', i)}
                 onChange={(i, v) => updateSkill('playstyle', i, v)}
                 placeholder={lang === 'it' ? 'Nome stile di gioco IA' : 'AI playstyle name'}
+                type="playstyles"
                 t={t}
+                lang={lang}
               />
             </Section>
           )}
@@ -397,7 +402,9 @@ export default function EditPlayerDataModal({ player, authToken, onClose, onSave
                 onRemove={(i) => removeSkill('position', i)}
                 onChange={(i, v) => updateSkill('position', i, v)}
                 placeholder={lang === 'it' ? 'Codice posizione (es: CLD, EDA)' : 'Position code (e.g. CLD, EDA)'}
+                type="positions"
                 t={t}
+                lang={lang}
               />
             </Section>
           )}
@@ -728,38 +735,26 @@ function PhysicalForm({ physical, setPhysical, t }) {
         <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px', opacity: 0.8 }}>
           {t('teamName')}
         </label>
-        <input
-          type="text"
+        <AutocompleteInput
           value={physical.team || ''}
-          onChange={(e) => setPhysical({ ...physical, team: e.target.value })}
-          style={{
-            width: '100%',
-            padding: '10px',
-            background: 'rgba(0, 0, 0, 0.5)',
-            border: '1px solid rgba(0, 212, 255, 0.3)',
-            borderRadius: '8px',
-            color: 'white',
-            fontSize: '14px'
-          }}
+          onChange={(val) => setPhysical({ ...physical, team: val })}
+          placeholder={lang === 'it' ? 'Nome squadra' : 'Team name'}
+          type="teams"
+          t={t}
+          lang={lang}
         />
       </div>
       <div>
         <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px', opacity: 0.8 }}>
           {t('nationalityCountry')}
         </label>
-        <input
-          type="text"
+        <AutocompleteInput
           value={physical.nationality || ''}
-          onChange={(e) => setPhysical({ ...physical, nationality: e.target.value })}
-          style={{
-            width: '100%',
-            padding: '10px',
-            background: 'rgba(0, 0, 0, 0.5)',
-            border: '1px solid rgba(0, 212, 255, 0.3)',
-            borderRadius: '8px',
-            color: 'white',
-            fontSize: '14px'
-          }}
+          onChange={(val) => setPhysical({ ...physical, nationality: val })}
+          placeholder={lang === 'it' ? 'Nazionalità' : 'Nationality'}
+          type="nationalities"
+          t={t}
+          lang={lang}
         />
       </div>
     </div>
