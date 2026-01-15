@@ -74,15 +74,28 @@ function OpponentFormationView() {
     })
   }
 
-  const handleDrop = async (e) => {
-    e.preventDefault()
-    setIsDragging(false)
-    const file = e.dataTransfer.files[0] || e.target.files?.[0]
+  const handleFileSelect = async (file) => {
     if (!file || !file.type.startsWith('image/')) return
     const dataUrl = await compressImageToDataUrl(file)
     setImageDataUrl(dataUrl)
     setFormation(null)
     setError(null)
+  }
+
+  const handleDrop = async (e) => {
+    e.preventDefault()
+    setIsDragging(false)
+    const file = e.dataTransfer?.files?.[0]
+    if (file) {
+      await handleFileSelect(file)
+    }
+  }
+
+  const handleFileInputChange = async (e) => {
+    const file = e.target?.files?.[0]
+    if (file) {
+      await handleFileSelect(file)
+    }
   }
 
   const extractFormation = async () => {
@@ -256,7 +269,7 @@ function OpponentFormationView() {
             ref={fileInputRef}
             type="file"
             accept="image/*"
-            onChange={handleDrop}
+            onChange={handleFileInputChange}
             style={{ display: 'none' }}
           />
         </div>
