@@ -388,28 +388,33 @@ const response = await fetch(`${supabaseUrl}/rest/v1/players_base`, {
 ### Flusso Autenticazione
 
 #### Client-side (Browser)
-1. Inizializzazione: `supabase.auth.getSession()`
-2. Se non c'è sessione: `supabase.auth.signInAnonymously()`
-3. Recupero token: `session.access_token`
-4. Invio token in header: `Authorization: Bearer <token>`
+1. **Login/Registrazione**: Utente accede a `/login`
+   - Registrazione: `supabase.auth.signUp({ email, password })`
+   - Login: `supabase.auth.signInWithPassword({ email, password })`
+2. **Sessione**: `supabase.auth.getSession()` recupera sessione esistente
+3. **Se non autenticato**: Redirect a `/login` (non più anonimo automatico)
+4. **Token**: `session.access_token` per chiamate API
+5. **Header**: `Authorization: Bearer <token>` in tutte le richieste API
 
 #### Server-side (API Route)
-1. Ricezione token: `req.headers.get('authorization')`
-2. Validazione token:
+1. **Estrai token**: Usa helper `extractBearerToken(req)` da `lib/authHelper.js`
+2. **Valida token**: Usa helper `validateToken(token, supabaseUrl, anonKey)`
    ```javascript
-   // Prova con legacy JWT key (più affidabile per token anonimi)
-   const legacyAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' // Hardcoded legacy
-   const legacyAuthClient = createClient(supabaseUrl, legacyAnonKey)
-   const { data, error } = await legacyAuthClient.auth.getUser(token)
+   import { validateToken, extractBearerToken } from '@/lib/authHelper'
    
-   // Se fallisce e anonKey è JWT, prova con anonKey configurato
-   if (error && anonKey?.includes('.')) {
-     const authClient = createClient(supabaseUrl, anonKey)
-     const result = await authClient.auth.getUser(token)
+   const token = extractBearerToken(req)
+   if (!token) return NextResponse.json({ error: 'Missing token' }, { status: 401 })
+   
+   const { userData, error } = await validateToken(token, supabaseUrl, anonKey)
+   if (error || !userData?.user?.id) {
+     return NextResponse.json({ error: 'Invalid auth' }, { status: 401 })
    }
+   
+   const userId = userData.user.id
+   const userEmail = userData.user.email // Disponibile per email auth
    ```
-3. Estrazione `user_id`: `data.user.id`
-4. Operazioni DB con service role key (bypass RLS):
+3. **Isolamento dati**: Usa `user_id` per RLS e query filtrate
+4. **Operazioni DB**: Service role key per bypass RLS (solo server-side)
    ```javascript
    const admin = createClient(supabaseUrl, serviceKey)
    await admin.from('players_base').insert({ ...data, metadata: { user_id } })
