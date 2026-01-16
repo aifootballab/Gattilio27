@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { validateToken, extractBearerToken } from '../../../../lib/authHelper'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -17,23 +18,25 @@ export async function GET(req) {
       )
     }
 
-    const auth = req.headers.get('authorization') || ''
-    const token = auth.toLowerCase().startsWith('bearer ') ? auth.slice(7) : null
-    
+    // Estrai e valida token (stesso sistema di save-player)
+    const token = extractBearerToken(req)
     if (!token) {
       return NextResponse.json({ error: 'Missing Authorization bearer token' }, { status: 401 })
     }
 
-    // Valida token (stesso sistema di save-player)
-    const legacyAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsaXV1b3Jyd2RldHlsb2xscnVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc5MDk0MTksImV4cCI6MjA4MzQ4NTQxOX0.pGnglOpSQ4gJ1JClB_zyBIB3-94eKHJfgveuCfoyffo'
-    const authClient = createClient(supabaseUrl, legacyAnonKey)
-    const { data: userData, error: userErr } = await authClient.auth.getUser(token)
+    console.log('[get-my-players] Validating token:', { tokenPrefix: token.substring(0, 20) + '...' })
+
+    const { userData, error: authError } = await validateToken(token, supabaseUrl, anonKey)
     
-    if (userErr || !userData?.user?.id) {
-      return NextResponse.json({ error: 'Invalid auth', details: userErr?.message }, { status: 401 })
+    if (authError || !userData?.user?.id) {
+      const errorMsg = authError?.message || String(authError) || 'Unknown auth error'
+      console.error('[get-my-players] Auth validation failed:', { error: errorMsg, hasUserData: !!userData, hasUserId: !!userData?.user?.id })
+      return NextResponse.json({ error: 'Invalid auth', details: errorMsg }, { status: 401 })
     }
     
     const userId = userData.user.id
+    const userEmail = userData.user.email
+    console.log('[get-my-players] Auth OK, userId:', userId, 'email:', userEmail || 'anon')
     const admin = createClient(supabaseUrl, serviceKey, {
       auth: { autoRefreshToken: false, persistSession: false }
     })
