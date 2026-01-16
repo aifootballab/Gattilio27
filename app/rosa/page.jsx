@@ -28,6 +28,9 @@ function Badge({ status, label }) {
 }
 
 export default function RosaPage() {
+  if (typeof window === 'undefined') {
+    return null // Prevents SSR issues
+  }
   return <RosaProductionPage />
 }
 
