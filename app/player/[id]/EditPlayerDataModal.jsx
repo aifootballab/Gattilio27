@@ -2,7 +2,99 @@
 
 import React from 'react'
 import { X, Save, ChevronDown, ChevronUp, Plus, Trash2, AlertCircle, Edit, Zap, User, Award, TrendingUp, Activity, Target, Shield } from 'lucide-react'
-import AutocompleteInput from './AutocompleteInput'
+
+// Opzioni dropdown da OPZIONI_DROPDOWN.md
+const SKILLS_OPTIONS = [
+  'A giro da distante',
+  'Astuzia',
+  'Colpo di tacco',
+  'Controllo di suola',
+  'Cross calibrato',
+  'Cross spiovente',
+  'Doppio tocco',
+  'Dribbling fulminei',
+  'Elastico',
+  'Esterno a giro',
+  'Fighting Spirit',
+  'Finta doppio passo',
+  'Intercettazione',
+  'Marcatore',
+  'No-look',
+  'Passaggi illuminanti',
+  'Passaggio a scavalcare',
+  'Passaggio di prima',
+  'Passaggio filtrante',
+  'Rimessa lat. lunga',
+  'Scatto bruciante',
+  'Scivolata',
+  'Sombrero',
+  'Specialista dei rigori',
+  'Taglia alle spalle e gira',
+  'Tiro a giro',
+  'Tiro a salire',
+  'Tiro dalla distanza',
+  'Tiro di prima'
+].sort()
+
+const TEAMS_OPTIONS = [
+  'Arsenal',
+  'AS Roma 00-01',
+  'Barcellona',
+  'FC Barcelona 05-06',
+  'FC Bayern München 73-74',
+  'Internazionale Milano 09-10',
+  'Madrid Chamartin B',
+  'Madrid Chamartín B',
+  'Madrid Chamartin B 19-20',
+  'Paris Saint-Germain',
+  'Tottenham WB 09-10'
+].sort()
+
+const NATIONALITIES_OPTIONS = [
+  'Belgio',
+  'Brasile',
+  'Francia',
+  'Galles',
+  'Germania',
+  'Inghilterra',
+  'Spagna'
+].sort()
+
+const POSITIONS_OPTIONS = [
+  'AMF',
+  'CC',
+  'CF',
+  'DC',
+  'ESA',
+  'GK',
+  'LWF',
+  'MED',
+  'P',
+  'RB',
+  'RWF',
+  'TD',
+  'Terzino offensivo'
+]
+
+const AI_PLAYSTYLES_OPTIONS = [
+  'Crossatore',
+  'Esperto palle lunghe',
+  'Funambolo',
+  'Inserimento',
+  'Serpentina',
+  'Tiratore',
+  'Treno in corsa'
+].sort()
+
+const BOOSTERS_OPTIONS = [
+  'Crossatore',
+  'Fantasista',
+  'Gestione del pallone',
+  'Motore offensivo',
+  'Movimento senza palla',
+  'Slot Booster',
+  'Tecnica'
+].sort()
 
 export default function EditPlayerDataModal({ player, authToken, onClose, onSave, t, lang }) {
   const [loading, setLoading] = React.useState(false)
@@ -358,7 +450,7 @@ export default function EditPlayerDataModal({ player, authToken, onClose, onSave
                 onRemove={(i) => removeSkill('com_skill', i)}
                 onChange={(i, v) => updateSkill('com_skill', i, v)}
                 placeholder={lang === 'it' ? 'Nome abilità aggiuntiva' : 'Additional skill name'}
-                type="skills"
+                options={SKILLS_OPTIONS}
                 t={t}
                 lang={lang}
               />
@@ -380,7 +472,7 @@ export default function EditPlayerDataModal({ player, authToken, onClose, onSave
                 onRemove={(i) => removeSkill('playstyle', i)}
                 onChange={(i, v) => updateSkill('playstyle', i, v)}
                 placeholder={lang === 'it' ? 'Nome stile di gioco IA' : 'AI playstyle name'}
-                type="playstyles"
+                options={AI_PLAYSTYLES_OPTIONS}
                 t={t}
                 lang={lang}
               />
@@ -402,7 +494,7 @@ export default function EditPlayerDataModal({ player, authToken, onClose, onSave
                 onRemove={(i) => removeSkill('position', i)}
                 onChange={(i, v) => updateSkill('position', i, v)}
                 placeholder={lang === 'it' ? 'Codice posizione (es: CLD, EDA)' : 'Position code (e.g. CLD, EDA)'}
-                type="positions"
+                options={POSITIONS_OPTIONS}
                 t={t}
                 lang={lang}
               />
@@ -735,27 +827,47 @@ function PhysicalForm({ physical, setPhysical, t }) {
         <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px', opacity: 0.8 }}>
           {t('teamName')}
         </label>
-        <AutocompleteInput
+        <select
           value={physical.team || ''}
-          onChange={(val) => setPhysical({ ...physical, team: val })}
-          placeholder={lang === 'it' ? 'Nome squadra' : 'Team name'}
-          type="teams"
-          t={t}
-          lang={lang}
-        />
+          onChange={(e) => setPhysical({ ...physical, team: e.target.value })}
+          style={{
+            width: '100%',
+            padding: '10px',
+            background: 'rgba(0, 0, 0, 0.5)',
+            border: '1px solid rgba(0, 212, 255, 0.3)',
+            borderRadius: '8px',
+            color: 'white',
+            fontSize: '14px'
+          }}
+        >
+          <option value="">—</option>
+          {TEAMS_OPTIONS.map(team => (
+            <option key={team} value={team}>{team}</option>
+          ))}
+        </select>
       </div>
       <div>
         <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px', opacity: 0.8 }}>
           {t('nationalityCountry')}
         </label>
-        <AutocompleteInput
+        <select
           value={physical.nationality || ''}
-          onChange={(val) => setPhysical({ ...physical, nationality: val })}
-          placeholder={lang === 'it' ? 'Nazionalità' : 'Nationality'}
-          type="nationalities"
-          t={t}
-          lang={lang}
-        />
+          onChange={(e) => setPhysical({ ...physical, nationality: e.target.value })}
+          style={{
+            width: '100%',
+            padding: '10px',
+            background: 'rgba(0, 0, 0, 0.5)',
+            border: '1px solid rgba(0, 212, 255, 0.3)',
+            borderRadius: '8px',
+            color: 'white',
+            fontSize: '14px'
+          }}
+        >
+          <option value="">—</option>
+          {NATIONALITIES_OPTIONS.map(nat => (
+            <option key={nat} value={nat}>{nat}</option>
+          ))}
+        </select>
       </div>
     </div>
   )
