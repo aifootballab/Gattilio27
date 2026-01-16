@@ -69,30 +69,56 @@ export default function PlayerDetailPage() {
   }, [router])
 
   const fetchPlayer = React.useCallback(async () => {
-    if (!authStatus.ready || !authStatus.token) return
+    if (!authStatus.ready || !authStatus.token) {
+      console.log('[PlayerDetail] fetchPlayer skipped:', {
+        ready: authStatus.ready,
+        hasToken: !!authStatus.token
+      })
+      return
+    }
+
+    console.log('[PlayerDetail] ===== FETCH PLAYER START =====')
+    console.log('[PlayerDetail] Looking for build_id:', params.id)
+    console.log('[PlayerDetail] Current authStatus:', {
+      ready: authStatus.ready,
+      hasToken: !!authStatus.token
+    })
 
     try {
       setLoading(true)
       setError(null)
 
+      console.log('[PlayerDetail] Calling API /api/supabase/get-my-players...')
       const res = await fetch('/api/supabase/get-my-players', {
         headers: { Authorization: `Bearer ${authStatus.token}` },
-        cache: 'no-store' // Forza ricaricamento dati
+        cache: 'no-store'
       })
+      
+      console.log('[PlayerDetail] API response status:', res.status, 'ok:', res.ok)
       const apiData = await res.json()
       
       if (!res.ok) {
+        console.error('[PlayerDetail] ❌ API error:', apiData)
         throw new Error(apiData?.error || 'Failed to fetch player')
       }
       
+      console.log('[PlayerDetail] Players received:', apiData.players?.length || 0)
+      console.log('[PlayerDetail] Searching for build_id:', params.id)
+      
       const found = apiData.players?.find(p => p.build_id === params.id)
+      
       if (!found) {
+        console.error('[PlayerDetail] ❌ Player not found')
+        console.log('[PlayerDetail] Available build_ids:', apiData.players?.map(p => p.build_id) || [])
         throw new Error(lang === 'it' ? 'Giocatore non trovato' : 'Player not found')
       }
       
+      console.log('[PlayerDetail] ✅ Player found:', found.player_name)
+      console.log('[PlayerDetail] ===== FETCH PLAYER END =====')
+      
       setPlayer(found)
     } catch (err) {
-      console.error('[PlayerDetail] Fetch failed:', err)
+      console.error('[PlayerDetail] ❌ Fetch failed:', err)
       setError(err?.message || (lang === 'it' ? 'Errore caricamento giocatore' : 'Error loading player'))
     } finally {
       setLoading(false)
