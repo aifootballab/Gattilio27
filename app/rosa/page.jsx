@@ -6,6 +6,26 @@ import Link from 'next/link'
 import { useTranslation } from '@/lib/i18n'
 import { ArrowLeft, Upload, X, CheckCircle2, AlertCircle, Loader2, Users } from 'lucide-react'
 
+// Componente Badge per completeness
+function Badge({ status, label }) {
+  return (
+    <span style={{
+      padding: '4px 8px',
+      borderRadius: '4px',
+      fontSize: '12px',
+      fontWeight: 600,
+      background: status ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+      border: `1px solid ${status ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
+      color: status ? '#22C55E' : '#EF4444',
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '4px'
+    }}>
+      {status ? '✓' : '✗'} {label}
+    </span>
+  )
+}
+
 export default function RosaPage() {
   return <RosaProductionPage />
 }
@@ -22,6 +42,9 @@ function RosaProductionPage() {
   const [authStatus, setAuthStatus] = React.useState({ ready: false, userId: null, token: null })
   const [supabaseMsg, setSupabaseMsg] = React.useState(null)
   const [tokenKind, setTokenKind] = React.useState(null)
+  const [processingProgress, setProcessingProgress] = React.useState({ current: 0, total: 0 })
+  const [processingProgress, setProcessingProgress] = React.useState({ current: 0, total: 0 })
+  const [processingProgress, setProcessingProgress] = React.useState({ current: 0, total: 0 })
 
   const fileInputRef = React.useRef(null)
 
@@ -151,6 +174,7 @@ function RosaProductionPage() {
     if (!images.length) return
     setIsExtracting(true)
     setError(null)
+    setProcessingProgress({ current: 0, total: images.length })
     try {
       const res = await fetch('/api/extract-batch', {
         method: 'POST',
@@ -163,10 +187,12 @@ function RosaProductionPage() {
         throw new Error(`${data?.error || `Errore estrazione (${res.status})`}${details ? `\n\n${String(details).slice(0, 1200)}` : ''}`)
       }
       setGroups(Array.isArray(data.groups) ? data.groups : [])
+      setProcessingProgress({ current: images.length, total: images.length })
     } catch (err) {
       setError(err?.message || 'Errore estrazione')
     } finally {
       setIsExtracting(false)
+      setTimeout(() => setProcessingProgress({ current: 0, total: 0 }), 1000)
     }
   }
 
@@ -432,6 +458,27 @@ function RosaProductionPage() {
                   {isExtracting ? <Loader2 size={16} className="spin" /> : <CheckCircle2 size={16} />}
                   {isExtracting ? t('analyzing') : t('analyzeBatch')}
                 </button>
+                {isExtracting && processingProgress.total > 0 && (
+                  <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '8px',
+                    padding: '8px 12px',
+                    background: 'rgba(0, 212, 255, 0.1)',
+                    borderRadius: '8px',
+                    fontSize: '14px'
+                  }}>
+                    <span>{t('processingImage')} {processingProgress.current} {t('of')} {processingProgress.total}</span>
+                    <div style={{ width: '100px', height: '4px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '2px', overflow: 'hidden' }}>
+                      <div style={{ 
+                        width: `${(processingProgress.current / processingProgress.total) * 100}%`, 
+                        height: '100%', 
+                        background: 'var(--neon-blue)',
+                        transition: 'width 0.3s ease'
+                      }} />
+                    </div>
+                  </div>
+                )}
                 <button className="btn" onClick={reset} disabled={isExtracting} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
                   <X size={16} />
                   {t('reset')}
@@ -448,9 +495,40 @@ function RosaProductionPage() {
 
             {groups.length > 0 && (
               <div className="grid" style={{ marginTop: 24 }}>
-                {groups.map((g) => (
+                {groups.map((g) => {
+                  const completeness = g.completeness || { identity: false, stats: false, skills: false, boosters: false, percentage: 0 }
+                  const canSave = completeness.identity && (completeness.stats || completeness.skills)
+                  
+                  return (
                   <div key={g.group_id} className="card inner">
                     <h2>{g.label}</h2>
+                    
+                    {/* Completeness Badge */}
+                    {completeness && (
+                      <div style={{ marginBottom: '16px', padding: '12px', background: 'rgba(0, 0, 0, 0.3)', borderRadius: '8px', border: '1px solid rgba(0, 212, 255, 0.2)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                          <span style={{ fontSize: '14px', fontWeight: 600 }}>{t('completeness')}</span>
+                          <span style={{ fontSize: '16px', fontWeight: 700, color: 'var(--neon-blue)' }}>
+                            {completeness.percentage || 0}%
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                          <Badge status={completeness.identity} label={t('identity')} />
+                          <Badge status={completeness.stats} label={t('stats')} />
+                          <Badge status={completeness.skills} label={t('skills')} />
+                          <Badge status={completeness.boosters} label={t('boosters')} />
+                        </div>
+                        <div style={{ width: '100%', height: '4px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '2px', overflow: 'hidden' }}>
+                          <div style={{ 
+                            width: `${completeness.percentage || 0}%`, 
+                            height: '100%', 
+                            background: 'var(--neon-blue)',
+                            transition: 'width 0.3s ease'
+                          }} />
+                        </div>
+                      </div>
+                    )}
+                    
                     <div className="kv">
                       <div><b>{t('name')}</b>: {g.player?.player_name ?? '—'}</div>
                       <div><b>OVR</b>: {g.player?.overall_rating ?? '—'} · <b>{t('role')}</b>: {g.player?.position ?? '—'}</div>
@@ -480,12 +558,26 @@ function RosaProductionPage() {
                       <CheckCircle2 size={16} />
                       {t('insertPlayer')}
                     </button>
-                    <button className="btn" style={{ marginTop: 10, display: 'inline-flex', alignItems: 'center', gap: '8px' }} onClick={() => saveToSupabase(g.player, selectedSlot)} disabled={!authStatus.token}>
+                    <button 
+                      className="btn" 
+                      style={{ 
+                        marginTop: 10, 
+                        display: 'inline-flex', 
+                        alignItems: 'center', 
+                        gap: '8px',
+                        opacity: (!canSave || !authStatus.token) ? 0.5 : 1,
+                        cursor: (!canSave || !authStatus.token) ? 'not-allowed' : 'pointer'
+                      }} 
+                      onClick={() => saveToSupabase(g.player, selectedSlot)} 
+                      disabled={!canSave || !authStatus.token}
+                      title={!canSave ? (lang === 'it' ? 'Dati insufficienti per salvare (serve Identity + Stats o Skills)' : 'Insufficient data to save (needs Identity + Stats or Skills)') : ''}
+                    >
                       <CheckCircle2 size={16} />
                       {t('saveToSupabase')} ({t('slotSelected')})
                     </button>
                   </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </div>

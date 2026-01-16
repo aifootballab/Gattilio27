@@ -300,30 +300,33 @@ function PlayerDetailView({ player, t, lang, changeLanguage, onRefresh }) {
         {/* Attacking Stats */}
         {Object.keys(attacking).length > 0 && (
           <StatsSection 
-            title={lang === 'it' ? 'Attacco' : 'Attack'} 
+            title={t('attacking')} 
             icon={<Zap size={20} />}
             stats={attacking}
             color="blue"
+            t={t}
           />
         )}
 
         {/* Defending Stats */}
         {Object.keys(defending).length > 0 && (
           <StatsSection 
-            title={lang === 'it' ? 'Difesa' : 'Defense'} 
+            title={t('defending')} 
             icon={<Shield size={20} />}
             stats={defending}
             color="purple"
+            t={t}
           />
         )}
 
         {/* Athleticism Stats */}
         {Object.keys(athleticism).length > 0 && (
           <StatsSection 
-            title={lang === 'it' ? 'Forza' : 'Strength'} 
+            title={t('athleticism')} 
             icon={<Activity size={20} />}
             stats={athleticism}
             color="orange"
+            t={t}
           />
         )}
       </div>
@@ -490,7 +493,7 @@ function PlayerDetailView({ player, t, lang, changeLanguage, onRefresh }) {
   )
 }
 
-function StatsSection({ title, icon, stats, color }) {
+function StatsSection({ title, icon, stats, color, t }) {
   const colorMap = {
     blue: 'var(--neon-blue)',
     purple: 'var(--neon-purple)',
@@ -498,6 +501,15 @@ function StatsSection({ title, icon, stats, color }) {
   }
   const bgColor = color === 'blue' ? 'rgba(0, 212, 255, 0.1)' : color === 'purple' ? 'rgba(168, 85, 247, 0.1)' : 'rgba(255, 107, 53, 0.1)'
   const borderColor = colorMap[color]
+
+  // Funzione per tradurre nome statistica
+  const getStatLabel = (key) => {
+    // Prova traduzione diretta
+    const translated = t(key)
+    if (translated && translated !== key) return translated
+    // Fallback: capitalizza e sostituisci underscore
+    return key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+  }
 
   return (
     <div className="neon-panel">
@@ -517,8 +529,8 @@ function StatsSection({ title, icon, stats, color }) {
               border: `1px solid ${borderColor}`,
               borderRadius: '6px'
             }}>
-              <span style={{ fontSize: '14px', textTransform: 'capitalize' }}>
-                {key.replace(/_/g, ' ')}
+              <span style={{ fontSize: '14px' }}>
+                {getStatLabel(key)}
               </span>
               <span style={{ fontWeight: 700, color: colorMap[color] }}>{value}</span>
             </div>

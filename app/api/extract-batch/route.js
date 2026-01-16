@@ -20,6 +20,124 @@ function normName(name) {
   return String(name).trim().toLowerCase()
 }
 
+// Funzioni merge intelligenti per Smart Batch
+function mergeIdentity(existing, newData) {
+  if (!existing) return newData
+  if (!newData) return existing
+  
+  // Se conflitto forte (nome diverso), preferisci quello con più dati
+  const existingName = normName(existing.player_name)
+  const newName = normName(newData.player_name)
+  
+  if (existingName && newName && existingName !== newName) {
+    // Preferisci quello con più campi compilati
+    const existingFields = Object.values(existing).filter(v => v !== null && v !== undefined).length
+    const newFields = Object.values(newData).filter(v => v !== null && v !== undefined).length
+    return newFields > existingFields ? newData : existing
+  }
+  
+  // Merge: usa il più completo
+  return {
+    ...existing,
+    ...newData,  // sovrascrive solo campi presenti
+    overall_rating: newData.overall_rating || existing.overall_rating,
+    position: newData.position || existing.position,
+    player_name: newData.player_name || existing.player_name
+  }
+}
+
+function mergeStats(existing, newData) {
+  if (!existing) return newData
+  if (!newData) return existing
+  
+  return {
+    overall_rating: newData.overall_rating || existing.overall_rating,
+    attacking: {
+      ...(existing.attacking || {}),
+      ...(newData.attacking || {})  // sovrascrive solo se presente
+    },
+    defending: {
+      ...(existing.defending || {}),
+      ...(newData.defending || {})
+    },
+    athleticism: {
+      ...(existing.athleticism || {}),
+      ...(newData.athleticism || {})
+    }
+  }
+}
+
+function dedupArray(arr) {
+  if (!Array.isArray(arr)) return []
+  const seen = new Set()
+  return arr.filter(item => {
+    const key = String(item).toLowerCase().trim()
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+}
+
+function mergeSkills(existing, newData) {
+  if (!existing) return newData
+  if (!newData) return existing
+  
+  return {
+    skills: dedupArray([...(existing.skills || []), ...(newData.skills || [])]),
+    com_skills: dedupArray([...(existing.com_skills || []), ...(newData.com_skills || [])]),
+    ai_playstyles: dedupArray([...(existing.ai_playstyles || []), ...(newData.ai_playstyles || [])])
+  }
+}
+
+function mergeBoosters(existing, newData) {
+  if (!existing || !Array.isArray(existing)) return Array.isArray(newData) ? newData.slice(0, 2) : []
+  if (!newData || !Array.isArray(newData)) return existing.slice(0, 2)
+  
+  // Merge con dedup basato su nome
+  const merged = []
+  const seen = new Set()
+  
+  for (const b of [...existing, ...newData]) {
+    const name = String(b?.name || '').toLowerCase().trim()
+    if (name && !seen.has(name)) {
+      seen.add(name)
+      merged.push(b)
+    }
+  }
+  
+  return merged.slice(0, 2)  // max 2
+}
+
+function calculateCompleteness(player) {
+  const hasIdentity = !!(player.player_name && player.position)
+  const hasStats = !!(player.base_stats && (
+    Object.keys(player.base_stats.attacking || {}).length > 0 ||
+    Object.keys(player.base_stats.defending || {}).length > 0 ||
+    Object.keys(player.base_stats.athleticism || {}).length > 0
+  ))
+  const hasSkills = !!(
+    (Array.isArray(player.skills) && player.skills.length > 0) ||
+    (Array.isArray(player.com_skills) && player.com_skills.length > 0) ||
+    (Array.isArray(player.ai_playstyles) && player.ai_playstyles.length > 0)
+  )
+  const hasBoosters = !!(Array.isArray(player.boosters) && player.boosters.length > 0)
+  
+  const percentage = Math.round(
+    (hasIdentity ? 25 : 0) +
+    (hasStats ? 25 : 0) +
+    (hasSkills ? 25 : 0) +
+    (hasBoosters ? 25 : 0)
+  )
+  
+  return {
+    identity: hasIdentity,
+    stats: hasStats,
+    skills: hasSkills,
+    boosters: hasBoosters,
+    percentage
+  }
+}
+
 async function openaiJson(apiKey, input, maxTokens = 500) {
   const res = await fetch('https://api.openai.com/v1/responses', {
     method: 'POST',
@@ -106,106 +224,158 @@ Rispondi solo JSON:
       groupsMap.get(key).image_ids.push(it.id)
     }
 
-    // 3) Estrazione completa per gruppo (1–3 immagini)
+    // 3) Estrazione completa per gruppo con Smart Batch (processing sequenziale interno)
     const resultGroups = []
     let gi = 1
     for (const [, g] of groupsMap.entries()) {
       const groupImages = images.filter((im) => g.image_ids.includes(String(im?.id)))
-      const content = [
-        {
-          role: 'user',
-          content: [
+      
+      // Smart Batch: processing sequenziale interno con merge progressivo
+      const sections = {
+        identity: null,
+        stats: null,
+        skills: null,
+        boosters: null,
+        additional: {}  // altri campi (height, weight, etc.)
+      }
+      
+      // Processa ogni immagine SEQUENZIALMENTE (una alla volta)
+      for (const img of groupImages) {
+        try {
+          // Estrai dati da questa singola immagine
+          const content = [
             {
-              type: 'input_text',
-              text: `
-Hai 1-3 immagini dello STESSO giocatore (ordine casuale, schermate diverse).
-Fondi TUTTE le informazioni da TUTTE le immagini. Se un campo non è visibile in nessuna immagine -> null (o [] per liste). Non inventare.
+              role: 'user',
+              content: [
+                {
+                  type: 'input_text',
+                  text: `
+Analizza questa immagine di eFootball e estrai TUTTE le informazioni visibili.
+Se un campo non è visibile -> null (o [] per liste). Non inventare.
 
-**IMPORTANTE - FUSIONE DATI**:
-1. **Array (skills, com_skills, ai_playstyles, additional_positions, boosters)**: Unisci TUTTI gli elementi da TUTTE le immagini, rimuovi duplicati mantenendo l'ordine.
-2. **Stats**: Se vedi una TABELLA con statistiche dettagliate (colonne "Attacco", "Difesa", "Forza" con valori numerici precisi), usa SOLO QUELLA. IGNORA completamente il radar chart (grafico esagonale TIR/DRI/PAS/FRZ/VEL/DIF) - non usare quei valori.
-3. **Valori singoli**: Se un campo è presente in più immagini, usa il valore più completo/dettagliato.
-
-**BOOSTERS**: Massimo 2 boosters (POTW card = 1, giocatori vecchi = 1-2). Se vedi più di 2, prendi i primi 2.
+**PRIORITÀ ESTRAZIONE**:
+1. Se vedi una TABELLA con statistiche dettagliate (colonne "Attacco", "Difesa", "Forza" con valori numerici precisi), usa QUELLA.
+2. IGNORA completamente il radar chart (grafico esagonale) - non fornisce valori precisi.
+3. Estrai TUTTE le skills, com_skills, ai_playstyles visibili.
+4. Estrai TUTTI i boosters visibili (max 2).
 
 Rispondi JSON:
-{ "player": { ... }, "missing_screens": string[], "notes": string[] }
+{ "player": { ... } }
 
-Campi player:
+Campi player (estrai SOLO ciò che vedi):
 player_name, overall_rating, position, role, playing_style, card_type, team, region_or_nationality, form, preferred_foot,
 height_cm, weight_kg, age, nationality, club_name,
 level_current, level_cap, progression_points, matches_played, goals, assists,
 
-**STILE DI GIOCO (playing_style)**: Estrai lo stile di gioco del giocatore (es: "Ala prolifica", "Incontrista", "Collante", "Classico n°10", "Onnipresente", "Terzino offensivo", ecc.).
-Questo è diverso da "role" (che può essere una descrizione più generica). Lo stile di gioco è un campo specifico visibile nello screenshot del profilo.
-Se vedi "ESA Ala prolifica", estrai playing_style: "Ala prolifica" (senza il prefisso della posizione).
-
 base_stats: {
   overall_rating: number,
-  attacking: {
-    offensive_awareness (o "Comportamento offensivo"),
-    ball_control (o "Controllo palla"),
-    dribbling,
-    tight_possession (o "Possesso stretto"),
-    low_pass (o "Passaggio rasoterra"),
-    lofted_pass (o "Passaggio alto"),
-    finishing (o "Finalizzazione"),
-    heading (o "Colpo di testa"),
-    place_kicking (o "Calci da fermo"),
-    curl (o "Tiro a giro")
-  },
-  defending: {
-    defensive_awareness (o "Comportamento difensivo"),
-    defensive_engagement (o "Coinvolgimento difensivo"),
-    tackling (o "Contrasto"),
-    aggression (o "Aggressività"),
-    goalkeeping (o "Comportamento PT"),
-    gk_catching (o "Presa PT"),
-    gk_parrying (o "Parata PT"),
-    gk_reflexes (o "Riflessi PT"),
-    gk_reach (o "Estensione PT")
-  },
-  athleticism: {
-    speed (o "Velocità"),
-    acceleration (o "Accelerazione"),
-    kicking_power (o "Potenza di tiro"),
-    jump (o "Salto"),
-    physical_contact (o "Contatto fisico"),
-    balance (o "Controllo corpo"),
-    stamina (o "Resistenza")
-  }
+  attacking: { offensive_awareness, ball_control, dribbling, tight_possession, low_pass, lofted_pass, finishing, heading, place_kicking, curl },
+  defending: { defensive_awareness, defensive_engagement, tackling, aggression, goalkeeping, gk_catching, gk_parrying, gk_reflexes, gk_reach },
+  athleticism: { speed, acceleration, kicking_power, jump, physical_contact, balance, stamina }
 }
 
-**NOTA SUL RADAR CHART**: Il radar chart (grafico esagonale) NON fornisce valori precisi. Usa SOLO la tabella dettagliata con valori numerici. Se vedi solo il radar chart e non la tabella, lascia base_stats con solo overall_rating (non estrarre valori dal radar chart).
-
-skills: string[] (TUTTE le "Abilità giocatore" visibili - lista completa),
-com_skills: string[] (TUTTE le "Abilità aggiuntive" o "Abilità complementari" visibili - lista completa),
-ai_playstyles: string[] (TUTTI gli "Stili di gioco IA" visibili - lista completa),
-additional_positions: string[] (TUTTE le posizioni aggiuntive/competenza posizione visibili - es: "CLD", "EDA"),
-
-weak_foot_frequency (es: "Raramente", "Spesso"),
-weak_foot_accuracy (es: "Alta", "Media", "Bassa"),
-form_detailed (es: "Incrollabile", "Stabile", "B"),
-injury_resistance (es: "Media", "Alta", "Bassa"),
-
-boosters: [{name: string, effect: string, activation_condition: string}] (Massimo 2 boosters. Unisci da tutte le immagini, rimuovi duplicati, prendi i primi 2)
-
-**Nazionalità**: Estrai da "Nazionalità/Regione" o da bandiere/emblemi visibili (es: bandiera Brasile → "Brasile").
+skills: string[],
+com_skills: string[],
+ai_playstyles: string[],
+additional_positions: string[],
+boosters: [{name, effect, activation_condition}] (max 2),
+weak_foot_frequency, weak_foot_accuracy, form_detailed, injury_resistance
 `,
+                },
+                { type: 'input_image', image_url: img.imageDataUrl, detail: 'high' },
+              ],
             },
-            ...groupImages.map((im) => ({ type: 'input_image', image_url: im.imageDataUrl, detail: 'high' })),
-          ],
-        },
-      ]
-
-      const out = await openaiJson(apiKey, content, 3000)
+          ]
+          
+          const extracted = await openaiJson(apiKey, content, 3000)
+          const playerData = extracted?.player || extracted
+          
+          if (!playerData) continue
+          
+          // Merge progressivo per sezione
+          // Identity
+          if (playerData.player_name || playerData.position || playerData.overall_rating) {
+            sections.identity = mergeIdentity(sections.identity, {
+              player_name: playerData.player_name,
+              position: playerData.position,
+              overall_rating: playerData.overall_rating,
+              role: playerData.role,
+              playing_style: playerData.playing_style,
+              card_type: playerData.card_type,
+              team: playerData.team,
+              nationality: playerData.nationality || playerData.region_or_nationality,
+              club_name: playerData.club_name,
+              form: playerData.form,
+              preferred_foot: playerData.preferred_foot,
+              age: playerData.age,
+              height_cm: playerData.height_cm,
+              weight_kg: playerData.weight_kg
+            })
+          }
+          
+          // Stats
+          if (playerData.base_stats) {
+            sections.stats = mergeStats(sections.stats, playerData.base_stats)
+          }
+          
+          // Skills
+          if (playerData.skills || playerData.com_skills || playerData.ai_playstyles) {
+            sections.skills = mergeSkills(sections.skills, {
+              skills: playerData.skills || [],
+              com_skills: playerData.com_skills || [],
+              ai_playstyles: playerData.ai_playstyles || []
+            })
+          }
+          
+          // Boosters
+          if (playerData.boosters && Array.isArray(playerData.boosters)) {
+            sections.boosters = mergeBoosters(sections.boosters, playerData.boosters)
+          }
+          
+          // Additional fields
+          if (playerData.additional_positions) {
+            sections.additional.additional_positions = dedupArray([
+              ...(sections.additional.additional_positions || []),
+              ...(Array.isArray(playerData.additional_positions) ? playerData.additional_positions : [])
+            ])
+          }
+          if (playerData.weak_foot_frequency) sections.additional.weak_foot_frequency = playerData.weak_foot_frequency
+          if (playerData.weak_foot_accuracy) sections.additional.weak_foot_accuracy = playerData.weak_foot_accuracy
+          if (playerData.form_detailed) sections.additional.form_detailed = playerData.form_detailed
+          if (playerData.injury_resistance) sections.additional.injury_resistance = playerData.injury_resistance
+          
+        } catch (imgErr) {
+          console.error(`[extract-batch] Error processing image ${img.id}:`, imgErr)
+          // Continua con prossima immagine
+        }
+      }
+      
+      // Costruisci player finale da sezioni
+      const finalPlayer = {
+        ...(sections.identity || {}),
+        base_stats: sections.stats || { overall_rating: sections.identity?.overall_rating || null },
+        skills: sections.skills?.skills || [],
+        com_skills: sections.skills?.com_skills || [],
+        ai_playstyles: sections.skills?.ai_playstyles || [],
+        additional_positions: sections.additional.additional_positions || [],
+        boosters: sections.boosters || [],
+        weak_foot_frequency: sections.additional.weak_foot_frequency || null,
+        weak_foot_accuracy: sections.additional.weak_foot_accuracy || null,
+        form_detailed: sections.additional.form_detailed || null,
+        injury_resistance: sections.additional.injury_resistance || null
+      }
+      
+      // Calcola completeness
+      const completeness = calculateCompleteness(finalPlayer)
+      
       resultGroups.push({
         group_id: `g${gi++}`,
-        label: g.label,
+        label: finalPlayer.player_name || g.label,
         image_ids: g.image_ids,
-        player: out?.player ?? out,
-        missing_screens: Array.isArray(out?.missing_screens) ? out.missing_screens : [],
-        notes: Array.isArray(out?.notes) ? out.notes : [],
+        player: finalPlayer,
+        completeness: completeness,
+        missing_screens: [],  // calcolato da completeness
+        notes: []
       })
     }
 
