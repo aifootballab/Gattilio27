@@ -7,7 +7,9 @@ import Link from 'next/link'
 import { useTranslation } from '@/lib/i18n'
 import { ArrowLeft, Upload, X, CheckCircle2, AlertCircle, Loader2, Users } from 'lucide-react'
 
+// Disable static generation for this page
 export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 // Componente Badge per completeness
 function Badge({ status, label }) {
@@ -649,41 +651,6 @@ function RosaProductionPage() {
             )}
           </div>
         )}
-      </section>
-
-      <section className="card">
-        <h2>{t('squad')} (21 {t('slot')})</h2>
-        <div className="rosa-grid">
-          {rosa.map((slot, idx) => (
-            <div key={idx} className={`rosa-slot ${slot ? 'filled' : ''}`}>
-              <div className="slot-title">{idx <= 10 ? `${lang === 'it' ? 'T' : 'S'} ${idx + 1}` : `${lang === 'it' ? 'P' : 'B'} ${idx - 10}`}</div>
-              <div className="slot-body">
-                {slot ? (
-                  <>
-                    <div className="slot-name">{slot.extracted?.player_name ?? (lang === 'it' ? 'Senza nome' : 'No name')}</div>
-                    <div className="slot-meta">
-                      {slot.extracted?.position ?? '—'} · OVR {slot.extracted?.overall_rating ?? '—'}
-                    </div>
-                    <button
-                      className="btn small"
-                      onClick={() => setRosa((prev) => {
-                        const next = [...prev]
-                        next[idx] = null
-                        return next
-                      })}
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-                    >
-                      <X size={14} />
-                      {lang === 'it' ? 'Rimuovi' : 'Remove'}
-                    </button>
-                  </>
-                ) : (
-                  <div className="slot-empty">{lang === 'it' ? 'Vuoto' : 'Empty'}</div>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
       </section>
     </main>
   )
