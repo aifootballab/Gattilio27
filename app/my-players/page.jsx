@@ -68,7 +68,12 @@ export default function MyPlayersPage() {
     initAuth()
   }, [])
 
+  // Fetch players quando authStatus è pronto - SOLUZIONE SEMPLICE
+  // Forza refresh ogni volta che il componente è visibile (torni sulla pagina)
+  const mountedRef = React.useRef(false)
+  
   React.useEffect(() => {
+    // Trigger fetch sia al mount iniziale che quando torni sulla pagina
     if (!authStatus.ready || !authStatus.token) {
       console.log('[MyPlayers] useEffect skipped:', {
         ready: authStatus.ready,
@@ -79,6 +84,7 @@ export default function MyPlayersPage() {
 
     const fetchPlayers = async () => {
       console.log('[MyPlayers] ===== FRONTEND FETCH START =====')
+      console.log('[MyPlayers] Mounted:', mountedRef.current ? 'YES (refresh)' : 'NO (first mount)')
       console.log('[MyPlayers] Current authStatus:', {
         ready: authStatus.ready,
         hasUserId: !!authStatus.userId,
@@ -124,10 +130,25 @@ export default function MyPlayersPage() {
         setError(err?.message || (lang === 'it' ? 'Errore caricamento giocatori' : 'Error loading players'))
       } finally {
         setLoading(false)
+        mountedRef.current = true
       }
     }
 
     fetchPlayers()
+    
+    // Refresh quando la pagina diventa visibile (torni da un'altra pagina)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && authStatus.ready && authStatus.token) {
+        console.log('[MyPlayers] Page became visible, refreshing...')
+        fetchPlayers()
+      }
+    }
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
   }, [authStatus.ready, authStatus.token, lang])
 
   return (
