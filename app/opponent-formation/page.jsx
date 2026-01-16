@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
 import { useTranslation } from '@/lib/i18n'
@@ -12,6 +13,7 @@ export default function OpponentFormationPage() {
 
 function OpponentFormationView() {
   const { t, lang, changeLanguage } = useTranslation()
+  const router = useRouter()
   const [isDragging, setIsDragging] = React.useState(false)
   const [imageDataUrl, setImageDataUrl] = React.useState(null)
   const [isExtracting, setIsExtracting] = React.useState(false)
@@ -24,29 +26,31 @@ function OpponentFormationView() {
   const fileInputRef = React.useRef(null)
 
   React.useEffect(() => {
-    const initAnon = async () => {
+    const initAuth = async () => {
       try {
         if (!supabase) {
           setAuthStatus({ ready: true, userId: null, token: null })
           return
         }
         
-        let { data } = await supabase.auth.getSession()
-        if (!data?.session?.access_token) {
-          const { data: signInData } = await supabase.auth.signInAnonymously()
-          data = signInData
+        const { data, error } = await supabase.auth.getSession()
+        if (!data?.session?.access_token || error) {
+          console.log('[OpponentFormation] No session, redirecting to login')
+          router.push('/login')
+          return
         }
         
         setAuthStatus({
           ready: true,
-          userId: data?.session?.user?.id || null,
-          token: data?.session?.access_token || null,
+          userId: data.session.user?.id || null,
+          token: data.session.access_token,
         })
       } catch (err) {
-        setAuthStatus({ ready: true, userId: null, token: null })
+        console.error('[OpponentFormation] Auth init failed:', err)
+        router.push('/login')
       }
     }
-    initAnon()
+    initAuth()
   }, [])
 
   const compressImageToDataUrl = (file, maxWidth = 1920, quality = 0.85) => {

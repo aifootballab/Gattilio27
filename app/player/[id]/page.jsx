@@ -24,19 +24,20 @@ export default function PlayerDetailPage() {
           return
         }
         
-        let { data } = await supabase.auth.getSession()
-        if (!data?.session?.access_token) {
-          const { data: signInData } = await supabase.auth.signInAnonymously()
-          data = signInData
+        const { data, error } = await supabase.auth.getSession()
+        if (!data?.session?.access_token || error) {
+          console.log('[PlayerDetail] No session, redirecting to login')
+          router.push('/login')
+          return
         }
         
         setAuthStatus({
           ready: true,
-          token: data?.session?.access_token || null,
+          token: data.session.access_token,
         })
       } catch (err) {
         console.error('[PlayerDetail] Auth init failed:', err)
-        setAuthStatus({ ready: true, token: null })
+        router.push('/login')
       }
     }
     

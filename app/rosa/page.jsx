@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
 import { useTranslation } from '@/lib/i18n'
@@ -32,6 +33,7 @@ export default function RosaPage() {
 
 function RosaProductionPage() {
   const { t, lang, changeLanguage } = useTranslation()
+  const router = useRouter()
   const [isDragging, setIsDragging] = React.useState(false)
   const [images, setImages] = React.useState([])
   const [isExtracting, setIsExtracting] = React.useState(false)
@@ -54,22 +56,18 @@ function RosaProductionPage() {
           return
         }
         
-        // Controlla se c'è già una sessione (email o anonimo)
-        let { data, error } = await supabase.auth.getSession()
+        // Controlla se c'è già una sessione email
+        const { data, error } = await supabase.auth.getSession()
         
-        // Se non c'è sessione valida, fallback a anonimo (per retrocompatibilità)
+        // Se non c'è sessione valida, redirect a login
         if (!data?.session?.access_token || error) {
-          const { data: signInData, error: signInError } = await supabase.auth.signInAnonymously()
-          
-          if (signInError) {
-            setAuthStatus({ ready: true, userId: null, token: null })
-            return
-          }
-          
-          data = signInData
+          console.log('[initAuth] No session, redirecting to login')
+          setAuthStatus({ ready: true, userId: null, token: null })
+          router.push('/login')
+          return
         }
         
-        const session = data?.session
+        const session = data.session
         const userId = session?.user?.id || null
         const token = session?.access_token || null
         
@@ -84,7 +82,9 @@ function RosaProductionPage() {
           token,
         })
       } catch (err) {
+        console.error('[initAuth] Error:', err)
         setAuthStatus({ ready: true, userId: null, token: null })
+        router.push('/login')
       }
     }
     initAuth()
@@ -94,22 +94,18 @@ function RosaProductionPage() {
     if (!supabase) return null
     
     try {
-      let { data, error } = await supabase.auth.getSession()
+      const { data, error } = await supabase.auth.getSession()
       
-      // Se non c'è sessione valida, fallback a anonimo
+      // Se non c'è sessione valida, redirect a login
       if (!data?.session?.access_token || error) {
-        const { data: signInData, error: signInError } = await supabase.auth.signInAnonymously()
-        
-        if (signInError || !signInData?.session?.access_token) {
-          return null
-        }
-        
-        data = signInData
+        router.push('/login')
+        return null
       }
       
-      const token = data?.session?.access_token
+      const token = data.session.access_token
       
       if (!token || typeof token !== 'string' || token.length < 10) {
+        router.push('/login')
         return null
       }
       
@@ -118,6 +114,7 @@ function RosaProductionPage() {
       
       return token
     } catch (err) {
+      router.push('/login')
       return null
     }
   }
