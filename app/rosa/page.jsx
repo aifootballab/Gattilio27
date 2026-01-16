@@ -7,10 +7,6 @@ import Link from 'next/link'
 import { useTranslation } from '@/lib/i18n'
 import { ArrowLeft, Upload, X, CheckCircle2, AlertCircle, Loader2, Users } from 'lucide-react'
 
-// Disable static generation for this page
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
-
 // Componente Badge per completeness
 function Badge({ status, label }) {
   return (
@@ -50,7 +46,6 @@ function RosaProductionPage() {
   const [isMultiPlayerError, setIsMultiPlayerError] = React.useState(false)
 
   const fileInputRef = React.useRef(null)
-  const cameraInputRef = React.useRef(null)
 
   React.useEffect(() => {
     const initAuth = async () => {
@@ -213,20 +208,6 @@ function RosaProductionPage() {
     setGroups([])
     setIsMultiPlayerError(false)
     if (fileInputRef.current) fileInputRef.current.value = ''
-    if (cameraInputRef.current) cameraInputRef.current.value = ''
-  }
-
-  const handleCameraCapture = async () => {
-    if (!cameraInputRef.current) return
-    cameraInputRef.current.click()
-  }
-
-  const handleCameraFile = async (e) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    await onPickFiles([file])
-    // Reset input per permettere di scattare di nuovo
-    if (cameraInputRef.current) cameraInputRef.current.value = ''
   }
 
   const resetMySupabaseData = async () => {
@@ -430,36 +411,11 @@ function RosaProductionPage() {
                 if (files && files.length) await onPickFiles(files)
               }}
             />
-            <input
-              ref={cameraInputRef}
-              type="file"
-              accept="image/jpeg,image/jpg,image/png,image/webp"
-              capture="environment"
-              style={{ display: 'none' }}
-              onChange={handleCameraFile}
-            />
             <div className="dropzone-title" style={{ display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'center' }}>
               <Upload size={32} />
               {t('uploadScreenshots')}
             </div>
             <div className="dropzone-hint">{t('dragDropHint')}</div>
-            <button
-              type="button"
-              onClick={handleCameraCapture}
-              className="btn"
-              style={{ 
-                marginTop: '16px', 
-                display: 'inline-flex', 
-                alignItems: 'center', 
-                gap: '8px',
-                width: '100%',
-                maxWidth: '300px',
-                justifyContent: 'center'
-              }}
-            >
-              <Upload size={18} />
-              {t('takePhoto')}
-            </button>
           </div>
         ) : (
           <div className="preview">
