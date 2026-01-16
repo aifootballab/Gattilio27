@@ -426,6 +426,14 @@ function RosaProductionPage() {
                 if (files && files.length) await onPickFiles(files)
               }}
             />
+            <input
+              ref={cameraInputRef}
+              type="file"
+              accept="image/jpeg,image/jpg,image/png,image/webp"
+              capture="environment"
+              style={{ display: 'none' }}
+              onChange={handleCameraFile}
+            />
             <div className="dropzone-title" style={{ display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'center' }}>
               <Upload size={32} />
               {t('uploadScreenshots')}
