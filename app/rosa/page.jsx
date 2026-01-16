@@ -531,6 +531,26 @@ function RosaProductionPage() {
                             transition: 'width 0.3s ease'
                           }} />
                         </div>
+                        
+                        {/* Suggerimenti per foto mancanti */}
+                        {completeness.missingSections && completeness.missingSections.length > 0 && (
+                          <div style={{ marginTop: '12px', padding: '8px', background: 'rgba(255, 193, 7, 0.1)', border: '1px solid rgba(255, 193, 7, 0.3)', borderRadius: '6px' }}>
+                            <div style={{ fontSize: '12px', fontWeight: 600, color: '#ffc107', marginBottom: '4px' }}>
+                              {t('incompleteDataWarning')}
+                            </div>
+                            <div style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.8)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                              {completeness.missingSections.includes('stats') && (
+                                <div>• {t('missingStatsPhoto')}</div>
+                              )}
+                              {completeness.missingSections.includes('skills') && (
+                                <div>• {t('missingSkillsPhoto')}</div>
+                              )}
+                              {completeness.missingSections.includes('boosters') && (
+                                <div>• {t('missingBoostersPhoto')}</div>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                     
