@@ -38,15 +38,15 @@ function RosaProductionPage() {
   const [images, setImages] = React.useState([])
   const [isExtracting, setIsExtracting] = React.useState(false)
   const [error, setError] = React.useState(null)
-  const [selectedSlot, setSelectedSlot] = React.useState(0)
-  const [rosa, setRosa] = React.useState(() => Array.from({ length: 21 }, () => null))
   const [groups, setGroups] = React.useState([])
   const [authStatus, setAuthStatus] = React.useState({ ready: false, userId: null, token: null })
   const [supabaseMsg, setSupabaseMsg] = React.useState(null)
   const [tokenKind, setTokenKind] = React.useState(null)
   const [processingProgress, setProcessingProgress] = React.useState({ current: 0, total: 0 })
+  const [isMultiPlayerError, setIsMultiPlayerError] = React.useState(false)
 
   const fileInputRef = React.useRef(null)
+  const cameraInputRef = React.useRef(null)
 
   React.useEffect(() => {
     const initAuth = async () => {
@@ -184,6 +184,7 @@ function RosaProductionPage() {
         // Gestione errore multi-player
         if (data?.error === 'MULTI_PLAYER_DETECTED') {
           setError(`${data.message}\n\n${data.suggestion || ''}`)
+          setIsMultiPlayerError(true)
           // Mostriamo comunque i gruppi per debug, ma con warning
           setGroups(Array.isArray(data.groups) ? data.groups : [])
           return
@@ -191,6 +192,7 @@ function RosaProductionPage() {
         const details = data?.openai_body || data?.raw || data?.details
         throw new Error(`${data?.error || `Errore estrazione (${res.status})`}${details ? `\n\n${String(details).slice(0, 1200)}` : ''}`)
       }
+      setIsMultiPlayerError(false)
       setGroups(Array.isArray(data.groups) ? data.groups : [])
       setProcessingProgress({ current: images.length, total: images.length })
     } catch (err) {
@@ -201,20 +203,26 @@ function RosaProductionPage() {
     }
   }
 
-  const insertIntoRosa = (player, slotIndex) => {
-    const slot = Math.max(0, Math.min(20, Number(slotIndex)))
-    setRosa((prev) => {
-      const next = [...prev]
-      next[slot] = { id: crypto.randomUUID(), extracted: player }
-      return next
-    })
-  }
-
   const reset = () => {
     setError(null)
     setImages([])
     setGroups([])
+    setIsMultiPlayerError(false)
     if (fileInputRef.current) fileInputRef.current.value = ''
+    if (cameraInputRef.current) cameraInputRef.current.value = ''
+  }
+
+  const handleCameraCapture = async () => {
+    if (!cameraInputRef.current) return
+    cameraInputRef.current.click()
+  }
+
+  const handleCameraFile = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    await onPickFiles([file])
+    // Reset input per permettere di scattare di nuovo
+    if (cameraInputRef.current) cameraInputRef.current.value = ''
   }
 
   const resetMySupabaseData = async () => {
@@ -242,7 +250,7 @@ function RosaProductionPage() {
     }
   }
 
-  const saveToSupabase = async (player, slotIndex) => {
+  const saveToSupabase = async (player) => {
     setSupabaseMsg(null)
     try {
       const token = await getFreshToken()
@@ -256,7 +264,7 @@ function RosaProductionPage() {
           'Content-Type': 'application/json', 
           Authorization: `Bearer ${token}` 
         },
-        body: JSON.stringify({ player, slotIndex }),
+        body: JSON.stringify({ player }),
       })
       
       const data = await res.json().catch(() => ({}))
@@ -283,21 +291,23 @@ function RosaProductionPage() {
       
       // Messaggio informativo basato sul risultato
       let msg = ''
-      if (data.was_duplicate && data.was_moved) {
-        msg = lang === 'it' 
-          ? `✅ Giocatore già presente (slot ${data.previous_slot}), aggiornato e spostato in slot ${data.slot}`
-          : `✅ Player already present (slot ${data.previous_slot}), updated and moved to slot ${data.slot}`
-      } else if (data.was_duplicate) {
+      if (data.was_duplicate) {
         msg = lang === 'it'
-          ? `✅ Giocatore già presente, dati aggiornati (slot ${data.slot})`
-          : `✅ Player already present, data updated (slot ${data.slot})`
+          ? `✅ Giocatore già presente, dati aggiornati`
+          : `✅ Player already present, data updated`
       } else {
         msg = lang === 'it' 
-          ? `✅ Salvato in Supabase (slot ${data.slot})`
-          : `✅ Saved to Supabase (slot ${data.slot})`
+          ? `✅ Giocatore salvato con successo`
+          : `✅ Player saved successfully`
       }
       
       setSupabaseMsg(msg)
+      
+      // Reset dopo salvataggio riuscito
+      setTimeout(() => {
+        reset()
+        setSupabaseMsg(null)
+      }, 2000)
     } catch (e) {
       setSupabaseMsg(`❌ ${e?.message || (lang === 'it' ? 'Errore salvataggio' : 'Save error')}`)
     }
@@ -421,6 +431,23 @@ function RosaProductionPage() {
               {t('uploadScreenshots')}
             </div>
             <div className="dropzone-hint">{t('dragDropHint')}</div>
+            <button
+              type="button"
+              onClick={handleCameraCapture}
+              className="btn"
+              style={{ 
+                marginTop: '16px', 
+                display: 'inline-flex', 
+                alignItems: 'center', 
+                gap: '8px',
+                width: '100%',
+                maxWidth: '300px',
+                justifyContent: 'center'
+              }}
+            >
+              <Upload size={18} />
+              {t('takePhoto')}
+            </button>
           </div>
         ) : (
           <div className="preview">
@@ -459,9 +486,9 @@ function RosaProductionPage() {
                 </div>
               </div>
               <div className="preview-actions">
-                <button className="btn primary" onClick={analyzeBatch} disabled={isExtracting} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                <button className="btn primary" onClick={analyzeBatch} disabled={isExtracting} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', width: '100%', justifyContent: 'center' }}>
                   {isExtracting ? <Loader2 size={16} className="spin" /> : <CheckCircle2 size={16} />}
-                  {isExtracting ? t('analyzing') : t('analyzeBatch')}
+                  {isExtracting ? t('extracting') : t('extractData')}
                 </button>
                 {isExtracting && processingProgress.total > 0 && (
                   <div style={{ 
@@ -492,9 +519,28 @@ function RosaProductionPage() {
             </div>
 
             {error && (
-              <div className="error" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: 16 }}>
-                <AlertCircle size={18} />
-                {t('error')}: {error}
+              <div className="error" style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: 16, padding: '16px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <AlertCircle size={18} />
+                  <span style={{ fontWeight: 600 }}>{t('error')}:</span>
+                </div>
+                <div style={{ whiteSpace: 'pre-line', fontSize: '14px' }}>{error}</div>
+                {isMultiPlayerError && (
+                  <button
+                    onClick={reset}
+                    className="btn"
+                    style={{ 
+                      display: 'inline-flex', 
+                      alignItems: 'center', 
+                      gap: '8px',
+                      alignSelf: 'flex-start',
+                      marginTop: '8px'
+                    }}
+                  >
+                    <X size={16} />
+                    {t('removePhotos')}
+                  </button>
+                )}
               </div>
             )}
 
@@ -567,38 +613,24 @@ function RosaProductionPage() {
                       )}
                     </div>
 
-                    <label className="label">
-                      {t('slot')} ({lang === 'it' ? '0-10 titolari, 11-20 panchina' : '0-10 starters, 11-20 bench'})
-                      <select className="select" value={selectedSlot} onChange={(e) => setSelectedSlot(Number(e.target.value))}>
-                        {Array.from({ length: 21 }, (_, i) => (
-                          <option key={i} value={i}>
-                            {i <= 10 
-                              ? (lang === 'it' ? `Titolare ${i + 1}` : `Starter ${i + 1}`)
-                              : (lang === 'it' ? `Panchina ${i - 10}` : `Bench ${i - 10}`)}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <button className="btn primary" onClick={() => insertIntoRosa(g.player, selectedSlot)} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                      <CheckCircle2 size={16} />
-                      {t('insertPlayer')}
-                    </button>
                     <button 
-                      className="btn" 
+                      className="btn primary" 
                       style={{ 
-                        marginTop: 10, 
+                        width: '100%',
+                        marginTop: '16px',
                         display: 'inline-flex', 
                         alignItems: 'center', 
+                        justifyContent: 'center',
                         gap: '8px',
                         opacity: (!canSave || !authStatus.token) ? 0.5 : 1,
                         cursor: (!canSave || !authStatus.token) ? 'not-allowed' : 'pointer'
                       }} 
-                      onClick={() => saveToSupabase(g.player, selectedSlot)} 
+                      onClick={() => saveToSupabase(g.player)} 
                       disabled={!canSave || !authStatus.token}
                       title={!canSave ? (lang === 'it' ? 'Dati insufficienti per salvare (serve Identity + Stats o Skills)' : 'Insufficient data to save (needs Identity + Stats or Skills)') : ''}
                     >
                       <CheckCircle2 size={16} />
-                      {t('saveToSupabase')} ({t('slotSelected')})
+                      {t('savePlayer')}
                     </button>
                   </div>
                   )
