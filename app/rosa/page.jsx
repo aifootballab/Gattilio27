@@ -297,21 +297,7 @@ function RosaProductionPage() {
           : `✅ Player saved successfully`
       }
       
-      setSupabaseMsg(
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <div style={{ color: '#10B981' }}>{msg}</div>
-          <Link href="/my-players" className="btn" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', alignSelf: 'flex-start' }}>
-            <Users size={16} />
-            {t('myPlayers')}
-          </Link>
-        </div>
-      )
-      
-      // Reset dopo salvataggio riuscito (ma mantieni il messaggio con link)
-      setTimeout(() => {
-        reset()
-        // Non resettare il messaggio subito, lascia il link visibile
-      }, 3000)
+      setSupabaseMsg(msg)
     } catch (e) {
       console.error('[saveToSupabase] Error:', e)
       setSupabaseMsg(`❌ ${e?.message || (lang === 'it' ? 'Errore salvataggio' : 'Save error')}`)
@@ -390,20 +376,26 @@ function RosaProductionPage() {
             {t('resetMyData')}
           </button>
           {supabaseMsg && (
-            <div style={{ 
-              display: 'inline-flex', 
-              alignItems: 'center', 
-              gap: '8px',
-              padding: '8px 12px',
-              borderRadius: '8px',
-              background: supabaseMsg.includes('✅') ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-              border: `1px solid ${supabaseMsg.includes('✅') ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
-              fontSize: '14px',
-              color: supabaseMsg.includes('✅') ? '#22C55E' : '#EF4444'
-            }}>
-              {supabaseMsg.includes('✅') ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
-              {supabaseMsg.replace('✅', '').replace('❌', '')}
-            </div>
+            typeof supabaseMsg === 'string' ? (
+              <div style={{ 
+                display: 'inline-flex', 
+                alignItems: 'center', 
+                gap: '8px',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                background: supabaseMsg.includes('✅') ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                border: `1px solid ${supabaseMsg.includes('✅') ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
+                fontSize: '14px',
+                color: supabaseMsg.includes('✅') ? '#22C55E' : '#EF4444'
+              }}>
+                {supabaseMsg.includes('✅') ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+                {supabaseMsg.replace('✅', '').replace('❌', '')}
+              </div>
+            ) : (
+              <div style={{ display: 'inline-block' }}>
+                {supabaseMsg}
+              </div>
+            )
           )}
         </div>
       </header>
