@@ -17,7 +17,29 @@ function pickJsonObject(text) {
 
 function normName(name) {
   if (!name) return null
-  return String(name).trim().toLowerCase()
+  // Normalizza: lowercase, rimuovi punti, spazi multipli, caratteri speciali
+  return String(name)
+    .trim()
+    .toLowerCase()
+    .replace(/\./g, '')  // rimuovi punti
+    .replace(/\s+/g, ' ')  // spazi multipli -> singolo spazio
+    .replace(/[^\w\s]/g, '')  // rimuovi caratteri speciali (mantieni lettere, numeri, spazi)
+    .trim()
+}
+
+// Funzione per raggruppare nomi simili (es: "frenkie de jong" = "f de jong" = "de jong")
+function normalizePlayerKey(item) {
+  const name = normName(item.player_name)
+  if (name) {
+    // Se il nome contiene più parole, prova anche solo l'ultima parte (cognome)
+    const parts = name.split(' ').filter(p => p.length > 1)
+    if (parts.length >= 2) {
+      // Usa anche solo il cognome come fallback per matching
+      return `${name}|${parts[parts.length - 1]}|${item.overall_rating ?? 'x'}-${item.position ?? 'x'}`
+    }
+    return `${name}|${item.overall_rating ?? 'x'}-${item.position ?? 'x'}`
+  }
+  return `unknown-${item.overall_rating ?? 'x'}-${item.position ?? 'x'}`
 }
 
 // Funzioni merge intelligenti per Smart Batch
@@ -216,12 +238,52 @@ Rispondi solo JSON:
       })
     }
 
-    // 2) Raggruppa per nome (fallback su ovr/pos)
+    // 2) Raggruppa per nome (con matching intelligente)
     const groupsMap = new Map()
     for (const it of items) {
-      const key = normName(it.player_name) || `unknown-${it.overall_rating ?? 'x'}-${it.position ?? 'x'}`
-      if (!groupsMap.has(key)) groupsMap.set(key, { label: it.player_name || 'Giocatore (non riconosciuto)', image_ids: [] })
-      groupsMap.get(key).image_ids.push(it.id)
+      // Usa chiave normalizzata che include anche OVR e position per matching migliore
+      const key = normalizePlayerKey(it)
+      
+      // Cerca gruppo esistente con nome simile o stesso OVR+position
+      let foundGroup = null
+      for (const [existingKey, group] of groupsMap.entries()) {
+        const existingName = normName(group.label)
+        const currentName = normName(it.player_name)
+        
+        // Match se: stesso nome normalizzato, O stesso OVR+position, O cognome match
+        if (existingName && currentName) {
+          const existingParts = existingName.split(' ').filter(p => p.length > 1)
+          const currentParts = currentName.split(' ').filter(p => p.length > 1)
+          
+          // Match esatto o cognome match
+          if (existingName === currentName || 
+              (existingParts.length >= 2 && currentParts.length >= 2 && 
+               existingParts[existingParts.length - 1] === currentParts[currentParts.length - 1] &&
+               it.overall_rating && it.overall_rating === parseInt(existingKey.split('-').pop()))) {
+            foundGroup = group
+            break
+          }
+        }
+        
+        // Match per OVR+position se nome non disponibile
+        if (!existingName && !currentName && key.includes(it.overall_rating ?? 'x') && key.includes(it.position ?? 'x')) {
+          foundGroup = group
+          break
+        }
+      }
+      
+      if (foundGroup) {
+        foundGroup.image_ids.push(it.id)
+        // Aggiorna label se abbiamo un nome migliore
+        if (it.player_name && !foundGroup.label.includes(it.player_name)) {
+          foundGroup.label = it.player_name
+        }
+      } else {
+        groupsMap.set(key, { 
+          label: it.player_name || 'Giocatore (non riconosciuto)', 
+          image_ids: [it.id] 
+        })
+      }
     }
 
     // 3) Estrazione completa per gruppo con Smart Batch (processing sequenziale interno)
@@ -250,14 +312,20 @@ Rispondi solo JSON:
                 {
                   type: 'input_text',
                   text: `
-Analizza questa immagine di eFootball e estrai TUTTE le informazioni visibili.
-Se un campo non è visibile -> null (o [] per liste). Non inventare.
+**IMPORTANTE**: Questa è una delle 1-3 immagini dello STESSO giocatore. Estrai TUTTE le informazioni visibili da QUESTA immagine.
+Il sistema unirà automaticamente i dati da tutte le immagini, quindi estrai OGNI campo che vedi, anche se parziale.
 
 **PRIORITÀ ESTRAZIONE**:
-1. Se vedi una TABELLA con statistiche dettagliate (colonne "Attacco", "Difesa", "Forza" con valori numerici precisi), usa QUELLA.
+1. Se vedi una TABELLA con statistiche dettagliate (colonne "Attacco", "Difesa", "Forza" con valori numerici precisi per OGNI statistica), estrai TUTTI i valori dalla tabella.
 2. IGNORA completamente il radar chart (grafico esagonale) - non fornisce valori precisi.
-3. Estrai TUTTE le skills, com_skills, ai_playstyles visibili.
-4. Estrai TUTTI i boosters visibili (max 2).
+3. Estrai TUTTE le skills visibili (anche se solo alcune sono mostrate).
+4. Estrai TUTTE le com_skills visibili.
+5. Estrai TUTTI gli ai_playstyles visibili.
+6. Estrai TUTTI i boosters visibili (max 2).
+7. Estrai TUTTE le caratteristiche fisiche (altezza, peso, età) se visibili.
+8. Estrai TUTTE le caratteristiche (piede preferito, resistenza infortuni, forma dettagliata) se visibili.
+
+**REGOLA**: Se un campo è visibile anche parzialmente, estrailo. Se NON è visibile -> null (o [] per liste). NON inventare valori.
 
 Rispondi JSON:
 { "player": { ... } }
