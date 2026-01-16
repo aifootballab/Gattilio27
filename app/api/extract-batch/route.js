@@ -245,47 +245,82 @@ Rispondi solo JSON:
       })
     }
 
-    // 2) Raggruppa per nome (con matching intelligente)
+    // 2) Raggruppa per nome (con matching intelligente migliorato)
     const groupsMap = new Map()
     for (const it of items) {
-      // Usa chiave normalizzata che include anche OVR e position per matching migliore
-      const key = normalizePlayerKey(it)
+      const currentName = normName(it.player_name)
+      const currentOVR = it.overall_rating
+      const currentPos = it.position
       
-      // Cerca gruppo esistente con nome simile o stesso OVR+position
+      // Cerca gruppo esistente con matching più flessibile
       let foundGroup = null
+      let foundKey = null
+      
       for (const [existingKey, group] of groupsMap.entries()) {
         const existingName = normName(group.label)
-        const currentName = normName(it.player_name)
         
-        // Match se: stesso nome normalizzato, O stesso OVR+position, O cognome match
-        if (existingName && currentName) {
+        // Match 1: Nome esatto normalizzato
+        if (existingName && currentName && existingName === currentName) {
+          foundGroup = group
+          foundKey = existingKey
+          break
+        }
+        
+        // Match 2: Cognome + OVR (più flessibile)
+        if (existingName && currentName && currentOVR) {
           const existingParts = existingName.split(' ').filter(p => p.length > 1)
           const currentParts = currentName.split(' ').filter(p => p.length > 1)
           
-          // Match esatto o cognome match
-          if (existingName === currentName || 
-              (existingParts.length >= 2 && currentParts.length >= 2 && 
-               existingParts[existingParts.length - 1] === currentParts[currentParts.length - 1] &&
-               it.overall_rating && it.overall_rating === parseInt(existingKey.split('-').pop()))) {
-            foundGroup = group
-            break
+          // Se hanno cognome in comune E stesso OVR (±1 tolleranza)
+          if (existingParts.length >= 1 && currentParts.length >= 1) {
+            const existingLast = existingParts[existingParts.length - 1]
+            const currentLast = currentParts[currentParts.length - 1]
+            
+            // Match cognome (anche parziale se lungo)
+            const lastNameMatch = existingLast === currentLast || 
+                                  (existingLast.length > 4 && currentLast.length > 4 && 
+                                   (existingLast.includes(currentLast) || currentLast.includes(existingLast)))
+            
+            if (lastNameMatch) {
+              // Estrai OVR dalla chiave esistente
+              const keyParts = existingKey.split('-')
+              const existingOVR = keyParts.length > 1 ? parseInt(keyParts[keyParts.length - 2]) : null
+              
+              // Match OVR (±1 tolleranza per variazioni)
+              if (existingOVR && Math.abs(existingOVR - currentOVR) <= 1) {
+                foundGroup = group
+                foundKey = existingKey
+                break
+              }
+            }
           }
         }
         
-        // Match per OVR+position se nome non disponibile
-        if (!existingName && !currentName && key.includes(it.overall_rating ?? 'x') && key.includes(it.position ?? 'x')) {
-          foundGroup = group
-          break
+        // Match 3: OVR + Position (se nome non disponibile)
+        if (!existingName && !currentName && currentOVR && currentPos) {
+          const keyParts = existingKey.split('-')
+          if (keyParts.length >= 2) {
+            const existingOVR = parseInt(keyParts[keyParts.length - 2])
+            const existingPos = keyParts[keyParts.length - 1]
+            if (existingOVR && Math.abs(existingOVR - currentOVR) <= 1 && existingPos === currentPos) {
+              foundGroup = group
+              foundKey = existingKey
+              break
+            }
+          }
         }
       }
       
       if (foundGroup) {
+        // Unisci al gruppo esistente
         foundGroup.image_ids.push(it.id)
-        // Aggiorna label se abbiamo un nome migliore
-        if (it.player_name && !foundGroup.label.includes(it.player_name)) {
+        // Aggiorna label con nome più completo
+        if (it.player_name && (!foundGroup.label || it.player_name.length > foundGroup.label.length)) {
           foundGroup.label = it.player_name
         }
       } else {
+        // Crea nuovo gruppo
+        const key = normalizePlayerKey(it)
         groupsMap.set(key, { 
           label: it.player_name || 'Giocatore (non riconosciuto)', 
           image_ids: [it.id] 

@@ -237,12 +237,16 @@ function RosaProductionPage() {
 
   const saveToSupabase = async (player) => {
     setSupabaseMsg(null)
+    console.log('[saveToSupabase] Starting save for player:', player?.player_name || 'Unknown')
     try {
       const token = await getFreshToken()
       if (!token || typeof token !== 'string' || token.length < 10) {
-        throw new Error(lang === 'it' ? 'Token di autenticazione non valido. Ricarica la pagina e riprova.' : 'Invalid authentication token. Reload the page and try again.')
+        const errorMsg = lang === 'it' ? 'Token di autenticazione non valido. Ricarica la pagina e riprova.' : 'Invalid authentication token. Reload the page and try again.'
+        console.error('[saveToSupabase] Invalid token:', { tokenLength: token?.length, tokenType: typeof token })
+        throw new Error(errorMsg)
       }
       
+      console.log('[saveToSupabase] Token OK, calling API...')
       const res = await fetch('/api/supabase/save-player', {
         method: 'POST',
         headers: { 
@@ -252,9 +256,14 @@ function RosaProductionPage() {
         body: JSON.stringify({ player }),
       })
       
-      const data = await res.json().catch(() => ({}))
+      console.log('[saveToSupabase] API response:', { status: res.status, ok: res.ok })
+      const data = await res.json().catch((err) => {
+        console.error('[saveToSupabase] JSON parse error:', err)
+        return {}
+      })
       
       if (!res.ok) {
+        console.error('[saveToSupabase] API error:', { status: res.status, data })
         // Se rosa piena, mostra messaggio con link a /my-players
         if (data.rosa_full) {
           const errorMsg = data.message || (lang === 'it' 
@@ -274,6 +283,7 @@ function RosaProductionPage() {
         throw new Error(`${data?.error || `Errore salvataggio (${res.status})`}${data?.details ? ` — ${data.details}` : ''}`)
       }
       
+      console.log('[saveToSupabase] Save successful:', data)
       // Messaggio informativo basato sul risultato
       let msg = ''
       if (data.was_duplicate) {
@@ -294,6 +304,7 @@ function RosaProductionPage() {
         setSupabaseMsg(null)
       }, 2000)
     } catch (e) {
+      console.error('[saveToSupabase] Error:', e)
       setSupabaseMsg(`❌ ${e?.message || (lang === 'it' ? 'Errore salvataggio' : 'Save error')}`)
     }
   }
