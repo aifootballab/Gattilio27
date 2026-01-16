@@ -60,43 +60,11 @@ export async function GET(req) {
     console.log('[get-my-players] Querying player_builds WHERE user_id =', userId)
     console.log('[get-my-players] UserId for query:', userId, 'type:', typeof userId)
     
-    // Recupera player_builds dell'utente con join a players_base
+    // SOLUZIONE SICURA: Query separate per evitare problemi RLS con JOIN
+    // 1. Recupera player_builds dell'utente (senza JOIN)
     const { data: builds, error: buildsErr } = await admin
       .from('player_builds')
-      .select(`
-        id,
-        player_base_id,
-        final_overall_rating,
-        current_level,
-        level_cap,
-        active_booster_name,
-        source_data,
-        players_base (
-          id,
-          player_name,
-          position,
-          card_type,
-          team,
-          base_stats,
-          skills,
-          com_skills,
-          position_ratings,
-          available_boosters,
-          height,
-          weight,
-          age,
-          nationality,
-          club_name,
-          form,
-          role,
-          playing_style_id,
-          metadata,
-          playing_styles (
-            id,
-            name
-          )
-        )
-      `)
+      .select('id, player_base_id, final_overall_rating, current_level, level_cap, active_booster_name, source_data, created_at')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
 
@@ -114,53 +82,98 @@ export async function GET(req) {
     console.log('[get-my-players] ✅ QUERY SUCCESS')
     console.log('[get-my-players] Builds found:', builds?.length || 0)
     
-    if (builds && builds.length > 0) {
-      console.log('[get-my-players] First build details:', {
-        id: builds[0].id,
-        user_id_in_db: '(check in DB)',
-        player_base_id: builds[0].player_base_id,
-        player_name: builds[0].players_base?.player_name,
-        created_at: '(check in DB)'
-      })
-    } else {
+    if (!builds || builds.length === 0) {
       console.log('[get-my-players] ⚠️ NO BUILDS FOUND for user_id:', userId)
       console.log('[get-my-players] This could mean:')
       console.log('[get-my-players]   1. No player_builds exist with this user_id')
       console.log('[get-my-players]   2. user_id mismatch between save and get')
       console.log('[get-my-players]   3. Query filter is incorrect')
+      console.log('[get-my-players] ===== QUERY END =====')
+      return NextResponse.json({ players: [], count: 0 })
     }
     
+    console.log('[get-my-players] First build details:', {
+      id: builds[0].id,
+      player_base_id: builds[0].player_base_id,
+      created_at: builds[0].created_at
+    })
+    
+    // 2. Recupera players_base per tutti i player_base_id trovati (query separata)
+    const playerBaseIds = builds.map(b => b.player_base_id).filter(id => id)
+    console.log('[get-my-players] Fetching players_base for', playerBaseIds.length, 'player_base_ids')
+    
+    if (playerBaseIds.length === 0) {
+      console.log('[get-my-players] ⚠️ No valid player_base_ids found')
+      console.log('[get-my-players] ===== QUERY END =====')
+      return NextResponse.json({ players: [], count: 0 })
+    }
+    
+    // Query players_base senza JOIN a playing_styles per evitare problemi RLS
+    const { data: playersBase, error: baseErr } = await admin
+      .from('players_base')
+      .select(`
+        id,
+        player_name,
+        position,
+        card_type,
+        team,
+        base_stats,
+        skills,
+        com_skills,
+        position_ratings,
+        available_boosters,
+        height,
+        weight,
+        age,
+        nationality,
+        club_name,
+        form,
+        role,
+        playing_style_id,
+        metadata
+      `)
+      .in('id', playerBaseIds)
+    
+    // 2b. Recupera playing_styles separatamente se necessario
+    const playingStyleIds = [...new Set(playersBase?.map(pb => pb.playing_style_id).filter(id => id) || [])]
+    let playingStylesMap = new Map()
+    
+    if (playingStyleIds.length > 0) {
+      console.log('[get-my-players] Fetching playing_styles for', playingStyleIds.length, 'playing_style_ids')
+      const { data: playingStyles, error: stylesErr } = await admin
+        .from('playing_styles')
+        .select('id, name')
+        .in('id', playingStyleIds)
+      
+      if (!stylesErr && playingStyles) {
+        playingStylesMap = new Map(playingStyles.map(ps => [ps.id, ps]))
+        console.log('[get-my-players] playing_styles map size:', playingStylesMap.size)
+      } else if (stylesErr) {
+        console.error('[get-my-players] ⚠️ playing_styles query error (non blocking):', stylesErr.message)
+      }
+    }
+
+    if (baseErr) {
+      console.error('[get-my-players] ❌ players_base QUERY ERROR:', {
+        error: baseErr.message,
+        code: baseErr.code,
+        details: baseErr.details
+      })
+      // Non fallire completamente, usa dati base senza dettagli
+      console.log('[get-my-players] ⚠️ Continuing without players_base details')
+    }
+    
+    // 3. Crea mappa per lookup veloce
+    const playersBaseMap = new Map((playersBase || []).map(pb => [pb.id, pb]))
+    console.log('[get-my-players] players_base map size:', playersBaseMap.size)
     console.log('[get-my-players] ===== QUERY END =====')
 
     console.log('[get-my-players] ===== FORMATTING RESPONSE =====')
     
-    // VERIFICA FINALE: Query diretta per debug
-    console.log('[get-my-players] ===== DEBUG QUERY =====')
-    const { data: debugBuilds, error: debugErr } = await admin
-      .from('player_builds')
-      .select('id, user_id, player_base_id, created_at')
-      .eq('user_id', userId)
-      .limit(10)
-    
-    if (debugErr) {
-      console.error('[get-my-players] Debug query failed:', debugErr.message)
-    } else {
-      console.log('[get-my-players] Debug query result:', {
-        count: debugBuilds?.length || 0,
-        builds: debugBuilds?.map(b => ({
-          id: b.id,
-          user_id: b.user_id,
-          user_id_match: b.user_id === userId,
-          player_base_id: b.player_base_id,
-          created_at: b.created_at
-        })) || []
-      })
-    }
-    console.log('[get-my-players] ===== DEBUG QUERY END =====')
-    
-    // Formatta i dati per il frontend
-    const players = (builds || []).map(build => {
-      const base = build.players_base
+    // 4. Formatta i dati per il frontend (merge builds + players_base + playing_styles)
+    const players = builds.map(build => {
+      const base = playersBaseMap.get(build.player_base_id)
+      const playingStyle = base?.playing_style_id ? playingStylesMap.get(base.playing_style_id) : null
       return {
         build_id: build.id,
         player_base_id: build.player_base_id,
@@ -169,7 +182,7 @@ export async function GET(req) {
         position: base?.position || null,
         role: base?.role || null,
         playing_style_id: base?.playing_style_id || null,
-        playing_style_name: base?.playing_styles?.name || null,
+        playing_style_name: playingStyle?.name || null,
         card_type: base?.card_type || null,
         team: base?.team || null,
         club_name: base?.club_name || null,
