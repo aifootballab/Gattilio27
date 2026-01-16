@@ -585,26 +585,34 @@ function RosaProductionPage() {
                         </div>
                         
                         {/* Suggerimenti per foto mancanti */}
-                        {/* missingSections è già normalizzato sopra, quindi è sempre un array */}
-                        {completeness.missingSections && completeness.missingSections.length > 0 && (
-                          <div style={{ marginTop: '12px', padding: '8px', background: 'rgba(255, 193, 7, 0.1)', border: '1px solid rgba(255, 193, 7, 0.3)', borderRadius: '6px' }}>
-                            <div style={{ fontSize: '12px', fontWeight: 600, color: '#ffc107', marginBottom: '4px' }}>
-                              {t('incompleteDataWarning')}
+                        {/* Normalizza missingSections una seconda volta per sicurezza (caso edge: completeness potrebbe essere modificato) */}
+                        {(() => {
+                          const safeMissingSections = Array.isArray(completeness.missingSections) 
+                            ? completeness.missingSections 
+                            : normalizeStringArray(completeness.missingSections)
+                          
+                          if (!safeMissingSections || safeMissingSections.length === 0) return null
+                          
+                          return (
+                            <div style={{ marginTop: '12px', padding: '8px', background: 'rgba(255, 193, 7, 0.1)', border: '1px solid rgba(255, 193, 7, 0.3)', borderRadius: '6px' }}>
+                              <div style={{ fontSize: '12px', fontWeight: 600, color: '#ffc107', marginBottom: '4px' }}>
+                                {t('incompleteDataWarning')}
+                              </div>
+                              <div style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.8)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                {/* safeMissingSections è garantito essere un array */}
+                                {safeMissingSections.includes('stats') && (
+                                  <div>• {t('missingStatsPhoto')}</div>
+                                )}
+                                {safeMissingSections.includes('skills') && (
+                                  <div>• {t('missingSkillsPhoto')}</div>
+                                )}
+                                {safeMissingSections.includes('boosters') && (
+                                  <div>• {t('missingBoostersPhoto')}</div>
+                                )}
+                              </div>
                             </div>
-                            <div style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.8)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                              {/* missingSections è garantito essere un array dalla normalizzazione */}
-                              {completeness.missingSections.includes('stats') && (
-                                <div>• {t('missingStatsPhoto')}</div>
-                              )}
-                              {completeness.missingSections.includes('skills') && (
-                                <div>• {t('missingSkillsPhoto')}</div>
-                              )}
-                              {completeness.missingSections.includes('boosters') && (
-                                <div>• {t('missingBoostersPhoto')}</div>
-                              )}
-                            </div>
-                          </div>
-                        )}
+                          )
+                        })()}
                       </div>
                     )}
                     
