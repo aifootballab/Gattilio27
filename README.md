@@ -4,8 +4,16 @@
 
 ## Documentazione
 
-### 📘 Documentazione Completa
-Vedi [DOCUMENTAZIONE_COMPLETA.md](./DOCUMENTAZIONE_COMPLETA.md) per documentazione completa su:
+### 📘 Documentazione Enterprise (Raccomandato)
+Vedi [DOCUMENTAZIONE_ENTERPRISE.md](./DOCUMENTAZIONE_ENTERPRISE.md) per la documentazione enterprise completa:
+- Architettura e stack tecnologico
+- Struttura database e RLS
+- API Endpoints e flussi dati
+- Configurazione e deployment
+- Best practices e troubleshooting
+
+### 📚 Documentazione Completa (Dettagli Tecnici)
+Vedi [DOCUMENTAZIONE_COMPLETA.md](./DOCUMENTAZIONE_COMPLETA.md) per documentazione dettagliata su:
 - **Architettura del Sistema**: Stack tecnologico, struttura progetto, flussi principali
 - **Struttura Database**: Tabelle principali (`players_base`, `player_builds`, `user_rosa`, etc.) con schema dettagliato
 - **Gestione Autenticazione e Chiavi**: Tipi di chiavi Supabase (anon, service role), flusso autenticazione email, configurazione

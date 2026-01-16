@@ -190,8 +190,23 @@ async function openaiJson(apiKey, input, maxTokens = 500) {
     json?.output_text ??
     json?.output?.map((o) => o?.content?.map((c) => c?.text).join('')).join('') ??
     ''
+  
+  if (!outputText || String(outputText).trim().length === 0) {
+    throw new Error('OpenAI response vuota o invalida')
+  }
+  
   const jsonStr = pickJsonObject(String(outputText)) ?? String(outputText)
-  return JSON.parse(jsonStr)
+  
+  if (!jsonStr || jsonStr.trim().length === 0) {
+    throw new Error('Impossibile estrarre JSON dalla risposta OpenAI')
+  }
+  
+  try {
+    return JSON.parse(jsonStr)
+  } catch (parseErr) {
+    console.error('[openaiJson] JSON parse error:', { jsonStr: jsonStr.slice(0, 200), error: parseErr.message })
+    throw new Error(`Errore parsing JSON: ${parseErr.message}. Output: ${String(jsonStr).slice(0, 100)}...`)
+  }
 }
 
 export async function POST(req) {
