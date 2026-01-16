@@ -131,9 +131,16 @@ export async function GET(req) {
 }
 
 function calculateCompleteness(base, build) {
+  // Controlla se base_stats ha effettivamente dati (coerente con extract-batch)
+  const hasStats = !!(base?.base_stats && (
+    Object.keys(base.base_stats.attacking || {}).length > 0 ||
+    Object.keys(base.base_stats.defending || {}).length > 0 ||
+    Object.keys(base.base_stats.athleticism || {}).length > 0
+  ))
+  
   const fields = {
     base: !!base?.player_name && !!build?.final_overall_rating && !!base?.position,
-    stats: !!base?.base_stats,
+    stats: hasStats, // Usa la logica corretta invece di solo !!base?.base_stats
     physical: !!(base?.height && base?.weight && base?.age),
     skills: Array.isArray(base?.skills) && base.skills.length > 0,
     booster: !!build?.active_booster_name,

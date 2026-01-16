@@ -296,13 +296,21 @@ function RosaProductionPage() {
           : `✅ Player saved successfully`
       }
       
-      setSupabaseMsg(msg)
+      setSupabaseMsg(
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ color: '#10B981' }}>{msg}</div>
+          <Link href="/my-players" className="btn" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', alignSelf: 'flex-start' }}>
+            <Users size={16} />
+            {t('myPlayers')}
+          </Link>
+        </div>
+      )
       
-      // Reset dopo salvataggio riuscito
+      // Reset dopo salvataggio riuscito (ma mantieni il messaggio con link)
       setTimeout(() => {
         reset()
-        setSupabaseMsg(null)
-      }, 2000)
+        // Non resettare il messaggio subito, lascia il link visibile
+      }, 3000)
     } catch (e) {
       console.error('[saveToSupabase] Error:', e)
       setSupabaseMsg(`❌ ${e?.message || (lang === 'it' ? 'Errore salvataggio' : 'Save error')}`)

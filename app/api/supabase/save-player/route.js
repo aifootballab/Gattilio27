@@ -481,12 +481,12 @@ export async function POST(req) {
       // Giocatore già in rosa, slotIndex non fornito: mantieni nella posizione esistente
       updated[existingSlotIndex] = buildId
       console.log('[save-player] Giocatore già in rosa, mantiene slot esistente:', existingSlotIndex)
-    } else if (isNewBuild) {
-      // Giocatore nuovo, slotIndex non fornito: trova primo slot disponibile
+    } else {
+      // Giocatore NON in rosa (nuovo o esistente ma non in rosa), slotIndex non fornito: trova primo slot disponibile
       const firstAvailableSlot = updated.findIndex(id => id === null || id === undefined)
       if (firstAvailableSlot >= 0 && firstAvailableSlot < 21) {
         updated[firstAvailableSlot] = buildId
-        console.log('[save-player] Giocatore nuovo inserito nel primo slot disponibile:', firstAvailableSlot)
+        console.log('[save-player] Giocatore inserito nel primo slot disponibile:', firstAvailableSlot, isNewBuild ? '(nuovo build)' : '(build esistente ma non in rosa)')
       } else {
         // Rosa piena: questo caso dovrebbe essere già gestito sopra, ma per sicurezza...
         console.error('[save-player] Rosa piena, nessuno slot disponibile')
