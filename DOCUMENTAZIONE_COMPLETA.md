@@ -641,15 +641,21 @@ USING ((select auth.uid()) = user_id)
 
 ---
 
-### 3. `POST /api/extract-batch`
-**Scopo**: Estrazione batch da 1-6 screenshot con raggruppamento automatico
+### 3. `POST /api/extract-batch` (Smart Batch Processing)
+**Scopo**: Estrazione batch da 1-6 screenshot con raggruppamento automatico e merge progressivo
 
 **Request**:
 ```json
 {
   "images": [
-    "data:image/jpeg;base64,...",
-    "data:image/jpeg;base64,..."
+    {
+      "id": "uuid-1",
+      "imageDataUrl": "data:image/jpeg;base64,..."
+    },
+    {
+      "id": "uuid-2",
+      "imageDataUrl": "data:image/jpeg;base64,..."
+    }
   ]
 }
 ```
@@ -657,22 +663,47 @@ USING ((select auth.uid()) = user_id)
 **Response**:
 ```json
 {
-  "players": [
+  "groups": [
     {
-      "player_name": "Ronaldinho Gaúcho",
-      "overall_rating": 99,
-      "missing_screens": ["stats", "skills"],
-      "notes": "Mancano screenshot stats e skills"
+      "group_id": "uuid",
+      "label": "Ronaldinho Gaúcho",
+      "player": {
+        "player_name": "Ronaldinho Gaúcho",
+        "overall_rating": 99,
+        "position": "ESA",
+        "base_stats": { ... },
+        "skills": [...],
+        "boosters": [...]
+      },
+      "completeness": {
+        "percentage": 75,
+        "hasIdentity": true,
+        "hasStats": true,
+        "hasSkills": true,
+        "hasBoosters": false,
+        "missingSections": ["boosters"]
+      },
+      "missing_screens": ["boosters"],
+      "image_ids": ["uuid-1", "uuid-2"]
     }
   ]
 }
 ```
 
-**Logica**:
-1. **Fingerprint extraction**: Per ogni immagine, estrae nome, OVR, posizione, tipo schermata
-2. **Raggruppamento**: Raggruppa immagini per `player_name` (con fallback per nomi non riconosciuti)
-3. **Full extraction**: Per ogni gruppo, estrae dati completi e merge informazioni da più screenshot
-4. **Validazione**: Identifica screenshot mancanti e aggiunge note
+**Logica Smart Batch**:
+1. **Fingerprint extraction**: Per ogni immagine, estrae nome, OVR, posizione, tipo schermata (processing sequenziale)
+2. **Raggruppamento intelligente**: 
+   - Raggruppa immagini per `player_name` normalizzato (case-insensitive, rimozione punti/spazi)
+   - Matching flessibile: nome esatto, cognome + OVR (±1 tolleranza), OVR + position
+   - Gestisce variazioni nome (es: "Frenkie de Jong" = "F. de Jong")
+3. **Processing sequenziale interno**: Per ogni gruppo, processa immagini una alla volta (non in parallelo)
+4. **Merge progressivo per sezioni**:
+   - **Identity**: Merge campi base (nome, OVR, position) - preferisce valore più completo
+   - **Stats**: Merge numerico per chiave statistica (sovrascrive solo se presente)
+   - **Skills**: Merge array con deduplicazione (skills, com_skills, ai_playstyles)
+   - **Boosters**: Merge array con deduplicazione (max 2 booster)
+5. **Completeness calculation**: Calcola percentuale completezza (0-100%) e identifica sezioni mancanti
+6. **Multi-player detection**: Se rileva più giocatori distinti nello stesso batch → errore con suggerimento
 
 ---
 
@@ -687,27 +718,37 @@ Authorization: Bearer <supabase_access_token>
 **Request**:
 ```json
 {
-  "hasPlayer": true,
-  "playerName": "Ronaldinho Gaúcho",
-  "slotIndex": 0
+  "player": {
+    "player_name": "Ronaldinho Gaúcho",
+    "overall_rating": 99,
+    "position": "ESA",
+    "base_stats": { ... },
+    "skills": [...],
+    "boosters": [...]
+  },
+  "slotIndex": 0  // Opzionale: se non fornito, inserisce nel primo slot disponibile o mantiene posizione esistente
 }
 ```
 
 **Logica**:
-1. **Validazione token**: Verifica token anonimo con legacy JWT key
-2. **Estrazione user_id**: `data.user.id`
+1. **Validazione token**: Usa helper centralizzato `validateToken()` (supporta token email e legacy)
+2. **Estrazione user_id**: `userData.user.id` e `userData.user.email`
 3. **Upsert `players_base`**:
-   - Cerca esistente per `player_name` + `source = 'screenshot_extractor'`
-   - Se non esiste, inserisce nuovo
-   - Tag con `source: 'screenshot_extractor'` e `metadata.user_id`
-4. **Insert `player_builds`**:
-   - Crea build per `user_id` + `player_base_id`
+   - Cerca esistente per `player_name` (case-insensitive) + `team` (se presente)
+   - Se non esiste, inserisce nuovo con `source: 'screenshot_extractor'`
+   - Tag con `metadata.user_id` e `playing_style_id` (se presente)
+4. **Insert/Update `player_builds`**:
+   - Se giocatore già in rosa: aggiorna build esistente (sovrascrivi)
+   - Se giocatore nuovo: crea nuovo build
    - Salva dati estratti in `source_data`
    - Imposta `development_points: {}` (NOT NULL constraint)
 5. **Update `user_rosa`**:
    - Trova o crea rosa principale (`is_main = true`)
-   - Aggiorna `player_build_ids[slotIndex]` con nuovo `build_id`
-   - Se slot occupato, sposta giocatore esistente in riserva
+   - Se `slotIndex` fornito: aggiorna `player_build_ids[slotIndex]` con `build_id`
+   - Se `slotIndex` non fornito:
+     - Se giocatore già in rosa: mantiene posizione esistente
+     - Se giocatore nuovo: inserisce nel primo slot disponibile
+   - Controllo rosa piena: se 21 slot occupati e giocatore nuovo → errore
 6. **Logging**: Inserisce log in `screenshot_processing_log`
 
 **Response**:
@@ -715,16 +756,21 @@ Authorization: Bearer <supabase_access_token>
 {
   "success": true,
   "player_base_id": "uuid",
-  "build_id": "uuid",
-  "rosa_id": "uuid"
+  "player_build_id": "uuid",
+  "rosa_id": "uuid",
+  "slot": 0,  // Slot finale del giocatore
+  "was_duplicate": false,
+  "was_moved": false,
+  "is_new_build": true
 }
 ```
 
 **Error Response**:
 ```json
 {
-  "error": "Invalid auth",
-  "details": "..."
+  "error": "Rosa piena",
+  "message": "La rosa è completa (21 giocatori). Vai a 'I Miei Giocatori' per rimuovere un giocatore prima di aggiungerne uno nuovo.",
+  "rosa_full": true
 }
 ```
 
@@ -780,7 +826,7 @@ Authorization: Bearer <supabase_access_token>
 ```
 
 **Logica**:
-1. **Validazione token**: Stesso sistema di `save-player`
+1. **Validazione token**: Usa helper centralizzato `validateToken()` (stesso sistema di tutti gli endpoint autenticati)
 2. **Delete `user_rosa`**: Elimina tutte le rose dell'utente
 3. **Delete `player_builds`**: Elimina tutti i build dell'utente
 4. **Delete `screenshot_processing_log`**: Elimina tutti i log dell'utente

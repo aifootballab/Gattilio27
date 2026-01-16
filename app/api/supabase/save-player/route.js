@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { validateToken, extractBearerToken } from '../../../../lib/authHelper'
 
 export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
 
 function ensureArrayLen(arr, len) {
   const a = Array.isArray(arr) ? [...arr] : []
@@ -145,13 +146,20 @@ export async function POST(req) {
     }
     
     const player = body?.player
-    const slotIndex = toInt(body?.slotIndex)
+    const slotIndex = body?.slotIndex !== undefined ? toInt(body?.slotIndex) : null // Opzionale: non più richiesto nella nuova UX
     
     console.log('[save-player] Request body:', { hasPlayer: !!player, playerName: player?.player_name, slotIndex })
     
-    if (!player || slotIndex === null || slotIndex < 0 || slotIndex > 20) {
-      console.error('[save-player] Invalid input:', { hasPlayer: !!player, slotIndex })
-      return NextResponse.json({ error: 'Invalid input: player + slotIndex(0-20) required' }, { status: 400 })
+    // Validazione: player è obbligatorio, slotIndex è opzionale
+    if (!player) {
+      console.error('[save-player] Invalid input: player required')
+      return NextResponse.json({ error: 'Invalid input: player required' }, { status: 400 })
+    }
+    
+    // Se slotIndex è fornito, deve essere valido (0-20)
+    if (slotIndex !== null && (slotIndex < 0 || slotIndex > 20)) {
+      console.error('[save-player] Invalid slotIndex:', slotIndex)
+      return NextResponse.json({ error: 'Invalid input: slotIndex must be between 0 and 20 if provided' }, { status: 400 })
     }
 
     // Log diagnostico su Supabase (per capire se la chiamata arriva davvero in produzione)
@@ -391,7 +399,7 @@ export async function POST(req) {
           player_name: playerName, 
           existing_build_id: existingBuildIdInRosa, 
           existing_slot: existingSlotIndex,
-          new_slot: slotIndex 
+          new_slot: slotIndex !== null ? slotIndex : 'not provided'
         })
       }
     }
@@ -434,7 +442,8 @@ export async function POST(req) {
         console.error('[save-player] player_builds update failed:', { error: updateErr.message, code: updateErr.code, details: updateErr.details })
         throw new Error(`player_builds update failed: ${updateErr.message}${updateErr.details ? ` (${updateErr.details})` : ''}`)
       }
-      wasMoved = existingSlotIndex !== slotIndex
+      // wasMoved: solo se slotIndex è fornito e diverso da quello esistente
+      wasMoved = slotIndex !== null && existingSlotIndex !== slotIndex
     } else {
       // Giocatore nuovo → crea nuovo build
       console.log('[save-player] Giocatore nuovo, creando nuovo player_build...')
@@ -448,24 +457,49 @@ export async function POST(req) {
       console.log('[save-player] player_builds inserted, id:', buildId)
     }
 
-    // Aggiorna rosa: sposta build nello slot nuovo, svuota slot precedente se diverso
-    const updated = ensureArrayLen(rosa.player_build_ids, 21)
+    // Aggiorna rosa: gestisce slot solo se slotIndex è fornito, altrimenti mantiene posizione esistente o trova primo slot disponibile
+    const updated = ensureArrayLen(rosa.player_build_ids || [], 21)
     
-    // Se il giocatore era già in un altro slot, svuota quello precedente
-    if (wasMoved && existingSlotIndex !== null && existingSlotIndex >= 0 && existingSlotIndex < 21) {
-      updated[existingSlotIndex] = null
-      console.log('[save-player] Svuotato slot precedente:', existingSlotIndex)
+    if (slotIndex !== null && slotIndex >= 0 && slotIndex < 21) {
+      // Slot specificato: gestisci spostamento/inserimento
+      // Se il giocatore era già in un altro slot, svuota quello precedente
+      if (wasMoved && existingSlotIndex !== null && existingSlotIndex >= 0 && existingSlotIndex < 21) {
+        updated[existingSlotIndex] = null
+        console.log('[save-player] Svuotato slot precedente:', existingSlotIndex)
+      }
+      
+      // Se lo slot nuovo è occupato da un altro giocatore, lo spostiamo in riserva (null per ora)
+      const previousBuildInSlot = updated[slotIndex]
+      if (previousBuildInSlot && previousBuildInSlot !== buildId) {
+        console.log('[save-player] Slot', slotIndex, 'era occupato da build:', previousBuildInSlot, '- verrà sostituito')
+        // TODO: In futuro potremmo spostare il giocatore esistente in un altro slot disponibile
+      }
+      
+      updated[slotIndex] = buildId
+      console.log('[save-player] Updating user_rosa slot', slotIndex, 'with build_id:', buildId, wasMoved ? '(spostato da slot ' + existingSlotIndex + ')' : isNewBuild ? '(nuovo build)' : '(build esistente)')
+    } else if (existingBuildIdInRosa && existingSlotIndex !== null && existingSlotIndex >= 0 && existingSlotIndex < 21) {
+      // Giocatore già in rosa, slotIndex non fornito: mantieni nella posizione esistente
+      updated[existingSlotIndex] = buildId
+      console.log('[save-player] Giocatore già in rosa, mantiene slot esistente:', existingSlotIndex)
+    } else if (isNewBuild) {
+      // Giocatore nuovo, slotIndex non fornito: trova primo slot disponibile
+      const firstAvailableSlot = updated.findIndex(id => id === null || id === undefined)
+      if (firstAvailableSlot >= 0 && firstAvailableSlot < 21) {
+        updated[firstAvailableSlot] = buildId
+        console.log('[save-player] Giocatore nuovo inserito nel primo slot disponibile:', firstAvailableSlot)
+      } else {
+        // Rosa piena: questo caso dovrebbe essere già gestito sopra, ma per sicurezza...
+        console.error('[save-player] Rosa piena, nessuno slot disponibile')
+        return NextResponse.json(
+          { 
+            error: 'Rosa piena',
+            message: 'La rosa è completa (21 giocatori). Vai a "I Miei Giocatori" per rimuovere un giocatore prima di aggiungerne uno nuovo.',
+            rosa_full: true
+          },
+          { status: 400 }
+        )
+      }
     }
-    
-    // Se lo slot nuovo è occupato da un altro giocatore, lo spostiamo in riserva (null per ora)
-    const previousBuildInSlot = updated[slotIndex]
-    if (previousBuildInSlot && previousBuildInSlot !== buildId) {
-      console.log('[save-player] Slot', slotIndex, 'era occupato da build:', previousBuildInSlot, '- verrà sostituito')
-      // TODO: In futuro potremmo spostare il giocatore esistente in un altro slot disponibile
-    }
-    
-    updated[slotIndex] = buildId
-    console.log('[save-player] Updating user_rosa slot', slotIndex, 'with build_id:', buildId, wasMoved ? '(spostato da slot ' + existingSlotIndex + ')' : isNewBuild ? '(nuovo build)' : '(build esistente)')
 
     const { error: upErr } = await admin
       .from('user_rosa')
@@ -495,13 +529,19 @@ export async function POST(req) {
         .eq('id', logId)
     }
 
+    // Trova lo slot finale del giocatore nella rosa aggiornata
+    const finalSlot = updated.findIndex(id => id === buildId)
+    
+    // Determina slot finale: preferisci finalSlot se valido, altrimenti slotIndex, altrimenti existingSlotIndex, altrimenti null
+    const responseSlot = finalSlot >= 0 ? finalSlot : (slotIndex !== null ? slotIndex : (existingSlotIndex !== null ? existingSlotIndex : null))
+    
     return NextResponse.json({
       success: true,
       user_id: userId,
       player_base_id: playerBaseId,
       player_build_id: buildId,
       rosa_id: rosa.id,
-      slot: slotIndex,
+      slot: responseSlot, // Slot finale del giocatore nella rosa
       was_duplicate: !!existingBuildIdInRosa,
       was_moved: wasMoved,
       previous_slot: wasMoved ? existingSlotIndex : null,

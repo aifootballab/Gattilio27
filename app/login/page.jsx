@@ -362,21 +362,6 @@ export default function LoginPage() {
           </button>
         </div>
 
-        <div style={{
-          marginTop: '16px',
-          textAlign: 'center'
-        }}>
-          <a
-            href="/dashboard"
-            style={{
-              color: 'rgba(255, 255, 255, 0.6)',
-              fontSize: '12px',
-              textDecoration: 'none'
-            }}
-          >
-            {t('continueAsGuest')}
-          </a>
-        </div>
       </div>
 
       <style jsx>{`

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { validateToken, extractBearerToken } from '../../../../lib/authHelper'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -16,52 +17,26 @@ export async function GET(req) {
       )
     }
 
-    const auth = req.headers.get('authorization') || ''
-    const token = auth.toLowerCase().startsWith('bearer ') ? auth.slice(7) : null
-    
+    // Estrai e valida token (supporta sia anon che email)
+    const token = extractBearerToken(req)
     if (!token) {
       return NextResponse.json({ error: 'Missing Authorization bearer token' }, { status: 401 })
     }
 
-    // Validazione token (stesso sistema di save-player)
-    const legacyAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsaXV1b3Jyd2RldHlsb2xscnVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc5MDk0MTksImV4cCI6MjA4MzQ4NTQxOX0.pGnglOpSQ4gJ1JClB_zyBIB3-94eKHJfgveuCfoyffo'
-    let userData = null
-    let userErr = null
+    const { userData, error: authError } = await validateToken(token, supabaseUrl, anonKey)
     
-    try {
-      const legacyAuthClient = createClient(supabaseUrl, legacyAnonKey)
-      const legacyResult = await legacyAuthClient.auth.getUser(token)
-      userData = legacyResult.data
-      userErr = legacyResult.error
-      if (!userErr && userData?.user?.id) {
-        console.log('[get-opponent-formations] Token validated with legacy JWT key')
-      }
-    } catch (legacyErr) {
-      userErr = legacyErr
-    }
-    
-    if (userErr && anonKey?.includes('.') && !anonKey?.startsWith('sb_publishable_')) {
-      try {
-        const authClient = createClient(supabaseUrl, anonKey)
-        const authResult = await authClient.auth.getUser(token)
-        if (!authResult.error && authResult.data?.user?.id) {
-          userData = authResult.data
-          userErr = null
-        } else {
-          userErr = authResult.error || userErr
-        }
-      } catch (fallbackErr) {
-        userErr = fallbackErr
-      }
-    }
-    
-    if (userErr || !userData?.user?.id) {
+    if (authError || !userData?.user?.id) {
+      const errorMsg = authError?.message || String(authError) || 'Unknown auth error'
+      console.error('[get-opponent-formations] Auth validation failed:', { error: errorMsg })
       return NextResponse.json(
-        { error: 'Invalid auth', details: userErr?.message || String(userErr) },
+        { error: 'Invalid auth', details: errorMsg },
         { status: 401 }
       )
     }
+    
     const userId = userData.user.id
+    const userEmail = userData.user.email
+    console.log('[get-opponent-formations] Auth OK, userId:', userId, 'email:', userEmail || 'anon')
 
     // Crea client per query (anon key con RLS)
     const supabase = createClient(supabaseUrl, anonKey, {

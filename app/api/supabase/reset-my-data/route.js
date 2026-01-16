@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { validateToken, extractBearerToken } from '../../../../lib/authHelper'
 
 export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
 
 export async function POST(req) {
   try {
@@ -15,43 +17,29 @@ export async function POST(req) {
       )
     }
 
-    const auth = req.headers.get('authorization') || ''
-    const token = auth.toLowerCase().startsWith('bearer ') ? auth.slice(7) : null
-    if (!token) return NextResponse.json({ error: 'Missing Authorization bearer token' }, { status: 401 })
-
-    // IMPORTANT:
-    // I token anon sono sempre JWT e richiedono la chiave legacy JWT (anon) per essere validati.
-    // Se anonKey è una publishable moderna (sb_publishable_...), dobbiamo usare la legacy JWT.
-    let userData = null
-    let userErr = null
-    let userId = null
-    
-    // Prova con la chiave configurata
-    const authClient = createClient(supabaseUrl, anonKey)
-    const authResult = await authClient.auth.getUser(token)
-    userData = authResult.data
-    userErr = authResult.error
-    
-    // Se fallisce con "Invalid API key" e anonKey è publishable, prova con legacy JWT
-    if (userErr?.message?.includes('Invalid API key') && anonKey?.startsWith('sb_publishable_')) {
-      // Usa la legacy JWT anon key (hardcoded per questo progetto)
-      const legacyAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsaXV1b3Jyd2RldHlsb2xscnVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc5MDk0MTksImV4cCI6MjA4MzQ4NTQxOX0.pGnglOpSQ4gJ1JClB_zyBIB3-94eKHJfgveuCfoyffo'
-      const legacyAuthClient = createClient(supabaseUrl, legacyAnonKey)
-      const legacyResult = await legacyAuthClient.auth.getUser(token)
-      userData = legacyResult.data
-      userErr = legacyResult.error
+    // Estrai e valida token (supporta sia anon che email)
+    const token = extractBearerToken(req)
+    if (!token) {
+      return NextResponse.json({ error: 'Missing Authorization bearer token' }, { status: 401 })
     }
+
+    const { userData, error: authError } = await validateToken(token, supabaseUrl, anonKey)
     
-    if (userErr || !userData?.user?.id) {
+    if (authError || !userData?.user?.id) {
+      const errorMsg = authError?.message || String(authError) || 'Unknown auth error'
+      console.error('[reset-my-data] Auth validation failed:', { error: errorMsg })
       return NextResponse.json(
         {
           error: 'Invalid auth',
-          details: userErr?.message || null,
+          details: errorMsg,
         },
         { status: 401 }
       )
     }
-    userId = userData.user.id
+    
+    const userId = userData.user.id
+    const userEmail = userData.user.email
+    console.log('[reset-my-data] Auth OK, userId:', userId, 'email:', userEmail || 'anon')
     const admin = createClient(supabaseUrl, serviceKey)
 
     // Cancella SOLO i dati dell’utente corrente (anon): non tocca players_base globali
@@ -76,8 +64,18 @@ export async function POST(req) {
 
     return NextResponse.json({ success: true, user_id: userId, results })
   } catch (e) {
-    console.error('reset-my-data error', e)
-    return NextResponse.json({ error: e?.message || 'Errore server' }, { status: 500 })
+    console.error('[reset-my-data] Unhandled exception:', {
+      message: e?.message || String(e),
+      stack: e?.stack,
+      name: e?.name,
+    })
+    return NextResponse.json(
+      {
+        error: e?.message || 'Errore server',
+        details: process.env.NODE_ENV === 'development' ? String(e) : null,
+      },
+      { status: 500 }
+    )
   }
 }
 

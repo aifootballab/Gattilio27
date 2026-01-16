@@ -10,6 +10,7 @@ import EditPlayerDataModal from './EditPlayerDataModal'
 
 export default function PlayerDetailPage() {
   const params = useParams()
+  const router = useRouter()
   const { t, lang, changeLanguage } = useTranslation()
   const [player, setPlayer] = React.useState(null)
   const [loading, setLoading] = React.useState(true)
@@ -42,7 +43,7 @@ export default function PlayerDetailPage() {
     }
     
     initAuth()
-  }, [])
+  }, [router])
 
   const fetchPlayer = React.useCallback(async () => {
     if (!authStatus.ready || !authStatus.token) return
@@ -117,22 +118,12 @@ function PlayerDetailView({ player, t, lang, changeLanguage, onRefresh }) {
   const completeness = player.completeness || { percentage: 100, missing: [], missingDetails: {} }
   const hasMissingData = completeness.percentage < 100
 
+  // authToken viene già impostato da initAuth sopra
   React.useEffect(() => {
-    const getToken = async () => {
-      if (!supabase) return
-      try {
-        let { data } = await supabase.auth.getSession()
-        if (!data?.session?.access_token) {
-          const { data: signInData } = await supabase.auth.signInAnonymously()
-          data = signInData
-        }
-        setAuthToken(data?.session?.access_token || null)
-      } catch (err) {
-        console.error('[PlayerDetail] Token fetch failed:', err)
-      }
+    if (authStatus.ready && authStatus.token) {
+      setAuthToken(authStatus.token)
     }
-    getToken()
-  }, [])
+  }, [authStatus.ready, authStatus.token])
 
   return (
     <main className="container" style={{ padding: '24px', minHeight: '100vh' }}>
