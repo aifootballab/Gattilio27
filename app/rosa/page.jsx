@@ -298,6 +298,13 @@ function RosaProductionPage() {
       }
       
       setSupabaseMsg(msg)
+      
+      // Reset dopo salvataggio riuscito per evitare problemi con render di dati vecchi
+      setTimeout(() => {
+        reset()
+        // Resetta anche il messaggio dopo il reset
+        setTimeout(() => setSupabaseMsg(null), 500)
+      }, 2000)
     } catch (e) {
       console.error('[saveToSupabase] Error:', e)
       setSupabaseMsg(`❌ ${e?.message || (lang === 'it' ? 'Errore salvataggio' : 'Save error')}`)
