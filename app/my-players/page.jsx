@@ -68,12 +68,8 @@ export default function MyPlayersPage() {
     initAuth()
   }, [])
 
-  // Fetch players quando authStatus è pronto - SOLUZIONE SEMPLICE
-  // Forza refresh ogni volta che il componente è visibile (torni sulla pagina)
-  const mountedRef = React.useRef(false)
-  
+  // Fetch players quando authStatus è pronto - SOLUZIONE SEMPLICE E FUNZIONANTE
   React.useEffect(() => {
-    // Trigger fetch sia al mount iniziale che quando torni sulla pagina
     if (!authStatus.ready || !authStatus.token) {
       console.log('[MyPlayers] useEffect skipped:', {
         ready: authStatus.ready,
@@ -83,14 +79,17 @@ export default function MyPlayersPage() {
     }
 
     const fetchPlayers = async () => {
+      // Usa authStatus.token direttamente dal closure, non stale
+      const token = authStatus.token
+      if (!token) return
+
       console.log('[MyPlayers] ===== FRONTEND FETCH START =====')
-      console.log('[MyPlayers] Mounted:', mountedRef.current ? 'YES (refresh)' : 'NO (first mount)')
       console.log('[MyPlayers] Current authStatus:', {
         ready: authStatus.ready,
         hasUserId: !!authStatus.userId,
         userId: authStatus.userId,
-        hasToken: !!authStatus.token,
-        tokenLength: authStatus.token?.length
+        hasToken: !!token,
+        tokenLength: token?.length
       })
       
       // Log session info prima del fetch
@@ -100,14 +99,14 @@ export default function MyPlayersPage() {
         console.log('[MyPlayers] Session userEmail:', sessionData?.session?.user?.email || '(null)')
       }
       
-      console.log('[MyPlayers] Token (first 30 chars):', authStatus.token.substring(0, 30) + '...')
+      console.log('[MyPlayers] Token (first 30 chars):', token.substring(0, 30) + '...')
       
       setLoading(true)
       setError(null)
       try {
         console.log('[MyPlayers] Calling API /api/supabase/get-my-players...')
         const res = await fetch('/api/supabase/get-my-players', {
-          headers: { Authorization: `Bearer ${authStatus.token}` },
+          headers: { Authorization: `Bearer ${token}` },
         })
         console.log('[MyPlayers] API response status:', res.status, 'ok:', res.ok)
         
@@ -130,16 +129,17 @@ export default function MyPlayersPage() {
         setError(err?.message || (lang === 'it' ? 'Errore caricamento giocatori' : 'Error loading players'))
       } finally {
         setLoading(false)
-        mountedRef.current = true
       }
     }
 
+    // Fetch iniziale
     fetchPlayers()
     
     // Refresh quando la pagina diventa visibile (torni da un'altra pagina)
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && authStatus.ready && authStatus.token) {
-        console.log('[MyPlayers] Page became visible, refreshing...')
+        console.log('[MyPlayers] Page became visible, refreshing players...')
+        // Usa la sessione corrente invece del closure stale
         fetchPlayers()
       }
     }
