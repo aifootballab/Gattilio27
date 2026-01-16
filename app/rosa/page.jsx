@@ -43,8 +43,6 @@ function RosaProductionPage() {
   const [supabaseMsg, setSupabaseMsg] = React.useState(null)
   const [tokenKind, setTokenKind] = React.useState(null)
   const [processingProgress, setProcessingProgress] = React.useState({ current: 0, total: 0 })
-  const [processingProgress, setProcessingProgress] = React.useState({ current: 0, total: 0 })
-  const [processingProgress, setProcessingProgress] = React.useState({ current: 0, total: 0 })
 
   const fileInputRef = React.useRef(null)
 
