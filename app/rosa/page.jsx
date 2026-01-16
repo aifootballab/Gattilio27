@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
 import { useTranslation } from '@/lib/i18n'
+import { normalizeStringArray } from '@/lib/normalize'
 import { ArrowLeft, Upload, X, CheckCircle2, AlertCircle, Loader2, Users } from 'lucide-react'
 
 // Componente Badge per completeness
@@ -534,7 +535,25 @@ function RosaProductionPage() {
             {groups.length > 0 && (
               <div className="grid" style={{ marginTop: 24 }}>
                 {groups.map((g) => {
-                  const completeness = g.completeness || { identity: false, stats: false, skills: false, boosters: false, percentage: 0, missingSections: [] }
+                  // Normalizza missingSections per gestire tutti i casi edge (stringa, oggetto, undefined, ecc.)
+                  const rawMissingSections = g.completeness?.missingSections
+                  const normalizedMissingSections = normalizeStringArray(rawMissingSections)
+                  
+                  // Debug temporaneo solo in dev per verificare il tipo originale
+                  // In Next.js, process.env.NODE_ENV è disponibile nel client e viene sostituito a build-time
+                  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development' && rawMissingSections !== undefined && rawMissingSections !== null) {
+                    console.debug('[rosa/page] missingSections type check:', {
+                      player: g.label,
+                      originalType: typeof rawMissingSections,
+                      isArray: Array.isArray(rawMissingSections),
+                      originalValue: rawMissingSections,
+                      normalized: normalizedMissingSections
+                    })
+                  }
+                  
+                  const completeness = g.completeness 
+                    ? { ...g.completeness, missingSections: normalizedMissingSections }
+                    : { identity: false, stats: false, skills: false, boosters: false, percentage: 0, missingSections: [] }
                   const canSave = completeness.identity && (completeness.stats || completeness.skills)
                   
                   return (
@@ -566,12 +585,14 @@ function RosaProductionPage() {
                         </div>
                         
                         {/* Suggerimenti per foto mancanti */}
-                        {Array.isArray(completeness.missingSections) && completeness.missingSections.length > 0 && (
+                        {/* missingSections è già normalizzato sopra, quindi è sempre un array */}
+                        {completeness.missingSections && completeness.missingSections.length > 0 && (
                           <div style={{ marginTop: '12px', padding: '8px', background: 'rgba(255, 193, 7, 0.1)', border: '1px solid rgba(255, 193, 7, 0.3)', borderRadius: '6px' }}>
                             <div style={{ fontSize: '12px', fontWeight: 600, color: '#ffc107', marginBottom: '4px' }}>
                               {t('incompleteDataWarning')}
                             </div>
                             <div style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.8)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                              {/* missingSections è garantito essere un array dalla normalizzazione */}
                               {completeness.missingSections.includes('stats') && (
                                 <div>• {t('missingStatsPhoto')}</div>
                               )}
