@@ -297,6 +297,15 @@ function RosaProductionPage() {
         console.log('[saveToSupabase] Session userEmail:', sessionData?.session?.user?.email || '(null)')
       }
       
+      console.log('[saveToSupabase] Player data to save:', {
+        player_name: player?.player_name,
+        overall_rating: player?.overall_rating,
+        has_base_stats: !!player?.base_stats,
+        base_stats_overall_rating: player?.base_stats?.overall_rating,
+        position: player?.position,
+        team: player?.team
+      })
+      
       console.log('[saveToSupabase] Calling API /api/supabase/save-player...')
       const res = await fetch('/api/supabase/save-player', {
         method: 'POST',

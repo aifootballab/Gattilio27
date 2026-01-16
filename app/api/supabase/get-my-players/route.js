@@ -228,8 +228,11 @@ function calculateCompleteness(base, build) {
     Object.keys(base.base_stats.athleticism || {}).length > 0
   ))
   
+  // overall_rating può essere in build.final_overall_rating O in base.base_stats.overall_rating
+  const hasOverallRating = !!(build?.final_overall_rating || base?.base_stats?.overall_rating)
+  
   const fields = {
-    base: !!base?.player_name && !!build?.final_overall_rating && !!base?.position,
+    base: !!base?.player_name && hasOverallRating && !!base?.position,
     stats: hasStats, // Usa la logica corretta invece di solo !!base?.base_stats
     physical: !!(base?.height && base?.weight && base?.age),
     skills: Array.isArray(base?.skills) && base.skills.length > 0,
