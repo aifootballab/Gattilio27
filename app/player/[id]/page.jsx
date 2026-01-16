@@ -19,25 +19,48 @@ export default function PlayerDetailPage() {
 
   React.useEffect(() => {
     const initAuth = async () => {
+      console.log('[PlayerDetail] ===== INIT AUTH START =====')
       try {
         if (!supabase) {
+          console.error('[PlayerDetail] ❌ Supabase client not available')
           setAuthStatus({ ready: true, token: null })
           return
         }
         
+        console.log('[PlayerDetail] Getting session...')
         const { data, error } = await supabase.auth.getSession()
+        
         if (!data?.session?.access_token || error) {
-          console.log('[PlayerDetail] No session, redirecting to login')
+          console.log('[PlayerDetail] ❌ No session, redirecting to login:', {
+            hasSession: !!data?.session,
+            hasAccessToken: !!data?.session?.access_token,
+            error: error?.message || null
+          })
           router.push('/login')
           return
         }
         
+        const sessionUserId = data.session.user?.id
+        const sessionToken = data.session.access_token
+        const sessionEmail = data.session.user?.email
+        
+        console.log('[PlayerDetail] ✅ Session found')
+        console.log('[PlayerDetail] Session userId:', sessionUserId || '(null)')
+        console.log('[PlayerDetail] Session userEmail:', sessionEmail || '(null)')
+        console.log('[PlayerDetail] Session token (first 30 chars):', sessionToken.substring(0, 30) + '...')
+        
         setAuthStatus({
           ready: true,
-          token: data.session.access_token,
+          token: sessionToken,
         })
+        
+        console.log('[PlayerDetail] AuthStatus set:', {
+          ready: true,
+          hasToken: !!sessionToken
+        })
+        console.log('[PlayerDetail] ===== INIT AUTH END =====')
       } catch (err) {
-        console.error('[PlayerDetail] Auth init failed:', err)
+        console.error('[PlayerDetail] ❌ Auth init failed:', err)
         router.push('/login')
       }
     }
@@ -104,12 +127,11 @@ export default function PlayerDetailPage() {
     )
   }
 
-  return <PlayerDetailView player={player} t={t} lang={lang} changeLanguage={changeLanguage} onRefresh={fetchPlayer} />
+  return <PlayerDetailView player={player} t={t} lang={lang} changeLanguage={changeLanguage} onRefresh={fetchPlayer} authToken={authStatus.token} />
 }
 
-function PlayerDetailView({ player, t, lang, changeLanguage, onRefresh }) {
+function PlayerDetailView({ player, t, lang, changeLanguage, onRefresh, authToken }) {
   const [showEditModal, setShowEditModal] = React.useState(false)
-  const [authToken, setAuthToken] = React.useState(null)
   const baseStats = player.base_stats || {}
   const attacking = baseStats.attacking || {}
   const defending = baseStats.defending || {}
@@ -117,13 +139,6 @@ function PlayerDetailView({ player, t, lang, changeLanguage, onRefresh }) {
   const metadata = player.metadata || {}
   const completeness = player.completeness || { percentage: 100, missing: [], missingDetails: {} }
   const hasMissingData = completeness.percentage < 100
-
-  // authToken viene già impostato da initAuth sopra
-  React.useEffect(() => {
-    if (authStatus.ready && authStatus.token) {
-      setAuthToken(authStatus.token)
-    }
-  }, [authStatus.ready, authStatus.token])
 
   return (
     <main className="container" style={{ padding: '24px', minHeight: '100vh' }}>
