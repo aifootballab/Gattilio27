@@ -181,6 +181,13 @@ function RosaProductionPage() {
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
+        // Gestione errore multi-player
+        if (data?.error === 'MULTI_PLAYER_DETECTED') {
+          setError(`${data.message}\n\n${data.suggestion || ''}`)
+          // Mostriamo comunque i gruppi per debug, ma con warning
+          setGroups(Array.isArray(data.groups) ? data.groups : [])
+          return
+        }
         const details = data?.openai_body || data?.raw || data?.details
         throw new Error(`${data?.error || `Errore estrazione (${res.status})`}${details ? `\n\n${String(details).slice(0, 1200)}` : ''}`)
       }

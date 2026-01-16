@@ -137,11 +137,11 @@ function calculateCompleteness(player) {
     Object.keys(player.base_stats.defending || {}).length > 0 ||
     Object.keys(player.base_stats.athleticism || {}).length > 0
   ))
-  const hasSkills = !!(
+  const hasSkills = !!((
     (Array.isArray(player.skills) && player.skills.length > 0) ||
     (Array.isArray(player.com_skills) && player.com_skills.length > 0) ||
     (Array.isArray(player.ai_playstyles) && player.ai_playstyles.length > 0)
-  )
+  ))
   const hasBoosters = !!(Array.isArray(player.boosters) && player.boosters.length > 0)
   
   const percentage = Math.round(
@@ -151,12 +151,19 @@ function calculateCompleteness(player) {
     (hasBoosters ? 25 : 0)
   )
   
+  // Calcola suggerimenti per foto mancanti
+  const missingSections = []
+  if (!hasStats) missingSections.push('stats')
+  if (!hasSkills) missingSections.push('skills')
+  if (!hasBoosters) missingSections.push('boosters')
+  
   return {
     identity: hasIdentity,
     stats: hasStats,
     skills: hasSkills,
     boosters: hasBoosters,
-    percentage
+    percentage,
+    missingSections
   }
 }
 
