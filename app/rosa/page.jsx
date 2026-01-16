@@ -566,19 +566,19 @@ function RosaProductionPage() {
                         </div>
                         
                         {/* Suggerimenti per foto mancanti */}
-                        {completeness.missingSections && completeness.missingSections.length > 0 && (
+                        {Array.isArray(completeness.missingSections) && completeness.missingSections.length > 0 && (
                           <div style={{ marginTop: '12px', padding: '8px', background: 'rgba(255, 193, 7, 0.1)', border: '1px solid rgba(255, 193, 7, 0.3)', borderRadius: '6px' }}>
                             <div style={{ fontSize: '12px', fontWeight: 600, color: '#ffc107', marginBottom: '4px' }}>
                               {t('incompleteDataWarning')}
                             </div>
                             <div style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.8)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                              {Array.isArray(completeness.missingSections) && completeness.missingSections.includes('stats') && (
+                              {completeness.missingSections.includes('stats') && (
                                 <div>• {t('missingStatsPhoto')}</div>
                               )}
-                              {Array.isArray(completeness.missingSections) && completeness.missingSections.includes('skills') && (
+                              {completeness.missingSections.includes('skills') && (
                                 <div>• {t('missingSkillsPhoto')}</div>
                               )}
-                              {Array.isArray(completeness.missingSections) && completeness.missingSections.includes('boosters') && (
+                              {completeness.missingSections.includes('boosters') && (
                                 <div>• {t('missingBoostersPhoto')}</div>
                               )}
                             </div>
