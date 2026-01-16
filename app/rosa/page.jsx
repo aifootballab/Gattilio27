@@ -7,6 +7,8 @@ import Link from 'next/link'
 import { useTranslation } from '@/lib/i18n'
 import { ArrowLeft, Upload, X, CheckCircle2, AlertCircle, Loader2, Users } from 'lucide-react'
 
+export const dynamic = 'force-dynamic'
+
 // Componente Badge per completeness
 function Badge({ status, label }) {
   return (
@@ -28,9 +30,6 @@ function Badge({ status, label }) {
 }
 
 export default function RosaPage() {
-  if (typeof window === 'undefined') {
-    return null // Prevents SSR issues
-  }
   return <RosaProductionPage />
 }
 
