@@ -8,12 +8,20 @@
 Vedi [DOCUMENTAZIONE_COMPLETA.md](./DOCUMENTAZIONE_COMPLETA.md) per documentazione completa su:
 - **Architettura del Sistema**: Stack tecnologico, struttura progetto, flussi principali
 - **Struttura Database**: Tabelle principali (`players_base`, `player_builds`, `user_rosa`, etc.) con schema dettagliato
-- **Gestione Autenticazione e Chiavi**: Tipi di chiavi Supabase (anon, service role), flusso autenticazione, configurazione
+- **Gestione Autenticazione e Chiavi**: Tipi di chiavi Supabase (anon, service role), flusso autenticazione email, configurazione
 - **Row Level Security (RLS) Policies**: Strategia RLS, policies implementate, note performance
 - **API Endpoints**: Documentazione completa di tutti gli endpoint con request/response
 - **Flusso Dati**: Diagrammi flusso estrazione → database e recupero → visualizzazione
+- **Smart Batch Processing**: Processing sequenziale, merge progressivo, completeness calculation
 - **Configurazione Ambiente**: Variabili Vercel, configurazione Supabase
 - **Troubleshooting**: Problemi comuni e soluzioni
+
+### 🔒 Backup e Sicurezza
+Vedi [BACKUP_E_SICUREZZA.md](./BACKUP_E_SICUREZZA.md) per:
+- **Strategia Backup**: Database, codice, configurazione
+- **Sicurezza Enterprise**: Environment variables, autenticazione, API security
+- **Disaster Recovery**: Procedure per scenari critici
+- **Monitoraggio e Alerting**: Metriche e setup notifiche
 
 ### 📄 Documentazione Rapida
 Vedi [DOCUMENTAZIONE.md](./DOCUMENTAZIONE.md) per guida rapida su:
@@ -41,8 +49,8 @@ Vedi [DOCUMENTAZIONE.md](./DOCUMENTAZIONE.md) per guida rapida su:
    ```
 
 2. **Installa dipendenze**
-   ```bash
-   npm install
+```bash
+npm install
    ```
 
 3. **Configura variabili ambiente**
@@ -90,7 +98,7 @@ Vedi [DOCUMENTAZIONE.md](./DOCUMENTAZIONE.md) per guida rapida su:
 - **Frontend**: Next.js 14+ (App Router)
 - **Backend**: Next.js API Routes
 - **Database**: Supabase (PostgreSQL)
-- **Autenticazione**: Supabase Anonymous Auth
+- **Autenticazione**: Supabase Email Auth (senza verifica email)
 - **AI Vision**: OpenAI GPT-4o Vision API
 - **Deployment**: Vercel
 - **Linguaggio**: JavaScript/JSX

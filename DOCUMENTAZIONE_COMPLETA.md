@@ -20,7 +20,7 @@
 - **Frontend**: Next.js 14+ (App Router)
 - **Backend**: Next.js API Routes
 - **Database**: Supabase (PostgreSQL)
-- **Autenticazione**: Supabase Anonymous Auth
+- **Autenticazione**: Supabase Email Auth (senza verifica email)
 - **AI Vision**: OpenAI GPT-4o Vision API
 - **Deployment**: Vercel
 - **Linguaggio**: JavaScript/JSX (no TypeScript)
@@ -57,16 +57,18 @@ Gattilio27-master/
    - Compressione client-side
    - Invio a `/api/extract-batch`
 
-2. **Estrazione Dati** → `/api/extract-batch`
-   - Fingerprint extraction (nome, OVR, posizione)
-   - Raggruppamento automatico per giocatore
-   - Full extraction con merge dati multipli screenshot
-   - Ritorno array giocatori estratti
+2. **Estrazione Dati** → `/api/extract-batch` (Smart Batch)
+   - Fingerprint extraction (nome, OVR, posizione) per raggruppamento
+   - Processing sequenziale interno (una immagine alla volta)
+   - Merge progressivo intelligente per sezioni (identity, stats, skills, boosters)
+   - Calcolo completeness automatico (0-100%)
+   - Ritorno array giocatori con completeness indicator
 
 3. **Salvataggio** → `/api/supabase/save-player`
-   - Autenticazione anonima Supabase
+   - Autenticazione email Supabase (validazione token centralizzata)
    - Inserimento in `players_base`, `player_builds`, `user_rosa`
    - Logging in `screenshot_processing_log`
+   - Smart Batch: merge progressivo dati da multiple immagini
 
 4. **Visualizzazione** → `/my-players` → `/player/[id]`
    - Lista giocatori con completeness indicator
@@ -313,15 +315,25 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 ```
 
-**Autenticazione Anonima**:
+**Autenticazione Email**:
 ```javascript
-// Client-side
-const { data, error } = await supabase.auth.signInAnonymously()
-const token = data.session.access_token
+// Client-side - Login
+const { data, error } = await supabase.auth.signInWithPassword({
+  email: 'user@example.com',
+  password: 'password123'
+})
 
-// Server-side (API route)
-const authHeader = req.headers.get('authorization')
-const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null
+// Client-side - Registrazione
+const { data, error } = await supabase.auth.signUp({
+  email: 'user@example.com',
+  password: 'password123',
+  options: { emailRedirectTo: undefined } // Nessuna verifica email
+})
+
+// Server-side (API route) - Validazione token centralizzata
+import { validateToken, extractBearerToken } from '@/lib/authHelper'
+const token = extractBearerToken(req)
+const { userData, error } = await validateToken(token, supabaseUrl, anonKey)
 ```
 
 ---
