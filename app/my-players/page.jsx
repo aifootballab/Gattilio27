@@ -17,26 +17,51 @@ export default function MyPlayersPage() {
 
   React.useEffect(() => {
     const initAuth = async () => {
+      console.log('[MyPlayers] ===== INIT AUTH START =====')
       try {
         if (!supabase) {
+          console.error('[MyPlayers] ❌ Supabase client not available')
           setAuthStatus({ ready: true, userId: null, token: null })
           return
         }
         
+        console.log('[MyPlayers] Getting session...')
         const { data, error } = await supabase.auth.getSession()
+        
         if (!data?.session?.access_token || error) {
-          console.log('[MyPlayers] No session, redirecting to login')
+          console.log('[MyPlayers] ❌ No session, redirecting to login:', {
+            hasSession: !!data?.session,
+            hasAccessToken: !!data?.session?.access_token,
+            error: error?.message || null
+          })
           router.push('/login')
           return
         }
         
+        const sessionUserId = data.session.user?.id
+        const sessionToken = data.session.access_token
+        const sessionEmail = data.session.user?.email
+        
+        console.log('[MyPlayers] ✅ Session found')
+        console.log('[MyPlayers] Session userId:', sessionUserId || '(null)')
+        console.log('[MyPlayers] Session userEmail:', sessionEmail || '(null)')
+        console.log('[MyPlayers] Session token (first 30 chars):', sessionToken.substring(0, 30) + '...')
+        console.log('[MyPlayers] Session token length:', sessionToken.length)
+        
         setAuthStatus({
           ready: true,
-          userId: data.session.user?.id || null,
-          token: data.session.access_token,
+          userId: sessionUserId || null,
+          token: sessionToken,
         })
+        
+        console.log('[MyPlayers] AuthStatus set:', {
+          ready: true,
+          userId: sessionUserId || null,
+          hasToken: !!sessionToken
+        })
+        console.log('[MyPlayers] ===== INIT AUTH END =====')
       } catch (err) {
-        console.error('[MyPlayers] Auth init failed:', err)
+        console.error('[MyPlayers] ❌ Auth init failed:', err)
         router.push('/login')
       }
     }
@@ -44,23 +69,58 @@ export default function MyPlayersPage() {
   }, [])
 
   React.useEffect(() => {
-    if (!authStatus.ready || !authStatus.token) return
+    if (!authStatus.ready || !authStatus.token) {
+      console.log('[MyPlayers] useEffect skipped:', {
+        ready: authStatus.ready,
+        hasToken: !!authStatus.token
+      })
+      return
+    }
 
     const fetchPlayers = async () => {
+      console.log('[MyPlayers] ===== FRONTEND FETCH START =====')
+      console.log('[MyPlayers] Current authStatus:', {
+        ready: authStatus.ready,
+        hasUserId: !!authStatus.userId,
+        userId: authStatus.userId,
+        hasToken: !!authStatus.token,
+        tokenLength: authStatus.token?.length
+      })
+      
+      // Log session info prima del fetch
+      if (supabase) {
+        const { data: sessionData } = await supabase.auth.getSession()
+        console.log('[MyPlayers] Session userId:', sessionData?.session?.user?.id || '(null)')
+        console.log('[MyPlayers] Session userEmail:', sessionData?.session?.user?.email || '(null)')
+      }
+      
+      console.log('[MyPlayers] Token (first 30 chars):', authStatus.token.substring(0, 30) + '...')
+      
       setLoading(true)
       setError(null)
       try {
+        console.log('[MyPlayers] Calling API /api/supabase/get-my-players...')
         const res = await fetch('/api/supabase/get-my-players', {
           headers: { Authorization: `Bearer ${authStatus.token}` },
         })
+        console.log('[MyPlayers] API response status:', res.status, 'ok:', res.ok)
+        
         const data = await res.json()
         
         if (!res.ok) {
+          console.error('[MyPlayers] ❌ API error:', data)
           throw new Error(data?.error || `Failed to fetch players (${res.status})`)
         }
         
+        console.log('[MyPlayers] ===== API RESPONSE RECEIVED =====')
+        console.log('[MyPlayers] ✅ Fetch successful')
+        console.log('[MyPlayers] Players count:', data.players?.length || 0)
+        console.log('[MyPlayers] Players received:', data.players?.map(p => p.player_name) || [])
+        console.log('[MyPlayers] ===== FRONTEND FETCH END =====')
+        
         setPlayers(Array.isArray(data.players) ? data.players : [])
       } catch (err) {
+        console.error('[MyPlayers] ❌ Fetch error:', err)
         setError(err?.message || (lang === 'it' ? 'Errore caricamento giocatori' : 'Error loading players'))
       } finally {
         setLoading(false)

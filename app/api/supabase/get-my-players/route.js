@@ -18,29 +18,48 @@ export async function GET(req) {
       )
     }
 
+    console.log('[get-my-players] ===== AUTHENTICATION START =====')
+    
     // Estrai e valida token (stesso sistema di save-player)
     const token = extractBearerToken(req)
     if (!token) {
+      console.error('[get-my-players] ❌ No token in request')
       return NextResponse.json({ error: 'Missing Authorization bearer token' }, { status: 401 })
     }
 
-    console.log('[get-my-players] Validating token:', { tokenPrefix: token.substring(0, 20) + '...' })
+    console.log('[get-my-players] Token received (first 30 chars):', token.substring(0, 30) + '...')
+    console.log('[get-my-players] Token length:', token.length)
+    console.log('[get-my-players] Token type check:', { hasDots: token.includes('.'), dotCount: token.split('.').length })
 
     const { userData, error: authError } = await validateToken(token, supabaseUrl, anonKey)
     
     if (authError || !userData?.user?.id) {
       const errorMsg = authError?.message || String(authError) || 'Unknown auth error'
-      console.error('[get-my-players] Auth validation failed:', { error: errorMsg, hasUserData: !!userData, hasUserId: !!userData?.user?.id })
+      console.error('[get-my-players] ❌ AUTH VALIDATION FAILED:', { 
+        error: errorMsg, 
+        hasUserData: !!userData, 
+        hasUserId: !!userData?.user?.id,
+        userDataKeys: userData ? Object.keys(userData) : null
+      })
       return NextResponse.json({ error: 'Invalid auth', details: errorMsg }, { status: 401 })
     }
     
     const userId = userData.user.id
     const userEmail = userData.user.email
-    console.log('[get-my-players] Auth OK, userId:', userId, 'email:', userEmail || 'anon')
+    console.log('[get-my-players] ✅ AUTH OK')
+    console.log('[get-my-players] UserId extracted:', userId)
+    console.log('[get-my-players] UserId type:', typeof userId, 'length:', userId?.length)
+    console.log('[get-my-players] UserEmail:', userEmail || '(null/empty)')
+    console.log('[get-my-players] UserData keys:', Object.keys(userData.user || {}))
+    console.log('[get-my-players] ===== AUTHENTICATION END =====')
     const admin = createClient(supabaseUrl, serviceKey, {
       auth: { autoRefreshToken: false, persistSession: false }
     })
 
+    console.log('[get-my-players] ===== QUERYING PLAYER_BUILDS =====')
+    console.log('[get-my-players] Querying player_builds WHERE user_id =', userId)
+    console.log('[get-my-players] UserId for query:', userId, 'type:', typeof userId)
+    
     // Recupera player_builds dell'utente con join a players_base
     const { data: builds, error: buildsErr } = await admin
       .from('player_builds')
@@ -82,10 +101,63 @@ export async function GET(req) {
       .order('created_at', { ascending: false })
 
     if (buildsErr) {
-      console.error('[get-my-players] Error fetching builds:', buildsErr)
+      console.error('[get-my-players] ❌ QUERY ERROR:', {
+        error: buildsErr.message,
+        code: buildsErr.code,
+        details: buildsErr.details,
+        hint: buildsErr.hint,
+        query_user_id: userId
+      })
       return NextResponse.json({ error: 'Failed to fetch players', details: buildsErr.message }, { status: 500 })
     }
+    
+    console.log('[get-my-players] ✅ QUERY SUCCESS')
+    console.log('[get-my-players] Builds found:', builds?.length || 0)
+    
+    if (builds && builds.length > 0) {
+      console.log('[get-my-players] First build details:', {
+        id: builds[0].id,
+        user_id_in_db: '(check in DB)',
+        player_base_id: builds[0].player_base_id,
+        player_name: builds[0].players_base?.player_name,
+        created_at: '(check in DB)'
+      })
+    } else {
+      console.log('[get-my-players] ⚠️ NO BUILDS FOUND for user_id:', userId)
+      console.log('[get-my-players] This could mean:')
+      console.log('[get-my-players]   1. No player_builds exist with this user_id')
+      console.log('[get-my-players]   2. user_id mismatch between save and get')
+      console.log('[get-my-players]   3. Query filter is incorrect')
+    }
+    
+    console.log('[get-my-players] ===== QUERY END =====')
 
+    console.log('[get-my-players] ===== FORMATTING RESPONSE =====')
+    
+    // VERIFICA FINALE: Query diretta per debug
+    console.log('[get-my-players] ===== DEBUG QUERY =====')
+    const { data: debugBuilds, error: debugErr } = await admin
+      .from('player_builds')
+      .select('id, user_id, player_base_id, created_at')
+      .eq('user_id', userId)
+      .limit(10)
+    
+    if (debugErr) {
+      console.error('[get-my-players] Debug query failed:', debugErr.message)
+    } else {
+      console.log('[get-my-players] Debug query result:', {
+        count: debugBuilds?.length || 0,
+        builds: debugBuilds?.map(b => ({
+          id: b.id,
+          user_id: b.user_id,
+          user_id_match: b.user_id === userId,
+          player_base_id: b.player_base_id,
+          created_at: b.created_at
+        })) || []
+      })
+    }
+    console.log('[get-my-players] ===== DEBUG QUERY END =====')
+    
     // Formatta i dati per il frontend
     const players = (builds || []).map(build => {
       const base = build.players_base
@@ -119,6 +191,11 @@ export async function GET(req) {
         completeness: calculateCompleteness(base, build)
       }
     })
+    
+    console.log('[get-my-players] ✅ FORMATTING COMPLETE')
+    console.log('[get-my-players] Players formatted:', players.length)
+    console.log('[get-my-players] Player names:', players.map(p => p.player_name))
+    console.log('[get-my-players] ===== GET-MY-PLAYERS END =====')
 
     return NextResponse.json({ players, count: players.length })
   } catch (e) {

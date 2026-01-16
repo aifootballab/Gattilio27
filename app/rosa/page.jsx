@@ -91,20 +91,41 @@ function RosaProductionPage() {
   }, [])
 
   const getFreshToken = async () => {
-    if (!supabase) return null
+    console.log('[getFreshToken] ===== GETTING FRESH TOKEN =====')
+    
+    if (!supabase) {
+      console.error('[getFreshToken] ❌ Supabase client not available')
+      return null
+    }
     
     try {
+      console.log('[getFreshToken] Calling supabase.auth.getSession()...')
       const { data, error } = await supabase.auth.getSession()
       
       // Se non c'è sessione valida, redirect a login
       if (!data?.session?.access_token || error) {
+        console.error('[getFreshToken] ❌ No valid session:', {
+          hasSession: !!data?.session,
+          hasAccessToken: !!data?.session?.access_token,
+          error: error?.message || null
+        })
         router.push('/login')
         return null
       }
       
       const token = data.session.access_token
+      const sessionUserId = data.session.user?.id
+      
+      console.log('[getFreshToken] ✅ Session found')
+      console.log('[getFreshToken] Session userId:', sessionUserId || '(null)')
+      console.log('[getFreshToken] Token (first 30 chars):', token.substring(0, 30) + '...')
+      console.log('[getFreshToken] Token length:', token.length)
       
       if (!token || typeof token !== 'string' || token.length < 10) {
+        console.error('[getFreshToken] ❌ Invalid token format:', {
+          tokenType: typeof token,
+          tokenLength: token?.length
+        })
         router.push('/login')
         return null
       }
@@ -112,8 +133,12 @@ function RosaProductionPage() {
       const isJWT = token.includes('.') && token.split('.').length >= 3
       setTokenKind(isJWT ? 'jwt' : 'opaque')
       
+      console.log('[getFreshToken] ✅ Token valid, returning')
+      console.log('[getFreshToken] ===== GET FRESH TOKEN END =====')
+      
       return token
     } catch (err) {
+      console.error('[getFreshToken] ❌ Exception:', err)
       router.push('/login')
       return null
     }
@@ -238,16 +263,41 @@ function RosaProductionPage() {
 
   const saveToSupabase = async (player) => {
     setSupabaseMsg(null)
-    console.log('[saveToSupabase] Starting save for player:', player?.player_name || 'Unknown')
+    console.log('[saveToSupabase] ===== FRONTEND SAVE START =====')
+    console.log('[saveToSupabase] Player to save:', player?.player_name || 'Unknown')
+    console.log('[saveToSupabase] Current authStatus:', {
+      ready: authStatus.ready,
+      hasUserId: !!authStatus.userId,
+      userId: authStatus.userId,
+      hasToken: !!authStatus.token
+    })
+    
     try {
+      console.log('[saveToSupabase] Getting fresh token...')
       const token = await getFreshToken()
+      
       if (!token || typeof token !== 'string' || token.length < 10) {
         const errorMsg = lang === 'it' ? 'Token di autenticazione non valido. Ricarica la pagina e riprova.' : 'Invalid authentication token. Reload the page and try again.'
-        console.error('[saveToSupabase] Invalid token:', { tokenLength: token?.length, tokenType: typeof token })
+        console.error('[saveToSupabase] ❌ Invalid token:', { 
+          tokenLength: token?.length, 
+          tokenType: typeof token,
+          tokenValue: token
+        })
         throw new Error(errorMsg)
       }
       
-      console.log('[saveToSupabase] Token OK, calling API...')
+      console.log('[saveToSupabase] ✅ Token OK')
+      console.log('[saveToSupabase] Token (first 30 chars):', token.substring(0, 30) + '...')
+      console.log('[saveToSupabase] Token length:', token.length)
+      
+      // Log session info prima del save
+      if (supabase) {
+        const { data: sessionData } = await supabase.auth.getSession()
+        console.log('[saveToSupabase] Session userId:', sessionData?.session?.user?.id || '(null)')
+        console.log('[saveToSupabase] Session userEmail:', sessionData?.session?.user?.email || '(null)')
+      }
+      
+      console.log('[saveToSupabase] Calling API /api/supabase/save-player...')
       const res = await fetch('/api/supabase/save-player', {
         method: 'POST',
         headers: { 
@@ -284,7 +334,18 @@ function RosaProductionPage() {
         throw new Error(`${data?.error || `Errore salvataggio (${res.status})`}${data?.details ? ` — ${data.details}` : ''}`)
       }
       
-      console.log('[saveToSupabase] Save successful:', data)
+      console.log('[saveToSupabase] ===== API RESPONSE RECEIVED =====')
+      console.log('[saveToSupabase] ✅ Save successful')
+      console.log('[saveToSupabase] Response data:', {
+        success: data.success,
+        user_id: data.user_id,
+        user_id_type: typeof data.user_id,
+        player_build_id: data.player_build_id,
+        is_new_build: data.is_new_build,
+        was_duplicate: data.was_duplicate
+      })
+      console.log('[saveToSupabase] ===== FRONTEND SAVE END =====')
+      
       // Messaggio informativo basato sul risultato
       let msg = ''
       if (data.was_duplicate) {

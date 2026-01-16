@@ -45,11 +45,21 @@ export async function POST(req) {
 
     console.log('[save-player] Validating token:', { tokenPrefix: token.substring(0, 20) + '...', anonKeyKind: anonKey?.startsWith('sb_publishable_') ? 'publishable' : anonKey?.includes('.') ? 'jwt' : 'unknown' })
 
+    console.log('[save-player] ===== AUTHENTICATION START =====')
+    console.log('[save-player] Token received (first 30 chars):', token.substring(0, 30) + '...')
+    console.log('[save-player] Token length:', token.length)
+    console.log('[save-player] Token type check:', { hasDots: token.includes('.'), dotCount: token.split('.').length })
+    
     const { userData, error: authError } = await validateToken(token, supabaseUrl, anonKey)
     
     if (authError || !userData?.user?.id) {
       const errorMsg = authError?.message || String(authError) || 'Unknown auth error'
-      console.error('[save-player] Auth validation failed:', { error: errorMsg, hasUserData: !!userData, hasUserId: !!userData?.user?.id })
+      console.error('[save-player] ❌ AUTH VALIDATION FAILED:', { 
+        error: errorMsg, 
+        hasUserData: !!userData, 
+        hasUserId: !!userData?.user?.id,
+        userDataKeys: userData ? Object.keys(userData) : null
+      })
       return NextResponse.json(
         {
           error: 'Invalid auth',
@@ -61,7 +71,12 @@ export async function POST(req) {
     
     const userId = userData.user.id
     const userEmail = userData.user.email
-    console.log('[save-player] Auth OK, userId:', userId, 'email:', userEmail || 'anon')
+    console.log('[save-player] ✅ AUTH OK')
+    console.log('[save-player] UserId extracted:', userId)
+    console.log('[save-player] UserId type:', typeof userId, 'length:', userId?.length)
+    console.log('[save-player] UserEmail:', userEmail || '(null/empty)')
+    console.log('[save-player] UserData keys:', Object.keys(userData.user || {}))
+    console.log('[save-player] ===== AUTHENTICATION END =====')
     
     // Verifica tipo service key
     const serviceKeyKind = serviceKey?.startsWith('sb_secret_') ? 'sb_secret' : 
@@ -417,6 +432,10 @@ export async function POST(req) {
     }
 
     // Prepara payload per build
+    console.log('[save-player] ===== BUILDING PLAYER_BUILDS PAYLOAD =====')
+    console.log('[save-player] PlayerBaseId:', playerBaseId)
+    console.log('[save-player] UserId for buildPayload:', userId)
+    
     const buildPayload = {
       user_id: userId,
       player_base_id: playerBaseId,
@@ -428,34 +447,79 @@ export async function POST(req) {
       source: 'screenshot',
       source_data: { extracted: player },
     }
+    
+    console.log('[save-player] BuildPayload created:', {
+      user_id: buildPayload.user_id,
+      user_id_type: typeof buildPayload.user_id,
+      user_id_length: buildPayload.user_id?.length,
+      player_base_id: buildPayload.player_base_id,
+      player_name: player?.player_name
+    })
+    console.log('[save-player] ===== PAYLOAD BUILD END =====')
 
     let buildId = null
     let isNewBuild = false
     let wasMoved = false
 
+    console.log('[save-player] ===== SAVING PLAYER_BUILDS =====')
+    console.log('[save-player] ExistingBuildIdInRosa:', existingBuildIdInRosa || '(null - nuovo giocatore)')
+    
     if (existingBuildIdInRosa) {
       // Giocatore già presente in rosa → sempre aggiorna build esistente (sovrascrivi)
       buildId = existingBuildIdInRosa
-      console.log('[save-player] Giocatore già in rosa, aggiornando build esistente, id:', buildId)
+      console.log('[save-player] 🔄 UPDATE MODE: Giocatore già in rosa, aggiornando build esistente')
+      console.log('[save-player] BuildId esistente:', buildId)
+      console.log('[save-player] Executing UPDATE on player_builds WHERE id =', buildId)
+      console.log('[save-player] Update payload user_id:', buildPayload.user_id)
+      
       const { error: updateErr } = await admin.from('player_builds').update(buildPayload).eq('id', buildId)
+      
       if (updateErr) {
-        console.error('[save-player] player_builds update failed:', { error: updateErr.message, code: updateErr.code, details: updateErr.details })
+        console.error('[save-player] ❌ player_builds UPDATE FAILED:', { 
+          error: updateErr.message, 
+          code: updateErr.code, 
+          details: updateErr.details,
+          hint: updateErr.hint
+        })
         throw new Error(`player_builds update failed: ${updateErr.message}${updateErr.details ? ` (${updateErr.details})` : ''}`)
       }
+      
+      console.log('[save-player] ✅ player_builds UPDATE SUCCESS')
+      console.log('[save-player] BuildId updated:', buildId, 'with user_id:', buildPayload.user_id)
       // wasMoved: solo se slotIndex è fornito e diverso da quello esistente
       wasMoved = slotIndex !== null && existingSlotIndex !== slotIndex
     } else {
       // Giocatore nuovo → crea nuovo build
-      console.log('[save-player] Giocatore nuovo, creando nuovo player_build...')
+      console.log('[save-player] ➕ INSERT MODE: Giocatore nuovo, creando nuovo player_build')
+      console.log('[save-player] Insert payload:', {
+        user_id: buildPayload.user_id,
+        player_base_id: buildPayload.player_base_id,
+        player_name: player?.player_name
+      })
+      
       const { data: b, error: bErr } = await admin.from('player_builds').insert(buildPayload).select('id').single()
+      
       if (bErr) {
-        console.error('[save-player] player_builds insert failed:', { error: bErr.message, code: bErr.code, details: bErr.details, hint: bErr.hint })
+        console.error('[save-player] ❌ player_builds INSERT FAILED:', { 
+          error: bErr.message, 
+          code: bErr.code, 
+          details: bErr.details, 
+          hint: bErr.hint,
+          payload_user_id: buildPayload.user_id
+        })
         throw new Error(`player_builds insert failed: ${bErr.message}${bErr.details ? ` (${bErr.details})` : ''}${bErr.hint ? ` Hint: ${bErr.hint}` : ''}`)
       }
+      
       buildId = b.id
       isNewBuild = true
-      console.log('[save-player] player_builds inserted, id:', buildId)
+      console.log('[save-player] ✅ player_builds INSERT SUCCESS')
+      console.log('[save-player] New BuildId created:', buildId)
+      console.log('[save-player] BuildId saved with user_id:', buildPayload.user_id)
     }
+    
+    console.log('[save-player] Final BuildId:', buildId)
+    console.log('[save-player] IsNewBuild:', isNewBuild)
+    console.log('[save-player] ===== PLAYER_BUILDS SAVE END =====')
 
     // Aggiorna rosa: gestisce slot solo se slotIndex è fornito, altrimenti mantiene posizione esistente o trova primo slot disponibile
     const updated = ensureArrayLen(rosa.player_build_ids || [], 21)
@@ -501,16 +565,32 @@ export async function POST(req) {
       }
     }
 
+    console.log('[save-player] ===== UPDATING USER_ROSA =====')
+    console.log('[save-player] RosaId:', rosa.id)
+    console.log('[save-player] BuildId to add/update:', buildId)
+    console.log('[save-player] Updated player_build_ids array length:', updated.length)
+    console.log('[save-player] Updated array (first 5):', updated.slice(0, 5))
+    console.log('[save-player] BuildId position in array:', updated.findIndex(id => id === buildId))
+    
     const { error: upErr } = await admin
       .from('user_rosa')
       .update({ player_build_ids: updated, updated_at: new Date().toISOString() })
       .eq('id', rosa.id)
+      
     if (upErr) {
-      console.error('[save-player] user_rosa update failed:', { error: upErr.message, code: upErr.code, details: upErr.details })
+      console.error('[save-player] ❌ user_rosa UPDATE FAILED:', { 
+        error: upErr.message, 
+        code: upErr.code, 
+        details: upErr.details 
+      })
       throw new Error(`user_rosa update failed: ${upErr.message}${upErr.details ? ` (${upErr.details})` : ''}`)
     }
+    
+    console.log('[save-player] ✅ user_rosa UPDATE SUCCESS')
+    console.log('[save-player] ===== USER_ROSA UPDATE END =====')
 
     if (logId) {
+      console.log('[save-player] Updating screenshot_processing_log with logId:', logId)
       await admin
         .from('screenshot_processing_log')
         .update({
@@ -528,6 +608,32 @@ export async function POST(req) {
         })
         .eq('id', logId)
     }
+    
+    // VERIFICA FINALE: Query per confermare che il build esiste con il user_id corretto
+    console.log('[save-player] ===== FINAL VERIFICATION =====')
+    const { data: verifyBuild, error: verifyErr } = await admin
+      .from('player_builds')
+      .select('id, user_id, player_base_id')
+      .eq('id', buildId)
+      .single()
+    
+    if (verifyErr) {
+      console.error('[save-player] ⚠️ VERIFICATION QUERY FAILED:', verifyErr.message)
+    } else {
+      console.log('[save-player] ✅ VERIFICATION SUCCESS')
+      console.log('[save-player] Build verified:', {
+        id: verifyBuild.id,
+        user_id: verifyBuild.user_id,
+        user_id_match: verifyBuild.user_id === userId,
+        player_base_id: verifyBuild.player_base_id
+      })
+      if (verifyBuild.user_id !== userId) {
+        console.error('[save-player] ⚠️⚠️⚠️ USER_ID MISMATCH!')
+        console.error('[save-player] Expected userId:', userId)
+        console.error('[save-player] Actual user_id in DB:', verifyBuild.user_id)
+      }
+    }
+    console.log('[save-player] ===== VERIFICATION END =====')
 
     // Trova lo slot finale del giocatore nella rosa aggiornata
     const finalSlot = updated.findIndex(id => id === buildId)
@@ -535,7 +641,7 @@ export async function POST(req) {
     // Determina slot finale: preferisci finalSlot se valido, altrimenti slotIndex, altrimenti existingSlotIndex, altrimenti null
     const responseSlot = finalSlot >= 0 ? finalSlot : (slotIndex !== null ? slotIndex : (existingSlotIndex !== null ? existingSlotIndex : null))
     
-    return NextResponse.json({
+    const response = {
       success: true,
       user_id: userId,
       player_base_id: playerBaseId,
@@ -546,7 +652,20 @@ export async function POST(req) {
       was_moved: wasMoved,
       previous_slot: wasMoved ? existingSlotIndex : null,
       is_new_build: isNewBuild,
+    }
+    
+    console.log('[save-player] ===== RESPONSE PREPARATION =====')
+    console.log('[save-player] ✅ SAVE COMPLETED SUCCESSFULLY')
+    console.log('[save-player] Response data:', {
+      user_id: response.user_id,
+      user_id_type: typeof response.user_id,
+      player_build_id: response.player_build_id,
+      is_new_build: response.is_new_build,
+      was_duplicate: response.was_duplicate
     })
+    console.log('[save-player] ===== SAVE-PLAYER END =====')
+    
+    return NextResponse.json(response)
   } catch (e) {
     console.error('[save-player] Unhandled exception:', {
       message: e?.message || String(e),
