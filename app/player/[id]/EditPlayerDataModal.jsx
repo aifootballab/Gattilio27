@@ -184,19 +184,21 @@ export default function EditPlayerDataModal({ player, authToken, onClose, onSave
         player_base_id: player.player_base_id,
       }
 
-      // Solo dati mancanti
-      if (missingDetails.missing_stats) {
-        if (!missingDetails.missing_stats.has_attacking || !missingDetails.missing_stats.has_defending || !missingDetails.missing_stats.has_athleticism) {
-          payload.base_stats = {
-            ...(baseStats || {}),
-            attacking: { ...stats.attacking },
-            defending: { ...stats.defending },
-            athleticism: { ...stats.athleticism }
-          }
+      // Base stats - salva sempre se presenti nel form
+      const hasStatsData = Object.keys(stats.attacking || {}).length > 0 || 
+                          Object.keys(stats.defending || {}).length > 0 || 
+                          Object.keys(stats.athleticism || {}).length > 0
+      if (hasStatsData) {
+        payload.base_stats = {
+          ...(baseStats || {}),
+          attacking: { ...stats.attacking },
+          defending: { ...stats.defending },
+          athleticism: { ...stats.athleticism }
         }
       }
 
-      if (missingDetails.missing_physical && (!physical.height || !physical.weight || !physical.age)) {
+      // Physical data - salva sempre se presenti nel form
+      if (physical.height || physical.weight || physical.age || physical.team || physical.nationality || physical.playing_style) {
         payload.height = physical.height || null
         payload.weight = physical.weight || null
         payload.age = physical.age || null
@@ -205,32 +207,31 @@ export default function EditPlayerDataModal({ player, authToken, onClose, onSave
         payload.playing_style = physical.playing_style || null
       }
 
-      if (missingDetails.missing_skills && skills.length === 0) {
-        payload.skills = skills.filter(s => s.trim())
-      }
-      if (missingDetails.missing_com_skills && comSkills.length === 0) {
-        payload.com_skills = comSkills.filter(s => s.trim())
-      }
-      if (missingDetails.missing_ai_playstyles && aiPlaystyles.length === 0) {
+      // Skills - salva sempre (anche array vuoto per rimuovere)
+      payload.skills = skills.filter(s => s.trim())
+      payload.com_skills = comSkills.filter(s => s.trim())
+      if (aiPlaystyles.length > 0 || (payload.metadata && payload.metadata.ai_playstyles)) {
         payload.metadata = { ...(payload.metadata || {}), ai_playstyles: aiPlaystyles.filter(s => s.trim()) }
       }
-      if (missingDetails.missing_additional_positions && additionalPositions.length === 0) {
-        payload.additional_positions = additionalPositions.filter(p => p.trim())
-      }
+      payload.additional_positions = additionalPositions.filter(p => p.trim())
 
-      if (missingDetails.missing_boosters && boosters.length === 0) {
+      // Boosters - salva sempre se presenti nel form
+      if (boosters.length > 0) {
         payload.available_boosters = boosters.slice(0, 2)
       }
 
-      if (missingDetails.missing_weak_foot || missingDetails.missing_form_detailed || missingDetails.missing_injury_resistance) {
+      // Characteristics - salva sempre se presenti nel form
+      const hasCharacteristics = characteristics.weak_foot_frequency || 
+                                 characteristics.weak_foot_accuracy || 
+                                 characteristics.form_detailed || 
+                                 characteristics.injury_resistance
+      if (hasCharacteristics) {
         payload.metadata = {
           ...(payload.metadata || {}),
-          ...(missingDetails.missing_weak_foot ? {
-            weak_foot_frequency: characteristics.weak_foot_frequency || null,
-            weak_foot_accuracy: characteristics.weak_foot_accuracy || null
-          } : {}),
-          ...(missingDetails.missing_form_detailed ? { form_detailed: characteristics.form_detailed || null } : {}),
-          ...(missingDetails.missing_injury_resistance ? { injury_resistance: characteristics.injury_resistance || null } : {})
+          weak_foot_frequency: characteristics.weak_foot_frequency || null,
+          weak_foot_accuracy: characteristics.weak_foot_accuracy || null,
+          form_detailed: characteristics.form_detailed || null,
+          injury_resistance: characteristics.injury_resistance || null
         }
       }
 

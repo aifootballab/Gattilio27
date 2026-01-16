@@ -43,39 +43,40 @@ export default function PlayerDetailPage() {
     initAuth()
   }, [])
 
-  React.useEffect(() => {
+  const fetchPlayer = React.useCallback(async () => {
     if (!authStatus.ready || !authStatus.token) return
 
-    const fetchPlayer = async () => {
-      try {
-        setLoading(true)
-        setError(null)
+    try {
+      setLoading(true)
+      setError(null)
 
-        const res = await fetch('/api/supabase/get-my-players', {
-          headers: { Authorization: `Bearer ${authStatus.token}` },
-        })
-        const apiData = await res.json()
-        
-        if (!res.ok) {
-          throw new Error(apiData?.error || 'Failed to fetch player')
-        }
-        
-        const found = apiData.players?.find(p => p.build_id === params.id)
-        if (!found) {
-          throw new Error(lang === 'it' ? 'Giocatore non trovato' : 'Player not found')
-        }
-        
-        setPlayer(found)
-      } catch (err) {
-        console.error('[PlayerDetail] Fetch failed:', err)
-        setError(err?.message || (lang === 'it' ? 'Errore caricamento giocatore' : 'Error loading player'))
-      } finally {
-        setLoading(false)
+      const res = await fetch('/api/supabase/get-my-players', {
+        headers: { Authorization: `Bearer ${authStatus.token}` },
+        cache: 'no-store' // Forza ricaricamento dati
+      })
+      const apiData = await res.json()
+      
+      if (!res.ok) {
+        throw new Error(apiData?.error || 'Failed to fetch player')
       }
+      
+      const found = apiData.players?.find(p => p.build_id === params.id)
+      if (!found) {
+        throw new Error(lang === 'it' ? 'Giocatore non trovato' : 'Player not found')
+      }
+      
+      setPlayer(found)
+    } catch (err) {
+      console.error('[PlayerDetail] Fetch failed:', err)
+      setError(err?.message || (lang === 'it' ? 'Errore caricamento giocatore' : 'Error loading player'))
+    } finally {
+      setLoading(false)
     }
-    
-    fetchPlayer()
   }, [authStatus.ready, authStatus.token, params.id, lang])
+
+  React.useEffect(() => {
+    fetchPlayer()
+  }, [fetchPlayer])
 
   if (loading) {
     return (
@@ -101,10 +102,10 @@ export default function PlayerDetailPage() {
     )
   }
 
-  return <PlayerDetailView player={player} t={t} lang={lang} changeLanguage={changeLanguage} />
+  return <PlayerDetailView player={player} t={t} lang={lang} changeLanguage={changeLanguage} onRefresh={fetchPlayer} />
 }
 
-function PlayerDetailView({ player, t, lang, changeLanguage }) {
+function PlayerDetailView({ player, t, lang, changeLanguage, onRefresh }) {
   const [showEditModal, setShowEditModal] = React.useState(false)
   const [authToken, setAuthToken] = React.useState(null)
   const baseStats = player.base_stats || {}
@@ -472,10 +473,14 @@ function PlayerDetailView({ player, t, lang, changeLanguage }) {
           player={player}
           authToken={authToken}
           onClose={() => setShowEditModal(false)}
-          onSave={() => {
+          onSave={async () => {
             setShowEditModal(false)
-            // Ricarica i dati del giocatore
-            window.location.reload()
+            // Ricarica i dati del giocatore senza reload completo
+            if (onRefresh) {
+              await onRefresh()
+            } else {
+              window.location.reload()
+            }
           }}
           t={t}
           lang={lang}
