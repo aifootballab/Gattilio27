@@ -231,6 +231,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder={t('emailPlaceholder')}
+                autoComplete="email"
                 required
                 disabled={loading}
                 style={{
@@ -273,6 +274,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder={t('passwordPlaceholder')}
+                autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                 required
                 disabled={loading}
                 minLength={6}
