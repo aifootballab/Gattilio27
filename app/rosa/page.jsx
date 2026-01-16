@@ -534,7 +534,7 @@ function RosaProductionPage() {
             {groups.length > 0 && (
               <div className="grid" style={{ marginTop: 24 }}>
                 {groups.map((g) => {
-                  const completeness = g.completeness || { identity: false, stats: false, skills: false, boosters: false, percentage: 0 }
+                  const completeness = g.completeness || { identity: false, stats: false, skills: false, boosters: false, percentage: 0, missingSections: [] }
                   const canSave = completeness.identity && (completeness.stats || completeness.skills)
                   
                   return (
@@ -572,13 +572,13 @@ function RosaProductionPage() {
                               {t('incompleteDataWarning')}
                             </div>
                             <div style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.8)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                              {completeness.missingSections.includes('stats') && (
+                              {Array.isArray(completeness.missingSections) && completeness.missingSections.includes('stats') && (
                                 <div>• {t('missingStatsPhoto')}</div>
                               )}
-                              {completeness.missingSections.includes('skills') && (
+                              {Array.isArray(completeness.missingSections) && completeness.missingSections.includes('skills') && (
                                 <div>• {t('missingSkillsPhoto')}</div>
                               )}
-                              {completeness.missingSections.includes('boosters') && (
+                              {Array.isArray(completeness.missingSections) && completeness.missingSections.includes('boosters') && (
                                 <div>• {t('missingBoostersPhoto')}</div>
                               )}
                             </div>
