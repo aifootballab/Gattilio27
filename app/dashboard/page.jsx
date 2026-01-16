@@ -2,15 +2,65 @@
 
 import React from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useTranslation } from '@/lib/i18n'
+import { supabase } from '@/lib/supabaseClient'
 import { 
   Users, Home, Users as PlayersIcon, LayoutGrid, BarChart3, 
   ClipboardList, ChevronRight, User, CheckCircle2,
-  Target, Zap, Shield
+  Target, Zap, Shield, LogOut, LogIn
 } from 'lucide-react'
 
 export default function DashboardPage() {
   const { t, lang, changeLanguage } = useTranslation()
+  const router = useRouter()
+  const [userEmail, setUserEmail] = React.useState(null)
+  const [isLoading, setIsLoading] = React.useState(true)
+
+  React.useEffect(() => {
+    const checkAuth = async () => {
+      if (!supabase) {
+        setIsLoading(false)
+        return
+      }
+      
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.user?.email) {
+          setUserEmail(session.user.email)
+        }
+      } catch (err) {
+        console.error('[Dashboard] Auth check error:', err)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    
+    checkAuth()
+    
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session?.user?.email) {
+        setUserEmail(session.user.email)
+      } else {
+        setUserEmail(null)
+      }
+    })
+    
+    return () => subscription.unsubscribe()
+  }, [])
+
+  const handleLogout = async () => {
+    if (!supabase) return
+    try {
+      await supabase.auth.signOut()
+      setUserEmail(null)
+      router.push('/login')
+      router.refresh()
+    } catch (err) {
+      console.error('[Dashboard] Logout error:', err)
+    }
+  }
 
   return (
     <div style={{ 
@@ -146,8 +196,60 @@ export default function DashboardPage() {
               <User size={40} color="white" />
             </div>
             <div className="neon-text" style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px' }}>
-              {t('anonymousUser')}
+              {userEmail ? userEmail : t('anonymousUser')}
             </div>
+            {userEmail && (
+              <div style={{ fontSize: '12px', opacity: 0.8, marginBottom: '8px', color: 'var(--neon-blue)' }}>
+                {t('loggedInAs')}
+              </div>
+            )}
+            {!isLoading && (
+              <div style={{ marginTop: '8px' }}>
+                {userEmail ? (
+                  <button
+                    onClick={handleLogout}
+                    style={{
+                      padding: '6px 12px',
+                      background: 'rgba(239, 68, 68, 0.1)',
+                      border: '1px solid rgba(239, 68, 68, 0.3)',
+                      borderRadius: '6px',
+                      color: '#ef4444',
+                      fontSize: '12px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      margin: '0 auto'
+                    }}
+                  >
+                    <LogOut size={14} />
+                    {t('logout')}
+                  </button>
+                ) : (
+                  <Link
+                    href="/login"
+                    style={{
+                      padding: '6px 12px',
+                      background: 'rgba(0, 212, 255, 0.1)',
+                      border: '1px solid rgba(0, 212, 255, 0.3)',
+                      borderRadius: '6px',
+                      color: 'var(--neon-blue)',
+                      fontSize: '12px',
+                      cursor: 'pointer',
+                      textDecoration: 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      margin: '0 auto',
+                      width: 'fit-content'
+                    }}
+                  >
+                    <LogIn size={14} />
+                    {t('login')}
+                  </Link>
+                )}
+              </div>
+            )}
             <div style={{ fontSize: '12px', opacity: 0.8, marginBottom: '4px' }}>{t('masterLevel')}</div>
             <div style={{ fontSize: '12px', opacity: 0.8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
               {t('aiKnowledge')}: {t('high')} <CheckCircle2 size={14} style={{ color: 'var(--neon-blue)' }} />

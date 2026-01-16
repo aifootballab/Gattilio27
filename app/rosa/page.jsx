@@ -47,15 +47,17 @@ function RosaProductionPage() {
   const fileInputRef = React.useRef(null)
 
   React.useEffect(() => {
-    const initAnon = async () => {
+    const initAuth = async () => {
       try {
         if (!supabase) {
           setAuthStatus({ ready: true, userId: null, token: null })
           return
         }
         
+        // Controlla se c'è già una sessione (email o anonimo)
         let { data, error } = await supabase.auth.getSession()
         
+        // Se non c'è sessione valida, fallback a anonimo (per retrocompatibilità)
         if (!data?.session?.access_token || error) {
           const { data: signInData, error: signInError } = await supabase.auth.signInAnonymously()
           
@@ -85,7 +87,7 @@ function RosaProductionPage() {
         setAuthStatus({ ready: true, userId: null, token: null })
       }
     }
-    initAnon()
+    initAuth()
   }, [])
 
   const getFreshToken = async () => {
@@ -94,6 +96,7 @@ function RosaProductionPage() {
     try {
       let { data, error } = await supabase.auth.getSession()
       
+      // Se non c'è sessione valida, fallback a anonimo
       if (!data?.session?.access_token || error) {
         const { data: signInData, error: signInError } = await supabase.auth.signInAnonymously()
         

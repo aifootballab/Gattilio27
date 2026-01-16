@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { validateToken, extractBearerToken } from '../../../../lib/authHelper'
 
 export const runtime = 'nodejs'
 
@@ -34,57 +35,19 @@ export async function POST(req) {
       )
     }
 
-    const auth = req.headers.get('authorization') || ''
-    const token = auth.toLowerCase().startsWith('bearer ') ? auth.slice(7) : null
-    
+    // Estrai e valida token (supporta sia anon che email)
+    const token = extractBearerToken(req)
     if (!token) {
-      console.error('[save-player] Missing token in header:', { authHeader: auth ? `${auth.substring(0, 20)}...` : 'empty' })
+      console.error('[save-player] Missing token in header')
       return NextResponse.json({ error: 'Missing Authorization bearer token' }, { status: 401 })
     }
 
     console.log('[save-player] Validating token:', { tokenPrefix: token.substring(0, 20) + '...', anonKeyKind: anonKey?.startsWith('sb_publishable_') ? 'publishable' : anonKey?.includes('.') ? 'jwt' : 'unknown' })
 
-    // IMPORTANT: I token anon sono sempre JWT e richiedono la chiave legacy JWT (anon) per essere validati.
-    // Se anonKey è una publishable moderna (sb_publishable_...), dobbiamo usare la legacy JWT.
-    let userData = null
-    let userErr = null
-    let userId = null
+    const { userData, error: authError } = await validateToken(token, supabaseUrl, anonKey)
     
-    // Prova PRIMA con legacy JWT (più affidabile per token anon)
-    const legacyAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsaXV1b3Jyd2RldHlsb2xscnVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc5MDk0MTksImV4cCI6MjA4MzQ4NTQxOX0.pGnglOpSQ4gJ1JClB_zyBIB3-94eKHJfgveuCfoyffo'
-    try {
-      const legacyAuthClient = createClient(supabaseUrl, legacyAnonKey)
-      const legacyResult = await legacyAuthClient.auth.getUser(token)
-      userData = legacyResult.data
-      userErr = legacyResult.error
-      if (!userErr && userData?.user?.id) {
-        console.log('[save-player] Token validated with legacy JWT key')
-      }
-    } catch (legacyErr) {
-      console.error('[save-player] Legacy JWT validation failed:', legacyErr?.message || legacyErr)
-      userErr = legacyErr
-    }
-    
-    // Fallback: se legacy fallisce e anonKey è JWT, prova con anonKey
-    if (userErr && anonKey?.includes('.') && !anonKey?.startsWith('sb_publishable_')) {
-      try {
-        const authClient = createClient(supabaseUrl, anonKey)
-        const authResult = await authClient.auth.getUser(token)
-        if (!authResult.error && authResult.data?.user?.id) {
-          userData = authResult.data
-          userErr = null
-          console.log('[save-player] Token validated with configured JWT key')
-        } else {
-          userErr = authResult.error || userErr
-        }
-      } catch (fallbackErr) {
-        console.error('[save-player] Fallback validation failed:', fallbackErr?.message || fallbackErr)
-        userErr = fallbackErr
-      }
-    }
-    
-    if (userErr || !userData?.user?.id) {
-      const errorMsg = userErr?.message || String(userErr) || 'Unknown auth error'
+    if (authError || !userData?.user?.id) {
+      const errorMsg = authError?.message || String(authError) || 'Unknown auth error'
       console.error('[save-player] Auth validation failed:', { error: errorMsg, hasUserData: !!userData, hasUserId: !!userData?.user?.id })
       return NextResponse.json(
         {
@@ -94,8 +57,10 @@ export async function POST(req) {
         { status: 401 }
       )
     }
-    userId = userData.user.id
-    console.log('[save-player] Auth OK, userId:', userId)
+    
+    const userId = userData.user.id
+    const userEmail = userData.user.email
+    console.log('[save-player] Auth OK, userId:', userId, 'email:', userEmail || 'anon')
     
     // Verifica tipo service key
     const serviceKeyKind = serviceKey?.startsWith('sb_secret_') ? 'sb_secret' : 
