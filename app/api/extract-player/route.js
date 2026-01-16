@@ -89,6 +89,7 @@ function normalizePlayer(p) {
     overall_rating: toNumber(p?.overall_rating),
     position: typeof p?.position === 'string' ? p.position : null,
     role: typeof p?.role === 'string' ? p.role : null,
+    playing_style: typeof p?.playing_style === 'string' ? p.playing_style : null,
     card_type: typeof p?.card_type === 'string' ? p.card_type : null,
     team: typeof p?.team === 'string' ? p.team : null,
     region_or_nationality: typeof p?.region_or_nationality === 'string' ? p.region_or_nationality : null,
@@ -140,9 +141,13 @@ Regole CRITICHE:
 - **PRIORITÀ**: Se vedi una TABELLA con statistiche dettagliate, usa QUELLE (sono più precise del radar chart).
 
 Campi base:
-player_name, overall_rating, position, role, card_type, team, region_or_nationality, form, preferred_foot,
+player_name, overall_rating, position, role, playing_style, card_type, team, region_or_nationality, form, preferred_foot,
 height_cm, weight_kg, age, nationality, club_name,
 level_current, level_cap, progression_points, matches_played, goals, assists
+
+**STILE DI GIOCO (playing_style)**: Estrai lo stile di gioco del giocatore (es: "Ala prolifica", "Incontrista", "Collante", "Classico n°10", "Onnipresente", "Terzino offensivo", ecc.).
+Questo è diverso da "role" (che può essere una descrizione più generica). Lo stile di gioco è un campo specifico visibile nello screenshot del profilo.
+Se vedi "ESA Ala prolifica", estrai playing_style: "Ala prolifica" (senza il prefisso della posizione).
 
 **ESTRAZIONE STATISTICHE**:
 - Usa SOLO la TABELLA con statistiche dettagliate (colonne "Attacco", "Difesa", "Forza" con valori numerici precisi per ogni stat).

@@ -247,6 +247,30 @@ export async function POST(req) {
       ? (team ? existingBases.find(b => normName(b.team) === normName(team)) || existingBases[0] : existingBases[0])
       : null
 
+    // Lookup playing_style_id dalla tabella playing_styles
+    let playingStyleId = null
+    const playingStyleName = toText(player.playing_style)
+    if (playingStyleName) {
+      try {
+        // Cerca per nome (case-insensitive)
+        const { data: playingStyle } = await admin
+          .from('playing_styles')
+          .select('id, name')
+          .ilike('name', playingStyleName.trim())
+          .maybeSingle()
+        
+        if (playingStyle?.id) {
+          playingStyleId = playingStyle.id
+          console.log('[save-player] Found playing_style:', { name: playingStyle.name, id: playingStyleId })
+        } else {
+          console.log('[save-player] Playing style not found in database:', playingStyleName)
+        }
+      } catch (styleErr) {
+        console.error('[save-player] Error looking up playing_style:', styleErr?.message || styleErr)
+        // Non blocchiamo se il lookup fallisce
+      }
+    }
+
     // Costruisci base_stats completo
     const baseStats = player.base_stats && typeof player.base_stats === 'object' 
       ? player.base_stats 
@@ -295,6 +319,7 @@ export async function POST(req) {
       club_name: toText(player.club_name),
       form: toText(player.form),
       role: toText(player.role),
+      playing_style_id: playingStyleId,
       skills: Array.isArray(player.skills) ? player.skills : [],
       com_skills: Array.isArray(player.com_skills) ? player.com_skills : [],
       base_stats: baseStats,
@@ -328,10 +353,19 @@ export async function POST(req) {
       playerBaseId = inserted.id
       console.log('[save-player] players_base inserted, id:', playerBaseId)
     } else {
-      console.log('[save-player] players_base exists, id:', playerBaseId, '- updating metadata if tagged...')
+      console.log('[save-player] players_base exists, id:', playerBaseId, '- updating metadata and playing_style_id if tagged...')
+      // Aggiorna solo se è un record creato da screenshot_extractor
+      const updateData = {
+        metadata: basePayload.metadata,
+        updated_at: new Date().toISOString(),
+      }
+      // Aggiorna playing_style_id solo se presente
+      if (playingStyleId) {
+        updateData.playing_style_id = playingStyleId
+      }
       const { error: updateErr } = await admin
         .from('players_base')
-        .update({ metadata: basePayload.metadata, updated_at: new Date().toISOString() })
+        .update(updateData)
         .eq('id', playerBaseId)
         .contains('metadata', { source: 'screenshot_extractor' })
       if (updateErr) {

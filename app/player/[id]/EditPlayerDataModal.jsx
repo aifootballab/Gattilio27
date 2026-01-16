@@ -96,6 +96,30 @@ const BOOSTERS_OPTIONS = [
   'Tecnica'
 ].sort()
 
+const PLAYING_STYLES_OPTIONS = [
+  'Ala prolifica',
+  'Classico n°10',
+  'Collante',
+  'Frontale extra',
+  'Fulcro di gioco',
+  'Giocatore chiave',
+  'Incontrista',
+  'Onnipresente',
+  'Opportunista',
+  'Portiere difensivo',
+  'Portiere offensivo',
+  'Rapace d\'area',
+  'Regista creativo',
+  'Senza palla',
+  'Specialista di cross',
+  'Sviluppo',
+  'Taglio al centro',
+  'Terzino difensivo',
+  'Terzino mattatore',
+  'Terzino offensivo',
+  'Tra le linee'
+].sort()
+
 export default function EditPlayerDataModal({ player, authToken, onClose, onSave, t, lang }) {
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState(null)
@@ -119,7 +143,8 @@ export default function EditPlayerDataModal({ player, authToken, onClose, onSave
     weight: player.weight || '',
     age: player.age || '',
     team: player.team || '',
-    nationality: player.nationality || ''
+    nationality: player.nationality || '',
+    playing_style: player.playing_style_name || ''
   })
   
   // Skills form state
@@ -177,6 +202,7 @@ export default function EditPlayerDataModal({ player, authToken, onClose, onSave
         payload.age = physical.age || null
         payload.team = physical.team || null
         payload.nationality = physical.nationality || null
+        payload.playing_style = physical.playing_style || null
       }
 
       if (missingDetails.missing_skills && skills.length === 0) {
@@ -430,7 +456,9 @@ export default function EditPlayerDataModal({ player, authToken, onClose, onSave
                 onRemove={(i) => removeSkill('skill', i)}
                 onChange={(i, v) => updateSkill('skill', i, v)}
                 placeholder={lang === 'it' ? 'Nome skill' : 'Skill name'}
+                options={SKILLS_OPTIONS}
                 t={t}
+                lang={lang}
               />
             </Section>
           )}
@@ -869,20 +897,41 @@ function PhysicalForm({ physical, setPhysical, t }) {
           ))}
         </select>
       </div>
+      <div>
+        <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px', opacity: 0.8 }}>
+          {t('playingStyle')}
+        </label>
+        <select
+          value={physical.playing_style || ''}
+          onChange={(e) => setPhysical({ ...physical, playing_style: e.target.value })}
+          style={{
+            width: '100%',
+            padding: '10px',
+            background: 'rgba(0, 0, 0, 0.5)',
+            border: '1px solid rgba(0, 212, 255, 0.3)',
+            borderRadius: '8px',
+            color: 'white',
+            fontSize: '14px'
+          }}
+        >
+          <option value="">—</option>
+          {PLAYING_STYLES_OPTIONS.map(style => (
+            <option key={style} value={style}>{style}</option>
+          ))}
+        </select>
+      </div>
     </div>
   )
 }
 
-function ArrayForm({ items, onAdd, onRemove, onChange, placeholder, t }) {
+function ArrayForm({ items, onAdd, onRemove, onChange, placeholder, options = [], t, lang }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
       {items.map((item, index) => (
         <div key={index} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <input
-            type="text"
+          <select
             value={item}
             onChange={(e) => onChange(index, e.target.value)}
-            placeholder={placeholder}
             style={{
               flex: 1,
               padding: '10px',
@@ -892,7 +941,12 @@ function ArrayForm({ items, onAdd, onRemove, onChange, placeholder, t }) {
               color: 'white',
               fontSize: '14px'
             }}
-          />
+          >
+            <option value="">—</option>
+            {options.map(opt => (
+              <option key={opt} value={opt}>{opt}</option>
+            ))}
+          </select>
           <button
             onClick={() => onRemove(index)}
             style={{

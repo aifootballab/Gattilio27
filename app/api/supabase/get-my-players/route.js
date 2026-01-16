@@ -66,7 +66,12 @@ export async function GET(req) {
           club_name,
           form,
           role,
-          metadata
+          playing_style_id,
+          metadata,
+          playing_styles (
+            id,
+            name
+          )
         )
       `)
       .eq('user_id', userId)
@@ -87,6 +92,8 @@ export async function GET(req) {
         overall_rating: build.final_overall_rating || base?.base_stats?.overall_rating || null,
         position: base?.position || null,
         role: base?.role || null,
+        playing_style_id: base?.playing_style_id || null,
+        playing_style_name: base?.playing_styles?.name || null,
         card_type: base?.card_type || null,
         team: base?.team || null,
         club_name: base?.club_name || null,

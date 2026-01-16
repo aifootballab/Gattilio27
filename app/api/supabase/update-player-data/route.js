@@ -100,6 +100,34 @@ export async function POST(req) {
     if (body.age !== undefined) updates.age = toInt(body.age)
     if (body.team !== undefined) updates.team = toText(body.team)
     if (body.nationality !== undefined) updates.nationality = toText(body.nationality)
+    
+    // Playing style lookup
+    if (body.playing_style !== undefined) {
+      const playingStyleName = toText(body.playing_style)
+      if (playingStyleName) {
+        try {
+          const { data: playingStyle } = await admin
+            .from('playing_styles')
+            .select('id, name')
+            .ilike('name', playingStyleName.trim())
+            .maybeSingle()
+          
+          if (playingStyle?.id) {
+            updates.playing_style_id = playingStyle.id
+            console.log('[update-player-data] Found playing_style:', { name: playingStyle.name, id: playingStyle.id })
+          } else {
+            console.log('[update-player-data] Playing style not found:', playingStyleName)
+            // Non blocchiamo se non trovato, ma loggiamo
+          }
+        } catch (styleErr) {
+          console.error('[update-player-data] Error looking up playing_style:', styleErr?.message || styleErr)
+          // Non blocchiamo se il lookup fallisce
+        }
+      } else {
+        // Se playing_style è vuoto, rimuovi il riferimento
+        updates.playing_style_id = null
+      }
+    }
 
     // Skills (sostituisce array esistente)
     if (body.skills !== undefined) {
