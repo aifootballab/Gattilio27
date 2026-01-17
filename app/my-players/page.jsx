@@ -13,41 +13,28 @@ export default function MyPlayersPage() {
   const [players, setPlayers] = React.useState([])
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState(null)
+  const [mounted, setMounted] = React.useState(false)
 
-  // Inizializza autenticazione
+  // Mount check - evita hydration mismatch
   React.useEffect(() => {
-    if (!supabase) {
-      router.push('/login')
-      return
-    }
+    setMounted(true)
+  }, [])
 
-    const checkAuth = async () => {
-      try {
-        const { data, error } = await supabase.auth.getSession()
-        
-        if (error || !data?.session?.access_token) {
-          router.push('/login')
-          return
-        }
-      } catch (err) {
-        console.error('[MyPlayers] Auth check failed:', err)
-        router.push('/login')
-      }
-    }
-
-    checkAuth()
-  }, [router])
-
-  // Fetch giocatori
+  // Fetch giocatori - UNA SOLA VOLTA al mount
   React.useEffect(() => {
+    if (!mounted) return
+
     const fetchPlayers = async () => {
-      if (!supabase) return
+      if (!supabase) {
+        router.push('/login')
+        return
+      }
 
       setLoading(true)
       setError(null)
 
       try {
-        // Ottieni token
+        // Verifica autenticazione
         const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
         
         if (sessionError || !sessionData?.session?.access_token) {
@@ -57,7 +44,7 @@ export default function MyPlayersPage() {
 
         const token = sessionData.session.access_token
 
-        // Chiama API - nessun filtro, ricevi tutto
+        // Chiama API
         const res = await fetch('/api/supabase/get-my-players', {
           headers: { 
             Authorization: `Bearer ${token}` 
@@ -65,28 +52,26 @@ export default function MyPlayersPage() {
           cache: 'no-store'
         })
 
-        const data = await res.json()
-
         if (!res.ok) {
-          throw new Error(data?.error || `Failed to fetch players (${res.status})`)
+          const errorData = await res.json()
+          throw new Error(errorData?.error || `Failed to fetch players (${res.status})`)
         }
 
-        // DEBUG: Log dettagliato
+        const data = await res.json()
+
+        // Log per debug
         console.log('[MyPlayers] API response:', { 
           count: data.count, 
           playersReceived: data.players?.length || 0,
-          playerNames: data.players?.map(p => p?.player_name) || [],
-          playerIds: data.players?.map(p => p?.id) || []
+          playerNames: data.players?.map(p => p?.player_name) || []
         })
 
-        // Ricevi array giocatori - mostra TUTTI, nessun filtro
-        // IMPORTANTE: Filtra solo giocatori con ID valido (non null/undefined)
+        // Ricevi e filtra giocatori - TUTTI, nessun filtro
         const playersArray = Array.isArray(data.players) 
-          ? data.players.filter(p => p && p.id) 
+          ? data.players.filter(p => p && p.id && p.player_name) 
           : []
         
-        console.log('[MyPlayers] Filtered players count:', playersArray.length)
-        console.log('[MyPlayers] Filtered player IDs:', playersArray.map(p => p.id))
+        console.log('[MyPlayers] Setting players:', playersArray.length, playersArray.map(p => p.player_name))
         
         setPlayers(playersArray)
       } catch (err) {
@@ -98,7 +83,12 @@ export default function MyPlayersPage() {
     }
 
     fetchPlayers()
-  }, [router, lang])
+    // IMPORTANTE: Nessuna dipendenza - esegue solo al mount
+  }, [mounted]) // Solo mounted come dipendenza
+
+  if (!mounted) {
+    return null // Evita hydration mismatch
+  }
 
   return (
     <main className="container" style={{ padding: '32px 24px', minHeight: '100vh' }}>
@@ -201,11 +191,17 @@ export default function MyPlayersPage() {
           </Link>
         </div>
       ) : (
-        /* Grid Giocatori - MOSTRA TUTTI, nessun filtro */
-        <div className="grid-futuristic">
-          {players.map((player) => (
-            <PlayerCard key={player.id} player={player} t={t} lang={lang} />
-          ))}
+        /* Grid Giocatori - MOSTRA TUTTI */
+        <div className="grid-futuristic" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '24px' }}>
+          {players.map((player) => {
+            if (!player || !player.id || !player.player_name) {
+              console.warn('[MyPlayers] Skipping invalid player:', player)
+              return null
+            }
+            return (
+              <PlayerCard key={player.id} player={player} t={t} lang={lang} />
+            )
+          })}
         </div>
       )}
     </main>
@@ -219,7 +215,14 @@ function PlayerCard({ player, t, lang }) {
   const isComplete = completeness.percentage === 100
 
   return (
-    <div className="player-card-futuristic">
+    <div className="player-card-futuristic" style={{ 
+      background: 'rgba(10, 14, 39, 0.8)',
+      border: '1px solid rgba(0, 212, 255, 0.3)',
+      borderRadius: '16px',
+      padding: '20px',
+      backdropFilter: 'blur(10px)',
+      transition: 'all 0.3s ease'
+    }}>
       {/* Header Card */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
         <div>
