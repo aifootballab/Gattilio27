@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
 import { useTranslation } from '@/lib/i18n'
-import { ArrowLeft, Users, Upload, ChevronDown, ChevronUp, Edit, AlertCircle, CheckCircle2, Loader2, Target } from 'lucide-react'
+import { ArrowLeft, Users, Upload, ChevronDown, ChevronUp, AlertCircle, CheckCircle2, Loader2, Target } from 'lucide-react'
 
 export default function MyPlayersPage() {
   const { t, lang, changeLanguage } = useTranslation()
@@ -13,76 +13,67 @@ export default function MyPlayersPage() {
   const [players, setPlayers] = React.useState([])
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState(null)
-  const [authStatus, setAuthStatus] = React.useState({ ready: false, userId: null, token: null })
 
+  // Inizializza autenticazione
   React.useEffect(() => {
-    if (!supabase) return
+    if (!supabase) {
+      router.push('/login')
+      return
+    }
 
-    // Listener per gestire silenziosamente gli errori di refresh token
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      // Gestisci silenziosamente gli errori di refresh token (warning innocuo)
-      if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') {
-        if (session?.access_token) {
-          setAuthStatus({
-            ready: true,
-            userId: session.user?.id || null,
-            token: session.access_token,
-          })
-        }
-      } else if (event === 'SIGNED_OUT') {
-        router.push('/login')
-      }
-    })
-
-    const initAuth = async () => {
+    const checkAuth = async () => {
       try {
         const { data, error } = await supabase.auth.getSession()
         
-        if (!data?.session?.access_token || error) {
+        if (error || !data?.session?.access_token) {
           router.push('/login')
           return
         }
-        
-        setAuthStatus({
-          ready: true,
-          userId: data.session.user?.id || null,
-          token: data.session.access_token,
-        })
       } catch (err) {
-        if (!err?.message?.includes('Refresh Token') && !err?.message?.includes('refresh_token')) {
-          console.error('[MyPlayers] Auth init failed:', err)
-          router.push('/login')
-        }
+        console.error('[MyPlayers] Auth check failed:', err)
+        router.push('/login')
       }
     }
-    initAuth()
 
-    return () => {
-      subscription?.unsubscribe()
-    }
+    checkAuth()
   }, [router])
 
+  // Fetch giocatori
   React.useEffect(() => {
-    if (!authStatus.ready || !authStatus.token) return
-
     const fetchPlayers = async () => {
-      const token = authStatus.token
-      if (!token) return
-      
+      if (!supabase) return
+
       setLoading(true)
       setError(null)
+
       try {
+        // Ottieni token
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
+        
+        if (sessionError || !sessionData?.session?.access_token) {
+          router.push('/login')
+          return
+        }
+
+        const token = sessionData.session.access_token
+
+        // Chiama API - nessun filtro, ricevi tutto
         const res = await fetch('/api/supabase/get-my-players', {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { 
+            Authorization: `Bearer ${token}` 
+          },
+          cache: 'no-store'
         })
-        
+
         const data = await res.json()
-        
+
         if (!res.ok) {
           throw new Error(data?.error || `Failed to fetch players (${res.status})`)
         }
-        
-        setPlayers(Array.isArray(data.players) ? data.players : [])
+
+        // Ricevi array giocatori - mostra TUTTI, nessun filtro
+        const playersArray = Array.isArray(data.players) ? data.players : []
+        setPlayers(playersArray)
       } catch (err) {
         console.error('[MyPlayers] Fetch error:', err)
         setError(err?.message || (lang === 'it' ? 'Errore caricamento giocatori' : 'Error loading players'))
@@ -92,19 +83,7 @@ export default function MyPlayersPage() {
     }
 
     fetchPlayers()
-    
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && authStatus.ready && authStatus.token) {
-        fetchPlayers()
-      }
-    }
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-    
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
-    }
-  }, [authStatus.ready, authStatus.token, lang])
+  }, [router, lang])
 
   return (
     <main className="container" style={{ padding: '32px 24px', minHeight: '100vh' }}>
@@ -154,6 +133,7 @@ export default function MyPlayersPage() {
         </button>
       </div>
 
+      {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
           <h1 className="neon-text" style={{ fontSize: '32px', fontWeight: 700, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -176,6 +156,7 @@ export default function MyPlayersPage() {
         </div>
       </div>
 
+      {/* Error */}
       {error && (
         <div className="error" style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <AlertCircle size={18} />
@@ -183,12 +164,14 @@ export default function MyPlayersPage() {
         </div>
       )}
 
+      {/* Loading */}
       {loading ? (
         <div style={{ textAlign: 'center', padding: '60px 20px', opacity: 0.7 }}>
           <Loader2 size={32} className="spin" style={{ marginBottom: '16px', color: 'var(--neon-blue)' }} />
           <div className="neon-text" style={{ fontSize: '18px' }}>{t('loading')}</div>
         </div>
       ) : players.length === 0 ? (
+        /* Empty State */
         <div className="neon-panel" style={{ textAlign: 'center', padding: '60px 20px' }}>
           <Users size={48} style={{ marginBottom: '16px', opacity: 0.5, color: 'var(--neon-blue)' }} />
           <div className="neon-text" style={{ fontSize: '24px', marginBottom: '12px' }}>
@@ -203,6 +186,7 @@ export default function MyPlayersPage() {
           </Link>
         </div>
       ) : (
+        /* Grid Giocatori - MOSTRA TUTTI, nessun filtro */
         <div className="grid-futuristic">
           {players.map((player) => (
             <PlayerCard key={player.id} player={player} t={t} lang={lang} />
@@ -221,10 +205,11 @@ function PlayerCard({ player, t, lang }) {
 
   return (
     <div className="player-card-futuristic">
+      {/* Header Card */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
         <div>
           <h3 className="neon-text" style={{ fontSize: '20px', fontWeight: 700, marginBottom: '4px' }}>
-            {player.player_name}
+            {player.player_name || 'Unknown'}
           </h3>
           <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
             {player.overall_rating && (
@@ -252,11 +237,12 @@ function PlayerCard({ player, t, lang }) {
         )}
       </div>
 
+      {/* Completeness Badge */}
       <div style={{ marginBottom: '16px' }}>
         <div className={`completeness-badge ${isComplete ? 'complete' : 'incomplete'}`} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           {isComplete ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}
           <span>{completeness.percentage}% {t('complete')}</span>
-          {!isComplete && completeness.missing.length > 0 && (
+          {!isComplete && completeness.missing && completeness.missing.length > 0 && (
             <span style={{ fontSize: '10px', opacity: 0.8 }}>
               {t('missingFields')}: {completeness.missing.slice(0, 2).join(', ')}
             </span>
@@ -264,6 +250,7 @@ function PlayerCard({ player, t, lang }) {
         </div>
       </div>
 
+      {/* Info Grid */}
       <div style={{ 
         display: 'grid', 
         gridTemplateColumns: 'repeat(2, 1fr)', 
@@ -278,6 +265,7 @@ function PlayerCard({ player, t, lang }) {
         {player.active_booster_name && <div><strong>{t('boosters')}:</strong> {player.active_booster_name}</div>}
       </div>
 
+      {/* Actions */}
       <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
         <button 
           className="btn small" 
@@ -297,6 +285,7 @@ function PlayerCard({ player, t, lang }) {
         </Link>
       </div>
 
+      {/* Expanded Details */}
       {isExpanded && (
         <div style={{ 
           marginTop: '20px', 

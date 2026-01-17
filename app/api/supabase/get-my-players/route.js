@@ -36,39 +36,10 @@ export async function GET(req) {
       auth: { autoRefreshToken: false, persistSession: false }
     })
 
-    // QUERY SEMPLICE: Una sola tabella, nessun join!
+    // Query diretta: tutti i giocatori dell'utente, nessun filtro
     const { data: players, error: playersErr } = await admin
       .from('players')
-      .select(`
-        id,
-        player_name,
-        position,
-        card_type,
-        team,
-        overall_rating,
-        base_stats,
-        skills,
-        com_skills,
-        position_ratings,
-        available_boosters,
-        height,
-        weight,
-        age,
-        nationality,
-        club_name,
-        form,
-        role,
-        playing_style_id,
-        current_level,
-        level_cap,
-        active_booster_name,
-        development_points,
-        slot_index,
-        metadata,
-        extracted_data,
-        created_at,
-        updated_at
-      `)
+      .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
 
@@ -78,7 +49,7 @@ export async function GET(req) {
     }
 
     // Recupera playing_styles se necessario
-    const playingStyleIds = [...new Set(players?.map(p => p.playing_style_id).filter(id => id) || [])]
+    const playingStyleIds = [...new Set((players || []).map(p => p.playing_style_id).filter(id => id))]
     let playingStylesMap = new Map()
 
     if (playingStyleIds.length > 0) {
@@ -92,7 +63,7 @@ export async function GET(req) {
       }
     }
 
-    // Formatta per frontend
+    // Formatta per frontend - nessun filtro, tutti i giocatori
     const formattedPlayers = (players || []).map(player => {
       const playingStyle = player.playing_style_id ? playingStylesMap.get(player.playing_style_id) : null
       
@@ -103,10 +74,10 @@ export async function GET(req) {
         card_type: player.card_type,
         team: player.team,
         overall_rating: player.overall_rating,
-        base_stats: player.base_stats,
+        base_stats: player.base_stats || {},
         skills: player.skills || [],
         com_skills: player.com_skills || [],
-        position_ratings: player.position_ratings,
+        position_ratings: player.position_ratings || {},
         available_boosters: player.available_boosters || [],
         height: player.height,
         weight: player.weight,
@@ -120,18 +91,21 @@ export async function GET(req) {
         current_level: player.current_level,
         level_cap: player.level_cap,
         active_booster_name: player.active_booster_name,
-        development_points: player.development_points,
+        development_points: player.development_points || {},
         slot_index: player.slot_index,
-        metadata: player.metadata,
+        metadata: player.metadata || {},
         extracted_data: player.extracted_data,
         completeness: calculateCompleteness(player),
         created_at: player.created_at,
         updated_at: player.updated_at
       }
     })
-
+    
     return NextResponse.json(
-      { players: formattedPlayers, count: formattedPlayers.length },
+      { 
+        players: formattedPlayers, 
+        count: formattedPlayers.length 
+      },
       {
         headers: {
           'Cache-Control': 'no-store, no-cache, must-revalidate',
@@ -150,10 +124,11 @@ export async function GET(req) {
 }
 
 function calculateCompleteness(player) {
-  const hasStats = !!(player.base_stats && (
-    Object.keys(player.base_stats.attacking || {}).length > 0 ||
-    Object.keys(player.base_stats.defending || {}).length > 0 ||
-    Object.keys(player.base_stats.athleticism || {}).length > 0
+  // Calcola completezza senza filtrare giocatori - solo per display
+  const hasStats = !!(player.base_stats && typeof player.base_stats === 'object' && (
+    (player.base_stats.attacking && Object.keys(player.base_stats.attacking).length > 0) ||
+    (player.base_stats.defending && Object.keys(player.base_stats.defending).length > 0) ||
+    (player.base_stats.athleticism && Object.keys(player.base_stats.athleticism).length > 0)
   ))
   
   const hasOverallRating = !!player.overall_rating
