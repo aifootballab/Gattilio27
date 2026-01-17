@@ -92,17 +92,15 @@ export async function GET(req) {
     console.log('[get-my-players] 📋 TUTTI GLI ID RICEVUTI:', builds?.map(b => b.id) || [])
     
     // RESILIENZA: Verifica se ci sono players_base orfani (senza player_builds corrispondenti)
-    // Cerca tutti i players_base dell'utente e confronta con i builds esistenti
-    // FIX: Cerca TUTTI i source (non solo screenshot_extractor) per trovare anche giocatori con json_import (es: Pedri)
+    // Cerca SOLO giocatori salvati dal cliente via screenshot (source='screenshot_extractor')
+    // IMPORTANTE: I giocatori con json_import sono SOLO per ricerca/matchmaking, NON appartengono all'utente
     console.log('[get-my-players] 🔍 Checking for orphaned players_base...')
-    console.log('[get-my-players] 🔍 Searching ALL sources (not just screenshot_extractor) to find players like Pedri with json_import')
     const { data: allUserPlayersBase, error: orphanErr } = await admin
       .from('players_base')
       .select('id, player_name, position, metadata, base_stats, source')
-      // ❌ RIMOSSO .eq('source', 'screenshot_extractor') - ora cerca TUTTI i source
-      // ✅ Filtra in JS per metadata.user_id per trovare anche giocatori con source=json_import
+      .eq('source', 'screenshot_extractor')  // Solo giocatori salvati da screenshot
     
-    // Filtra in JS per metadata.user_id (indipendentemente da source)
+    // Filtra in JS per metadata.user_id (sicurezza aggiuntiva)
     const userPlayersBase = allUserPlayersBase?.filter(pb => 
       pb.metadata?.user_id === userId || pb.metadata?.extracted?.user_id === userId
     ) || []

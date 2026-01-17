@@ -213,27 +213,30 @@ export async function POST(req) {
 
     // 1) players_base: cerchiamo per player_name + team (se presente).
     // IMPORTANTE: normalizziamo il nome per matchare anche con variazioni maiuscole/minuscole
-    // IMPORTANTE: non sovrascrivere record "globali" già esistenti (database base).
+    // IMPORTANTE: NON riutilizzare record "globali" dal database base (json_import/user_upload).
+    // Il cliente carica 22 giocatori via screenshot → creiamo SEMPRE nuovi record con source='screenshot_extractor'.
+    // I giocatori con json_import sono SOLO per ricerca/matchmaking, NON per profilazione utente.
     const playerName = toText(player.player_name)
     if (!playerName) return NextResponse.json({ error: 'player_name required' }, { status: 400 })
 
     const team = toText(player.team)
     const normalizedName = normName(playerName)
     
-    // Cerca con nome normalizzato (case-insensitive)
-    let q = admin.from('players_base').select('id, player_name, team')
-    // Usa il filtro ilike per match case-insensitive (PostgreSQL)
+    // Cerca SOLO giocatori già salvati da questo utente (source='screenshot_extractor' con metadata.user_id)
+    // NON cercare giocatori del database base (json_import/user_upload)
+    let q = admin.from('players_base').select('id, player_name, team, source, metadata')
     q = q.ilike('player_name', normalizedName)
+    q = q.eq('source', 'screenshot_extractor')  // Solo giocatori salvati da screenshot
     if (team) {
       const normalizedTeam = normName(team)
       q = q.ilike('team', normalizedTeam)
     }
     const { data: existingBases } = await q
     
-    // Se ci sono più match, preferisci quello con team esatto, altrimenti il primo
-    const existingBase = existingBases?.length > 0 
-      ? (team ? existingBases.find(b => normName(b.team) === normName(team)) || existingBases[0] : existingBases[0])
-      : null
+    // Filtra in JS per metadata.user_id (per sicurezza, anche se source è già filtrato)
+    const existingBase = existingBases?.find(b => 
+      b.metadata?.user_id === userId && b.source === 'screenshot_extractor'
+    ) || null
 
     // Lookup playing_style_id dalla tabella playing_styles
     let playingStyleId = null
@@ -341,42 +344,27 @@ export async function POST(req) {
       playerBaseId = inserted.id
       console.log('[save-player] players_base inserted, id:', playerBaseId)
     } else {
-      console.log('[save-player] players_base exists, id:', playerBaseId, '- updating metadata and playing_style_id...')
-      // FIX: Aggiorna SEMPRE metadata.user_id per permettere recovery logic anche su giocatori con json_import (es: Pedri)
-      // Prima recupera metadata esistente per non sovrascrivere dati importanti
-      const { data: existingBaseWithMetadata } = await admin
-        .from('players_base')
-        .select('metadata')
-        .eq('id', playerBaseId)
-        .single()
-      
-      // Merge metadata esistente con nuovo (preserva dati originali)
-      const mergedMetadata = {
-        ...(existingBaseWithMetadata?.metadata || {}),
-        ...basePayload.metadata,  // Sovrascrive con nuovo metadata (include user_id e extracted)
-        user_id: userId,  // Forza user_id per permettere recovery logic
-        saved_at: new Date().toISOString()
-      }
-      
+      // Giocatore esistente salvato dallo stesso utente → aggiorna dati
+      console.log('[save-player] players_base exists (from same user), id:', playerBaseId, '- updating metadata and playing_style_id...')
       const updateData = {
-        metadata: mergedMetadata,
+        metadata: basePayload.metadata,  // Aggiorna metadata completo
         updated_at: new Date().toISOString(),
       }
       // Aggiorna playing_style_id solo se presente
       if (playingStyleId) {
         updateData.playing_style_id = playingStyleId
       }
-      // ❌ RIMOSSO .contains('metadata', { source: 'screenshot_extractor' }) - ora aggiorna TUTTI i giocatori
-      // ✅ Questo permette di impostare metadata.user_id anche su giocatori con json_import
+      // Aggiorna solo se è un record creato da screenshot_extractor (sicurezza)
       const { error: updateErr } = await admin
         .from('players_base')
         .update(updateData)
         .eq('id', playerBaseId)
+        .eq('source', 'screenshot_extractor')  // Solo aggiornare record screenshot_extractor
       if (updateErr) {
         console.error('[save-player] players_base update failed:', { error: updateErr.message })
-        // Non blocchiamo se l'update fallisce (potrebbe essere un record del DB base)
+        throw new Error(`players_base update failed: ${updateErr.message}`)
       } else {
-        console.log('[save-player] ✅ players_base metadata updated with user_id:', userId)
+        console.log('[save-player] ✅ players_base updated, id:', playerBaseId)
       }
     }
 
