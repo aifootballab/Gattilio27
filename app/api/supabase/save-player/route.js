@@ -436,20 +436,40 @@ export async function POST(req) {
       console.log('[save-player] Executing UPDATE on player_builds WHERE id =', buildId)
       console.log('[save-player] Update payload user_id:', buildPayload.user_id)
       
-      const { error: updateErr } = await admin.from('player_builds').update(buildPayload).eq('id', buildId)
+      const { data: updatedBuild, error: updateErr } = await admin
+        .from('player_builds')
+        .update(buildPayload)
+        .eq('id', buildId)
+        .select('id, user_id')
+        .single()
       
       if (updateErr) {
         console.error('[save-player] ❌ player_builds UPDATE FAILED:', { 
           error: updateErr.message, 
           code: updateErr.code, 
           details: updateErr.details,
-          hint: updateErr.hint
+          hint: updateErr.hint,
+          payload_user_id: buildPayload.user_id
         })
         throw new Error(`player_builds update failed: ${updateErr.message}${updateErr.details ? ` (${updateErr.details})` : ''}`)
       }
       
+      // VERIFICA CRITICA: Controlla che user_id sia stato aggiornato correttamente
       console.log('[save-player] ✅ player_builds UPDATE SUCCESS')
-      console.log('[save-player] BuildId updated:', buildId, 'with user_id:', buildPayload.user_id)
+      console.log('[save-player] 🔍 UPDATED BUILD VERIFICATION:', {
+        buildId: buildId,
+        saved_user_id: updatedBuild?.user_id,
+        expected_user_id: buildPayload.user_id,
+        user_id_matches: updatedBuild?.user_id === buildPayload.user_id,
+        user_id_types: { saved: typeof updatedBuild?.user_id, expected: typeof buildPayload.user_id }
+      })
+      
+      if (updatedBuild?.user_id !== buildPayload.user_id) {
+        console.error('[save-player] ❌ CRITICAL: user_id mismatch dopo UPDATE!', {
+          saved: updatedBuild?.user_id,
+          expected: buildPayload.user_id
+        })
+      }
       // wasMoved: solo se slotIndex è fornito e diverso da quello esistente
       wasMoved = slotIndex !== null && existingSlotIndex !== slotIndex
     } else {
