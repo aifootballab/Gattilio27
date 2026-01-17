@@ -27,84 +27,25 @@ export async function GET(req) {
     }
 
     const userId = userData.user.id
-    const userEmail = userData.user.email
     
     if (!userId || typeof userId !== 'string') {
-      console.error('[get-my-players] Invalid userId:', typeof userId, userId)
       return NextResponse.json({ error: 'Invalid user ID format' }, { status: 401 })
     }
-    
-    // LOG CRITICO: Verifica user_id estratto
-    console.log('[get-my-players] 🔍 AUTH CHECK:', {
-      userId: userId,
-      userEmail: userEmail,
-      userIdType: typeof userId,
-      userIdLength: userId?.length
-    })
     
     const admin = createClient(supabaseUrl, serviceKey, {
       auth: { autoRefreshToken: false, persistSession: false }
     })
 
-    // 1. Recupera player_builds dell'utente - QUERY STRETTA con user_id
-    const { data: builds, error: buildsErr } = await admin
-      .from('player_builds')
-      .select('id, player_base_id, final_overall_rating, current_level, level_cap, active_booster_name, source_data, created_at, user_id')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-    
-    // LOG CRITICO: Verifica risultati query
-    console.log('[get-my-players] 🔍 QUERY RESULT:', {
-      userId: userId,
-      userIdType: typeof userId,
-      buildsFound: builds?.length || 0,
-      buildUserIds: builds?.map(b => b.user_id) || [],
-      buildUserIdsTypes: builds?.map(b => typeof b.user_id) || [],
-      allMatch: builds?.every(b => b.user_id === userId) || false,
-      exactMatches: builds?.filter(b => b.user_id === userId).length || 0,
-      error: buildsErr?.message || null
-    })
-    
-    // DEBUG: Verifica se ci sono build con user_id diversi
-    if (builds && builds.length > 0) {
-      const mismatches = builds.filter(b => b.user_id !== userId)
-      if (mismatches.length > 0) {
-        console.warn('[get-my-players] ⚠️ TROVATI BUILD CON USER_ID DIVERSO:', {
-          expectedUserId: userId,
-          mismatches: mismatches.map(b => ({
-            buildId: b.id,
-            user_id: b.user_id,
-            user_idType: typeof b.user_id,
-            matches: b.user_id === userId
-          }))
-        })
-      }
-    }
-
-    if (buildsErr) {
-      console.error('[get-my-players] Query error:', buildsErr.message)
-      return NextResponse.json({ error: 'Failed to fetch players' }, { status: 500 })
-    }
-    
-    if (!builds || builds.length === 0) {
-      return NextResponse.json({ players: [], count: 0 })
-    }
-    
-    // 2. Recupera players_base per i player_base_id trovati
-    const playerBaseIds = builds.map(b => b.player_base_id).filter(id => id)
-    
-    if (playerBaseIds.length === 0) {
-      return NextResponse.json({ players: [], count: 0 })
-    }
-    
-    const { data: playersBase, error: baseErr } = await admin
-      .from('players_base')
+    // QUERY SEMPLICE: Una sola tabella, nessun join!
+    const { data: players, error: playersErr } = await admin
+      .from('players')
       .select(`
         id,
         player_name,
         position,
         card_type,
         team,
+        overall_rating,
         base_stats,
         skills,
         com_skills,
@@ -118,19 +59,28 @@ export async function GET(req) {
         form,
         role,
         playing_style_id,
-        metadata
+        current_level,
+        level_cap,
+        active_booster_name,
+        development_points,
+        slot_index,
+        metadata,
+        extracted_data,
+        created_at,
+        updated_at
       `)
-      .in('id', playerBaseIds)
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
 
-    if (baseErr) {
-      console.error('[get-my-players] players_base query error:', baseErr.message)
-      return NextResponse.json({ error: 'Failed to fetch player base data' }, { status: 500 })
+    if (playersErr) {
+      console.error('[get-my-players] Query error:', playersErr.message)
+      return NextResponse.json({ error: 'Failed to fetch players' }, { status: 500 })
     }
-    
-    // 3. Recupera playing_styles se necessario
-    const playingStyleIds = [...new Set(playersBase?.map(pb => pb.playing_style_id).filter(id => id) || [])]
+
+    // Recupera playing_styles se necessario
+    const playingStyleIds = [...new Set(players?.map(p => p.playing_style_id).filter(id => id) || [])]
     let playingStylesMap = new Map()
-    
+
     if (playingStyleIds.length > 0) {
       const { data: playingStyles } = await admin
         .from('playing_styles')
@@ -142,74 +92,46 @@ export async function GET(req) {
       }
     }
 
-    // 4. Crea mappa per lookup veloce
-    const playersBaseMap = new Map((playersBase || []).map(pb => [pb.id, pb]))
-    
-    // 5. Formatta i dati per il frontend
-    // NOTA: La query già filtra per user_id, ma aggiungiamo filtro JavaScript per sicurezza
-    const validBuilds = builds.filter(build => {
-      const matches = build.user_id === userId
-      if (!matches) {
-        console.warn('[get-my-players] ⚠️ Build escluso per user_id mismatch:', {
-          buildId: build.id,
-          buildUserId: build.user_id,
-          expectedUserId: userId,
-          typesMatch: typeof build.user_id === typeof userId
-        })
-      }
-      return matches
-    })
-    
-    console.log('[get-my-players] 🔍 FILTERED BUILDS:', {
-      totalBuilds: builds.length,
-      validBuilds: validBuilds.length,
-      excluded: builds.length - validBuilds.length
-    })
-    
-    const players = validBuilds.map(build => {
-        const base = playersBaseMap.get(build.player_base_id)
-        const playingStyle = base?.playing_style_id ? playingStylesMap.get(base.playing_style_id) : null
-        return {
-          build_id: build.id,
-          player_base_id: build.player_base_id,
-          player_name: base?.player_name || 'Unknown',
-        overall_rating: build.final_overall_rating || base?.base_stats?.overall_rating || null,
-        position: base?.position || null,
-        role: base?.role || null,
-        playing_style_id: base?.playing_style_id || null,
+    // Formatta per frontend
+    const formattedPlayers = (players || []).map(player => {
+      const playingStyle = player.playing_style_id ? playingStylesMap.get(player.playing_style_id) : null
+      
+      return {
+        id: player.id,
+        player_name: player.player_name,
+        position: player.position,
+        card_type: player.card_type,
+        team: player.team,
+        overall_rating: player.overall_rating,
+        base_stats: player.base_stats,
+        skills: player.skills || [],
+        com_skills: player.com_skills || [],
+        position_ratings: player.position_ratings,
+        available_boosters: player.available_boosters || [],
+        height: player.height,
+        weight: player.weight,
+        age: player.age,
+        nationality: player.nationality,
+        club_name: player.club_name,
+        form: player.form,
+        role: player.role,
+        playing_style_id: player.playing_style_id,
         playing_style_name: playingStyle?.name || null,
-        card_type: base?.card_type || null,
-        team: base?.team || null,
-        club_name: base?.club_name || null,
-        level: build.current_level || null,
-        level_cap: build.level_cap || null,
-        booster: build.active_booster_name || null,
-        skills: base?.skills || [],
-        com_skills: base?.com_skills || [],
-        base_stats: base?.base_stats || null,
-        position_ratings: base?.position_ratings || null,
-        available_boosters: base?.available_boosters || null,
-        height: base?.height || null,
-        weight: base?.weight || null,
-        age: base?.age || null,
-        nationality: base?.nationality || null,
-        form: base?.form || null,
-        metadata: base?.metadata || null,
-        extracted_data: build.source_data?.extracted || base?.metadata?.extracted || null,
-        completeness: calculateCompleteness(base, build)
+        current_level: player.current_level,
+        level_cap: player.level_cap,
+        active_booster_name: player.active_booster_name,
+        development_points: player.development_points,
+        slot_index: player.slot_index,
+        metadata: player.metadata,
+        extracted_data: player.extracted_data,
+        completeness: calculateCompleteness(player),
+        created_at: player.created_at,
+        updated_at: player.updated_at
       }
-      })
-      .filter(player => player.player_name !== 'Unknown')
-    
-    // LOG FINALE: Verifica giocatori restituiti
-    console.log('[get-my-players] 🔍 FINAL RESULT:', {
-      userId: userId,
-      playersCount: players.length,
-      playerNames: players.map(p => p.player_name)
     })
 
     return NextResponse.json(
-      { players, count: players.length },
+      { players: formattedPlayers, count: formattedPlayers.length },
       {
         headers: {
           'Cache-Control': 'no-store, no-cache, must-revalidate',
@@ -227,23 +149,23 @@ export async function GET(req) {
   }
 }
 
-function calculateCompleteness(base, build) {
-  const hasStats = !!(base?.base_stats && (
-    Object.keys(base.base_stats.attacking || {}).length > 0 ||
-    Object.keys(base.base_stats.defending || {}).length > 0 ||
-    Object.keys(base.base_stats.athleticism || {}).length > 0
+function calculateCompleteness(player) {
+  const hasStats = !!(player.base_stats && (
+    Object.keys(player.base_stats.attacking || {}).length > 0 ||
+    Object.keys(player.base_stats.defending || {}).length > 0 ||
+    Object.keys(player.base_stats.athleticism || {}).length > 0
   ))
   
-  const hasOverallRating = !!(build?.final_overall_rating || base?.base_stats?.overall_rating)
+  const hasOverallRating = !!player.overall_rating
   
   const fields = {
-    base: !!base?.player_name && hasOverallRating && !!base?.position,
+    base: !!player.player_name && hasOverallRating && !!player.position,
     stats: hasStats,
-    physical: !!(base?.height && base?.weight && base?.age),
-    skills: Array.isArray(base?.skills) && base.skills.length > 0,
-    booster: !!build?.active_booster_name,
-    team: !!base?.team,
-    nationality: !!base?.nationality
+    physical: !!(player.height && player.weight && player.age),
+    skills: Array.isArray(player.skills) && player.skills.length > 0,
+    booster: !!player.active_booster_name,
+    team: !!player.team,
+    nationality: !!player.nationality
   }
   
   const total = Object.keys(fields).length
@@ -256,4 +178,3 @@ function calculateCompleteness(base, build) {
   
   return { percentage, missing, fields }
 }
-
