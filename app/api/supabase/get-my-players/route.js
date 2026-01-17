@@ -27,6 +27,12 @@ export async function GET(req) {
     }
 
     const userId = userData.user.id
+    const userEmail = userData.user.email
+    
+    // LOG TEMPORANEO PER DEBUG
+    console.log('[get-my-players] 🔍 USER ID FROM TOKEN:', userId)
+    console.log('[get-my-players] 🔍 USER EMAIL FROM TOKEN:', userEmail)
+    
     const admin = createClient(supabaseUrl, serviceKey, {
       auth: { autoRefreshToken: false, persistSession: false }
     })
@@ -34,9 +40,17 @@ export async function GET(req) {
     // 1. Recupera player_builds dell'utente
     const { data: builds, error: buildsErr } = await admin
       .from('player_builds')
-      .select('id, player_base_id, final_overall_rating, current_level, level_cap, active_booster_name, source_data, created_at')
+      .select('id, player_base_id, final_overall_rating, current_level, level_cap, active_booster_name, source_data, created_at, user_id')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
+    
+    // LOG TEMPORANEO PER DEBUG
+    console.log('[get-my-players] 🔍 QUERY RESULT:', {
+      userId,
+      userEmail,
+      buildsCount: builds?.length || 0,
+      buildUserIds: builds?.map(b => b.user_id) || []
+    })
 
     if (buildsErr) {
       console.error('[get-my-players] Query error:', buildsErr.message)
