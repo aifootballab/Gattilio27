@@ -27,22 +27,40 @@ export async function GET(req) {
     }
 
     const userId = userData.user.id
+    const userEmail = userData.user.email
     
     if (!userId || typeof userId !== 'string') {
       console.error('[get-my-players] Invalid userId:', typeof userId, userId)
       return NextResponse.json({ error: 'Invalid user ID format' }, { status: 401 })
     }
     
+    // LOG CRITICO: Verifica user_id estratto
+    console.log('[get-my-players] 🔍 AUTH CHECK:', {
+      userId: userId,
+      userEmail: userEmail,
+      userIdType: typeof userId,
+      userIdLength: userId?.length
+    })
+    
     const admin = createClient(supabaseUrl, serviceKey, {
       auth: { autoRefreshToken: false, persistSession: false }
     })
 
-    // 1. Recupera player_builds dell'utente
+    // 1. Recupera player_builds dell'utente - QUERY STRETTA con user_id
     const { data: builds, error: buildsErr } = await admin
       .from('player_builds')
-      .select('id, player_base_id, final_overall_rating, current_level, level_cap, active_booster_name, source_data, created_at')
+      .select('id, player_base_id, final_overall_rating, current_level, level_cap, active_booster_name, source_data, created_at, user_id')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
+    
+    // LOG CRITICO: Verifica risultati query
+    console.log('[get-my-players] 🔍 QUERY RESULT:', {
+      userId: userId,
+      buildsFound: builds?.length || 0,
+      buildUserIds: builds?.map(b => b.user_id) || [],
+      allMatch: builds?.every(b => b.user_id === userId) || false,
+      error: buildsErr?.message || null
+    })
 
     if (buildsErr) {
       console.error('[get-my-players] Query error:', buildsErr.message)
@@ -108,14 +126,16 @@ export async function GET(req) {
     // 4. Crea mappa per lookup veloce
     const playersBaseMap = new Map((playersBase || []).map(pb => [pb.id, pb]))
     
-    // 5. Formatta i dati per il frontend
-    const players = builds.map(build => {
-      const base = playersBaseMap.get(build.player_base_id)
-      const playingStyle = base?.playing_style_id ? playingStylesMap.get(base.playing_style_id) : null
-      return {
-        build_id: build.id,
-        player_base_id: build.player_base_id,
-        player_name: base?.player_name || 'Unknown',
+    // 5. Formatta i dati per il frontend - FILTRA SOLO GIOCATORI DELL'UTENTE CORRENTE
+    const players = builds
+      .filter(build => build.user_id === userId) // SICUREZZA: doppio filtro per user_id
+      .map(build => {
+        const base = playersBaseMap.get(build.player_base_id)
+        const playingStyle = base?.playing_style_id ? playingStylesMap.get(base.playing_style_id) : null
+        return {
+          build_id: build.id,
+          player_base_id: build.player_base_id,
+          player_name: base?.player_name || 'Unknown',
         overall_rating: build.final_overall_rating || base?.base_stats?.overall_rating || null,
         position: base?.position || null,
         role: base?.role || null,
@@ -141,7 +161,15 @@ export async function GET(req) {
         extracted_data: build.source_data?.extracted || base?.metadata?.extracted || null,
         completeness: calculateCompleteness(base, build)
       }
-    }).filter(player => player.player_name !== 'Unknown')
+      })
+      .filter(player => player.player_name !== 'Unknown')
+    
+    // LOG FINALE: Verifica giocatori restituiti
+    console.log('[get-my-players] 🔍 FINAL RESULT:', {
+      userId: userId,
+      playersCount: players.length,
+      playerNames: players.map(p => p.player_name)
+    })
 
     return NextResponse.json(
       { players, count: players.length },
