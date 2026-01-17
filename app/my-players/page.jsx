@@ -89,94 +89,39 @@ export default function MyPlayersPage() {
     }
   }, [router])
 
-  // Fetch players quando authStatus è pronto - SOLUZIONE SEMPLICE E FUNZIONANTE
   React.useEffect(() => {
-    if (!authStatus.ready || !authStatus.token) {
-      console.log('[MyPlayers] useEffect skipped:', {
-        ready: authStatus.ready,
-        hasToken: !!authStatus.token
-      })
-      return
-    }
+    if (!authStatus.ready || !authStatus.token) return
 
     const fetchPlayers = async () => {
-      // Usa authStatus.token direttamente dal closure, non stale
       const token = authStatus.token
       if (!token) return
-
-      console.log('[MyPlayers] ===== FRONTEND FETCH START =====')
-      console.log('[MyPlayers] Current authStatus:', {
-        ready: authStatus.ready,
-        hasUserId: !!authStatus.userId,
-        userId: authStatus.userId,
-        hasToken: !!token,
-        tokenLength: token?.length
-      })
-      
-      // Log session info prima del fetch
-      if (supabase) {
-        const { data: sessionData } = await supabase.auth.getSession()
-        console.log('[MyPlayers] Session userId:', sessionData?.session?.user?.id || '(null)')
-        console.log('[MyPlayers] Session userEmail:', sessionData?.session?.user?.email || '(null)')
-      }
-      
-      console.log('[MyPlayers] Token (first 30 chars):', token.substring(0, 30) + '...')
-      console.log('[MyPlayers] Token exists:', !!token, 'Token type:', typeof token, 'Token length:', token?.length)
       
       setLoading(true)
       setError(null)
       try {
-        const authHeader = `Bearer ${token}`
-        console.log('[MyPlayers] 🔑 Authorization header being sent:', authHeader.substring(0, 50) + '...')
-        console.log('[MyPlayers] Calling API /api/supabase/get-my-players...')
         const res = await fetch('/api/supabase/get-my-players', {
-          headers: { Authorization: authHeader },
+          headers: { Authorization: `Bearer ${token}` },
         })
-        console.log('[MyPlayers] API response status:', res.status, 'ok:', res.ok)
         
         const data = await res.json()
         
-        // LOG COMPLETO PER DEBUG
-        console.log('[MyPlayers] ===== API RESPONSE RAW =====')
-        console.log('[MyPlayers] 🔍 FULL RESPONSE OBJECT:', JSON.stringify(data, null, 2))
-        console.log('[MyPlayers] 🔍 RESPONSE HEADERS:', Object.fromEntries(res.headers.entries()))
-        console.log('[MyPlayers] 🔍 RESPONSE STATUS:', res.status, res.statusText)
-        console.log('[MyPlayers] 🔍 RESPONSE TIMESTAMP:', new Date().toISOString())
-        
         if (!res.ok) {
-          console.error('[MyPlayers] ❌ API error:', data)
           throw new Error(data?.error || `Failed to fetch players (${res.status})`)
         }
         
-        console.log('[MyPlayers] ===== API RESPONSE RECEIVED =====')
-        console.log('[MyPlayers] ✅ Fetch successful')
-        console.log('[MyPlayers] 📊 PLAYERS COUNT RICEVUTI DAL BACKEND:', data.players?.length || 0)
-        console.log('[MyPlayers] 📋 PLAYER NAMES RICEVUTI:', data.players?.map(p => p.player_name) || [])
-        console.log('[MyPlayers] 📋 BUILD IDs RICEVUTI:', data.players?.map(p => p.build_id) || [])
-        console.log('[MyPlayers] 🔍 VERIFICA: Se vedi Frank qui → problema API. Se vedi Pedri qui → problema frontend rendering')
-        console.log('[MyPlayers] 📊 COUNT DAL BACKEND vs FRONTEND RENDER:', {
-          backendCount: data.players?.length || 0,
-          willRender: (data.players?.length || 0)
-        })
-        console.log('[MyPlayers] ===== FRONTEND FETCH END =====')
-        
         setPlayers(Array.isArray(data.players) ? data.players : [])
       } catch (err) {
-        console.error('[MyPlayers] ❌ Fetch error:', err)
+        console.error('[MyPlayers] Fetch error:', err)
         setError(err?.message || (lang === 'it' ? 'Errore caricamento giocatori' : 'Error loading players'))
       } finally {
         setLoading(false)
       }
     }
 
-    // Fetch iniziale
     fetchPlayers()
     
-    // Refresh quando la pagina diventa visibile (torni da un'altra pagina)
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && authStatus.ready && authStatus.token) {
-        console.log('[MyPlayers] Page became visible, refreshing players...')
-        // Usa la sessione corrente invece del closure stale
         fetchPlayers()
       }
     }

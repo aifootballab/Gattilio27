@@ -36,53 +36,23 @@ export async function POST(req) {
       )
     }
 
-    // Estrai e valida token (supporta sia anon che email)
     const token = extractBearerToken(req)
     if (!token) {
-      console.error('[save-player] Missing token in header')
       return NextResponse.json({ error: 'Missing Authorization bearer token' }, { status: 401 })
     }
-
-    console.log('[save-player] Validating token:', { tokenPrefix: token.substring(0, 20) + '...', anonKeyKind: anonKey?.startsWith('sb_publishable_') ? 'publishable' : anonKey?.includes('.') ? 'jwt' : 'unknown' })
-
-    console.log('[save-player] ===== AUTHENTICATION START =====')
-    console.log('[save-player] Token received (first 30 chars):', token.substring(0, 30) + '...')
-    console.log('[save-player] Token length:', token.length)
-    console.log('[save-player] Token type check:', { hasDots: token.includes('.'), dotCount: token.split('.').length })
     
     const { userData, error: authError } = await validateToken(token, supabaseUrl, anonKey)
     
     if (authError || !userData?.user?.id) {
-      const errorMsg = authError?.message || String(authError) || 'Unknown auth error'
-      console.error('[save-player] ❌ AUTH VALIDATION FAILED:', { 
-        error: errorMsg, 
-        hasUserData: !!userData, 
-        hasUserId: !!userData?.user?.id,
-        userDataKeys: userData ? Object.keys(userData) : null
-      })
-      return NextResponse.json(
-        {
-          error: 'Invalid auth',
-          details: errorMsg,
-        },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: 'Invalid auth' }, { status: 401 })
     }
     
     const userId = userData.user.id
-    const userEmail = userData.user.email
-    console.log('[save-player] ✅ AUTH OK')
-    console.log('[save-player] UserId extracted:', userId)
-    console.log('[save-player] UserId type:', typeof userId, 'length:', userId?.length)
-    console.log('[save-player] UserEmail:', userEmail || '(null/empty)')
-    console.log('[save-player] UserData keys:', Object.keys(userData.user || {}))
-    console.log('[save-player] ===== AUTHENTICATION END =====')
     
     // Verifica tipo service key
     const serviceKeyKind = serviceKey?.startsWith('sb_secret_') ? 'sb_secret' : 
                           serviceKey?.startsWith('sb_publishable_') ? 'sb_publishable' : 
                           serviceKey?.includes('.') && serviceKey.split('.').length >= 3 ? 'jwt' : 'unknown'
-    console.log('[save-player] Service key kind:', serviceKeyKind, { prefix: serviceKey?.substring(0, 20) + '...' })
     
     // IMPORTANT: Le chiavi sb_secret_ moderne non sono supportate dal client JS.
     // Usiamo fetch diretto con header apikey per sb_secret_, client JS per JWT legacy.
@@ -252,12 +222,8 @@ export async function POST(req) {
         
         if (playingStyle?.id) {
           playingStyleId = playingStyle.id
-          console.log('[save-player] Found playing_style:', { name: playingStyle.name, id: playingStyleId })
-        } else {
-          console.log('[save-player] Playing style not found in database:', playingStyleName)
         }
       } catch (styleErr) {
-        console.error('[save-player] Error looking up playing_style:', styleErr?.message || styleErr)
         // Non blocchiamo se il lookup fallisce
       }
     }
@@ -327,25 +293,19 @@ export async function POST(req) {
       source: 'screenshot_extractor',
     }
 
-    console.log('[save-player] basePayload:', { player_name: basePayload.player_name, has_base_stats: !!basePayload.base_stats, source: basePayload.source })
-
     let playerBaseId = existingBase?.id || null
     if (!playerBaseId) {
-      console.log('[save-player] Inserting new players_base...')
       const { data: inserted, error: insErr } = await admin
         .from('players_base')
         .insert(basePayload)
         .select('id')
         .single()
       if (insErr) {
-        console.error('[save-player] players_base insert failed:', { error: insErr.message, code: insErr.code, details: insErr.details, hint: insErr.hint })
-        throw new Error(`players_base insert failed: ${insErr.message}${insErr.details ? ` (${insErr.details})` : ''}${insErr.hint ? ` Hint: ${insErr.hint}` : ''}`)
+        console.error('[save-player] players_base insert failed:', insErr.message)
+        throw new Error(`players_base insert failed: ${insErr.message}`)
       }
       playerBaseId = inserted.id
-      console.log('[save-player] players_base inserted, id:', playerBaseId)
     } else {
-      // Giocatore esistente salvato dallo stesso utente → aggiorna dati
-      console.log('[save-player] players_base exists (from same user), id:', playerBaseId, '- updating metadata and playing_style_id...')
       const updateData = {
         metadata: basePayload.metadata,  // Aggiorna metadata completo
         updated_at: new Date().toISOString(),
@@ -361,10 +321,8 @@ export async function POST(req) {
         .eq('id', playerBaseId)
         .eq('source', 'screenshot_extractor')  // Solo aggiornare record screenshot_extractor
       if (updateErr) {
-        console.error('[save-player] players_base update failed:', { error: updateErr.message })
+        console.error('[save-player] players_base update failed:', updateErr.message)
         throw new Error(`players_base update failed: ${updateErr.message}`)
-      } else {
-        console.log('[save-player] ✅ players_base updated, id:', playerBaseId)
       }
     }
 

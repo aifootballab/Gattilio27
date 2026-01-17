@@ -12,110 +12,48 @@ export async function GET(req) {
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
     
     if (!supabaseUrl || !serviceKey || !anonKey) {
-      return NextResponse.json(
-        { error: 'Supabase server env missing' },
-        { status: 500 }
-      )
+      return NextResponse.json({ error: 'Supabase server env missing' }, { status: 500 })
     }
 
-    console.log('[get-my-players] ===== AUTHENTICATION START =====')
-    
-    // Log headers per debug
-    const authHeader = req.headers.get('authorization')
-    console.log('[get-my-players] 🔑 Authorization header received:', authHeader ? (authHeader.substring(0, 50) + '...') : '❌ MISSING')
-    console.log('[get-my-players] All headers:', Object.fromEntries(req.headers.entries()))
-    
-    // Estrai e valida token (stesso sistema di save-player)
     const token = extractBearerToken(req)
     if (!token) {
-      console.error('[get-my-players] ❌ No token in request')
-      console.error('[get-my-players] Authorization header value:', authHeader || '(null/undefined)')
       return NextResponse.json({ error: 'Missing Authorization bearer token' }, { status: 401 })
     }
-
-    console.log('[get-my-players] Token received (first 30 chars):', token.substring(0, 30) + '...')
-    console.log('[get-my-players] Token length:', token.length)
-    console.log('[get-my-players] Token type check:', { hasDots: token.includes('.'), dotCount: token.split('.').length })
 
     const { userData, error: authError } = await validateToken(token, supabaseUrl, anonKey)
     
     if (authError || !userData?.user?.id) {
-      const errorMsg = authError?.message || String(authError) || 'Unknown auth error'
-      console.error('[get-my-players] ❌ AUTH VALIDATION FAILED:', { 
-        error: errorMsg, 
-        hasUserData: !!userData, 
-        hasUserId: !!userData?.user?.id,
-        userDataKeys: userData ? Object.keys(userData) : null
-      })
-      return NextResponse.json({ error: 'Invalid auth', details: errorMsg }, { status: 401 })
+      return NextResponse.json({ error: 'Invalid auth' }, { status: 401 })
     }
-    
+
     const userId = userData.user.id
-    const userEmail = userData.user.email
-    console.log('[get-my-players] ✅ AUTH OK')
-    console.log('[get-my-players] UserId extracted:', userId)
-    console.log('[get-my-players] UserId type:', typeof userId, 'length:', userId?.length)
-    console.log('[get-my-players] UserEmail:', userEmail || '(null/empty)')
-    console.log('[get-my-players] UserData keys:', Object.keys(userData.user || {}))
-    console.log('[get-my-players] ===== AUTHENTICATION END =====')
     const admin = createClient(supabaseUrl, serviceKey, {
       auth: { autoRefreshToken: false, persistSession: false }
     })
 
-    console.log('[get-my-players] ===== QUERYING PLAYER_BUILDS =====')
-    console.log('[get-my-players] 🔍 auth.uid() / user.id:', userId)
-    console.log('[get-my-players] Query: FROM player_builds WHERE user_id = ? ORDER BY created_at DESC')
-    console.log('[get-my-players] UserId for query:', userId, 'type:', typeof userId)
-    
-    // SOLUZIONE SICURA: Query separate per evitare problemi RLS con JOIN
-    // 1. Recupera player_builds dell'utente (senza JOIN)
-    let { data: builds, error: buildsErr } = await admin
+    // 1. Recupera player_builds dell'utente
+    const { data: builds, error: buildsErr } = await admin
       .from('player_builds')
       .select('id, player_base_id, final_overall_rating, current_level, level_cap, active_booster_name, source_data, created_at')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
 
     if (buildsErr) {
-      console.error('[get-my-players] ❌ QUERY ERROR:', {
-        error: buildsErr.message,
-        code: buildsErr.code,
-        details: buildsErr.details,
-        hint: buildsErr.hint,
-        query_user_id: userId
-      })
-      return NextResponse.json({ error: 'Failed to fetch players', details: buildsErr.message }, { status: 500 })
+      console.error('[get-my-players] Query error:', buildsErr.message)
+      return NextResponse.json({ error: 'Failed to fetch players' }, { status: 500 })
     }
     
-    console.log('[get-my-players] ✅ QUERY SUCCESS')
-    console.log('[get-my-players] 📊 RIGHE RICEVUTE DA SUPABASE (player_builds):', builds?.length || 0)
-    console.log('[get-my-players] 📋 PRIMI 6 ID RICEVUTI:', builds?.slice(0, 6).map(b => b.id) || [])
-    console.log('[get-my-players] 📋 TUTTI GLI ID RICEVUTI:', builds?.map(b => b.id) || [])
-    
-    // RIMOSSA RECOVERY LOGIC: Era troppo complessa e poteva recuperare giocatori vecchi/cancellati
-    // Ora logica semplice come prima del 16 gennaio: se player_builds vuoto → ritorna vuoto
     if (!builds || builds.length === 0) {
-      console.log('[get-my-players] ⚠️ No player_builds found for user_id:', userId)
-      console.log('[get-my-players] ===== QUERY END =====')
       return NextResponse.json({ players: [], count: 0 })
     }
     
-    console.log('[get-my-players] First build details:', {
-      id: builds[0].id,
-      player_base_id: builds[0].player_base_id,
-      created_at: builds[0].created_at
-    })
-    
-    // 2. Recupera players_base per tutti i player_base_id trovati (query separata)
+    // 2. Recupera players_base per i player_base_id trovati
     const playerBaseIds = builds.map(b => b.player_base_id).filter(id => id)
-    console.log('[get-my-players] Fetching players_base for', playerBaseIds.length, 'player_base_ids')
     
     if (playerBaseIds.length === 0) {
-      console.log('[get-my-players] ⚠️ No valid player_base_ids found')
-      console.log('[get-my-players] ===== QUERY END =====')
       return NextResponse.json({ players: [], count: 0 })
     }
     
-    // Query players_base senza JOIN a playing_styles per evitare problemi RLS
     const { data: playersBase, error: baseErr } = await admin
       .from('players_base')
       .select(`
@@ -140,47 +78,30 @@ export async function GET(req) {
         metadata
       `)
       .in('id', playerBaseIds)
+
+    if (baseErr) {
+      console.error('[get-my-players] players_base query error:', baseErr.message)
+    }
     
-    // 2b. Recupera playing_styles separatamente se necessario
+    // 3. Recupera playing_styles se necessario
     const playingStyleIds = [...new Set(playersBase?.map(pb => pb.playing_style_id).filter(id => id) || [])]
     let playingStylesMap = new Map()
     
     if (playingStyleIds.length > 0) {
-      console.log('[get-my-players] Fetching playing_styles for', playingStyleIds.length, 'playing_style_ids')
-      const { data: playingStyles, error: stylesErr } = await admin
+      const { data: playingStyles } = await admin
         .from('playing_styles')
         .select('id, name')
         .in('id', playingStyleIds)
       
-      if (!stylesErr && playingStyles) {
+      if (playingStyles) {
         playingStylesMap = new Map(playingStyles.map(ps => [ps.id, ps]))
-        console.log('[get-my-players] playing_styles map size:', playingStylesMap.size)
-      } else if (stylesErr) {
-        console.error('[get-my-players] ⚠️ playing_styles query error (non blocking):', stylesErr.message)
       }
     }
 
-    if (baseErr) {
-      console.error('[get-my-players] ❌ players_base QUERY ERROR:', {
-        error: baseErr.message,
-        code: baseErr.code,
-        details: baseErr.details
-      })
-      // Non fallire completamente, usa dati base senza dettagli
-      console.log('[get-my-players] ⚠️ Continuing without players_base details')
-    }
-    
-    // 3. Crea mappa per lookup veloce
+    // 4. Crea mappa per lookup veloce
     const playersBaseMap = new Map((playersBase || []).map(pb => [pb.id, pb]))
-    console.log('[get-my-players] players_base map size:', playersBaseMap.size)
-    console.log('[get-my-players] players_base IDs in map:', Array.from(playersBaseMap.keys()))
-    console.log('[get-my-players] player_base_ids from builds:', builds?.map(b => b.player_base_id))
-    console.log('[get-my-players] Missing player_base_ids:', builds?.map(b => b.player_base_id).filter(id => !playersBaseMap.has(id)))
-    console.log('[get-my-players] ===== QUERY END =====')
-
-    console.log('[get-my-players] ===== FORMATTING RESPONSE =====')
     
-    // 4. Formatta i dati per il frontend (merge builds + players_base + playing_styles)
+    // 5. Formatta i dati per il frontend
     const players = builds.map(build => {
       const base = playersBaseMap.get(build.player_base_id)
       const playingStyle = base?.playing_style_id ? playingStylesMap.get(base.playing_style_id) : null
@@ -214,83 +135,43 @@ export async function GET(req) {
         completeness: calculateCompleteness(base, build)
       }
     })
-    
-    console.log('[get-my-players] ✅ FORMATTING COMPLETE')
-    console.log('[get-my-players] 📊 RIGHE FORMATTATE (players):', players.length)
-    console.log('[get-my-players] 📋 Player names formatted:', players.map(p => p.player_name))
-    console.log('[get-my-players] 🔍 DIFFERENZA righe ricevute vs formattate:', (builds?.length || 0) - players.length)
-    console.log('[get-my-players] ===== GET-MY-PLAYERS END =====')
-    console.log('[get-my-players] 🔍 FINAL RESPONSE BEFORE SEND:', {
-      players_count: players.length,
-      player_names: players.map(p => p.player_name),
-      build_ids: players.map(p => p.build_id),
-      builds_count_from_db: builds?.length,
-      timestamp: new Date().toISOString()
-    })
 
     return NextResponse.json(
       { players, count: players.length },
       {
         headers: {
-          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+          'Cache-Control': 'no-store, no-cache, must-revalidate',
           'Pragma': 'no-cache',
-          'Expires': '0',
-          'X-Response-Time': new Date().toISOString()
+          'Expires': '0'
         }
       }
     )
   } catch (e) {
-    console.error('[get-my-players] Unhandled exception:', e)
+    console.error('[get-my-players] Error:', e)
     return NextResponse.json(
-      { error: e?.message || 'Errore server', details: process.env.NODE_ENV === 'development' ? String(e) : null },
+      { error: e?.message || 'Errore server' },
       { status: 500 }
     )
   }
 }
 
 function calculateCompleteness(base, build) {
-  // Controlla se base_stats ha effettivamente dati (coerente con extract-batch)
   const hasStats = !!(base?.base_stats && (
     Object.keys(base.base_stats.attacking || {}).length > 0 ||
     Object.keys(base.base_stats.defending || {}).length > 0 ||
     Object.keys(base.base_stats.athleticism || {}).length > 0
   ))
   
-  // overall_rating può essere in build.final_overall_rating O in base.base_stats.overall_rating
   const hasOverallRating = !!(build?.final_overall_rating || base?.base_stats?.overall_rating)
   
   const fields = {
     base: !!base?.player_name && hasOverallRating && !!base?.position,
-    stats: hasStats, // Usa la logica corretta invece di solo !!base?.base_stats
+    stats: hasStats,
     physical: !!(base?.height && base?.weight && base?.age),
     skills: Array.isArray(base?.skills) && base.skills.length > 0,
     booster: !!build?.active_booster_name,
     team: !!base?.team,
     nationality: !!base?.nationality
-  }
-  
-  // Dettaglio campi mancanti specifici
-  const missingDetails = {
-    // Stats dettagliate
-    missing_stats: {
-      has_attacking: !!(base?.base_stats?.attacking && Object.keys(base.base_stats.attacking).length > 0),
-      has_defending: !!(base?.base_stats?.defending && Object.keys(base.base_stats.defending).length > 0),
-      has_athleticism: !!(base?.base_stats?.athleticism && Object.keys(base.base_stats.athleticism).length > 0),
-    },
-    // Skills e caratteristiche
-    missing_skills: !Array.isArray(base?.skills) || base.skills.length === 0,
-    missing_com_skills: !Array.isArray(base?.com_skills) || base.com_skills.length === 0,
-    missing_ai_playstyles: !Array.isArray(base?.metadata?.ai_playstyles) || base.metadata?.ai_playstyles?.length === 0,
-    missing_additional_positions: !base?.position_ratings || Object.keys(base.position_ratings || {}).length === 0,
-    missing_boosters: !Array.isArray(base?.available_boosters) || base.available_boosters.length === 0,
-    // Caratteristiche
-    missing_weak_foot: !base?.metadata?.weak_foot_frequency || !base?.metadata?.weak_foot_accuracy,
-    missing_form_detailed: !base?.metadata?.form_detailed,
-    missing_injury_resistance: !base?.metadata?.injury_resistance,
-    // Dati base
-    missing_physical: !base?.height || !base?.weight || !base?.age,
-    missing_team: !base?.team,
-    missing_nationality: !base?.nationality,
   }
   
   const total = Object.keys(fields).length
@@ -301,5 +182,6 @@ function calculateCompleteness(base, build) {
     .filter(([_, value]) => !value)
     .map(([key]) => key)
   
-  return { percentage, missing, fields, missingDetails }
+  return { percentage, missing, fields }
 }
+
