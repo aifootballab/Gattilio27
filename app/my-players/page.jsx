@@ -136,6 +136,13 @@ export default function MyPlayersPage() {
         
         const data = await res.json()
         
+        // LOG COMPLETO PER DEBUG
+        console.log('[MyPlayers] ===== API RESPONSE RAW =====')
+        console.log('[MyPlayers] 🔍 FULL RESPONSE OBJECT:', JSON.stringify(data, null, 2))
+        console.log('[MyPlayers] 🔍 RESPONSE HEADERS:', Object.fromEntries(res.headers.entries()))
+        console.log('[MyPlayers] 🔍 RESPONSE STATUS:', res.status, res.statusText)
+        console.log('[MyPlayers] 🔍 RESPONSE TIMESTAMP:', new Date().toISOString())
+        
         if (!res.ok) {
           console.error('[MyPlayers] ❌ API error:', data)
           throw new Error(data?.error || `Failed to fetch players (${res.status})`)
@@ -146,6 +153,7 @@ export default function MyPlayersPage() {
         console.log('[MyPlayers] 📊 PLAYERS COUNT RICEVUTI DAL BACKEND:', data.players?.length || 0)
         console.log('[MyPlayers] 📋 PLAYER NAMES RICEVUTI:', data.players?.map(p => p.player_name) || [])
         console.log('[MyPlayers] 📋 BUILD IDs RICEVUTI:', data.players?.map(p => p.build_id) || [])
+        console.log('[MyPlayers] 🔍 VERIFICA: Se vedi Frank qui → problema API. Se vedi Pedri qui → problema frontend rendering')
         console.log('[MyPlayers] 📊 COUNT DAL BACKEND vs FRONTEND RENDER:', {
           backendCount: data.players?.length || 0,
           willRender: (data.players?.length || 0)

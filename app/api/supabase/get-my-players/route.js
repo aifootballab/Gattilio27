@@ -351,8 +351,25 @@ export async function GET(req) {
     console.log('[get-my-players] 📋 Player names formatted:', players.map(p => p.player_name))
     console.log('[get-my-players] 🔍 DIFFERENZA righe ricevute vs formattate:', (builds?.length || 0) - players.length)
     console.log('[get-my-players] ===== GET-MY-PLAYERS END =====')
+    console.log('[get-my-players] 🔍 FINAL RESPONSE BEFORE SEND:', {
+      players_count: players.length,
+      player_names: players.map(p => p.player_name),
+      build_ids: players.map(p => p.build_id),
+      builds_count_from_db: builds?.length,
+      timestamp: new Date().toISOString()
+    })
 
-    return NextResponse.json({ players, count: players.length })
+    return NextResponse.json(
+      { players, count: players.length },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+          'X-Response-Time': new Date().toISOString()
+        }
+      }
+    )
   } catch (e) {
     console.error('[get-my-players] Unhandled exception:', e)
     return NextResponse.json(
