@@ -140,8 +140,13 @@ export default function MyPlayersPage() {
         
         console.log('[MyPlayers] ===== API RESPONSE RECEIVED =====')
         console.log('[MyPlayers] ✅ Fetch successful')
-        console.log('[MyPlayers] Players count:', data.players?.length || 0)
-        console.log('[MyPlayers] Players received:', data.players?.map(p => p.player_name) || [])
+        console.log('[MyPlayers] 📊 PLAYERS COUNT RICEVUTI DAL BACKEND:', data.players?.length || 0)
+        console.log('[MyPlayers] 📋 PLAYER NAMES RICEVUTI:', data.players?.map(p => p.player_name) || [])
+        console.log('[MyPlayers] 📋 BUILD IDs RICEVUTI:', data.players?.map(p => p.build_id) || [])
+        console.log('[MyPlayers] 📊 COUNT DAL BACKEND vs FRONTEND RENDER:', {
+          backendCount: data.players?.length || 0,
+          willRender: (data.players?.length || 0)
+        })
         console.log('[MyPlayers] ===== FRONTEND FETCH END =====')
         
         setPlayers(Array.isArray(data.players) ? data.players : [])

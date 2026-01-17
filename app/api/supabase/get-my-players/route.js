@@ -57,7 +57,8 @@ export async function GET(req) {
     })
 
     console.log('[get-my-players] ===== QUERYING PLAYER_BUILDS =====')
-    console.log('[get-my-players] Querying player_builds WHERE user_id =', userId)
+    console.log('[get-my-players] 🔍 auth.uid() / user.id:', userId)
+    console.log('[get-my-players] Query: FROM player_builds WHERE user_id = ? ORDER BY created_at DESC')
     console.log('[get-my-players] UserId for query:', userId, 'type:', typeof userId)
     
     // SOLUZIONE SICURA: Query separate per evitare problemi RLS con JOIN
@@ -80,7 +81,9 @@ export async function GET(req) {
     }
     
     console.log('[get-my-players] ✅ QUERY SUCCESS')
-    console.log('[get-my-players] Builds found:', builds?.length || 0)
+    console.log('[get-my-players] 📊 RIGHE RICEVUTE DA SUPABASE (player_builds):', builds?.length || 0)
+    console.log('[get-my-players] 📋 PRIMI 6 ID RICEVUTI:', builds?.slice(0, 6).map(b => b.id) || [])
+    console.log('[get-my-players] 📋 TUTTI GLI ID RICEVUTI:', builds?.map(b => b.id) || [])
     
     if (!builds || builds.length === 0) {
       console.log('[get-my-players] ⚠️ NO BUILDS FOUND for user_id:', userId)
@@ -206,8 +209,9 @@ export async function GET(req) {
     })
     
     console.log('[get-my-players] ✅ FORMATTING COMPLETE')
-    console.log('[get-my-players] Players formatted:', players.length)
-    console.log('[get-my-players] Player names:', players.map(p => p.player_name))
+    console.log('[get-my-players] 📊 RIGHE FORMATTATE (players):', players.length)
+    console.log('[get-my-players] 📋 Player names formatted:', players.map(p => p.player_name))
+    console.log('[get-my-players] 🔍 DIFFERENZA righe ricevute vs formattate:', (builds?.length || 0) - players.length)
     console.log('[get-my-players] ===== GET-MY-PLAYERS END =====')
 
     return NextResponse.json({ players, count: players.length })
