@@ -95,6 +95,19 @@ export async function GET(req) {
     console.log('[get-my-players] Total players retrieved:', players.length)
     console.log('[get-my-players] Players fetched in', page, 'page(s)')
     console.log('[get-my-players] RAW players IDs:', players?.map(p => ({ id: p.id, name: p.player_name, user_id: p.user_id })) || [])
+    
+    // VERIFICA: Conta diretta dal DB per confronto
+    const { count: dbCount } = await admin
+      .from('players')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+    
+    console.log('[get-my-players] DB total count:', dbCount)
+    console.log('[get-my-players] Retrieved vs DB count:', { retrieved: players.length, dbCount })
+    
+    if (players.length < dbCount) {
+      console.warn(`[get-my-players] WARNING: Retrieved ${players.length} but DB has ${dbCount} - missing ${dbCount - players.length} players`)
+    }
 
     // Recupera playing_styles se necessario
     const playingStyleIds = [...new Set((players || []).map(p => p.playing_style_id).filter(id => id))]
