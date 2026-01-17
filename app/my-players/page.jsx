@@ -121,13 +121,16 @@ export default function MyPlayersPage() {
       }
       
       console.log('[MyPlayers] Token (first 30 chars):', token.substring(0, 30) + '...')
+      console.log('[MyPlayers] Token exists:', !!token, 'Token type:', typeof token, 'Token length:', token?.length)
       
       setLoading(true)
       setError(null)
       try {
+        const authHeader = `Bearer ${token}`
+        console.log('[MyPlayers] 🔑 Authorization header being sent:', authHeader.substring(0, 50) + '...')
         console.log('[MyPlayers] Calling API /api/supabase/get-my-players...')
         const res = await fetch('/api/supabase/get-my-players', {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { Authorization: authHeader },
         })
         console.log('[MyPlayers] API response status:', res.status, 'ok:', res.ok)
         

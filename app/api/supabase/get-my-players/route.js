@@ -20,10 +20,16 @@ export async function GET(req) {
 
     console.log('[get-my-players] ===== AUTHENTICATION START =====')
     
+    // Log headers per debug
+    const authHeader = req.headers.get('authorization')
+    console.log('[get-my-players] 🔑 Authorization header received:', authHeader ? (authHeader.substring(0, 50) + '...') : '❌ MISSING')
+    console.log('[get-my-players] All headers:', Object.fromEntries(req.headers.entries()))
+    
     // Estrai e valida token (stesso sistema di save-player)
     const token = extractBearerToken(req)
     if (!token) {
       console.error('[get-my-players] ❌ No token in request')
+      console.error('[get-my-players] Authorization header value:', authHeader || '(null/undefined)')
       return NextResponse.json({ error: 'Missing Authorization bearer token' }, { status: 401 })
     }
 
