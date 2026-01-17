@@ -56,11 +56,30 @@ export async function GET(req) {
     // LOG CRITICO: Verifica risultati query
     console.log('[get-my-players] 🔍 QUERY RESULT:', {
       userId: userId,
+      userIdType: typeof userId,
       buildsFound: builds?.length || 0,
       buildUserIds: builds?.map(b => b.user_id) || [],
+      buildUserIdsTypes: builds?.map(b => typeof b.user_id) || [],
       allMatch: builds?.every(b => b.user_id === userId) || false,
+      exactMatches: builds?.filter(b => b.user_id === userId).length || 0,
       error: buildsErr?.message || null
     })
+    
+    // DEBUG: Verifica se ci sono build con user_id diversi
+    if (builds && builds.length > 0) {
+      const mismatches = builds.filter(b => b.user_id !== userId)
+      if (mismatches.length > 0) {
+        console.warn('[get-my-players] ⚠️ TROVATI BUILD CON USER_ID DIVERSO:', {
+          expectedUserId: userId,
+          mismatches: mismatches.map(b => ({
+            buildId: b.id,
+            user_id: b.user_id,
+            user_idType: typeof b.user_id,
+            matches: b.user_id === userId
+          }))
+        })
+      }
+    }
 
     if (buildsErr) {
       console.error('[get-my-players] Query error:', buildsErr.message)
@@ -126,10 +145,28 @@ export async function GET(req) {
     // 4. Crea mappa per lookup veloce
     const playersBaseMap = new Map((playersBase || []).map(pb => [pb.id, pb]))
     
-    // 5. Formatta i dati per il frontend - FILTRA SOLO GIOCATORI DELL'UTENTE CORRENTE
-    const players = builds
-      .filter(build => build.user_id === userId) // SICUREZZA: doppio filtro per user_id
-      .map(build => {
+    // 5. Formatta i dati per il frontend
+    // NOTA: La query già filtra per user_id, ma aggiungiamo filtro JavaScript per sicurezza
+    const validBuilds = builds.filter(build => {
+      const matches = build.user_id === userId
+      if (!matches) {
+        console.warn('[get-my-players] ⚠️ Build escluso per user_id mismatch:', {
+          buildId: build.id,
+          buildUserId: build.user_id,
+          expectedUserId: userId,
+          typesMatch: typeof build.user_id === typeof userId
+        })
+      }
+      return matches
+    })
+    
+    console.log('[get-my-players] 🔍 FILTERED BUILDS:', {
+      totalBuilds: builds.length,
+      validBuilds: validBuilds.length,
+      excluded: builds.length - validBuilds.length
+    })
+    
+    const players = validBuilds.map(build => {
         const base = playersBaseMap.get(build.player_base_id)
         const playingStyle = base?.playing_style_id ? playingStylesMap.get(base.playing_style_id) : null
         return {

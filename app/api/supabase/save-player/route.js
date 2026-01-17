@@ -461,7 +461,7 @@ export async function POST(req) {
         player_name: player?.player_name
       })
       
-      const { data: b, error: bErr } = await admin.from('player_builds').insert(buildPayload).select('id').single()
+      const { data: b, error: bErr } = await admin.from('player_builds').insert(buildPayload).select('id, user_id').single()
       
       if (bErr) {
         console.error('[save-player] ❌ player_builds INSERT FAILED:', { 
@@ -469,16 +469,31 @@ export async function POST(req) {
           code: bErr.code, 
           details: bErr.details, 
           hint: bErr.hint,
-          payload_user_id: buildPayload.user_id
+          payload_user_id: buildPayload.user_id,
+          payload_user_id_type: typeof buildPayload.user_id
         })
         throw new Error(`player_builds insert failed: ${bErr.message}${bErr.details ? ` (${bErr.details})` : ''}${bErr.hint ? ` Hint: ${bErr.hint}` : ''}`)
       }
       
       buildId = b.id
       isNewBuild = true
+      
+      // VERIFICA CRITICA: Controlla che user_id sia stato salvato correttamente
       console.log('[save-player] ✅ player_builds INSERT SUCCESS')
-      console.log('[save-player] New BuildId created:', buildId)
-      console.log('[save-player] BuildId saved with user_id:', buildPayload.user_id)
+      console.log('[save-player] 🔍 INSERTED BUILD VERIFICATION:', {
+        buildId: buildId,
+        saved_user_id: b.user_id,
+        expected_user_id: buildPayload.user_id,
+        user_id_matches: b.user_id === buildPayload.user_id,
+        user_id_types: { saved: typeof b.user_id, expected: typeof buildPayload.user_id }
+      })
+      
+      if (b.user_id !== buildPayload.user_id) {
+        console.error('[save-player] ❌ CRITICAL: user_id mismatch dopo INSERT!', {
+          saved: b.user_id,
+          expected: buildPayload.user_id
+        })
+      }
     }
     
     console.log('[save-player] Final BuildId:', buildId)
