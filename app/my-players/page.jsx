@@ -105,11 +105,25 @@ export default function MyPlayersPage() {
         
         const data = await res.json()
         
+        console.log('[MyPlayers] 🔍 API RESPONSE:', {
+          status: res.status,
+          ok: res.ok,
+          playersCount: data.players?.length || 0,
+          playerNames: data.players?.map(p => p.player_name) || [],
+          fullData: data
+        })
+        
         if (!res.ok) {
           throw new Error(data?.error || `Failed to fetch players (${res.status})`)
         }
         
-        setPlayers(Array.isArray(data.players) ? data.players : [])
+        const playersArray = Array.isArray(data.players) ? data.players : []
+        console.log('[MyPlayers] 🔍 SETTING PLAYERS:', {
+          count: playersArray.length,
+          playerNames: playersArray.map(p => p.player_name)
+        })
+        
+        setPlayers(playersArray)
       } catch (err) {
         console.error('[MyPlayers] Fetch error:', err)
         setError(err?.message || (lang === 'it' ? 'Errore caricamento giocatori' : 'Error loading players'))
