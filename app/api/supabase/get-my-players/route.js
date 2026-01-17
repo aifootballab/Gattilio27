@@ -36,21 +36,26 @@ export async function GET(req) {
       auth: { autoRefreshToken: false, persistSession: false }
     })
 
+    // DEBUG: Log userId prima della query
+    console.log('[get-my-players] Querying with userId:', userId, 'type:', typeof userId)
+
     // Query diretta: tutti i giocatori dell'utente, nessun filtro
-    const { data: players, error: playersErr } = await admin
+    // IMPORTANTE: Usa .select('*') senza limiti - Supabase default è 1000 record
+    const { data: players, error: playersErr, count } = await admin
       .from('players')
-      .select('*')
+      .select('*', { count: 'exact' })
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
 
     if (playersErr) {
-      console.error('[get-my-players] Query error:', playersErr.message)
+      console.error('[get-my-players] Query error:', playersErr.message, playersErr)
       return NextResponse.json({ error: 'Failed to fetch players' }, { status: 500 })
     }
 
     // DEBUG: Log dettagliato
-    console.log('[get-my-players] RAW players count:', players?.length || 0)
-    console.log('[get-my-players] RAW players IDs:', players?.map(p => ({ id: p.id, name: p.player_name })) || [])
+    console.log('[get-my-players] RAW players count from query:', players?.length || 0)
+    console.log('[get-my-players] Total count from Supabase:', count)
+    console.log('[get-my-players] RAW players IDs:', players?.map(p => ({ id: p.id, name: p.player_name, user_id: p.user_id })) || [])
 
     // Recupera playing_styles se necessario
     const playingStyleIds = [...new Set((players || []).map(p => p.playing_style_id).filter(id => id))]
