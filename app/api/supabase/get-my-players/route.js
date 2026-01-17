@@ -69,7 +69,7 @@ export async function GET(req) {
     
     // SOLUZIONE SICURA: Query separate per evitare problemi RLS con JOIN
     // 1. Recupera player_builds dell'utente (senza JOIN)
-    const { data: builds, error: buildsErr } = await admin
+    let { data: builds, error: buildsErr } = await admin
       .from('player_builds')
       .select('id, player_base_id, final_overall_rating, current_level, level_cap, active_booster_name, source_data, created_at')
       .eq('user_id', userId)
