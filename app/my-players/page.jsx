@@ -205,7 +205,7 @@ export default function MyPlayersPage() {
       ) : (
         <div className="grid-futuristic">
           {players.map((player) => (
-            <PlayerCard key={player.build_id} player={player} t={t} lang={lang} />
+            <PlayerCard key={player.id} player={player} t={t} lang={lang} />
           ))}
         </div>
       )}
@@ -274,8 +274,8 @@ function PlayerCard({ player, t, lang }) {
       }}>
         {player.team && <div><strong>{lang === 'it' ? 'Team' : 'Team'}:</strong> {player.team}</div>}
         {player.card_type && <div><strong>{t('card')}:</strong> {player.card_type}</div>}
-        {player.level && <div><strong>{lang === 'it' ? 'Livello' : 'Level'}:</strong> {player.level}/{player.level_cap || '?'}</div>}
-        {player.booster && <div><strong>{t('boosters')}:</strong> {player.booster}</div>}
+        {player.current_level && <div><strong>{lang === 'it' ? 'Livello' : 'Level'}:</strong> {player.current_level}/{player.level_cap || '?'}</div>}
+        {player.active_booster_name && <div><strong>{t('boosters')}:</strong> {player.active_booster_name}</div>}
       </div>
 
       <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
@@ -288,7 +288,7 @@ function PlayerCard({ player, t, lang }) {
           {isExpanded ? t('hide') : t('details')}
         </button>
         <Link 
-          href={`/player/${player.build_id}`}
+          href={`/player/${player.id}`}
           className="btn small primary" 
           style={{ flex: 1, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
         >
