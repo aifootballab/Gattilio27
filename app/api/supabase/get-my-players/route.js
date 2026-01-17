@@ -51,6 +51,8 @@ export async function GET(req) {
       const from = page * pageSize
       const to = from + pageSize - 1
       
+      console.log(`[get-my-players] Fetching page ${page}, range ${from}-${to}`)
+      
       const result = await admin
         .from('players')
         .select('*')
@@ -64,14 +66,27 @@ export async function GET(req) {
       }
       
       const pagePlayers = result.data || []
+      console.log(`[get-my-players] Page ${page}: received ${pagePlayers.length} players, total so far: ${allPlayers.length + pagePlayers.length}`)
+      
       allPlayers = allPlayers.concat(pagePlayers)
       
       // Se la pagina è meno del pageSize, abbiamo finito
       hasMore = pagePlayers.length === pageSize
+      
+      // Se non abbiamo più record, fermati
+      if (pagePlayers.length === 0) {
+        console.log(`[get-my-players] Page ${page} returned 0 players, stopping`)
+        hasMore = false
+        break
+      }
+      
       page++
       
       // Safety limit: max 10 pagine (10k record)
-      if (page >= 10) break
+      if (page >= 10) {
+        console.log(`[get-my-players] Reached safety limit of 10 pages, stopping`)
+        break
+      }
     }
     
     const players = allPlayers
