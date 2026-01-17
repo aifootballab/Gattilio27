@@ -341,24 +341,42 @@ export async function POST(req) {
       playerBaseId = inserted.id
       console.log('[save-player] players_base inserted, id:', playerBaseId)
     } else {
-      console.log('[save-player] players_base exists, id:', playerBaseId, '- updating metadata and playing_style_id if tagged...')
-      // Aggiorna solo se è un record creato da screenshot_extractor
+      console.log('[save-player] players_base exists, id:', playerBaseId, '- updating metadata and playing_style_id...')
+      // FIX: Aggiorna SEMPRE metadata.user_id per permettere recovery logic anche su giocatori con json_import (es: Pedri)
+      // Prima recupera metadata esistente per non sovrascrivere dati importanti
+      const { data: existingBaseWithMetadata } = await admin
+        .from('players_base')
+        .select('metadata')
+        .eq('id', playerBaseId)
+        .single()
+      
+      // Merge metadata esistente con nuovo (preserva dati originali)
+      const mergedMetadata = {
+        ...(existingBaseWithMetadata?.metadata || {}),
+        ...basePayload.metadata,  // Sovrascrive con nuovo metadata (include user_id e extracted)
+        user_id: userId,  // Forza user_id per permettere recovery logic
+        saved_at: new Date().toISOString()
+      }
+      
       const updateData = {
-        metadata: basePayload.metadata,
+        metadata: mergedMetadata,
         updated_at: new Date().toISOString(),
       }
       // Aggiorna playing_style_id solo se presente
       if (playingStyleId) {
         updateData.playing_style_id = playingStyleId
       }
+      // ❌ RIMOSSO .contains('metadata', { source: 'screenshot_extractor' }) - ora aggiorna TUTTI i giocatori
+      // ✅ Questo permette di impostare metadata.user_id anche su giocatori con json_import
       const { error: updateErr } = await admin
         .from('players_base')
         .update(updateData)
         .eq('id', playerBaseId)
-        .contains('metadata', { source: 'screenshot_extractor' })
       if (updateErr) {
         console.error('[save-player] players_base update failed:', { error: updateErr.message })
         // Non blocchiamo se l'update fallisce (potrebbe essere un record del DB base)
+      } else {
+        console.log('[save-player] ✅ players_base metadata updated with user_id:', userId)
       }
     }
 
