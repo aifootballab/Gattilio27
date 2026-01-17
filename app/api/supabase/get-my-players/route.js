@@ -48,6 +48,10 @@ export async function GET(req) {
       return NextResponse.json({ error: 'Failed to fetch players' }, { status: 500 })
     }
 
+    // DEBUG: Log dettagliato
+    console.log('[get-my-players] RAW players count:', players?.length || 0)
+    console.log('[get-my-players] RAW players IDs:', players?.map(p => ({ id: p.id, name: p.player_name })) || [])
+
     // Recupera playing_styles se necessario
     const playingStyleIds = [...new Set((players || []).map(p => p.playing_style_id).filter(id => id))]
     let playingStylesMap = new Map()
@@ -100,6 +104,10 @@ export async function GET(req) {
         updated_at: player.updated_at
       }
     })
+
+    // DEBUG: Log finale
+    console.log('[get-my-players] Formatted players count:', formattedPlayers.length)
+    console.log('[get-my-players] Formatted players IDs:', formattedPlayers.map(p => ({ id: p.id, name: p.player_name })))
     
     return NextResponse.json(
       { 

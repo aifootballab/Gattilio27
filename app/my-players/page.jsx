@@ -71,8 +71,23 @@ export default function MyPlayersPage() {
           throw new Error(data?.error || `Failed to fetch players (${res.status})`)
         }
 
+        // DEBUG: Log dettagliato
+        console.log('[MyPlayers] API response:', { 
+          count: data.count, 
+          playersReceived: data.players?.length || 0,
+          playerNames: data.players?.map(p => p?.player_name) || [],
+          playerIds: data.players?.map(p => p?.id) || []
+        })
+
         // Ricevi array giocatori - mostra TUTTI, nessun filtro
-        const playersArray = Array.isArray(data.players) ? data.players : []
+        // IMPORTANTE: Filtra solo giocatori con ID valido (non null/undefined)
+        const playersArray = Array.isArray(data.players) 
+          ? data.players.filter(p => p && p.id) 
+          : []
+        
+        console.log('[MyPlayers] Filtered players count:', playersArray.length)
+        console.log('[MyPlayers] Filtered player IDs:', playersArray.map(p => p.id))
+        
         setPlayers(playersArray)
       } catch (err) {
         console.error('[MyPlayers] Fetch error:', err)
