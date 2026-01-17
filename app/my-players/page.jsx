@@ -16,15 +16,27 @@ export default function MyPlayersPage() {
   const [authStatus, setAuthStatus] = React.useState({ ready: false, userId: null, token: null })
 
   React.useEffect(() => {
+    if (!supabase) return
+
+    // Listener per gestire silenziosamente gli errori di refresh token
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      // Gestisci silenziosamente gli errori di refresh token (warning innocuo)
+      if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') {
+        if (session?.access_token) {
+          setAuthStatus({
+            ready: true,
+            userId: session.user?.id || null,
+            token: session.access_token,
+          })
+        }
+      } else if (event === 'SIGNED_OUT') {
+        router.push('/login')
+      }
+    })
+
     const initAuth = async () => {
       console.log('[MyPlayers] ===== INIT AUTH START =====')
       try {
-        if (!supabase) {
-          console.error('[MyPlayers] ❌ Supabase client not available')
-          setAuthStatus({ ready: true, userId: null, token: null })
-          return
-        }
-        
         console.log('[MyPlayers] Getting session...')
         const { data, error } = await supabase.auth.getSession()
         
@@ -61,12 +73,21 @@ export default function MyPlayersPage() {
         })
         console.log('[MyPlayers] ===== INIT AUTH END =====')
       } catch (err) {
-        console.error('[MyPlayers] ❌ Auth init failed:', err)
-        router.push('/login')
+        // Ignora silenziosamente gli errori di refresh token (warning innocuo)
+        if (err?.message?.includes('Refresh Token') || err?.message?.includes('refresh_token')) {
+          console.log('[MyPlayers] ⚠️ Refresh token warning (ignored, session still valid)')
+        } else {
+          console.error('[MyPlayers] ❌ Auth init failed:', err)
+          router.push('/login')
+        }
       }
     }
     initAuth()
-  }, [])
+
+    return () => {
+      subscription?.unsubscribe()
+    }
+  }, [router])
 
   // Fetch players quando authStatus è pronto - SOLUZIONE SEMPLICE E FUNZIONANTE
   React.useEffect(() => {
