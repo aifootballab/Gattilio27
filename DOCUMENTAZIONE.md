@@ -1,183 +1,240 @@
-# Documentazione (Production) — Analizzatore Screenshot eFootball → Rosa (in memoria)
+# Documentazione (Production) — Analizzatore Screenshot eFootball → Rosa
 
 ## Obiettivo
-Una web app minimale che permette:
+Una web app che permette:
 
-- Caricare (drag & drop) uno screenshot del profilo giocatore eFootball
+- Caricare (drag & drop) screenshot del profilo giocatore eFootball
 - Estrarre i dati con OpenAI Vision
-- Visualizzare il JSON estratto
-- Inserire il giocatore in una **rosa da 21 slot** (in memoria)
-
-> In questa fase abbiamo **2 modalità**:
-> - Rosa in memoria (sempre)
-> - **Salvataggio su Supabase** (opzionale) per test end-to-end
+- Salvare il giocatore nella rosa personale dell'utente (Supabase)
+- Visualizzare i giocatori salvati
 
 ---
 
-## Architettura (semplice)
+## Architettura
 
 ### Frontend
-- `app/page.tsx`
-  - compressione client-side dell’immagine (riduce errori di payload)
-  - chiamata a `POST /api/extract-player`
-  - visualizzazione JSON + inserimento nello slot scelto
+- `app/page.tsx` - Homepage con upload screenshot
+- `app/rosa/page.jsx` - Gestione rosa (21 slot)
+- `app/my-players/page.jsx` - Lista giocatori salvati
+- `app/player/[id]/page.jsx` - Dettaglio giocatore
 
-### Backend (Next.js API Route)
-- `app/api/extract-player/route.ts`
-  - riceve `imageDataUrl` (base64)
-  - chiama OpenAI `POST https://api.openai.com/v1/responses`
-  - forza output JSON via `text.format`
-  - normalizza e ritorna `{ player }`
-
-### Health/Env check (solo diagnostica)
-- `app/api/env-check/route.ts`
-  - ritorna `hasOpenaiKey` e `vercelEnv`
-  - **non** espone mai la key
+### Backend (Next.js API Routes)
+- `app/api/extract-player/route.js` - Estrazione dati da screenshot con OpenAI
+- `app/api/supabase/save-player/route.js` - Salvataggio giocatore in `players`
+- `app/api/supabase/get-my-players/route.js` - Recupero giocatori utente
+- `app/api/supabase/update-player/route.js` - Aggiornamento giocatore
+- `app/api/supabase/delete-player/route.js` - Eliminazione giocatore
+- `app/api/supabase/reset-my-data/route.js` - Reset dati utente
 
 ---
 
-## Env vars (solo Production)
+## Database Supabase
 
-Su **Vercel → Project → Settings → Environment Variables**:
+### Tabella `players` (principale)
 
-- **`OPENAI_API_KEY`** (**Production**)  
-  - Deve essere presente per far funzionare `POST /api/extract-player`
-  - **Non** usare `NEXT_PUBLIC_` (non deve finire nel browser)
+Ogni utente ha la sua rosa personale salvata in Supabase.
 
-Opzionale:
-- **`OPENAI_VISION_MODEL`** (Production)  
-  - Default: `gpt-4o`
-  - Consigliato: lasciare default finché non sei soddisfatto della qualità.
+**Campi principali**:
+- `id` - UUID primario
+- `user_id` - FK a `auth.users` (proprietario)
+- `player_name`, `position`, `team`, `overall_rating` - Dati base
+- `base_stats` (JSONB) - Statistiche complete
+- `skills`, `com_skills` (TEXT[]) - Skills giocatore
+- `height`, `weight`, `age`, `nationality` - Dati fisici
+- `current_level`, `level_cap`, `active_booster_name` - Build
+- `slot_index` (INTEGER, 0-20) - Posizione nella rosa (null = non in rosa)
+- `metadata`, `extracted_data` (JSONB) - Dati completi estratti
+- `created_at`, `updated_at` - Timestamps
 
-Pulizia sicurezza (consigliata):
-- Rimuovere `NEXT_PUBLIC_OPENAI_API_KEY`
-- **NON rimuovere** `SUPABASE_SERVICE_ROLE_KEY` se vuoi usare il salvataggio Supabase (serve server-side).
+**RLS (Row Level Security)**:
+- Utenti possono vedere/solo i propri giocatori (`WHERE user_id = auth.uid()`)
 
-### Env vars Supabase (per salvataggio)
+### Tabelle di supporto
 
-Client (già su Vercel):
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-
-Server-only (Vercel, Production):
-- `SUPABASE_SERVICE_ROLE_KEY`
-
----
-
-## Endpoints
-
-### `GET /api/env-check`
-Risposta esempio:
-```json
-{ "ok": true, "hasOpenaiKey": true, "vercelEnv": "production" }
-```
-
-### `POST /api/extract-player`
-Request:
-```json
-{ "imageDataUrl": "data:image/jpeg;base64,..." }
-```
-
-Response:
-```json
-{ "player": { ... } }
-```
-
-Error response (esempio):
-```json
-{ "error": "OpenAI error (...)", "openai_status": 400, "openai_body": "{...}" }
-```
+- `playing_styles` - Stili di gioco (riferimento per `playing_style_id` in `players`)
+- `screenshot_processing_log` - Log screenshot (opzionale, per tracking/debug)
 
 ---
 
-## Salvataggio su Supabase (test)
+## Endpoints API
 
-### Cosa salva
-- `players_base`: upsert/insert del profilo base (nome, team, pos, ecc.) + `metadata.extracted`
-- `player_builds`: build per utente anonimo + `source_data.extracted`
-- `user_rosa`: crea/aggiorna rosa principale e setta lo slot (0–20)
+### Estrazione Dati
 
-### Endpoint
+#### `POST /api/extract-player`
+Estrae dati da screenshot con OpenAI Vision.
 
-#### `POST /api/supabase/save-player`
-- Auth: `Authorization: Bearer <supabase_access_token>`
-- Body: `{ player, slotIndex }`
-
-#### `POST /api/supabase/reset-my-data`
-Cancella SOLO i dati del tuo utente anonimo:
-- `user_rosa` (per user_id)
-- `player_builds` (per user_id)
-- `screenshot_processing_log` (per user_id)
-
-
-## Schema JSON estratto (`player`)
-
-Nota: se un campo non è visibile, viene impostato a `null` (o `[]` per liste).
-
+**Request**:
 ```json
 {
-  "player_name": "Ronaldinho Gaúcho",
-  "overall_rating": 99,
-  "position": "ESA",
-  "role": "Ala prolifica",
-  "card_type": "Epico",
-  "team": "FC Barcelona 05-06",
-  "region_or_nationality": null,
-  "form": "B",
-  "preferred_foot": null,
-  "height_cm": 182,
-  "weight_kg": 80,
-  "age": 26,
-  "nationality": "Brasile",
-  "club_name": null,
-  "level_current": 31,
-  "level_cap": 31,
-  "progression_points": 0,
-  "matches_played": 204,
-  "goals": 86,
-  "assists": 37,
-  "boosters": [
-    { "name": "Fantasis­ta", "effect": "+2" },
-    { "name": "Gestione del pallone", "effect": "+1" }
-  ],
-  "skills": []
+  "imageDataUrl": "data:image/jpeg;base64,..."
+}
+```
+
+**Response**:
+```json
+{
+  "player": {
+    "player_name": "Ronaldinho Gaúcho",
+    "overall_rating": 99,
+    "position": "ESA",
+    "team": "FC Barcelona 05-06",
+    "base_stats": { ... },
+    "skills": [...],
+    ...
+  }
 }
 ```
 
 ---
 
-## Flusso utente (Production)
+### Operazioni Database
 
-1) Apri `gattilio27.vercel.app`
-2) Drag & drop screenshot
-3) Click **“Estrai dati”**
-4) Verifica JSON
-5) Seleziona slot e click **“Inserisci”**
+#### `POST /api/supabase/save-player`
+Salva/aggiorna un giocatore nella rosa dell'utente.
+
+**Auth**: `Authorization: Bearer <supabase_access_token>`
+
+**Request**:
+```json
+{
+  "player": { ... },  // Dati giocatore estratti
+  "slotIndex": 0      // Slot rosa (0-20, opzionale)
+}
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "player_id": "uuid",
+  "is_new": true,
+  "slot_index": 0
+}
+```
+
+#### `GET /api/supabase/get-my-players`
+Recupera tutti i giocatori dell'utente.
+
+**Auth**: `Authorization: Bearer <supabase_access_token>`
+
+**Response**:
+```json
+{
+  "players": [...],
+  "count": 5
+}
+```
+
+#### `PATCH /api/supabase/update-player`
+Aggiorna un giocatore esistente.
+
+**Auth**: `Authorization: Bearer <supabase_access_token>`
+
+**Request**:
+```json
+{
+  "playerId": "uuid",
+  "updates": {
+    "overall_rating": 100,
+    ...
+  }
+}
+```
+
+#### `DELETE /api/supabase/delete-player`
+Elimina un giocatore.
+
+**Auth**: `Authorization: Bearer <supabase_access_token>`
+
+**Query**: `?id=uuid`
+
+#### `POST /api/supabase/reset-my-data`
+Cancella tutti i giocatori dell'utente.
+
+**Auth**: `Authorization: Bearer <supabase_access_token>`
+
+**Response**:
+```json
+{
+  "success": true,
+  "deleted_count": 5
+}
+```
 
 ---
 
-## Troubleshooting rapido
+## Environment Variables
 
-### “OPENAI_API_KEY mancante…”
-- La env non è presente nel **deployment Production** oppure manca redeploy.
-- Verifica con `GET /api/env-check`:
-  - deve essere `hasOpenaiKey: true` e `vercelEnv: production`
+### Vercel Production
 
-### 500 “payload too large”
-- Lato UI l’immagine viene compressa; se usi screenshot enormi, rifai lo screenshot o riduci la risoluzione.
+**OpenAI**:
+- `OPENAI_API_KEY` - API key OpenAI (server-only)
 
-### Dati mancanti (booster/skills/statistiche)
-- Alcuni campi sono coperti da popup o sono su schermate diverse.
-- **Best practice**: per un giocatore usare **3 screenshot**:
-  - profilo base (nome/ovr/pos/altezza/peso/età)
-  - schermata skills
-  - schermata stats
+**Supabase**:
+- `NEXT_PUBLIC_SUPABASE_URL` - URL progetto Supabase
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Anon key (publishable)
+- `SUPABASE_SERVICE_ROLE_KEY` - Service role key (server-only)
 
 ---
 
-## Next step (già pianificato)
+## Flusso Utente
 
-Supporto “3 foto per giocatore”:
-- UI: 3 upload/dragdrop
-- API: invio di 3 immagini in un’unica chiamata e merge dei campi in un unico JSON.
+1. **Login** → Autenticazione con Supabase Auth
+2. **Carica Screenshot** → `/rosa` → Drag & drop immagine
+3. **Estrazione** → Chiamata a `POST /api/extract-player` → Visualizzazione JSON
+4. **Salvataggio** → Selezione slot (0-20) → `POST /api/supabase/save-player` → Salva in `players`
+5. **Visualizzazione** → `/my-players` → `GET /api/supabase/get-my-players` → Mostra rosa
 
+---
+
+## Schema JSON Estratto
+
+Esempio completo di dati estratti da screenshot:
+
+```json
+{
+  "player_name": "Ronaldinho Gaúcho",
+  "overall_rating": 99,
+  "position": "ESA",
+  "role": "Ala prolifica",
+  "card_type": "Epico",
+  "team": "FC Barcelona 05-06",
+  "nationality": "Brasile",
+  "height_cm": 182,
+  "weight_kg": 80,
+  "age": 26,
+  "form": "B",
+  "level_current": 31,
+  "level_cap": 31,
+  "base_stats": {
+    "attacking": { ... },
+    "defending": { ... },
+    "athleticism": { ... }
+  },
+  "skills": [...],
+  "com_skills": [...],
+  "boosters": [
+    { "name": "Fantasista", "effect": "+2" }
+  ]
+}
+```
+
+---
+
+## Troubleshooting
+
+### "OPENAI_API_KEY mancante..."
+- Verifica env vars su Vercel → Settings → Environment Variables
+- Redeploy dopo aver aggiunto le variabili
+
+### "500 payload too large"
+- L'immagine viene compressa lato client
+- Se persiste, riduci risoluzione screenshot
+
+### Dati mancanti (booster/skills/stats)
+- Alcuni campi sono su schermate diverse in eFootball
+- **Best practice**: usa più screenshot per giocatore completo
+
+---
+
+**App pronta per produzione!** 🚀

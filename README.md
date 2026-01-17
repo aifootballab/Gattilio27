@@ -66,4 +66,4 @@ Il progetto è configurato per deploy automatico su Vercel tramite GitHub.
 
 - Le chiavi API devono essere configurate su Vercel → Settings → Environment Variables
 - `SUPABASE_SERVICE_ROLE_KEY` è server-only e non deve essere esposta al client
-- Il database Supabase deve avere le tabelle: `player_builds`, `players_base`, `user_rosa`, `screenshot_processing_log`
+- Il database Supabase deve avere la tabella `players` (ogni utente ha la sua rosa di giocatori)

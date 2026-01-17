@@ -42,27 +42,27 @@ export async function POST(req) {
     console.log('[reset-my-data] Auth OK, userId:', userId, 'email:', userEmail || 'anon')
     const admin = createClient(supabaseUrl, serviceKey)
 
-    // Cancella SOLO i dati dell’utente corrente (anon): non tocca players_base globali
-    const results = {}
-
-    const r1 = await admin.from('user_rosa').delete().eq('user_id', userId)
-    results.user_rosa = { error: r1.error?.message || null }
-
-    const r2 = await admin.from('player_builds').delete().eq('user_id', userId)
-    results.player_builds = { error: r2.error?.message || null }
-
-    const r3 = await admin.from('screenshot_processing_log').delete().eq('user_id', userId)
-    results.screenshot_processing_log = { error: r3.error?.message || null }
-
-    // Cancella SOLO i players_base creati da questa app per questo user_id (tag in metadata)
-    const r4 = await admin
-      .from('players_base')
+    // Cancella SOLO i giocatori dell'utente corrente dalla tabella players
+    const { error: deleteErr, count } = await admin
+      .from('players')
       .delete()
-      .eq('source', 'screenshot_extractor')
-      .contains('metadata', { source: 'screenshot_extractor', user_id: userId })
-    results.players_base_test_only = { error: r4.error?.message || null }
+      .eq('user_id', userId)
+      .select('id', { count: 'exact', head: true })
 
-    return NextResponse.json({ success: true, user_id: userId, results })
+    if (deleteErr) {
+      console.error('[reset-my-data] Delete error:', deleteErr.message)
+      return NextResponse.json({ 
+        error: 'Failed to delete players',
+        details: deleteErr.message 
+      }, { status: 500 })
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      user_id: userId,
+      deleted_count: count || 0,
+      message: `Deleted ${count || 0} player(s) for user ${userId}`
+    })
   } catch (e) {
     console.error('[reset-my-data] Unhandled exception:', {
       message: e?.message || String(e),
@@ -78,4 +78,3 @@ export async function POST(req) {
     )
   }
 }
-
