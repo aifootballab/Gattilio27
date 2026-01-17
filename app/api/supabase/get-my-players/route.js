@@ -41,11 +41,39 @@ export async function GET(req) {
 
     // Query diretta: tutti i giocatori dell'utente, nessun filtro
     // IMPORTANTE: Usa .select('*') senza limiti - Supabase default è 1000 record
-    const { data: players, error: playersErr, count } = await admin
-      .from('players')
-      .select('*', { count: 'exact' })
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
+    // FIX: Query multipla per evitare replica lag - se la prima query ritorna count diverso,
+    // ritenta dopo breve delay per permettere sincronizzazione replica
+    let players = null
+    let playersErr = null
+    let count = null
+    let retries = 0
+    const maxRetries = 2
+    
+    while (retries <= maxRetries) {
+      const result = await admin
+        .from('players')
+        .select('*', { count: 'exact' })
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+      
+      players = result.data
+      playersErr = result.error
+      count = result.count
+      
+      if (playersErr) break
+      
+      // Se abbiamo dati e il count corrisponde, OK
+      if (players && players.length === count) break
+      
+      // Se count > players.length, c'è replica lag - ritenta dopo 500ms
+      if (retries < maxRetries && count > players.length) {
+        console.log(`[get-my-players] Replica lag detected: count=${count}, players=${players.length}, retry ${retries + 1}/${maxRetries}`)
+        await new Promise(resolve => setTimeout(resolve, 500))
+        retries++
+      } else {
+        break
+      }
+    }
 
     if (playersErr) {
       console.error('[get-my-players] Query error:', playersErr.message, playersErr)
