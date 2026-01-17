@@ -303,6 +303,9 @@ export async function GET(req) {
     // 3. Crea mappa per lookup veloce
     const playersBaseMap = new Map((playersBase || []).map(pb => [pb.id, pb]))
     console.log('[get-my-players] players_base map size:', playersBaseMap.size)
+    console.log('[get-my-players] players_base IDs in map:', Array.from(playersBaseMap.keys()))
+    console.log('[get-my-players] player_base_ids from builds:', builds?.map(b => b.player_base_id))
+    console.log('[get-my-players] Missing player_base_ids:', builds?.map(b => b.player_base_id).filter(id => !playersBaseMap.has(id)))
     console.log('[get-my-players] ===== QUERY END =====')
 
     console.log('[get-my-players] ===== FORMATTING RESPONSE =====')
