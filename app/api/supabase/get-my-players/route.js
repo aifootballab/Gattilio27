@@ -120,9 +120,35 @@ export async function GET(req) {
         console.log('[get-my-players] 🔄 Orphaned players:', orphanedPlayers.map(p => p.player_name))
         
         // Ricrea player_builds per ogni players_base orfano
+        // Usa upsert per evitare errori su duplicati (constraint UNIQUE user_id + player_base_id)
         const recreatedBuilds = []
         for (const orphan of orphanedPlayers) {
           try {
+            // Verifica se esiste già un build (doppio check per sicurezza)
+            const { data: existingBuild } = await admin
+              .from('player_builds')
+              .select('id, player_base_id')
+              .eq('user_id', userId)
+              .eq('player_base_id', orphan.id)
+              .maybeSingle()
+            
+            if (existingBuild) {
+              console.log('[get-my-players] ⚠️ Build already exists for', orphan.player_name, '- skipping recreation (build_id:', existingBuild.id, ')')
+              // Aggiungi il build esistente all'array se non è già presente
+              if (!existingPlayerBaseIds.has(orphan.id)) {
+                const { data: fullBuild } = await admin
+                  .from('player_builds')
+                  .select('id, player_base_id, final_overall_rating, current_level, level_cap, active_booster_name, source_data, created_at')
+                  .eq('id', existingBuild.id)
+                  .single()
+                if (fullBuild) {
+                  recreatedBuilds.push(fullBuild)
+                  existingPlayerBaseIds.add(orphan.id) // Aggiorna il set per evitare duplicati
+                }
+              }
+              continue
+            }
+            
             const overallRating = orphan.base_stats?.overall_rating || 
                                  orphan.metadata?.extracted?.overall_rating || 
                                  null
@@ -140,20 +166,40 @@ export async function GET(req) {
               },
             }
             
+            console.log('[get-my-players] 🔄 Attempting to upsert build for', orphan.player_name, '(player_base_id:', orphan.id, ')')
+            
+            // Usa upsert invece di insert per evitare errori su constraint UNIQUE
             const { data: newBuild, error: buildErr } = await admin
               .from('player_builds')
-              .insert(buildPayload)
+              .upsert(buildPayload, { 
+                onConflict: 'user_id,player_base_id',
+                ignoreDuplicates: false // Se esiste già, aggiorna invece di ignorare
+              })
               .select('id, player_base_id, final_overall_rating, current_level, level_cap, active_booster_name, source_data, created_at')
               .single()
             
             if (buildErr) {
-              console.error('[get-my-players] ⚠️ Failed to recreate build for', orphan.player_name, ':', buildErr.message, buildErr.code, buildErr.details)
-            } else {
-              console.log('[get-my-players] ✅ Recreated build for', orphan.player_name, '- build_id:', newBuild.id)
+              console.error('[get-my-players] ⚠️ Failed to upsert build for', orphan.player_name, ':', {
+                error: buildErr.message,
+                code: buildErr.code,
+                details: buildErr.details,
+                hint: buildErr.hint,
+                player_name: orphan.player_name,
+                player_base_id: orphan.id
+              })
+            } else if (newBuild) {
+              console.log('[get-my-players] ✅ Successfully upserted build for', orphan.player_name, '- build_id:', newBuild.id)
               recreatedBuilds.push(newBuild)
+            } else {
+              console.error('[get-my-players] ⚠️ Upsert returned no data for', orphan.player_name)
             }
           } catch (recoverErr) {
-            console.error('[get-my-players] ⚠️ Exception recreating build for', orphan.player_name, ':', recoverErr.message)
+            console.error('[get-my-players] ⚠️ Exception recreating build for', orphan.player_name, ':', {
+              error: recoverErr.message,
+              stack: recoverErr.stack,
+              player_name: orphan.player_name,
+              player_base_id: orphan.id
+            })
           }
         }
         
