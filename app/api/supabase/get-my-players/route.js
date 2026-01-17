@@ -62,11 +62,14 @@ export async function GET(req) {
       
       if (playersErr) break
       
+      // Se non abbiamo dati, OK (array vuoto)
+      if (!players || players.length === 0) break
+      
       // Se abbiamo dati e il count corrisponde, OK
-      if (players && players.length === count) break
+      if (count !== null && count !== undefined && players.length === count) break
       
       // Se count > players.length, c'è replica lag - ritenta dopo 500ms
-      if (retries < maxRetries && count > players.length) {
+      if (retries < maxRetries && count !== null && count !== undefined && count > players.length) {
         console.log(`[get-my-players] Replica lag detected: count=${count}, players=${players.length}, retry ${retries + 1}/${maxRetries}`)
         await new Promise(resolve => setTimeout(resolve, 500))
         retries++
