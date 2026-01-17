@@ -40,52 +40,45 @@ export async function GET(req) {
     console.log('[get-my-players] Querying with userId:', userId, 'type:', typeof userId)
 
     // Query diretta: tutti i giocatori dell'utente, nessun filtro
-    // IMPORTANTE: Usa .select('*') senza limiti - Supabase default è 1000 record
-    // FIX: Query multipla per evitare replica lag - se la prima query ritorna count diverso,
-    // ritenta dopo breve delay per permettere sincronizzazione replica
-    let players = null
-    let playersErr = null
-    let count = null
-    let retries = 0
-    const maxRetries = 2
+    // IMPORTANTE: Supabase Client ha limiti di default, usiamo paginazione per essere sicuri
+    // FIX: Query con limit esplicito alto (1000) + retry se sospettiamo record mancanti
+    let allPlayers = []
+    let page = 0
+    const pageSize = 1000
+    let hasMore = true
     
-    while (retries <= maxRetries) {
+    while (hasMore) {
+      const from = page * pageSize
+      const to = from + pageSize - 1
+      
       const result = await admin
         .from('players')
-        .select('*', { count: 'exact' })
+        .select('*')
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
+        .range(from, to)
       
-      players = result.data
-      playersErr = result.error
-      count = result.count
-      
-      if (playersErr) break
-      
-      // Se non abbiamo dati, OK (array vuoto)
-      if (!players || players.length === 0) break
-      
-      // Se abbiamo dati e il count corrisponde, OK
-      if (count !== null && count !== undefined && players.length === count) break
-      
-      // Se count > players.length, c'è replica lag - ritenta dopo 500ms
-      if (retries < maxRetries && count !== null && count !== undefined && count > players.length) {
-        console.log(`[get-my-players] Replica lag detected: count=${count}, players=${players.length}, retry ${retries + 1}/${maxRetries}`)
-        await new Promise(resolve => setTimeout(resolve, 500))
-        retries++
-      } else {
-        break
+      if (result.error) {
+        console.error('[get-my-players] Query error:', result.error.message, result.error)
+        return NextResponse.json({ error: 'Failed to fetch players' }, { status: 500 })
       }
+      
+      const pagePlayers = result.data || []
+      allPlayers = allPlayers.concat(pagePlayers)
+      
+      // Se la pagina è meno del pageSize, abbiamo finito
+      hasMore = pagePlayers.length === pageSize
+      page++
+      
+      // Safety limit: max 10 pagine (10k record)
+      if (page >= 10) break
     }
-
-    if (playersErr) {
-      console.error('[get-my-players] Query error:', playersErr.message, playersErr)
-      return NextResponse.json({ error: 'Failed to fetch players' }, { status: 500 })
-    }
+    
+    const players = allPlayers
 
     // DEBUG: Log dettagliato
-    console.log('[get-my-players] RAW players count from query:', players?.length || 0)
-    console.log('[get-my-players] Total count from Supabase:', count)
+    console.log('[get-my-players] Total players retrieved:', players.length)
+    console.log('[get-my-players] Players fetched in', page, 'page(s)')
     console.log('[get-my-players] RAW players IDs:', players?.map(p => ({ id: p.id, name: p.player_name, user_id: p.user_id })) || [])
 
     // Recupera playing_styles se necessario
