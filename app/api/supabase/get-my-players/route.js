@@ -91,28 +91,33 @@ export async function GET(req) {
     console.log('[get-my-players] 📋 PRIMI 6 ID RICEVUTI:', builds?.slice(0, 6).map(b => b.id) || [])
     console.log('[get-my-players] 📋 TUTTI GLI ID RICEVUTI:', builds?.map(b => b.id) || [])
     
-    // RESILIENZA: Se player_builds è vuoto, cerca in players_base e ricrea i build mancanti
-    if (!builds || builds.length === 0) {
-      console.log('[get-my-players] ⚠️ NO BUILDS FOUND for user_id:', userId)
-      console.log('[get-my-players] Attempting recovery: searching players_base with metadata.user_id...')
+    // RESILIENZA: Verifica se ci sono players_base orfani (senza player_builds corrispondenti)
+    // Cerca tutti i players_base dell'utente e confronta con i builds esistenti
+    console.log('[get-my-players] 🔍 Checking for orphaned players_base...')
+    const { data: allUserPlayersBase, error: orphanErr } = await admin
+      .from('players_base')
+      .select('id, player_name, position, metadata, base_stats, source')
+      .eq('source', 'screenshot_extractor')
+    
+    // Filtra in JS per metadata.user_id
+    const userPlayersBase = allUserPlayersBase?.filter(pb => 
+      pb.metadata?.user_id === userId || pb.metadata?.extracted?.user_id === userId
+    ) || []
+    
+    if (orphanErr) {
+      console.error('[get-my-players] ⚠️ Error searching user players_base:', orphanErr.message)
+    } else if (userPlayersBase && userPlayersBase.length > 0) {
+      // Crea set dei player_base_id che hanno già un build
+      const existingPlayerBaseIds = new Set((builds || []).map(b => b.player_base_id).filter(id => id))
+      console.log('[get-my-players] 📊 Existing builds for', existingPlayerBaseIds.size, 'player_base_ids')
+      console.log('[get-my-players] 📊 Total user players_base:', userPlayersBase.length)
       
-      // Cerca players_base con metadata.user_id dell'utente
-      // Query tutti i players_base con source=screenshot_extractor e filtra in JS per metadata.user_id
-      // (necessario perché Supabase client non supporta facilmente filtri JSONB nidificati)
-      const { data: allOrphanedPlayers, error: orphanErr } = await admin
-        .from('players_base')
-        .select('id, player_name, position, metadata, base_stats, source')
-        .eq('source', 'screenshot_extractor')
+      // Trova players_base orfani (senza corrispondente build)
+      const orphanedPlayers = userPlayersBase.filter(pb => !existingPlayerBaseIds.has(pb.id))
       
-      // Filtra in JS per metadata.user_id
-      const orphanedPlayers = allOrphanedPlayers?.filter(pb => 
-        pb.metadata?.user_id === userId || pb.metadata?.extracted?.user_id === userId
-      ) || []
-      
-      if (orphanErr) {
-        console.error('[get-my-players] ⚠️ Error searching orphaned players:', orphanErr.message)
-      } else if (orphanedPlayers && orphanedPlayers.length > 0) {
-        console.log('[get-my-players] 🔄 Found', orphanedPlayers.length, 'orphaned players_base. Recreating player_builds...')
+      if (orphanedPlayers && orphanedPlayers.length > 0) {
+        console.log('[get-my-players] 🔄 Found', orphanedPlayers.length, 'orphaned players_base. Recreating missing player_builds...')
+        console.log('[get-my-players] 🔄 Orphaned players:', orphanedPlayers.map(p => p.player_name))
         
         // Ricrea player_builds per ogni players_base orfano
         const recreatedBuilds = []
@@ -142,7 +147,7 @@ export async function GET(req) {
               .single()
             
             if (buildErr) {
-              console.error('[get-my-players] ⚠️ Failed to recreate build for', orphan.player_name, ':', buildErr.message)
+              console.error('[get-my-players] ⚠️ Failed to recreate build for', orphan.player_name, ':', buildErr.message, buildErr.code, buildErr.details)
             } else {
               console.log('[get-my-players] ✅ Recreated build for', orphan.player_name, '- build_id:', newBuild.id)
               recreatedBuilds.push(newBuild)
@@ -153,15 +158,26 @@ export async function GET(req) {
         }
         
         if (recreatedBuilds.length > 0) {
-          console.log('[get-my-players] ✅ Successfully recreated', recreatedBuilds.length, 'player_builds')
-          builds = recreatedBuilds
+          console.log('[get-my-players] ✅ Successfully recreated', recreatedBuilds.length, 'missing player_builds')
+          // Aggiungi i builds ricreati agli esistenti (o sostituisci se builds era vuoto)
+          builds = builds && builds.length > 0 ? [...builds, ...recreatedBuilds] : recreatedBuilds
         } else {
-          console.log('[get-my-players] ⚠️ No builds could be recreated')
-          console.log('[get-my-players] ===== QUERY END =====')
-          return NextResponse.json({ players: [], count: 0 })
+          console.log('[get-my-players] ⚠️ No builds could be recreated for orphaned players')
         }
       } else {
-        console.log('[get-my-players] ⚠️ No orphaned players found either')
+        console.log('[get-my-players] ✅ All players_base have corresponding player_builds')
+      }
+      
+      // Se builds è ancora vuoto dopo la recovery, ritorna vuoto
+      if (!builds || builds.length === 0) {
+        console.log('[get-my-players] ⚠️ No player_builds found after recovery attempt')
+        console.log('[get-my-players] ===== QUERY END =====')
+        return NextResponse.json({ players: [], count: 0 })
+      }
+    } else {
+      console.log('[get-my-players] ⚠️ No user players_base found')
+      // Se non ci sono né builds né players_base, ritorna vuoto
+      if (!builds || builds.length === 0) {
         console.log('[get-my-players] ===== QUERY END =====')
         return NextResponse.json({ players: [], count: 0 })
       }
