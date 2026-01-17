@@ -35,49 +35,22 @@ export default function MyPlayersPage() {
     })
 
     const initAuth = async () => {
-      console.log('[MyPlayers] ===== INIT AUTH START =====')
       try {
-        console.log('[MyPlayers] Getting session...')
         const { data, error } = await supabase.auth.getSession()
         
         if (!data?.session?.access_token || error) {
-          console.log('[MyPlayers] ❌ No session, redirecting to login:', {
-            hasSession: !!data?.session,
-            hasAccessToken: !!data?.session?.access_token,
-            error: error?.message || null
-          })
           router.push('/login')
           return
         }
         
-        const sessionUserId = data.session.user?.id
-        const sessionToken = data.session.access_token
-        const sessionEmail = data.session.user?.email
-        
-        console.log('[MyPlayers] ✅ Session found')
-        console.log('[MyPlayers] Session userId:', sessionUserId || '(null)')
-        console.log('[MyPlayers] Session userEmail:', sessionEmail || '(null)')
-        console.log('[MyPlayers] Session token (first 30 chars):', sessionToken.substring(0, 30) + '...')
-        console.log('[MyPlayers] Session token length:', sessionToken.length)
-        
         setAuthStatus({
           ready: true,
-          userId: sessionUserId || null,
-          token: sessionToken,
+          userId: data.session.user?.id || null,
+          token: data.session.access_token,
         })
-        
-        console.log('[MyPlayers] AuthStatus set:', {
-          ready: true,
-          userId: sessionUserId || null,
-          hasToken: !!sessionToken
-        })
-        console.log('[MyPlayers] ===== INIT AUTH END =====')
       } catch (err) {
-        // Ignora silenziosamente gli errori di refresh token (warning innocuo)
-        if (err?.message?.includes('Refresh Token') || err?.message?.includes('refresh_token')) {
-          console.log('[MyPlayers] ⚠️ Refresh token warning (ignored, session still valid)')
-        } else {
-          console.error('[MyPlayers] ❌ Auth init failed:', err)
+        if (!err?.message?.includes('Refresh Token') && !err?.message?.includes('refresh_token')) {
+          console.error('[MyPlayers] Auth init failed:', err)
           router.push('/login')
         }
       }
@@ -105,25 +78,11 @@ export default function MyPlayersPage() {
         
         const data = await res.json()
         
-        console.log('[MyPlayers] 🔍 API RESPONSE:', {
-          status: res.status,
-          ok: res.ok,
-          playersCount: data.players?.length || 0,
-          playerNames: data.players?.map(p => p.player_name) || [],
-          fullData: data
-        })
-        
         if (!res.ok) {
           throw new Error(data?.error || `Failed to fetch players (${res.status})`)
         }
         
-        const playersArray = Array.isArray(data.players) ? data.players : []
-        console.log('[MyPlayers] 🔍 SETTING PLAYERS:', {
-          count: playersArray.length,
-          playerNames: playersArray.map(p => p.player_name)
-        })
-        
-        setPlayers(playersArray)
+        setPlayers(Array.isArray(data.players) ? data.players : [])
       } catch (err) {
         console.error('[MyPlayers] Fetch error:', err)
         setError(err?.message || (lang === 'it' ? 'Errore caricamento giocatori' : 'Error loading players'))

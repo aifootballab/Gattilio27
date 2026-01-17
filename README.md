@@ -1,145 +1,69 @@
-# Gattilio27 - Rosa (Production)
+# eFootball AI Coach
 
-> Analizzatore screenshot eFootball → Estrazione dati → Rosa da 21 slot
-
-## Documentazione
-
-### 📘 Documentazione Enterprise (Raccomandato)
-Vedi [DOCUMENTAZIONE_ENTERPRISE.md](./DOCUMENTAZIONE_ENTERPRISE.md) per la documentazione enterprise completa:
-- Architettura e stack tecnologico
-- Struttura database e RLS
-- API Endpoints e flussi dati
-- Configurazione e deployment
-- Best practices e troubleshooting
-
-### 📚 Documentazione Completa (Dettagli Tecnici)
-Vedi [DOCUMENTAZIONE_COMPLETA.md](./DOCUMENTAZIONE_COMPLETA.md) per documentazione dettagliata su:
-- **Architettura del Sistema**: Stack tecnologico, struttura progetto, flussi principali
-- **Struttura Database**: Tabelle principali (`players_base`, `player_builds`, `user_rosa`, etc.) con schema dettagliato
-- **Gestione Autenticazione e Chiavi**: Tipi di chiavi Supabase (anon, service role), flusso autenticazione email, configurazione
-- **Row Level Security (RLS) Policies**: Strategia RLS, policies implementate, note performance
-- **API Endpoints**: Documentazione completa di tutti gli endpoint con request/response
-- **Flusso Dati**: Diagrammi flusso estrazione → database e recupero → visualizzazione
-- **Smart Batch Processing**: Processing sequenziale, merge progressivo, completeness calculation
-- **Configurazione Ambiente**: Variabili Vercel, configurazione Supabase
-- **Troubleshooting**: Problemi comuni e soluzioni
-
-### 🔒 Backup e Sicurezza
-Vedi [BACKUP_E_SICUREZZA.md](./BACKUP_E_SICUREZZA.md) per:
-- **Strategia Backup**: Database, codice, configurazione
-- **Sicurezza Enterprise**: Environment variables, autenticazione, API security
-- **Disaster Recovery**: Procedure per scenari critici
-- **Monitoraggio e Alerting**: Metriche e setup notifiche
-
-### 📄 Documentazione Rapida
-Vedi [DOCUMENTAZIONE.md](./DOCUMENTAZIONE.md) per guida rapida su:
-- Architettura base
-- Endpoints principali
-- Schema JSON estratto
-- Troubleshooting rapido
-
----
-
-## Quick Start
-
-### Requisiti
-- **Node.js 18+** (per sviluppo locale)
-- **Vercel Account** (per deployment)
-- **Supabase Project** (per database)
-- **OpenAI API Key** (per estrazione dati)
-
-### Setup Locale
-
-1. **Clona repository**
-   ```bash
-   git clone <repository-url>
-   cd Gattilio27-master
-   ```
-
-2. **Installa dipendenze**
-```bash
-npm install
-   ```
-
-3. **Configura variabili ambiente**
-   Crea `.env.local`:
-   ```
-   OPENAI_API_KEY=sk-...
-   NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=...
-   SUPABASE_SERVICE_ROLE_KEY=...
-   ```
-
-4. **Avvia sviluppo**
-   ```bash
-   npm run dev
-   ```
-
-5. **Apri browser**
-   ```
-   http://localhost:3000
-   ```
-
-### Deployment Vercel
-
-1. **Collega repository a Vercel**
-2. **Configura Environment Variables** (vedi [DOCUMENTAZIONE_COMPLETA.md](./DOCUMENTAZIONE_COMPLETA.md#configurazione-ambiente))
-3. **Deploy automatico** su push a `master`
-
----
-
-## Funzionalità
-
-- ✅ **Upload Screenshot**: Drag & drop 1-6 screenshot giocatore
-- ✅ **Estrazione Batch**: Raggruppamento automatico per giocatore
-- ✅ **Estrazione Dati**: OpenAI Vision API per estrarre tutti i dati
-- ✅ **Salvataggio Supabase**: Persistenza dati in database
-- ✅ **Rosa 21 Slot**: Gestione squadra con 21 slot
-- ✅ **Visualizzazione Giocatori**: Lista e scheda completa con UX screenshot-like
-- ✅ **Internazionalizzazione**: Supporto IT/EN
-- ✅ **Design System**: Futuristic dark theme con neon colors
-
----
+Web app per coaching eFootball con estrazione dati da screenshot e gestione rosa giocatori.
 
 ## Stack Tecnologico
 
-- **Frontend**: Next.js 14+ (App Router)
+- **Frontend**: Next.js 14, React 18
 - **Backend**: Next.js API Routes
 - **Database**: Supabase (PostgreSQL)
-- **Autenticazione**: Supabase Email Auth (senza verifica email)
-- **AI Vision**: OpenAI GPT-4o Vision API
-- **Deployment**: Vercel
-- **Linguaggio**: JavaScript/JSX
+- **AI**: OpenAI GPT-4 Vision (estrazione dati da screenshot)
+- **Deploy**: Vercel
 
----
+## Funzionalità Core
+
+1. **Autenticazione**: Login con Supabase Auth
+2. **Dashboard**: Pannello principale
+3. **Rosa**: Gestione squadra (21 slot)
+4. **I Miei Giocatori**: Lista e gestione giocatori salvati
+5. **Estrazione Screenshot**: Caricamento screenshot e estrazione dati con AI
+6. **Profilo Giocatore**: Visualizzazione e modifica dati giocatore
 
 ## Struttura Progetto
 
 ```
-Gattilio27-master/
-├── app/
-│   ├── api/                    # API Routes (server-side)
-│   ├── dashboard/              # Dashboard principale (home)
-│   ├── rosa/                   # Gestione rosa (upload screenshot)
-│   ├── my-players/             # Lista giocatori salvati
-│   └── player/[id]/            # Dettaglio singolo giocatore
-├── lib/
-│   ├── supabaseClient.js       # Client Supabase (anon)
-│   └── i18n.js                 # Sistema internazionalizzazione (IT/EN)
-└── public/
-    └── backgrounds/            # Sfondi personalizzati
+app/
+├── api/                    # API Routes
+│   ├── extract-player/     # Estrazione dati da screenshot
+│   └── supabase/          # Operazioni database
+├── dashboard/              # Dashboard principale
+├── login/                  # Pagina login
+├── rosa/                   # Gestione rosa
+├── my-players/            # Lista giocatori
+└── player/[id]/           # Dettaglio giocatore
+
+lib/
+├── authHelper.js          # Helper autenticazione
+├── supabaseClient.js      # Client Supabase
+├── i18n.js                # Internazionalizzazione
+└── normalize.js           # Utility normalizzazione
 ```
 
----
+## Environment Variables
 
-## Supporto
+### Vercel Production
 
-Per problemi o domande, consulta:
-- [DOCUMENTAZIONE_COMPLETA.md](./DOCUMENTAZIONE_COMPLETA.md) - Documentazione completa
-- [DOCUMENTAZIONE.md](./DOCUMENTAZIONE.md) - Guida rapida
-- [Troubleshooting](./DOCUMENTAZIONE_COMPLETA.md#troubleshooting) - Problemi comuni
+**OpenAI**:
+- `OPENAI_API_KEY` - API key OpenAI (server-only)
 
----
+**Supabase**:
+- `NEXT_PUBLIC_SUPABASE_URL` - URL progetto Supabase
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Anon key (publishable)
+- `SUPABASE_SERVICE_ROLE_KEY` - Service role key (server-only)
 
-**Versione**: 1.0.0  
-**Ultimo Aggiornamento**: Gennaio 2025
+## Setup Locale
+
+```bash
+npm install
+npm run dev
+```
+
+## Deploy
+
+Il progetto è configurato per deploy automatico su Vercel tramite GitHub.
+
+## Note
+
+- Le chiavi API devono essere configurate su Vercel → Settings → Environment Variables
+- `SUPABASE_SERVICE_ROLE_KEY` è server-only e non deve essere esposta al client
+- Il database Supabase deve avere le tabelle: `player_builds`, `players_base`, `user_rosa`, `screenshot_processing_log`
