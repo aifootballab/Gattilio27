@@ -54,7 +54,12 @@ export default function LoginPage() {
 
         if (data?.user) {
           setSuccess(t('signupSuccess'))
-          // Login completato - utente autenticato
+          setLoading(false)
+          // Redirect dopo successo
+          setTimeout(() => {
+            router.push('/upload')
+            router.refresh()
+          }, 1000)
         }
       } else {
         // Login
@@ -71,7 +76,12 @@ export default function LoginPage() {
 
         if (data?.user) {
           setSuccess(t('loginSuccess'))
-          // Login completato - utente autenticato
+          setLoading(false)
+          // Redirect dopo successo
+          setTimeout(() => {
+            router.push('/upload')
+            router.refresh()
+          }, 500)
         }
       }
     } catch (err) {
