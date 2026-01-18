@@ -3,12 +3,6 @@ import { NextResponse } from 'next/server'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-function toNumber(v) {
-  if (v === null || v === undefined) return null
-  const n = Number(v)
-  return Number.isFinite(n) ? n : null
-}
-
 function toInt(v) {
   if (v === null || v === undefined) return null
   const n = Number(v)

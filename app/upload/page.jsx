@@ -4,7 +4,7 @@ import React from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { useTranslation } from '@/lib/i18n'
-import { Upload, LogOut, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { Upload, LogOut, AlertCircle, CheckCircle, CheckCircle2 } from 'lucide-react'
 
 export default function UploadPage() {
   const { t, lang, changeLanguage } = useTranslation()
@@ -16,20 +16,43 @@ export default function UploadPage() {
   const [processing, setProcessing] = React.useState(null) // "1/3", "2/3", etc.
 
   React.useEffect(() => {
-    // Verifica sessione
+    if (!supabase) {
+      router.push('/login')
+      return
+    }
+
+    // Verifica sessione iniziale
     const checkSession = async () => {
-      if (!supabase) {
+      const { data: session, error } = await supabase.auth.getSession()
+      
+      if (error) {
+        // Errore sessione (es. refresh token invalido) - redirect automatico
+        console.warn('[Upload] Session error, redirecting to login:', error.message)
         router.push('/login')
         return
       }
 
-      const { data: session } = await supabase.auth.getSession()
       if (!session?.session) {
         router.push('/login')
       }
     }
 
     checkSession()
+
+    // Listener per cambiamenti auth (gestisce refresh token scaduti)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'SIGNED_OUT' || (event === 'TOKEN_REFRESHED' && !session)) {
+          // Sessione scaduta o refresh fallito - redirect automatico
+          router.push('/login')
+        }
+      }
+    )
+
+    // Cleanup listener
+    return () => {
+      subscription?.unsubscribe()
+    }
   }, [router])
 
   const handleFileSelect = (e) => {
@@ -90,11 +113,19 @@ export default function UploadPage() {
     setProcessing(null)
 
     try {
-      // Ottieni token
-      const { data: session } = await supabase.auth.getSession()
+      // Ottieni token con gestione errori enterprise
+      const { data: session, error: sessionError } = await supabase.auth.getSession()
+      
+      if (sessionError) {
+        // Errore sessione (refresh token scaduto/invalido)
+        setError('Sessione scaduta. Reindirizzamento al login...')
+        setTimeout(() => router.push('/login'), 1000)
+        return
+      }
+
       if (!session?.session?.access_token) {
         setError('Sessione non valida. Effettua nuovamente il login.')
-        router.push('/login')
+        setTimeout(() => router.push('/login'), 1000)
         return
       }
 
