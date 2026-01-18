@@ -123,7 +123,7 @@ export default function DashboardPage() {
       {/* LEFT PANEL */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
         <NeonPanel title={t('roster')} subtitle={t('yourPlayers')}>
-          <Link href="/my-players" style={{ textDecoration: 'none', color: 'inherit' }}>
+          <Link href="/rosa" style={{ textDecoration: 'none', color: 'inherit' }}>
             <div className="clickable-card" style={{ 
               padding: '12px', 
               borderRadius: '8px', 
@@ -134,7 +134,7 @@ export default function DashboardPage() {
             }}>
               <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Users size={16} />
-                {t('viewPlayers')}
+                {t('uploadScreenshots')}
               </div>
               <div style={{ fontSize: '12px', opacity: 0.8 }}>
                 {t('manageCollection')}
@@ -272,7 +272,7 @@ export default function DashboardPage() {
         <NeonPanel title={t('quickLinks')} subtitle={t('navigation')}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <QuickLink href="/dashboard" icon={<Home size={18} />} text={t('home')} />
-            <QuickLink href="/my-players" icon={<PlayersIcon size={18} />} text={t('players')} />
+            <QuickLink href="/rosa" icon={<PlayersIcon size={18} />} text={t('players')} />
             <QuickLink href="/rosa" icon={<LayoutGrid size={18} />} text={t('squadBuilder')} />
             <QuickLink href="/opponent-formation" icon={<Shield size={18} />} text={t('opponentFormation')} />
             <QuickLink href="/dashboard" icon={<BarChart3 size={18} />} text={t('dataAnalytics')} />
@@ -349,7 +349,6 @@ function InsightItem({ text, color = 'blue' }) {
 function QuickLink({ href, icon, text }) {
   const hrefMap = {
     '/dashboard': '/dashboard',
-    '/my-players': '/my-players',
     '/rosa': '/rosa',
     '/opponent-formation': '/opponent-formation',
   }

@@ -14,23 +14,26 @@ Web app per coaching eFootball con estrazione dati da screenshot e gestione rosa
 
 1. **Autenticazione**: Login con Supabase Auth
 2. **Dashboard**: Pannello principale
-3. **Rosa**: Gestione squadra (21 slot)
-4. **I Miei Giocatori**: Lista e gestione giocatori salvati
-5. **Estrazione Screenshot**: Caricamento screenshot e estrazione dati con AI
-6. **Profilo Giocatore**: Visualizzazione e modifica dati giocatore
+3. **Rosa**: Upload screenshot e estrazione dati (1-6 screenshot per volta)
+4. **Estrazione Screenshot**: Caricamento screenshot e estrazione dati con AI
+5. **Salvataggio Giocatori**: Salvataggio automatico con associazione a `user_id`
 
 ## Struttura Progetto
 
 ```
 app/
 ├── api/                    # API Routes
-│   ├── extract-player/     # Estrazione dati da screenshot
+│   ├── extract-batch/      # Estrazione batch da 1-6 screenshot
+│   ├── extract-player/     # Estrazione dati da singolo screenshot
+│   ├── extract-formation/  # Estrazione formazione avversario
 │   └── supabase/          # Operazioni database
+│       ├── save-player/    # Salvataggio giocatore
+│       ├── reset-my-data/  # Reset dati utente
+│       └── save-opponent-formation/ # Salvataggio formazione
 ├── dashboard/              # Dashboard principale
 ├── login/                  # Pagina login
-├── rosa/                   # Gestione rosa
-├── my-players/            # Lista giocatori
-└── player/[id]/           # Dettaglio giocatore
+├── rosa/                   # Upload screenshot e estrazione
+└── opponent-formation/     # Estrazione formazione avversario
 
 lib/
 ├── authHelper.js          # Helper autenticazione

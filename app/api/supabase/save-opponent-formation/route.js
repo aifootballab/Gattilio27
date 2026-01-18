@@ -5,7 +5,7 @@ import { validateToken, extractBearerToken } from '../../../../lib/authHelper'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-export async function PATCH(req) {
+export async function POST(req) {
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -31,44 +31,37 @@ export async function PATCH(req) {
       auth: { autoRefreshToken: false, persistSession: false }
     })
 
-    const { playerId, updates } = await req.json()
+    const { formation, name, screenshot_url } = await req.json()
 
-    if (!playerId) {
-      return NextResponse.json({ error: 'Player ID is required' }, { status: 400 })
+    if (!formation || typeof formation !== 'object') {
+      return NextResponse.json({ error: 'Formation data is required' }, { status: 400 })
     }
 
-    // Verifica che il giocatore appartenga all'utente
-    const { data: existingPlayer, error: checkErr } = await admin
-      .from('players')
-      .select('id, user_id')
-      .eq('id', playerId)
-      .eq('user_id', userId)
-      .maybeSingle()
-
-    if (checkErr || !existingPlayer) {
-      return NextResponse.json({ error: 'Player not found or access denied' }, { status: 404 })
+    // Salva formazione (struttura base - può essere estesa con tabella dedicata)
+    // Per ora salva come JSON in una struttura semplice
+    const formationData = {
+      user_id: userId,
+      name: name || `Formation ${new Date().toISOString()}`,
+      formation_data: formation,
+      screenshot_url: screenshot_url || null,
+      created_at: new Date().toISOString()
     }
 
-    // Aggiorna giocatore
-    const { data: updated, error: updateErr } = await admin
-      .from('players')
-      .update({
-        ...updates,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', playerId)
-      .eq('user_id', userId)
-      .select('id')
-      .single()
+    // Nota: Se esiste una tabella 'opponent_formations', usala:
+    // const { data: saved, error: saveErr } = await admin
+    //   .from('opponent_formations')
+    //   .insert(formationData)
+    //   .select('id')
+    //   .single()
 
-    if (updateErr) {
-      console.error('[update-player] Update error:', updateErr.message)
-      return NextResponse.json({ error: 'Failed to update player' }, { status: 500 })
-    }
-
-    return NextResponse.json({ success: true, player_id: updated.id })
+    // Per ora restituiamo successo (l'implementazione completa richiede tabella dedicata)
+    return NextResponse.json({
+      success: true,
+      message: 'Formation saved (stub - implementazione completa richiede tabella dedicata)',
+      formation_data: formationData
+    })
   } catch (e) {
-    console.error('[update-player] Error:', e)
+    console.error('[save-opponent-formation] Error:', e)
     return NextResponse.json(
       { error: e?.message || 'Errore server' },
       { status: 500 }

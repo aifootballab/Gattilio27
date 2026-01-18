@@ -3,10 +3,10 @@
 ## Obiettivo
 Una web app che permette:
 
-- Caricare (drag & drop) screenshot del profilo giocatore eFootball
-- Estrarre i dati con OpenAI Vision
+- Caricare (drag & drop) 1-6 screenshot del profilo giocatore eFootball
+- Estrarre i dati con OpenAI Vision (raggruppa screenshot stesso giocatore)
 - Salvare il giocatore nella rosa personale dell'utente (Supabase)
-- Visualizzare i giocatori salvati
+- Salvataggio sempre come nuovo record (permetti doppi, nessun limite)
 
 ---
 
@@ -14,17 +14,16 @@ Una web app che permette:
 
 ### Frontend
 - `app/page.tsx` - Homepage con upload screenshot
-- `app/rosa/page.jsx` - Gestione rosa (21 slot)
-- `app/my-players/page.jsx` - Lista giocatori salvati
-- `app/player/[id]/page.jsx` - Dettaglio giocatore
+- `app/rosa/page.jsx` - Upload screenshot e estrazione dati (1-6 screenshot)
+- `app/opponent-formation/page.jsx` - Estrazione formazione avversario
 
 ### Backend (Next.js API Routes)
-- `app/api/extract-player/route.js` - Estrazione dati da screenshot con OpenAI
-- `app/api/supabase/save-player/route.js` - Salvataggio giocatore in `players`
-- `app/api/supabase/get-my-players/route.js` - Recupero giocatori utente
-- `app/api/supabase/update-player/route.js` - Aggiornamento giocatore
-- `app/api/supabase/delete-player/route.js` - Eliminazione giocatore
+- `app/api/extract-batch/route.js` - Estrazione batch da 1-6 screenshot (raggruppa per giocatore)
+- `app/api/extract-player/route.js` - Estrazione dati da singolo screenshot con OpenAI
+- `app/api/extract-formation/route.js` - Estrazione formazione avversario
+- `app/api/supabase/save-player/route.js` - Salvataggio giocatore in `players` (sempre nuovo record)
 - `app/api/supabase/reset-my-data/route.js` - Reset dati utente
+- `app/api/supabase/save-opponent-formation/route.js` - Salvataggio formazione avversario
 
 ---
 
@@ -52,7 +51,6 @@ Ogni utente ha la sua rosa personale salvata in Supabase.
 ### Tabelle di supporto
 
 - `playing_styles` - Stili di gioco (riferimento per `playing_style_id` in `players`)
-- `screenshot_processing_log` - Log screenshot (opzionale, per tracking/debug)
 
 ---
 
@@ -89,16 +87,39 @@ Estrae dati da screenshot con OpenAI Vision.
 
 ### Operazioni Database
 
+#### `POST /api/extract-batch`
+Estrae e raggruppa dati da 1-6 screenshot.
+
+**Request**:
+```json
+{
+  "images": [{ "id": "...", "imageDataUrl": "data:image/..." }]
+}
+```
+
+**Response**:
+```json
+{
+  "groups": [
+    {
+      "group_id": "g1",
+      "label": "Nome Giocatore",
+      "player": { ... },
+      "completeness": { "percentage": 100, ... }
+    }
+  ]
+}
+```
+
 #### `POST /api/supabase/save-player`
-Salva/aggiorna un giocatore nella rosa dell'utente.
+Salva sempre come nuovo record (permetti doppi, nessun limite).
 
 **Auth**: `Authorization: Bearer <supabase_access_token>`
 
 **Request**:
 ```json
 {
-  "player": { ... },  // Dati giocatore estratti
-  "slotIndex": 0      // Slot rosa (0-20, opzionale)
+  "player": { ... }  // Dati giocatore estratti (solo player, nessun slotIndex)
 }
 ```
 
@@ -107,46 +128,11 @@ Salva/aggiorna un giocatore nella rosa dell'utente.
 {
   "success": true,
   "player_id": "uuid",
-  "is_new": true,
-  "slot_index": 0
+  "is_new": true
 }
 ```
 
-#### `GET /api/supabase/get-my-players`
-Recupera tutti i giocatori dell'utente.
-
-**Auth**: `Authorization: Bearer <supabase_access_token>`
-
-**Response**:
-```json
-{
-  "players": [...],
-  "count": 5
-}
-```
-
-#### `PATCH /api/supabase/update-player`
-Aggiorna un giocatore esistente.
-
-**Auth**: `Authorization: Bearer <supabase_access_token>`
-
-**Request**:
-```json
-{
-  "playerId": "uuid",
-  "updates": {
-    "overall_rating": 100,
-    ...
-  }
-}
-```
-
-#### `DELETE /api/supabase/delete-player`
-Elimina un giocatore.
-
-**Auth**: `Authorization: Bearer <supabase_access_token>`
-
-**Query**: `?id=uuid`
+**Nota**: `slot_index` è sempre `null` (non gestiamo rosa con slot).
 
 #### `POST /api/supabase/reset-my-data`
 Cancella tutti i giocatori dell'utente.

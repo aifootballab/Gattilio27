@@ -323,10 +323,6 @@ function RosaProductionPage() {
             : 'Upload 1–6 screenshots (even mixed) → group by player → extract data → insert into squad'}
         </p>
         <div style={{ display: 'flex', gap: 10, marginTop: 16, flexWrap: 'wrap', alignItems: 'center' }}>
-          <a href="/my-players" className="btn primary" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-            <Users size={16} />
-            {t('myPlayers')}
-          </a>
           <button className="btn" onClick={resetMySupabaseData} disabled={!authStatus.token} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
             <X size={16} />
             {t('resetMyData')}
