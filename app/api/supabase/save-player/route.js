@@ -37,6 +37,8 @@ export async function POST(req) {
     }
 
     const userId = userData.user.id
+    console.log(`[save-player] User ID: ${userId}`)
+    
     const admin = createClient(supabaseUrl, serviceKey, {
       auth: { autoRefreshToken: false, persistSession: false }
     })
@@ -104,10 +106,11 @@ export async function POST(req) {
     }
 
     // Inserisci nuovo giocatore
+    console.log(`[save-player] Inserting player for user_id: ${userId}, player_name: ${playerData.player_name}`)
     const { data: inserted, error: insertErr } = await admin
       .from('players')
       .insert(playerData)
-      .select('id')
+      .select('id, user_id, player_name')
       .single()
 
     if (insertErr) {
@@ -117,6 +120,8 @@ export async function POST(req) {
         { status: 500 }
       )
     }
+
+    console.log(`[save-player] Player saved: id=${inserted.id}, user_id=${inserted.user_id}, player_name=${inserted.player_name}`)
 
     return NextResponse.json({
       success: true,

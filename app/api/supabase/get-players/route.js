@@ -51,7 +51,18 @@ export async function GET(req) {
     // Gestione risposta: players può essere null o array
     const playersList = players || []
     console.log(`[get-players] Raw query result: ${playersList.length} players`)
-    console.log(`[get-players] Raw players sample:`, playersList.length > 0 ? { id: playersList[0]?.id, player_name: playersList[0]?.player_name } : 'none')
+    if (playersList.length > 0) {
+      // Verifica user_id match per ogni giocatore
+      playersList.forEach((p, idx) => {
+        const match = p.user_id === userId
+        console.log(`[get-players] Player ${idx + 1}: id=${p.id}, user_id=${p.user_id}, player_name=${p.player_name}, user_match=${match}`)
+        if (!match) {
+          console.warn(`[get-players] ⚠️ MISMATCH: Player ${p.id} has user_id=${p.user_id} but query used user_id=${userId}`)
+        }
+      })
+    } else {
+      console.log(`[get-players] No players found for user_id: ${userId}`)
+    }
     
     // Filtra solo giocatori validi (con nome)
     const validPlayers = Array.isArray(playersList) 
