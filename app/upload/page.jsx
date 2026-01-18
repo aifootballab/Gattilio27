@@ -13,6 +13,7 @@ export default function UploadPage() {
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState(null)
   const [success, setSuccess] = React.useState(null)
+  const [processing, setProcessing] = React.useState(null) // "1/3", "2/3", etc.
 
   React.useEffect(() => {
     // Verifica sessione
@@ -40,6 +41,17 @@ export default function UploadPage() {
       return
     }
 
+    // ✅ LIMITE 3 IMMAGINI
+    if (imageFiles.length > 3) {
+      setError('Puoi caricare massimo 3 immagini')
+      return
+    }
+
+    if (images.length + imageFiles.length > 3) {
+      setError(`Puoi caricare massimo 3 immagini. Hai già ${images.length} immagini.`)
+      return
+    }
+
     // Converti in base64
     imageFiles.forEach(file => {
       const reader = new FileReader()
@@ -52,9 +64,21 @@ export default function UploadPage() {
       }
       reader.readAsDataURL(file)
     })
+    
+    setError(null)
   }
 
-  const handleSavePlayer = async (playerData) => {
+  const handleValidateAndSave = async () => {
+    if (images.length === 0) {
+      setError('Carica almeno un\'immagine')
+      return
+    }
+
+    if (images.length > 3) {
+      setError('Massimo 3 immagini consentite')
+      return
+    }
+
     if (!supabase) {
       setError('Supabase non disponibile')
       return
@@ -62,8 +86,11 @@ export default function UploadPage() {
 
     setLoading(true)
     setError(null)
+    setSuccess(null)
+    setProcessing(null)
 
     try {
+      // Ottieni token
       const { data: session } = await supabase.auth.getSession()
       if (!session?.session?.access_token) {
         setError('Sessione non valida. Effettua nuovamente il login.')
@@ -72,29 +99,72 @@ export default function UploadPage() {
       }
 
       const token = session.session.access_token
+      let savedCount = 0
+      let errors = []
 
-      const res = await fetch('/api/supabase/save-player', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ player: playerData })
-      })
+      // Analizza e salva ogni immagine
+      for (let i = 0; i < images.length; i++) {
+        const img = images[i]
+        setProcessing(`Analizzando immagine ${i + 1}/${images.length}...`)
 
-      const data = await res.json()
+        try {
+          // 1. Estrai dati da immagine
+          const extractRes = await fetch('/api/extract-player', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ imageDataUrl: img.dataUrl })
+          })
 
-      if (!res.ok) {
-        throw new Error(data.error || 'Errore salvataggio giocatore')
+          const extractData = await extractRes.json()
+          if (!extractRes.ok) {
+            throw new Error(extractData.error || 'Errore estrazione dati')
+          }
+
+          if (!extractData.player || !extractData.player.player_name) {
+            throw new Error(`Immagine ${i + 1}: Impossibile estrarre dati giocatore`)
+          }
+
+          setProcessing(`Salvando giocatore ${i + 1}/${images.length}: ${extractData.player.player_name}...`)
+
+          // 2. Salva giocatore
+          const saveRes = await fetch('/api/supabase/save-player', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ player: extractData.player })
+          })
+
+          const saveData = await saveRes.json()
+          if (!saveRes.ok) {
+            throw new Error(saveData.error || 'Errore salvataggio giocatore')
+          }
+
+          savedCount++
+        } catch (imgErr) {
+          console.error(`[Upload] Error processing image ${i + 1}:`, imgErr)
+          errors.push(`Immagine ${i + 1}: ${imgErr.message}`)
+        }
       }
 
-      setSuccess(`Giocatore ${playerData.player_name} salvato con successo!`)
-      setImages([])
+      // Risultato finale
+      if (savedCount > 0) {
+        setSuccess(`✅ ${savedCount} giocatore/i salvato/i con successo!`)
+        if (errors.length > 0) {
+          setError(`Attenzione: ${errors.join('; ')}`)
+        } else {
+          setImages([])
+        }
+      } else {
+        setError(`Errore: ${errors.join('; ') || 'Nessun giocatore salvato'}`)
+      }
     } catch (err) {
-      console.error('[Upload] Save error:', err)
-      setError(err?.message || 'Errore salvataggio giocatore')
+      console.error('[Upload] Validate error:', err)
+      setError(err?.message || 'Errore durante analisi e salvataggio')
     } finally {
       setLoading(false)
+      setProcessing(null)
     }
   }
 
@@ -171,7 +241,7 @@ export default function UploadPage() {
           />
           <Upload size={32} style={{ marginBottom: '12px', color: 'var(--neon-blue)' }} />
           <div style={{ fontSize: '16px', marginBottom: '8px' }}>Clicca o trascina immagini qui</div>
-          <div style={{ fontSize: '12px', opacity: 0.7 }}>Formati supportati: JPG, PNG</div>
+          <div style={{ fontSize: '12px', opacity: 0.7 }}>Formati supportati: JPG, PNG | Massimo 3 immagini</div>
         </label>
 
         {/* Preview Images */}
@@ -190,21 +260,91 @@ export default function UploadPage() {
                     border: '1px solid rgba(255,255,255,0.1)'
                   }}
                 />
+                <div style={{
+                  position: 'absolute',
+                  top: '8px',
+                  right: '8px',
+                  background: 'rgba(0, 0, 0, 0.7)',
+                  color: '#fff',
+                  padding: '4px 8px',
+                  borderRadius: '4px',
+                  fontSize: '12px',
+                  fontWeight: 600
+                }}>
+                  {idx + 1}/{images.length}
+                </div>
               </div>
             ))}
           </div>
         )}
 
-        {/* Info */}
-        <div style={{ marginTop: '24px', padding: '16px', background: 'rgba(0, 212, 255, 0.1)', borderRadius: '8px' }}>
-          <div style={{ fontSize: '14px', marginBottom: '8px' }}>
-            <strong>Nota:</strong> Questa pagina è per caricare immagini. 
+        {/* Processing Status */}
+        {processing && (
+          <div style={{
+            marginTop: '24px',
+            padding: '12px',
+            background: 'rgba(0, 212, 255, 0.1)',
+            border: '1px solid rgba(0, 212, 255, 0.3)',
+            borderRadius: '8px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            color: 'var(--neon-blue)',
+            fontSize: '14px'
+          }}>
+            <div style={{
+              width: '16px',
+              height: '16px',
+              border: '2px solid rgba(0, 212, 255, 0.3)',
+              borderTopColor: 'var(--neon-blue)',
+              borderRadius: '50%',
+              animation: 'spin 0.6s linear infinite'
+            }} />
+            {processing}
           </div>
-          <div style={{ fontSize: '12px', opacity: 0.8 }}>
-            L'estrazione dati e salvataggio automatico verranno implementati successivamente.
+        )}
+
+        {/* Convalida Button */}
+        {images.length > 0 && images.length <= 3 && (
+          <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'center' }}>
+            <button
+              onClick={handleValidateAndSave}
+              disabled={loading}
+              className="btn primary"
+              style={{
+                padding: '14px 32px',
+                fontSize: '16px',
+                fontWeight: 700,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                opacity: loading ? 0.6 : 1,
+                cursor: loading ? 'not-allowed' : 'pointer'
+              }}
+            >
+              <CheckCircle size={20} />
+              {loading ? 'Elaborazione...' : 'Convalida Caricamento'}
+            </button>
           </div>
-        </div>
+        )}
+
+        {images.length === 0 && (
+          <div style={{ marginTop: '24px', padding: '16px', background: 'rgba(0, 212, 255, 0.1)', borderRadius: '8px' }}>
+            <div style={{ fontSize: '14px', marginBottom: '8px' }}>
+              <strong>Istruzioni:</strong>
+            </div>
+            <div style={{ fontSize: '12px', opacity: 0.8 }}>
+              Carica 1-3 screenshot di giocatori eFootball. Clicca "Convalida caricamento" per analizzare e salvare automaticamente.
+            </div>
+          </div>
+        )}
       </div>
+
+      <style jsx>{`
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </main>
   )
 }
