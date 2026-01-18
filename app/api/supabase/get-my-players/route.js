@@ -37,6 +37,7 @@ export async function GET(req) {
     })
 
     // Query diretta: tutti i giocatori dell'utente (sempre fresh, no cache)
+    console.log('[get-my-players] Fetching players for userId:', userId)
     const { data: players, error: playersErr } = await admin
       .from('players')
       .select('*')
@@ -47,6 +48,8 @@ export async function GET(req) {
       console.error('[get-my-players] Query error:', playersErr.message)
       return NextResponse.json({ error: 'Failed to fetch players' }, { status: 500 })
     }
+
+    console.log('[get-my-players] Found players:', players?.length || 0, players?.map(p => p.player_name) || [])
 
     // Recupera playing_styles se necessario
     const playingStyleIds = [...new Set((players || []).map(p => p.playing_style_id).filter(id => id))]
