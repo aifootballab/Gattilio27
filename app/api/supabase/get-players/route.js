@@ -46,10 +46,15 @@ export async function GET(req) {
       )
     }
 
+    // Gestione risposta: players può essere null o array
+    const playersList = players || []
+    
     // Filtra solo giocatori validi (con nome)
-    const validPlayers = Array.isArray(players) 
-      ? players.filter(p => p && p.id && p.player_name)
+    const validPlayers = Array.isArray(playersList) 
+      ? playersList.filter(p => p && p.id && p.player_name)
       : []
+
+    console.log(`[get-players] User ${userId}: Found ${validPlayers.length} players`)
 
     return NextResponse.json({
       players: validPlayers,

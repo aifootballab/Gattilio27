@@ -13,61 +13,37 @@ export default function ListaGiocatoriPage() {
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState(null)
 
+  // Verifica sessione e carica giocatori
   React.useEffect(() => {
     if (!supabase) {
       router.push('/login')
       return
     }
 
-    // Verifica sessione iniziale
-    const checkSession = async () => {
-      const { data: session, error } = await supabase.auth.getSession()
-      
-      if (error) {
-        console.warn('[ListaGiocatori] Session error, redirecting to login:', error.message)
-        router.push('/login')
-        return
-      }
-
-      if (!session?.session) {
-        router.push('/login')
-        return
-      }
-    }
-
-    checkSession()
-
-    // Listener per cambiamenti auth
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === 'SIGNED_OUT' || (event === 'TOKEN_REFRESHED' && !session)) {
-          router.push('/login')
-        }
-      }
-    )
-
-    return () => {
-      subscription?.unsubscribe()
-    }
-  }, [router])
-
-  // Carica giocatori
-  React.useEffect(() => {
     const fetchPlayers = async () => {
-      if (!supabase) return
-
       setLoading(true)
       setError(null)
 
       try {
+        // Verifica sessione
         const { data: session, error: sessionError } = await supabase.auth.getSession()
         
-        if (sessionError || !session?.session?.access_token) {
-          throw new Error('Sessione non valida')
+        if (sessionError) {
+          console.warn('[ListaGiocatori] Session error, redirecting to login:', sessionError.message)
+          setError('Sessione scaduta. Reindirizzamento al login...')
+          setTimeout(() => router.push('/login'), 1000)
+          return
+        }
+
+        if (!session?.session?.access_token) {
+          setError('Sessione non valida. Reindirizzamento al login...')
+          setTimeout(() => router.push('/login'), 1000)
+          return
         }
 
         const token = session.session.access_token
 
+        // Chiama API
         const res = await fetch('/api/supabase/get-players', {
           method: 'GET',
           headers: {
@@ -82,10 +58,44 @@ export default function ListaGiocatoriPage() {
           throw new Error(data.error || 'Errore caricamento giocatori')
         }
 
-        const playersArray = Array.isArray(data.players)
-          ? data.players.filter(p => p && p.id && p.player_name)
-          : []
+        // API restituisce: { players: [...], count: N }
+        // Verifica struttura risposta
+        console.log('[ListaGiocatori] Response data:', data)
+        console.log('[ListaGiocatori] data.players type:', typeof data?.players)
+        console.log('[ListaGiocatori] data.players isArray:', Array.isArray(data?.players))
+        
+        // Normalizza array giocatori: gestisce variazioni nei dati estratti dalle foto
+        let rawPlayers = []
+        if (Array.isArray(data?.players)) {
+          rawPlayers = data.players
+        } else if (Array.isArray(data)) {
+          // Fallback: se data è direttamente un array
+          rawPlayers = data
+        }
 
+        // Filtra e normalizza: solo giocatori con id e nome valido
+        const playersArray = rawPlayers
+          .filter(p => {
+            // Deve avere id e player_name valido (stringa non vuota)
+            if (!p || !p.id) return false
+            const name = p.player_name
+            if (!name || typeof name !== 'string' || name.trim().length === 0) {
+              console.warn('[ListaGiocatori] Player without valid name:', p.id, p)
+              return false
+            }
+            return true
+          })
+          .map(p => ({
+            // Normalizza ogni campo: fallback per dati mancanti
+            id: p.id,
+            player_name: String(p.player_name || 'Unknown').trim(),
+            position: p.position ? String(p.position).trim() : null,
+            overall_rating: p.overall_rating != null ? Number(p.overall_rating) : null,
+            team: p.team ? String(p.team).trim() : null,
+            card_type: p.card_type ? String(p.card_type).trim() : null
+          }))
+
+        console.log('[ListaGiocatori] Players loaded:', playersArray.length, 'from', rawPlayers.length, 'raw')
         setPlayers(playersArray)
       } catch (err) {
         console.error('[ListaGiocatori] Fetch error:', err)
@@ -96,7 +106,20 @@ export default function ListaGiocatoriPage() {
     }
 
     fetchPlayers()
-  }, [])
+
+    // Listener per cambiamenti auth
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'SIGNED_OUT' || (event === 'TOKEN_REFRESHED' && !session)) {
+          router.push('/login')
+        }
+      }
+    )
+
+    return () => {
+      subscription?.unsubscribe()
+    }
+  }, [router])
 
   const handleLogout = async () => {
     if (supabase) {
@@ -155,9 +178,11 @@ export default function ListaGiocatoriPage() {
       {!loading && !error && (
         <div>
           {/* Count */}
-          <div style={{ marginBottom: '24px', fontSize: '16px', opacity: 0.8 }}>
-            {players.length} {t('playersSaved')}
-          </div>
+          {players.length > 0 && (
+            <div style={{ marginBottom: '24px', fontSize: '16px', opacity: 0.8 }}>
+              {players.length} {t('playersSaved')}
+            </div>
+          )}
 
           {/* Empty State */}
           {players.length === 0 && (
