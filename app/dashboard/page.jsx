@@ -74,6 +74,23 @@ export default function DashboardPage() {
     }}
     className="dashboard-container"
     >
+      {/* Prova 1 - Test visibilità */}
+      <div style={{
+        position: 'fixed',
+        top: '20px',
+        left: '20px',
+        zIndex: 1001,
+        color: '#EF4444',
+        fontSize: '24px',
+        fontWeight: 700,
+        textShadow: '0 0 10px rgba(239, 68, 68, 0.8)',
+        background: 'rgba(239, 68, 68, 0.1)',
+        padding: '12px 20px',
+        borderRadius: '8px',
+        border: '2px solid #EF4444'
+      }}>
+        prova 1
+      </div>
       {/* Language Switcher */}
       <div style={{
         position: 'fixed',

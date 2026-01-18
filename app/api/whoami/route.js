@@ -51,11 +51,22 @@ export async function GET(req) {
     const players_count = players?.length || 0
     const players_names = (players || []).map(p => p.player_name).filter(Boolean)
     
+    // Estrai project ID da URL Supabase per verifica ambiente
+    // Es: https://xxxxx.supabase.co -> xxxxx
+    let supabase_project_id = null
+    if (supabaseUrl) {
+      const match = supabaseUrl.match(/https?:\/\/([^.]+)\.supabase\.co/)
+      if (match) {
+        supabase_project_id = match[1]
+      }
+    }
+    
     return NextResponse.json({
       user_id: userId,
       email: email,
       players_count: players_count,
-      players_names: players_names
+      players_names: players_names,
+      supabase_project_id: supabase_project_id
     })
   } catch (e) {
     console.error('[whoami] Error:', e)
