@@ -4,7 +4,7 @@ import React from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { useTranslation } from '@/lib/i18n'
-import { Upload, LogOut, AlertCircle, CheckCircle, CheckCircle2 } from 'lucide-react'
+import { Upload, LogOut, AlertCircle, CheckCircle, CheckCircle2, Users } from 'lucide-react'
 
 export default function UploadPage() {
   const { t, lang, changeLanguage } = useTranslation()
@@ -213,14 +213,24 @@ export default function UploadPage() {
         <h1 className="neon-text" style={{ fontSize: '32px', fontWeight: 700 }}>
           Carica Giocatori
         </h1>
-        <button
-          onClick={handleLogout}
-          className="btn"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
-        >
-          <LogOut size={16} />
-          {t('logout')}
-        </button>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <button
+            onClick={() => router.push('/lista-giocatori')}
+            className="btn"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+          >
+            <Users size={16} />
+            {t('myPlayers')}
+          </button>
+          <button
+            onClick={handleLogout}
+            className="btn"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+          >
+            <LogOut size={16} />
+            {t('logout')}
+          </button>
+        </div>
       </div>
 
       {/* Error */}
