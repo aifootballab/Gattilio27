@@ -33,6 +33,24 @@ export async function GET(req) {
       auth: { autoRefreshToken: false, persistSession: false }
     })
 
+    // DEBUG: Verifica tutti i giocatori nel DB (prima della query filtrata)
+    const { data: allPlayers, error: debugError } = await admin
+      .from('players')
+      .select('id, user_id, player_name')
+      .limit(10)
+    
+    if (!debugError && allPlayers) {
+      console.log(`[get-players] DEBUG: Found ${allPlayers.length} total players in DB (first 10):`)
+      allPlayers.forEach((p, idx) => {
+        console.log(`  Player ${idx + 1}: id=${p.id}, user_id=${p.user_id}, player_name=${p.player_name}`)
+      })
+      // Verifica se ci sono giocatori con user_id diverso
+      const differentUserIds = [...new Set(allPlayers.map(p => p.user_id))]
+      console.log(`[get-players] DEBUG: Found ${differentUserIds.length} different user_ids in DB:`, differentUserIds)
+      const userMatch = allPlayers.some(p => p.user_id === userId)
+      console.log(`[get-players] DEBUG: Current user_id ${userId} matches any player: ${userMatch}`)
+    }
+
     // Recupera giocatori dell'utente (ordinati per data creazione)
     const { data: players, error: queryError } = await admin
       .from('players')
