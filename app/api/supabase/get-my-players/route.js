@@ -36,21 +36,49 @@ export async function GET(req) {
       auth: { autoRefreshToken: false, persistSession: false }
     })
 
-    // Query SEMPLICE: select tutto con limit alto esplicito
-    // Rimuoviamo paginazione complessa e usiamo query diretta
-    const { data: players, error: playersErr } = await admin
-      .from('players')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(10000) // Limit alto esplicito per essere sicuri
-
-    if (playersErr) {
-      console.error('[get-my-players] Query error:', playersErr.message, playersErr)
-      return NextResponse.json({ error: 'Failed to fetch players' }, { status: 500 })
+    // Query con retry per replica lag: se record recente (ultimi 30s), ritenta
+    let players = null
+    let playersErr = null
+    let retries = 0
+    const maxRetries = 2
+    
+    while (retries <= maxRetries) {
+      const result = await admin
+        .from('players')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(10000)
+      
+      players = result.data || []
+      playersErr = result.error
+      
+      if (playersErr) {
+        console.error('[get-my-players] Query error:', playersErr.message, playersErr)
+        return NextResponse.json({ error: 'Failed to fetch players' }, { status: 500 })
+      }
+      
+      // Se non ci sono record recenti (ultimi 30s), la query è completa
+      const now = new Date()
+      const recentPlayers = players.filter(p => {
+        if (!p.created_at) return false
+        const created = new Date(p.created_at)
+        const secondsAgo = (now - created) / 1000
+        return secondsAgo < 30 // Record creato negli ultimi 30 secondi
+      })
+      
+      // Se non ci sono record recenti o abbiamo già ritentato, OK
+      if (recentPlayers.length === 0 || retries >= maxRetries) {
+        break
+      }
+      
+      // C'è un record recente - potrebbe essere replica lag, ritenta dopo 1s
+      console.log(`[get-my-players] Found ${recentPlayers.length} recent player(s), retry ${retries + 1}/${maxRetries} after 1s (replica lag protection)`)
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      retries++
     }
 
-    console.log('[get-my-players] Retrieved players:', players?.length || 0)
+    console.log('[get-my-players] Retrieved players:', players?.length || 0, `(${retries} retries)`)
 
     // Recupera playing_styles se necessario
     const playingStyleIds = [...new Set((players || []).map(p => p.playing_style_id).filter(id => id))]
