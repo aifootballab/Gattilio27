@@ -35,22 +35,64 @@ export default function MyPlayersPage() {
 
       try {
         // Verifica autenticazione
+        console.log('[MyPlayers] Checking session...')
         const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
         
-        if (sessionError || !sessionData?.session?.access_token) {
+        console.log('[MyPlayers] Session check result:', {
+          hasError: !!sessionError,
+          error: sessionError?.message,
+          hasSession: !!sessionData?.session,
+          hasAccessToken: !!sessionData?.session?.access_token,
+          expiresAt: sessionData?.session?.expires_at ? new Date(sessionData.session.expires_at * 1000).toISOString() : null,
+          isExpired: sessionData?.session?.expires_at ? Date.now() > sessionData.session.expires_at * 1000 : null
+        })
+        
+        if (sessionError) {
+          console.error('[MyPlayers] ❌ Session error:', sessionError)
           router.push('/login')
           return
         }
+        
+        if (!sessionData?.session?.access_token) {
+          console.error('[MyPlayers] ❌ No session or access token')
+          router.push('/login')
+          return
+        }
+        
+        // Verifica se la sessione è scaduta
+        if (sessionData.session.expires_at && Date.now() > sessionData.session.expires_at * 1000) {
+          console.warn('[MyPlayers] ⚠️ Session expired, refreshing...')
+          const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession()
+          if (refreshError || !refreshData?.session?.access_token) {
+            console.error('[MyPlayers] ❌ Failed to refresh session')
+            router.push('/login')
+            return
+          }
+          // Usa la sessione refreshata
+          sessionData.session = refreshData.session
+        }
 
         const token = sessionData.session.access_token
+        
+        // Debug: verifica token
+        console.log('[MyPlayers] Token present:', !!token)
+        console.log('[MyPlayers] Token (first 30 chars):', token ? token.substring(0, 30) + '...' : 'null')
+        
+        if (!token) {
+          throw new Error('No access token in session')
+        }
 
         // Chiama API
+        console.log('[MyPlayers] Calling API with Authorization header...')
         const res = await fetch('/api/supabase/get-my-players', {
           headers: { 
-            Authorization: `Bearer ${token}` 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
           },
           cache: 'no-store'
         })
+        
+        console.log('[MyPlayers] API response status:', res.status, res.statusText)
 
         if (!res.ok) {
           const errorData = await res.json()
@@ -70,6 +112,17 @@ export default function MyPlayersPage() {
         const playersArray = Array.isArray(data.players) 
           ? data.players.filter(p => p && p.id && p.player_name) 
           : []
+        
+        // Log diagnostico per identificare discrepanze
+        if (data.count !== playersArray.length) {
+          console.warn('[MyPlayers] ⚠️ DISCREPANZA TROVATA:', {
+            countFromAPI: data.count,
+            playersReceived: data.players?.length || 0,
+            playersAfterFilter: playersArray.length,
+            excluded: (data.players?.length || 0) - playersArray.length,
+            excludedPlayers: data.players?.filter(p => !p || !p.id || !p.player_name).map(p => ({ id: p?.id, name: p?.player_name })) || []
+          })
+        }
         
         console.log('[MyPlayers] Setting players:', playersArray.length, playersArray.map(p => p.player_name))
         

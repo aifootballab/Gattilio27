@@ -15,10 +15,26 @@ export async function GET(req) {
       return NextResponse.json({ error: 'Supabase server env missing' }, { status: 500 })
     }
 
+    // Debug: verifica headers
+    const authHeader = req.headers.get('authorization')
+    console.log('[get-my-players] Auth header present:', !!authHeader)
+    console.log('[get-my-players] Auth header value (first 30 chars):', authHeader ? authHeader.substring(0, 30) + '...' : 'null')
+    console.log('[get-my-players] All headers:', Object.fromEntries(req.headers.entries()))
+    
     const token = extractBearerToken(req)
     if (!token) {
-      return NextResponse.json({ error: 'Missing Authorization bearer token' }, { status: 401 })
+      console.error('[get-my-players] ❌ Token extraction failed')
+      console.error('[get-my-players] Authorization header:', authHeader || 'MISSING')
+      return NextResponse.json({ 
+        error: 'Missing Authorization bearer token',
+        debug: {
+          hasAuthHeader: !!authHeader,
+          authHeaderValue: authHeader ? authHeader.substring(0, 20) + '...' : null
+        }
+      }, { status: 401 })
     }
+    
+    console.log('[get-my-players] ✅ Token extracted (first 30 chars):', token.substring(0, 30) + '...')
 
     const { userData, error: authError } = await validateToken(token, supabaseUrl, anonKey)
     
@@ -50,6 +66,8 @@ export async function GET(req) {
     }
 
     console.log('[get-my-players] Retrieved players:', players?.length || 0)
+    console.log('[get-my-players] User ID:', userId)
+    console.log('[get-my-players] Raw players count:', players?.length || 0)
 
     // Recupera playing_styles se necessario
     const playingStyleIds = [...new Set((players || []).map(p => p.playing_style_id).filter(id => id))]
@@ -103,6 +121,9 @@ export async function GET(req) {
         updated_at: player.updated_at
       }
     })
+    
+    console.log('[get-my-players] Formatted players count:', formattedPlayers.length)
+    console.log('[get-my-players] Sample player IDs:', formattedPlayers.slice(0, 10).map(p => ({ id: p.id, name: p.player_name })))
     
     return NextResponse.json(
       { 
