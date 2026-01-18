@@ -63,6 +63,8 @@ export default function ListaGiocatoriPage() {
         console.log('[ListaGiocatori] Response data:', data)
         console.log('[ListaGiocatori] data.players type:', typeof data?.players)
         console.log('[ListaGiocatori] data.players isArray:', Array.isArray(data?.players))
+        console.log('[ListaGiocatori] data.players length:', data?.players?.length)
+        console.log('[ListaGiocatori] data.players content:', JSON.stringify(data?.players, null, 2))
         
         // Normalizza array giocatori: gestisce variazioni nei dati estratti dalle foto
         let rawPlayers = []
@@ -72,6 +74,8 @@ export default function ListaGiocatoriPage() {
           // Fallback: se data è direttamente un array
           rawPlayers = data
         }
+        
+        console.log('[ListaGiocatori] rawPlayers length after parsing:', rawPlayers.length)
 
         // Filtra e normalizza: solo giocatori con id e nome valido
         const playersArray = rawPlayers

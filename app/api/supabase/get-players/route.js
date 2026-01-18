@@ -27,6 +27,8 @@ export async function GET(req) {
     }
 
     const userId = userData.user.id
+    console.log(`[get-players] User ID: ${userId}`)
+    
     const admin = createClient(supabaseUrl, serviceKey, {
       auth: { autoRefreshToken: false, persistSession: false }
     })
@@ -48,13 +50,22 @@ export async function GET(req) {
 
     // Gestione risposta: players può essere null o array
     const playersList = players || []
+    console.log(`[get-players] Raw query result: ${playersList.length} players`)
+    console.log(`[get-players] Raw players sample:`, playersList.length > 0 ? { id: playersList[0]?.id, player_name: playersList[0]?.player_name } : 'none')
     
     // Filtra solo giocatori validi (con nome)
     const validPlayers = Array.isArray(playersList) 
-      ? playersList.filter(p => p && p.id && p.player_name)
+      ? playersList.filter(p => {
+          const hasId = p && p.id
+          const hasName = p?.player_name && typeof p.player_name === 'string' && p.player_name.trim().length > 0
+          if (!hasId || !hasName) {
+            console.warn(`[get-players] Filtered out player:`, { id: p?.id, hasId, hasName, player_name: p?.player_name })
+          }
+          return hasId && hasName
+        })
       : []
 
-    console.log(`[get-players] User ${userId}: Found ${validPlayers.length} players`)
+    console.log(`[get-players] User ${userId}: Found ${validPlayers.length} valid players (from ${playersList.length} raw)`)
 
     return NextResponse.json({
       players: validPlayers,
