@@ -15,12 +15,10 @@ export default function MyPlayersPage() {
   const [error, setError] = React.useState(null)
   const [mounted, setMounted] = React.useState(false)
 
-  // Mount check - evita hydration mismatch
   React.useEffect(() => {
     setMounted(true)
   }, [])
 
-  // Fetch giocatori - UNA SOLA VOLTA al mount
   React.useEffect(() => {
     if (!mounted) return
 
@@ -34,56 +32,15 @@ export default function MyPlayersPage() {
       setError(null)
 
       try {
-        // Verifica autenticazione
-        console.log('[MyPlayers] Checking session...')
         const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
         
-        console.log('[MyPlayers] Session check result:', {
-          hasError: !!sessionError,
-          error: sessionError?.message,
-          hasSession: !!sessionData?.session,
-          hasAccessToken: !!sessionData?.session?.access_token,
-          expiresAt: sessionData?.session?.expires_at ? new Date(sessionData.session.expires_at * 1000).toISOString() : null,
-          isExpired: sessionData?.session?.expires_at ? Date.now() > sessionData.session.expires_at * 1000 : null
-        })
-        
-        if (sessionError) {
-          console.error('[MyPlayers] ❌ Session error:', sessionError)
+        if (sessionError || !sessionData?.session?.access_token) {
           router.push('/login')
           return
-        }
-        
-        if (!sessionData?.session?.access_token) {
-          console.error('[MyPlayers] ❌ No session or access token')
-          router.push('/login')
-          return
-        }
-        
-        // Verifica se la sessione è scaduta
-        if (sessionData.session.expires_at && Date.now() > sessionData.session.expires_at * 1000) {
-          console.warn('[MyPlayers] ⚠️ Session expired, refreshing...')
-          const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession()
-          if (refreshError || !refreshData?.session?.access_token) {
-            console.error('[MyPlayers] ❌ Failed to refresh session')
-            router.push('/login')
-            return
-          }
-          // Usa la sessione refreshata
-          sessionData.session = refreshData.session
         }
 
         const token = sessionData.session.access_token
-        
-        // Debug: verifica token
-        console.log('[MyPlayers] Token present:', !!token)
-        console.log('[MyPlayers] Token (first 30 chars):', token ? token.substring(0, 30) + '...' : 'null')
-        
-        if (!token) {
-          throw new Error('No access token in session')
-        }
 
-        // Chiama API
-        console.log('[MyPlayers] Calling API with Authorization header...')
         const res = await fetch('/api/supabase/get-my-players', {
           headers: { 
             'Authorization': `Bearer ${token}`,
@@ -91,8 +48,6 @@ export default function MyPlayersPage() {
           },
           cache: 'no-store'
         })
-        
-        console.log('[MyPlayers] API response status:', res.status, res.statusText)
 
         if (!res.ok) {
           const errorData = await res.json()
@@ -101,30 +56,10 @@ export default function MyPlayersPage() {
 
         const data = await res.json()
 
-        // Log per debug
-        console.log('[MyPlayers] API response:', { 
-          count: data.count, 
-          playersReceived: data.players?.length || 0,
-          playerNames: data.players?.map(p => p?.player_name) || []
-        })
-
-        // Ricevi e filtra giocatori - TUTTI, nessun filtro
+        // Filtra solo giocatori validi (con id e nome)
         const playersArray = Array.isArray(data.players) 
           ? data.players.filter(p => p && p.id && p.player_name) 
           : []
-        
-        // Log diagnostico per identificare discrepanze
-        if (data.count !== playersArray.length) {
-          console.warn('[MyPlayers] ⚠️ DISCREPANZA TROVATA:', {
-            countFromAPI: data.count,
-            playersReceived: data.players?.length || 0,
-            playersAfterFilter: playersArray.length,
-            excluded: (data.players?.length || 0) - playersArray.length,
-            excludedPlayers: data.players?.filter(p => !p || !p.id || !p.player_name).map(p => ({ id: p?.id, name: p?.player_name })) || []
-          })
-        }
-        
-        console.log('[MyPlayers] Setting players:', playersArray.length, playersArray.map(p => p.player_name))
         
         setPlayers(playersArray)
       } catch (err) {
@@ -136,11 +71,10 @@ export default function MyPlayersPage() {
     }
 
     fetchPlayers()
-    // IMPORTANTE: Nessuna dipendenza - esegue solo al mount
-  }, [mounted]) // Solo mounted come dipendenza
+  }, [mounted, router, lang])
 
   if (!mounted) {
-    return null // Evita hydration mismatch
+    return null
   }
 
   return (
@@ -244,17 +178,11 @@ export default function MyPlayersPage() {
           </Link>
         </div>
       ) : (
-        /* Grid Giocatori - MOSTRA TUTTI */
+        /* Grid Giocatori */
         <div className="grid-futuristic" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '24px' }}>
-          {players.map((player) => {
-            if (!player || !player.id || !player.player_name) {
-              console.warn('[MyPlayers] Skipping invalid player:', player)
-              return null
-            }
-            return (
-              <PlayerCard key={player.id} player={player} t={t} lang={lang} />
-            )
-          })}
+          {players.map((player) => (
+            <PlayerCard key={player.id} player={player} t={t} lang={lang} />
+          ))}
         </div>
       )}
     </main>
