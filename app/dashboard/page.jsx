@@ -8,7 +8,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { 
   Users, Home, Users as PlayersIcon, LayoutGrid, BarChart3, 
   ClipboardList, ChevronRight, User, CheckCircle2,
-  Target, Zap, Shield, LogOut, LogIn
+  Target, Zap, Shield, LogOut, LogIn, Upload
 } from 'lucide-react'
 
 export default function DashboardPage() {
@@ -123,24 +123,44 @@ export default function DashboardPage() {
       {/* LEFT PANEL */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
         <NeonPanel title={t('roster')} subtitle={t('yourPlayers')}>
-          <Link href="/rosa" style={{ textDecoration: 'none', color: 'inherit' }}>
-            <div className="clickable-card" style={{ 
-              padding: '12px', 
-              borderRadius: '8px', 
-              background: 'rgba(0, 212, 255, 0.1)',
-              border: '1px solid rgba(0, 212, 255, 0.3)',
-              cursor: 'pointer',
-              transition: 'all 0.3s ease'
-            }}>
-              <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Users size={16} />
-                {t('uploadScreenshots')}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <Link href="/rosa" style={{ textDecoration: 'none', color: 'inherit' }}>
+              <div className="clickable-card" style={{ 
+                padding: '12px', 
+                borderRadius: '8px', 
+                background: 'rgba(0, 212, 255, 0.1)',
+                border: '1px solid rgba(0, 212, 255, 0.3)',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease'
+              }}>
+                <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Upload size={16} />
+                  {t('uploadScreenshots')}
+                </div>
+                <div style={{ fontSize: '12px', opacity: 0.8 }}>
+                  {t('manageCollection')}
+                </div>
               </div>
-              <div style={{ fontSize: '12px', opacity: 0.8 }}>
-                {t('manageCollection')}
+            </Link>
+            <Link href="/my-players" style={{ textDecoration: 'none', color: 'inherit' }}>
+              <div className="clickable-card" style={{ 
+                padding: '12px', 
+                borderRadius: '8px', 
+                background: 'rgba(168, 85, 247, 0.1)',
+                border: '1px solid rgba(168, 85, 247, 0.3)',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease'
+              }}>
+                <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Users size={16} />
+                  {t('myPlayers')}
+                </div>
+                <div style={{ fontSize: '12px', opacity: 0.8 }}>
+                  {lang === 'it' ? 'Vedi i tuoi giocatori salvati' : 'View your saved players'}
+                </div>
               </div>
-            </div>
-          </Link>
+            </Link>
+          </div>
         </NeonPanel>
 
         <NeonPanel title={t('squadOverview')} subtitle={t('yourSquad')}>
