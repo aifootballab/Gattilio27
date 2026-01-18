@@ -54,11 +54,7 @@ export default function LoginPage() {
 
         if (data?.user) {
           setSuccess(t('signupSuccess'))
-          // Auto-login dopo registrazione
-          setTimeout(() => {
-            router.push('/dashboard')
-            router.refresh()
-          }, 1000)
+          // Login completato - utente autenticato
         }
       } else {
         // Login
@@ -75,11 +71,7 @@ export default function LoginPage() {
 
         if (data?.user) {
           setSuccess(t('loginSuccess'))
-          // Redirect alla dashboard
-          setTimeout(() => {
-            router.push('/dashboard')
-            router.refresh()
-          }, 500)
+          // Login completato - utente autenticato
         }
       }
     } catch (err) {

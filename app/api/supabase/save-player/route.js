@@ -99,12 +99,9 @@ export async function POST(req) {
         matches_played: player.matches_played || null,
         goals: player.goals || null,
         assists: player.assists || null
-      }
+      },
+      slot_index: null
     }
-
-    // Salva sempre come nuovo record (permetti doppi)
-    // slot_index sempre null (non gestiamo rosa)
-    playerData.slot_index = null
 
     // Inserisci nuovo giocatore
     const { data: inserted, error: insertErr } = await admin
