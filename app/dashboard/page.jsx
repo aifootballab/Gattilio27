@@ -25,12 +25,16 @@ export default function DashboardPage() {
       }
       
       try {
-        const { data: { session } } = await supabase.auth.getSession()
-        if (session?.user?.email) {
-          setUserEmail(session.user.email)
+        const { data, error } = await supabase.auth.getSession()
+        if (error) {
+          console.error('[Dashboard] Session error:', error.message)
+          setUserEmail(null)
+        } else if (data?.session?.user?.email) {
+          setUserEmail(data.session.user.email)
         }
       } catch (err) {
         console.error('[Dashboard] Auth check error:', err)
+        setUserEmail(null)
       } finally {
         setIsLoading(false)
       }

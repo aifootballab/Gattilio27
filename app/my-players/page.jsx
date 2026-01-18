@@ -33,9 +33,26 @@ export default function MyPlayersPage() {
       setError(null)
 
       try {
+        // Gestisci errori di refresh token
         const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
         
-        if (sessionError || !sessionData?.session?.access_token) {
+        // Se errore di refresh token, cancella sessione e redirect
+        if (sessionError) {
+          console.error('[MyPlayers] Session error:', sessionError.message)
+          
+          // Se è errore di refresh token invalido, cancella sessione
+          if (sessionError.message?.includes('Refresh Token') || sessionError.message?.includes('refresh')) {
+            await supabase.auth.signOut()
+            router.push('/login')
+            return
+          }
+          
+          // Altri errori: redirect al login
+          router.push('/login')
+          return
+        }
+        
+        if (!sessionData?.session?.access_token) {
           router.push('/login')
           return
         }
