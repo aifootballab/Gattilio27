@@ -181,7 +181,7 @@ export default function EditPlayerDataModal({ player, authToken, onClose, onSave
       }
 
       const payload = {
-        player_base_id: player.player_base_id,
+        player_base_id: player.id || player.player_base_id, // Supporta sia id (nuovo) che player_base_id (legacy)
       }
 
       // Base stats - salva sempre se presenti nel form
