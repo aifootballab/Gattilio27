@@ -36,78 +36,21 @@ export async function GET(req) {
       auth: { autoRefreshToken: false, persistSession: false }
     })
 
-    // DEBUG: Log userId prima della query
-    console.log('[get-my-players] Querying with userId:', userId, 'type:', typeof userId)
-
-    // Query diretta: tutti i giocatori dell'utente, nessun filtro
-    // IMPORTANTE: Supabase Client ha limiti di default, usiamo paginazione per essere sicuri
-    // FIX: Query con limit esplicito alto (1000) + retry se sospettiamo record mancanti
-    let allPlayers = []
-    let page = 0
-    const pageSize = 1000
-    let hasMore = true
-    
-    while (hasMore) {
-      const from = page * pageSize
-      const to = from + pageSize - 1
-      
-      console.log(`[get-my-players] Fetching page ${page}, range ${from}-${to}`)
-      
-      const result = await admin
-        .from('players')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .range(from, to)
-      
-      if (result.error) {
-        console.error('[get-my-players] Query error:', result.error.message, result.error)
-        return NextResponse.json({ error: 'Failed to fetch players' }, { status: 500 })
-      }
-      
-      const pagePlayers = result.data || []
-      console.log(`[get-my-players] Page ${page}: received ${pagePlayers.length} players, total so far: ${allPlayers.length + pagePlayers.length}`)
-      
-      allPlayers = allPlayers.concat(pagePlayers)
-      
-      // Se la pagina è meno del pageSize, abbiamo finito
-      hasMore = pagePlayers.length === pageSize
-      
-      // Se non abbiamo più record, fermati
-      if (pagePlayers.length === 0) {
-        console.log(`[get-my-players] Page ${page} returned 0 players, stopping`)
-        hasMore = false
-        break
-      }
-      
-      page++
-      
-      // Safety limit: max 10 pagine (10k record)
-      if (page >= 10) {
-        console.log(`[get-my-players] Reached safety limit of 10 pages, stopping`)
-        break
-      }
-    }
-    
-    const players = allPlayers
-
-    // DEBUG: Log dettagliato
-    console.log('[get-my-players] Total players retrieved:', players.length)
-    console.log('[get-my-players] Players fetched in', page, 'page(s)')
-    console.log('[get-my-players] RAW players IDs:', players?.map(p => ({ id: p.id, name: p.player_name, user_id: p.user_id })) || [])
-    
-    // VERIFICA: Conta diretta dal DB per confronto
-    const { count: dbCount } = await admin
+    // Query SEMPLICE: select tutto con limit alto esplicito
+    // Rimuoviamo paginazione complessa e usiamo query diretta
+    const { data: players, error: playersErr } = await admin
       .from('players')
-      .select('*', { count: 'exact', head: true })
+      .select('*')
       .eq('user_id', userId)
-    
-    console.log('[get-my-players] DB total count:', dbCount)
-    console.log('[get-my-players] Retrieved vs DB count:', { retrieved: players.length, dbCount })
-    
-    if (players.length < dbCount) {
-      console.warn(`[get-my-players] WARNING: Retrieved ${players.length} but DB has ${dbCount} - missing ${dbCount - players.length} players`)
+      .order('created_at', { ascending: false })
+      .limit(10000) // Limit alto esplicito per essere sicuri
+
+    if (playersErr) {
+      console.error('[get-my-players] Query error:', playersErr.message, playersErr)
+      return NextResponse.json({ error: 'Failed to fetch players' }, { status: 500 })
     }
+
+    console.log('[get-my-players] Retrieved players:', players?.length || 0)
 
     // Recupera playing_styles se necessario
     const playingStyleIds = [...new Set((players || []).map(p => p.playing_style_id).filter(id => id))]
@@ -161,10 +104,6 @@ export async function GET(req) {
         updated_at: player.updated_at
       }
     })
-
-    // DEBUG: Log finale
-    console.log('[get-my-players] Formatted players count:', formattedPlayers.length)
-    console.log('[get-my-players] Formatted players IDs:', formattedPlayers.map(p => ({ id: p.id, name: p.player_name })))
     
     return NextResponse.json(
       { 
