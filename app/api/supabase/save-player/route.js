@@ -41,7 +41,7 @@ export async function POST(req) {
       auth: { autoRefreshToken: false, persistSession: false }
     })
 
-    const { player, slotIndex } = await req.json()
+    const { player } = await req.json()
 
     if (!player || !player.player_name) {
       return NextResponse.json({ error: 'Player data is required' }, { status: 400 })
@@ -102,108 +102,29 @@ export async function POST(req) {
       }
     }
 
-    // Gestione slot_index
-    let finalSlotIndex = null
-    if (slotIndex !== null && slotIndex !== undefined && slotIndex >= 0 && slotIndex < 21) {
-      finalSlotIndex = slotIndex
-      
-      // Se lo slot è già occupato da un altro giocatore, svuotalo
-      const { data: existingPlayerInSlot } = await admin
-        .from('players')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('slot_index', slotIndex)
-        .maybeSingle()
-      
-      if (existingPlayerInSlot) {
-        await admin
-          .from('players')
-          .update({ slot_index: null })
-          .eq('id', existingPlayerInSlot.id)
-      }
-    }
+    // Salva sempre come nuovo record (permetti doppi)
+    // slot_index sempre null (non gestiamo rosa)
+    playerData.slot_index = null
 
-    // Verifica se il giocatore esiste già (per nome + team)
-    const playerName = toText(player.player_name)
-    const team = toText(player.team)
-    
-    let existingPlayer = null
-    if (playerName) {
-      const { data: existing } = await admin
-        .from('players')
-        .select('id, slot_index')
-        .eq('user_id', userId)
-        .ilike('player_name', playerName)
-        .maybeSingle()
-      
-      if (existing) {
-        existingPlayer = existing
-      }
-    }
+    // Inserisci nuovo giocatore
+    const { data: inserted, error: insertErr } = await admin
+      .from('players')
+      .insert(playerData)
+      .select('id')
+      .single()
 
-    let playerId = null
-    let isNew = false
-
-    if (existingPlayer) {
-      // Aggiorna giocatore esistente
-      playerData.slot_index = finalSlotIndex !== null ? finalSlotIndex : existingPlayer.slot_index
-      playerData.updated_at = new Date().toISOString()
-      
-      const { data: updated, error: updateErr } = await admin
-        .from('players')
-        .update(playerData)
-        .eq('id', existingPlayer.id)
-        .select('id')
-        .single()
-      
-      if (updateErr) {
-        console.error('[save-player] Update error:', updateErr.message)
-        throw new Error(`Failed to update player: ${updateErr.message}`)
-      }
-      
-      playerId = updated.id
-    } else {
-      // Crea nuovo giocatore
-      playerData.slot_index = finalSlotIndex
-      
-      // Verifica limite rosa (21 giocatori)
-      const { count } = await admin
-        .from('players')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', userId)
-        .not('slot_index', 'is', null)
-      
-      if (count >= 21 && finalSlotIndex !== null) {
-        return NextResponse.json(
-          {
-            error: 'Rosa piena',
-            message: 'La rosa è completa (21 giocatori). Rimuovi un giocatore prima di aggiungerne uno nuovo.',
-            rosa_full: true
-          },
-          { status: 400 }
-        )
-      }
-      
-      const { data: inserted, error: insertErr } = await admin
-        .from('players')
-        .insert(playerData)
-        .select('id')
-        .single()
-      
-      if (insertErr) {
-        console.error('[save-player] Insert error:', insertErr.message)
-        throw new Error(`Failed to create player: ${insertErr.message}`)
-      }
-      
-      playerId = inserted.id
-      isNew = true
+    if (insertErr) {
+      console.error('[save-player] Insert error:', insertErr.message)
+      return NextResponse.json(
+        { error: `Failed to create player: ${insertErr.message}` },
+        { status: 500 }
+      )
     }
 
     return NextResponse.json({
       success: true,
-      player_id: playerId,
-      is_new: isNew,
-      slot_index: finalSlotIndex !== null ? finalSlotIndex : existingPlayer?.slot_index
+      player_id: inserted.id,
+      is_new: true
     })
   } catch (e) {
     console.error('[save-player] Error:', e)
