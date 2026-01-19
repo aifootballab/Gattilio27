@@ -198,8 +198,9 @@ export default function GestioneFormazionePage() {
   }
 
   const handleUploadPhoto = () => {
-    // Apri modal upload giocatore per questo slot
+    // Apri modal upload giocatore per questo slot (mantieni selectedSlot)
     setShowAssignModal(false)
+    // NON resettare selectedSlot qui - serve per UploadPlayerModal
     setShowUploadPlayerModal(true)
   }
 
@@ -696,6 +697,22 @@ export default function GestioneFormazionePage() {
         />
       )}
 
+      {/* Modal Upload Giocatore per Slot */}
+      {showUploadPlayerModal && selectedSlot && (
+        <UploadPlayerModal
+          slot={selectedSlot}
+          images={uploadImages}
+          onImagesChange={setUploadImages}
+          onUpload={handleUploadPlayerToSlot}
+          onClose={() => {
+            setShowUploadPlayerModal(false)
+            setUploadImages([])
+            setSelectedSlot(null)
+          }}
+          uploading={uploadingPlayer}
+        />
+      )}
+
       <style jsx>{`
         @keyframes spin {
           to { transform: rotate(360deg); }
@@ -1079,10 +1096,7 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
             <button
               onClick={() => {
                 onClose()
-                // Apri modal upload inline per questo slot
-                setTimeout(() => {
-                  alert('Funzionalità in sviluppo: upload foto per questo slot')
-                }, 100)
+                onUploadPhoto()
               }}
               className="btn primary"
               style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}
