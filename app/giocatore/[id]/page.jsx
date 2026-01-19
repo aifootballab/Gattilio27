@@ -250,7 +250,7 @@ export default function PlayerDetailPage() {
           <AlertCircle size={18} />
           {error}
         </div>
-        <button onClick={() => router.push('/lista-giocatori')} className="btn">
+        <button onClick={() => router.push('/gestione-formazione')} className="btn">
           <ArrowLeft size={16} />
           {t('back')}
         </button>
