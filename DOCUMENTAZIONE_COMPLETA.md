@@ -1,7 +1,7 @@
 # Documentazione Completa - eFootball AI Coach
 
 **Data Aggiornamento**: Gennaio 2025  
-**Versione**: 1.0.0
+**Versione**: 1.1.0
 
 ---
 
