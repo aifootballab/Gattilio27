@@ -573,6 +573,58 @@ export default function GestioneFormazionePage() {
     player: titolari.find(p => p.slot_index === i) || null
   })) : []
 
+  // Calcola collisioni e offset per evitare sovrapposizioni
+  const calculateCardOffsets = (slots) => {
+    const CARD_WIDTH_PX = 150 // Larghezza approssimativa card in px
+    const CARD_HEIGHT_PX = 160 // Altezza approssimativa card in px
+    const MIN_DISTANCE_X = 12 // Distanza minima in % per evitare collisioni
+    const MIN_DISTANCE_Y = 15 // Distanza minima in % per evitare collisioni
+    
+    return slots.map((slot, index) => {
+      let offsetX = 0
+      let offsetY = 0
+      let hasNearbyCards = false
+      
+      // Controlla collisioni con altri slot
+      slots.forEach((otherSlot, otherIndex) => {
+        if (index === otherIndex) return
+        
+        const dx = Math.abs(slot.position.x - otherSlot.position.x)
+        const dy = Math.abs(slot.position.y - otherSlot.position.y)
+        
+        // Se sono sulla stessa linea orizzontale (Y simile) e troppo vicini in X
+        if (dy < MIN_DISTANCE_Y && dx < MIN_DISTANCE_X) {
+          hasNearbyCards = true
+          // Sposta leggermente verso l'esterno
+          if (slot.position.x < otherSlot.position.x) {
+            offsetX -= 1.5 // Sposta a sinistra
+          } else {
+            offsetX += 1.5 // Sposta a destra
+          }
+        }
+        
+        // Se sono sulla stessa linea verticale (X simile) e troppo vicini in Y
+        if (dx < MIN_DISTANCE_X && dy < MIN_DISTANCE_Y && dy > 0) {
+          hasNearbyCards = true
+          if (slot.position.y < otherSlot.position.y) {
+            offsetY -= 1.5 // Sposta in alto
+          } else {
+            offsetY += 1.5 // Sposta in basso
+          }
+        }
+      })
+      
+      return {
+        ...slot,
+        offsetX,
+        offsetY,
+        hasNearbyCards
+      }
+    })
+  }
+
+  const slotsWithOffsets = layout?.slot_positions ? calculateCardOffsets(slots) : []
+
   return (
     <main style={{ padding: '16px', minHeight: '100vh', maxWidth: '1400px', margin: '0 auto' }}>
       {/* Header */}
@@ -1140,21 +1192,32 @@ function UploadModal({ title, description, onUpload, onClose, uploading }) {
 // Slot Card Component (posizionata sul campo) - Design Moderno 2024
 function SlotCard({ slot, onClick, onRemove }) {
   const { t } = useTranslation()
-  const { slot_index, position, player } = slot
+  const { slot_index, position, player, offsetX = 0, offsetY = 0, hasNearbyCards = false } = slot
   const isEmpty = !player
+
+  // Dimensioni card: più compatte se ci sono card vicine
+  const cardWidth = hasNearbyCards 
+    ? 'clamp(100px, 9vw, 145px)' 
+    : 'clamp(110px, 10vw, 160px)'
+  const cardMinHeight = hasNearbyCards 
+    ? 'clamp(120px, 13vh, 150px)' 
+    : 'clamp(130px, 14vh, 160px)'
+  const cardPadding = hasNearbyCards 
+    ? 'clamp(12px, 1.4vw, 16px)' 
+    : 'clamp(14px, 1.6vw, 18px)'
 
   return (
     <div
       onClick={onClick}
       style={{
         position: 'absolute',
-        left: `${position.x}%`,
-        top: `${position.y}%`,
+        left: `${position.x + offsetX}%`,
+        top: `${position.y + offsetY}%`,
         transform: 'translate(-50%, -50%)',
-        width: 'clamp(120px, 11vw, 170px)',
-        minHeight: 'clamp(140px, 15vh, 165px)',
-        maxWidth: '170px',
-        padding: 'clamp(14px, 1.6vw, 18px)',
+        width: cardWidth,
+        minHeight: cardMinHeight,
+        maxWidth: hasNearbyCards ? '145px' : '160px',
+        padding: cardPadding,
         background: isEmpty 
           ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.9) 50%, rgba(15, 23, 42, 0.95) 100%)' 
           : 'linear-gradient(135deg, rgba(59, 130, 246, 0.5) 0%, rgba(147, 51, 234, 0.5) 50%, rgba(59, 130, 246, 0.5) 100%), linear-gradient(180deg, rgba(0, 212, 255, 0.25) 0%, rgba(59, 130, 246, 0.35) 100%), linear-gradient(45deg, rgba(147, 51, 234, 0.1) 0%, transparent 50%)',
@@ -1173,15 +1236,16 @@ function SlotCard({ slot, onClick, onRemove }) {
           ? '0 8px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.05)'
           : '0 12px 32px rgba(59, 130, 246, 0.3), 0 0 40px rgba(147, 51, 234, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 0 0 1px rgba(59, 130, 246, 0.2)',
         backdropFilter: 'blur(12px) saturate(180%)',
-        zIndex: 1,
+        zIndex: hasNearbyCards ? 2 : 1,
         overflow: 'hidden'
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.transform = 'translate(-50%, -50%) scale(1.12) translateY(-4px)'
+        const scale = hasNearbyCards ? 1.15 : 1.12
+        e.currentTarget.style.transform = `translate(-50%, -50%) scale(${scale}) translateY(-6px)`
         e.currentTarget.style.boxShadow = isEmpty
           ? '0 16px 48px rgba(0, 0, 0, 0.6), 0 0 60px rgba(148, 163, 184, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
           : '0 20px 60px rgba(59, 130, 246, 0.5), 0 0 80px rgba(147, 51, 234, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 0 0 2px rgba(59, 130, 246, 0.3)'
-        e.currentTarget.style.zIndex = '10'
+        e.currentTarget.style.zIndex = '100'
         e.currentTarget.style.borderColor = isEmpty 
           ? 'rgba(148, 163, 184, 0.5)' 
           : 'rgba(147, 51, 234, 0.8)'
@@ -1191,7 +1255,7 @@ function SlotCard({ slot, onClick, onRemove }) {
         e.currentTarget.style.boxShadow = isEmpty
           ? '0 8px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.05)'
           : '0 12px 32px rgba(59, 130, 246, 0.3), 0 0 40px rgba(147, 51, 234, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 0 0 1px rgba(59, 130, 246, 0.2)'
-        e.currentTarget.style.zIndex = '1'
+        e.currentTarget.style.zIndex = hasNearbyCards ? '2' : '1'
         e.currentTarget.style.borderColor = isEmpty 
           ? 'rgba(148, 163, 184, 0.3)' 
           : 'rgba(59, 130, 246, 0.6)'
