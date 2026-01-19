@@ -1,72 +1,147 @@
 # eFootball AI Coach
 
-Web app per coaching eFootball con estrazione dati da screenshot e gestione rosa giocatori.
+Web app per coaching eFootball con estrazione dati da screenshot e gestione rosa giocatori tramite campo 2D interattivo.
 
-## Stack Tecnologico
+## 🎯 Funzionalità Principali
 
-- **Frontend**: Next.js 14, React 18
+1. **Dashboard**: Panoramica squadra con statistiche e navigazione rapida
+2. **Gestione Formazione 2D**: Campo interattivo con card giocatori cliccabili
+3. **Upload Formazione**: Estrazione disposizione tattica da screenshot completo
+4. **Upload Giocatori**: Estrazione dati da card giocatori (fino a 3 immagini per giocatore)
+5. **Gestione Riserve**: Upload e gestione giocatori riserva
+6. **Profilazione Giocatori**: Completamento profilo con foto aggiuntive
+7. **Internazionalizzazione**: Supporto IT/EN
+
+## 🛠️ Stack Tecnologico
+
+- **Frontend**: Next.js 14 (App Router), React 18
 - **Backend**: Next.js API Routes
-- **Database**: Supabase (PostgreSQL)
+- **Database**: Supabase (PostgreSQL + Auth)
 - **AI**: OpenAI GPT-4 Vision (estrazione dati da screenshot)
 - **Deploy**: Vercel
+- **Icons**: Lucide React
 
-## Funzionalità Core
-
-1. **Autenticazione**: Login con Supabase Auth
-2. **Dashboard**: Pannello principale
-3. **Rosa**: Upload screenshot e estrazione dati (1-6 screenshot per volta)
-4. **Estrazione Screenshot**: Caricamento screenshot e estrazione dati con AI
-5. **Salvataggio Giocatori**: Salvataggio automatico con associazione a `user_id`
-
-## Struttura Progetto
+## 📁 Struttura Progetto
 
 ```
 app/
-├── api/                    # API Routes
-│   ├── extract-player/     # Estrazione dati da singolo screenshot
-│   └── supabase/          # Operazioni database
-│       └── save-player/    # Salvataggio giocatore (logica business)
-├── login/                  # Pagina login
-├── upload/                 # Upload screenshot e estrazione
-└── lista-giocatori/        # Lista giocatori salvati (query dirette Supabase)
+├── api/                          # API Routes (Backend)
+│   ├── extract-formation/       # Estrazione formazione da screenshot
+│   ├── extract-player/           # Estrazione dati giocatore
+│   └── supabase/                 # Operazioni database
+│       ├── assign-player-to-slot/
+│       ├── save-formation-layout/
+│       ├── save-player/
+│       └── swap-formation/
+├── gestione-formazione/          # ⭐ Pagina principale (2D field)
+├── giocatore/[id]/               # Dettaglio giocatore
+├── login/                        # Autenticazione
+├── page.jsx                      # Dashboard
+├── lista-giocatori/              # Redirect → gestione-formazione
+└── upload/                       # Redirect → gestione-formazione
 
 lib/
-├── authHelper.js          # Helper autenticazione (per API routes)
-├── supabaseClient.js      # Client Supabase (query dirette frontend)
-└── i18n.js                # Internazionalizzazione
+├── supabaseClient.js            # Client Supabase (frontend)
+├── authHelper.js                 # Helper autenticazione (API)
+├── i18n.js                       # Internazionalizzazione (IT/EN)
+└── normalize.js                  # Normalizzazione dati
 ```
 
-**Note Architettura:**
-- Frontend usa **query dirette Supabase** con RLS per lettura giocatori (scalabile)
-- Backend API routes solo per operazioni con logica business (`save-player`)
+## 🗄️ Database Schema
 
-## Environment Variables
+### Tabelle Principali
+
+- **`players`**: Giocatori della rosa
+  - `slot_index` (0-10 = titolare, NULL = riserva)
+  - `photo_slots` (card, stats, skills)
+  - RLS abilitato
+
+- **`formation_layout`**: Layout formazione tattica
+  - `formation` (es: "4-3-3")
+  - `slot_positions` (coordinate x, y per slot 0-10)
+  - Un layout per utente (UNIQUE user_id)
+
+- **`playing_styles`**: Catalogo stili di gioco
+
+## 🔌 Endpoint API
+
+- `POST /api/extract-formation` - Estrae formazione da screenshot
+- `POST /api/extract-player` - Estrae dati giocatore da screenshot
+- `POST /api/supabase/save-formation-layout` - Salva layout formazione
+- `POST /api/supabase/save-player` - Salva/aggiorna giocatore
+- `PATCH /api/supabase/assign-player-to-slot` - Assegna giocatore a slot
+
+**Documentazione Completa**: Vedi `DOCUMENTAZIONE_COMPLETA_AGGIORNATA.md`
+
+## ⚙️ Environment Variables
 
 ### Vercel Production
 
 **OpenAI**:
-- `OPENAI_API_KEY` - API key OpenAI (server-only)
+```env
+OPENAI_API_KEY=sk-...
+```
 
 **Supabase**:
-- `NEXT_PUBLIC_SUPABASE_URL` - URL progetto Supabase
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Anon key (publishable)
-- `SUPABASE_SERVICE_ROLE_KEY` - Service role key (server-only)
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGc...
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGc...
+```
 
-## Setup Locale
+## 🚀 Setup Locale
 
 ```bash
 npm install
 npm run dev
 ```
 
-## Deploy
+Crea `.env.local` con le variabili d'ambiente (vedi `.env.example`).
 
-Il progetto è configurato per deploy automatico su Vercel tramite GitHub.
+## 📚 Documentazione
 
-## Note
+- **Documentazione Completa**: `DOCUMENTAZIONE_COMPLETA_AGGIORNATA.md`
+  - Stack tecnologico dettagliato
+  - Schema database completo
+  - Endpoint API con esempi
+  - Flussi principali
+  - Configurazione e deploy
+  - Troubleshooting
 
-- Le chiavi API devono essere configurate su Vercel → Settings → Environment Variables
-- `SUPABASE_SERVICE_ROLE_KEY` è server-only e non deve essere esposta al client
-- Il database Supabase deve avere le tabelle `players` e `playing_styles` con RLS abilitato
-- Frontend usa **query dirette Supabase** con RLS per lettura giocatori (scalabile, sicuro)
-- Backend API routes solo per operazioni con logica business (`save-player`)
+## 🏗️ Architettura
+
+**Pattern**: Query Dirette vs API Routes
+
+- **Query Dirette (Frontend)**: Lettura dati con RLS Supabase (gratis, scalabile)
+- **API Routes (Backend)**: Operazioni con logica business, chiamate OpenAI (server-only)
+
+## 💰 Costi
+
+- **Gratis**: Refresh pagina, query dirette Supabase
+- **Costa**: Chiamate OpenAI Vision (~$0.01-0.05 per foto)
+
+**Setup Iniziale Cliente**: ~$0.46-1.40 (formazione + profilazione)
+
+## 🔒 Sicurezza
+
+- **RLS**: Row Level Security abilitato su tutte le tabelle
+- **Auth**: Validazione token Bearer in API routes
+- **Service Role Key**: Server-only, non esposto al client
+
+## 📝 Note Importanti
+
+- `slot_index`: 0-10 = titolare, NULL = riserva
+- Un layout formazione per utente (UNIQUE constraint)
+- Matching giocatori: nome + squadra + ruolo per validazione
+- Responsive design: Mobile-first, touch-friendly
+
+## 🐛 Troubleshooting
+
+Vedi `DOCUMENTAZIONE_COMPLETA_AGGIORNATA.md` per troubleshooting dettagliato.
+
+## 📖 Risorse
+
+- **Supabase Docs**: https://supabase.com/docs
+- **Next.js Docs**: https://nextjs.org/docs
+- **OpenAI Vision API**: https://platform.openai.com/docs/guides/vision
+- **Vercel Deploy**: https://vercel.com/docs
