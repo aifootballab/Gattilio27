@@ -1,7 +1,8 @@
 # WORKFLOW FORMAZIONE: Da Foto Formazione a Riserve
 
-**Data:** 2026-01-19  
-**Obiettivo:** Workflow completo da foto formazione iniziale a gestione riserve
+**Data:** Gennaio 2025  
+**Obiettivo:** Workflow completo da foto formazione iniziale a gestione riserve  
+**Status**: Documento storico - Workflow implementato e funzionante
 
 ---
 

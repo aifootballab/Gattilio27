@@ -5,12 +5,15 @@ Web app per coaching eFootball con estrazione dati da screenshot e gestione rosa
 ## 🎯 Funzionalità Principali
 
 1. **Dashboard**: Panoramica squadra con statistiche e navigazione rapida
-2. **Gestione Formazione 2D**: Campo interattivo con card giocatori cliccabili
-3. **Upload Formazione**: Estrazione disposizione tattica da screenshot completo
-4. **Upload Giocatori**: Estrazione dati da card giocatori (fino a 3 immagini per giocatore)
-5. **Gestione Riserve**: Upload e gestione giocatori riserva
-6. **Profilazione Giocatori**: Completamento profilo con foto aggiuntive
-7. **Internazionalizzazione**: Supporto IT/EN
+2. **Gestione Formazione 2D**: Campo interattivo realistico con card giocatori cliccabili
+3. **14 Formazioni Ufficiali eFootball**: Selezione tra tutti i moduli tattici ufficiali
+4. **Cambio Formazione Intelligente**: Mantiene giocatori quando si cambia modulo
+5. **Upload Formazione**: Estrazione disposizione tattica da screenshot completo (opzione avanzata)
+6. **Upload Giocatori**: Estrazione dati da card giocatori (fino a 3 immagini per giocatore) con tracciamento foto
+7. **Visualizzazione Dati Estratti**: Modal dettagli mostra statistiche, abilità e booster quando si clicca su una card
+8. **Gestione Riserve**: Upload e gestione giocatori riserva
+9. **Profilazione Giocatori**: Completamento profilo con foto aggiuntive
+10. **Internazionalizzazione**: Supporto IT/EN
 
 ## 🛠️ Stack Tecnologico
 
@@ -131,9 +134,12 @@ Crea `.env.local` con le variabili d'ambiente (vedi `.env.example`).
 ## 📝 Note Importanti
 
 - `slot_index`: 0-10 = titolare, NULL = riserva
+- `photo_slots`: Traccia automaticamente quali foto sono state caricate
 - Un layout formazione per utente (UNIQUE constraint)
+- Cambio formazione intelligente: mantiene giocatori esistenti nei loro slot
 - Matching giocatori: nome + squadra + ruolo per validazione
 - Responsive design: Mobile-first, touch-friendly
+- Campo 2D realistico: pattern erba, linee campo visibili, contrasto ottimizzato
 
 ## 🐛 Troubleshooting
 

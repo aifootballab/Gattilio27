@@ -1,7 +1,7 @@
 # Documentazione Completa - eFootball AI Coach
 
 **Data Aggiornamento**: Gennaio 2025  
-**Versione**: 1.1.0
+**Versione**: 1.2.0
 
 ---
 
@@ -30,9 +30,11 @@
 - ✅ **14 Formazioni Ufficiali eFootball**: Selezione tra tutti i moduli tattici ufficiali
 - ✅ **Cambio Formazione Intelligente**: Mantiene giocatori quando si cambia modulo
 - ✅ **Upload Formazione**: Estrazione disposizione tattica da screenshot (opzione avanzata)
-- ✅ **Upload Giocatori**: Estrazione dati da card (fino a 3 immagini)
+- ✅ **Upload Giocatori**: Estrazione dati da card (fino a 3 immagini) con tracciamento foto
 - ✅ **Gestione Riserve**: Upload e gestione giocatori riserva
 - ✅ **Profilazione Giocatori**: Completamento profilo con foto aggiuntive
+- ✅ **Visualizzazione Dati Estratti**: Modal con statistiche, abilità e booster quando si clicca su una card
+- ✅ **Campo 2D Migliorato**: Design realistico con pattern erba, linee campo visibili, contrasto ottimizzato
 - ✅ **Internazionalizzazione**: Supporto IT/EN
 
 ---
@@ -263,7 +265,13 @@ Authorization: Bearer <token>
     "player_name": "Nome",
     "position": "CF",
     "overall_rating": 85,
-    "slot_index": 0, // 0-10 o null
+    "slot_index": 0,
+    "photo_slots": {
+      "card": true,
+      "statistiche": true,
+      "abilita": true,
+      "booster": true
+    },
     ...
   }
 }
@@ -360,14 +368,28 @@ Authorization: Bearer <token>
 **Flusso Assegna Giocatore**:
 1. Click slot vuoto → Modal assegnazione
 2. Opzioni:
-   - Upload foto (fino a 3 immagini)
+   - Upload foto (fino a 3 immagini: card, stats, skills)
    - Seleziona da riserve
 3. Conferma → Assegnazione slot
+4. `photo_slots` viene tracciato automaticamente in base alle immagini caricate
+
+**Flusso Click Card Giocatore**:
+1. Click su card giocatore assegnato → Modal dettagli
+2. Visualizzazione dati estratti:
+   - **Statistiche**: base_stats organizzati per categoria (Attacco/Difesa/Forza)
+   - **Abilità**: skills e com_skills come badge colorati
+   - **Booster**: available_boosters con nome/effetto/condizione
+3. Sezioni espandibili/collassabili per migliore UX
+4. Azioni disponibili:
+   - Completa Profilo (redirect a `/giocatore/[id]`)
+   - Cambia Giocatore (upload nuove foto)
+   - Rimuovi da Slot
 
 **Note**: 
 - Slot 0-10 = titolari (posizionati sul campo)
 - Slot NULL = riserve (lista sotto campo)
 - **Cambio Formazione Intelligente**: I giocatori mantengono le loro posizioni numeriche (0-10), cambiano solo le coordinate visuali sul campo
+- **Tracciamento Foto**: `photo_slots` viene aggiornato automaticamente durante l'upload
 
 ---
 
@@ -389,8 +411,11 @@ Authorization: Bearer <token>
 5. Conferma → Aggiornamento database
 
 **Note**: 
-- `photo_slots` traccia foto caricate
-- Validazione previene errori di matching
+- `photo_slots` traccia foto caricate: `{ card: true, statistiche: true, abilita: true, booster: true }`
+- Validazione previene errori di matching (nome/squadra/ruolo/età)
+- Badge "Profilo Completo" quando tutte le foto sono caricate
+- Sezioni espandibili per statistiche, abilità e booster
+- Pulsante "Aggiorna" sempre visibile anche se sezione completa (permette sovrascrittura)
 
 ---
 
@@ -599,6 +624,26 @@ npm start
 
 ## 🆕 Changelog
 
+### Versione 1.2.0 (Gennaio 2025)
+
+**Nuove Funzionalità**:
+- ✅ **Tracciamento `photo_slots` Completo**: Tracciamento automatico delle foto caricate in tutti i flussi (upload slot, upload riserve)
+- ✅ **Visualizzazione Dati Estratti**: Modal dettagli giocatore mostra statistiche, abilità e booster quando si clicca su una card
+- ✅ **Sezioni Espandibili**: Statistiche, abilità e booster con sezioni collassabili per migliore UX
+
+**Miglioramenti UX**:
+- ✅ **Campo 2D Realistico**: Pattern erba, linee campo visibili (centrocampo, cerchio, aree di rigore)
+- ✅ **SlotCard Migliorate**: Contrasto e visibilità ottimizzati (background più opaco, bordi più visibili, ombre più forti)
+- ✅ **Rating Giocatori**: Badge dorato con glow effect
+- ✅ **Hover Effects**: Animazioni fluide e feedback visivo migliorato
+
+**Miglioramenti Tecnici**:
+- ✅ **Endpoint `save-player`**: Supporto completo per `photo_slots`
+- ✅ **Coerenza Flussi**: Tutti i flussi di upload tracciano correttamente le foto caricate
+- ✅ **Validazione**: Verificata coerenza tra frontend e backend
+
+---
+
 ### Versione 1.1.0 (Gennaio 2025)
 
 **Nuove Funzionalità**:
@@ -620,4 +665,4 @@ npm start
 ---
 
 **Documentazione aggiornata al**: Gennaio 2025  
-**Versione App**: 1.1.0
+**Versione App**: 1.2.0

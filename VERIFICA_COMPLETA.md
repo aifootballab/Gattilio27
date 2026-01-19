@@ -182,6 +182,7 @@
 1. **`players`** ✅
    - RLS: ✅
    - Campi principali: `id`, `user_id`, `player_name`, `slot_index`, `photo_slots`
+   - `photo_slots`: Traccia foto caricate `{ card: true, statistiche: true, abilita: true, booster: true }`
    - Query: Lettura diretta (frontend), scrittura via API
 
 2. **`formation_layout`** ✅
@@ -275,4 +276,10 @@
 ---
 
 **Verifica completata il**: Gennaio 2025  
+**Versione**: 1.2.0  
 **Verificato da**: Audit Completo Sistema
+
+**Aggiornamenti v1.2.0**:
+- ✅ Tracciamento `photo_slots` in tutti i flussi di upload
+- ✅ Visualizzazione dati estratti nel modal dettagli giocatore
+- ✅ Miglioramenti UX campo 2D e SlotCard
