@@ -4,6 +4,7 @@ import React from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { useTranslation } from '@/lib/i18n'
+import LanguageSwitch from '@/components/LanguageSwitch'
 import { ArrowLeft, Upload, AlertCircle, CheckCircle2, RefreshCw, User, BarChart3, Zap, Gift, ChevronDown, ChevronUp, Award } from 'lucide-react'
 
 export default function PlayerDetailPage() {
@@ -335,6 +336,9 @@ export default function PlayerDetailPage() {
         <h1 className="neon-text" style={{ fontSize: 'clamp(24px, 5vw, 32px)', fontWeight: 700, margin: 0 }}>
           {player.player_name}
         </h1>
+        <div style={{ marginLeft: 'auto' }}>
+          <LanguageSwitch />
+        </div>
         {isProfileComplete && (
           <div style={{
             display: 'inline-flex',
@@ -350,7 +354,7 @@ export default function PlayerDetailPage() {
             marginLeft: 'auto'
           }}>
             <Award size={18} />
-            Profilo Completo
+            {t('profileComplete')}
           </div>
         )}
       </div>
@@ -368,25 +372,25 @@ export default function PlayerDetailPage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
           {player.position && (
             <div>
-              <div style={{ fontSize: '12px', opacity: 0.7, marginBottom: '4px' }}>Posizione</div>
+              <div style={{ fontSize: '12px', opacity: 0.7, marginBottom: '4px' }}>{t('position')}</div>
               <div style={{ fontSize: '16px', fontWeight: 600 }}>{player.position}</div>
             </div>
           )}
           {player.overall_rating && (
             <div>
-              <div style={{ fontSize: '12px', opacity: 0.7, marginBottom: '4px' }}>Overall</div>
+              <div style={{ fontSize: '12px', opacity: 0.7, marginBottom: '4px' }}>{t('overallRating')}</div>
               <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--neon-blue)' }}>{player.overall_rating}</div>
             </div>
           )}
           {player.age && (
             <div>
-              <div style={{ fontSize: '12px', opacity: 0.7, marginBottom: '4px' }}>Età</div>
-              <div style={{ fontSize: '16px', fontWeight: 600 }}>{player.age} anni</div>
+              <div style={{ fontSize: '12px', opacity: 0.7, marginBottom: '4px' }}>{t('age')}</div>
+              <div style={{ fontSize: '16px', fontWeight: 600 }}>{player.age} {t('years')}</div>
             </div>
           )}
           {(player.club_name || player.team) && (
             <div>
-              <div style={{ fontSize: '12px', opacity: 0.7, marginBottom: '4px' }}>Club</div>
+              <div style={{ fontSize: '12px', opacity: 0.7, marginBottom: '4px' }}>{t('club')}</div>
               <div style={{ fontSize: '16px', fontWeight: 600 }}>{player.club_name || player.team}</div>
             </div>
           )}
@@ -398,7 +402,7 @@ export default function PlayerDetailPage() {
           )}
           {(playingStyleName || player.role) && (
             <div>
-              <div style={{ fontSize: '12px', opacity: 0.7, marginBottom: '4px' }}>Stile di Gioco</div>
+              <div style={{ fontSize: '12px', opacity: 0.7, marginBottom: '4px' }}>{t('playingStyle')}</div>
               <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--neon-orange)' }}>{playingStyleName || player.role}</div>
             </div>
           )}
@@ -459,7 +463,7 @@ export default function PlayerDetailPage() {
             {uploading ? (
               <>
                 <RefreshCw size={20} style={{ animation: 'spin 0.6s linear infinite' }} />
-                Caricamento...
+                {t('loading')}
               </>
             ) : (
               <>
@@ -669,7 +673,7 @@ function StatsSection({ player, photoSlots, isExpanded, onToggle, onFileSelect, 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
               <Upload size={18} color="var(--neon-blue)" />
               <span style={{ fontSize: '14px', fontWeight: 600 }}>
-                {photoSlots.statistiche ? 'Aggiorna Statistiche' : 'Carica Statistiche'}
+                {photoSlots.statistiche ? t('updateStats') : t('uploadStats')}
               </span>
             </div>
           </label>
@@ -909,7 +913,7 @@ function BoostersSection({ player, photoSlots, isExpanded, onToggle, onFileSelec
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
               <Upload size={18} color="var(--neon-orange)" />
               <span style={{ fontSize: '14px', fontWeight: 600 }}>
-                {photoSlots.booster ? 'Aggiorna Booster' : 'Carica Booster'}
+                {photoSlots.booster ? t('updateBoosters') : t('uploadBoosters')}
               </span>
             </div>
           </label>
@@ -981,10 +985,10 @@ function ConfirmUpdateModal({
           }}>
             <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '8px' }}>{t('currentPlayer')}:</div>
             <div style={{ fontSize: '13px', opacity: 0.9 }}>
-              <div><strong>Nome:</strong> {currentPlayer.player_name || 'N/A'}</div>
-              {currentPlayer.team && <div><strong>Squadra:</strong> {currentPlayer.team}</div>}
-              {currentPlayer.position && <div><strong>Ruolo:</strong> {currentPlayer.position}</div>}
-              {currentPlayer.age && <div><strong>Età:</strong> {currentPlayer.age}</div>}
+              <div><strong>{t('name')}:</strong> {currentPlayer.player_name || t('nA')}</div>
+              {currentPlayer.team && <div><strong>{t('team')}:</strong> {currentPlayer.team}</div>}
+              {currentPlayer.position && <div><strong>{t('role')}:</strong> {currentPlayer.position}</div>}
+              {currentPlayer.age && <div><strong>{t('age')}:</strong> {currentPlayer.age}</div>}
             </div>
           </div>
 
@@ -1002,19 +1006,19 @@ function ConfirmUpdateModal({
               </div>
               {extractedData.team && (
                 <div style={{ color: teamMismatch ? '#ef4444' : 'inherit' }}>
-                  <strong>Squadra:</strong> {extractedData.team}
+                  <strong>{t('team')}:</strong> {extractedData.team}
                   {teamMismatch && ' ⚠️'}
                 </div>
               )}
               {extractedData.position && (
                 <div style={{ color: positionMismatch ? '#ef4444' : 'inherit' }}>
-                  <strong>Ruolo:</strong> {extractedData.position}
+                  <strong>{t('role')}:</strong> {extractedData.position}
                   {positionMismatch && ' ⚠️'}
                 </div>
               )}
               {extractedData.age && (
                 <div style={{ color: ageMismatch ? '#ef4444' : 'inherit' }}>
-                  <strong>Età:</strong> {extractedData.age}
+                  <strong>{t('age')}:</strong> {extractedData.age}
                   {ageMismatch && ' ⚠️'}
                 </div>
               )}

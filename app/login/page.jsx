@@ -3,6 +3,7 @@
 import React from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslation } from '@/lib/i18n'
+import LanguageSwitch from '@/components/LanguageSwitch'
 import { supabase } from '@/lib/supabaseClient'
 import { Mail, Lock, LogIn, UserPlus, AlertCircle } from 'lucide-react'
 
@@ -105,45 +106,9 @@ export default function LoginPage() {
         position: 'fixed',
         top: '20px',
         right: '20px',
-        zIndex: 1000,
-        display: 'flex',
-        gap: '8px',
-        background: 'rgba(10, 14, 39, 0.9)',
-        padding: '8px',
-        borderRadius: '8px',
-        border: '1px solid rgba(0, 212, 255, 0.3)',
-        backdropFilter: 'blur(10px)'
+        zIndex: 1000
       }}>
-        <button
-          onClick={() => changeLanguage('it')}
-          style={{
-            padding: '6px 12px',
-            background: lang === 'it' ? 'rgba(0, 212, 255, 0.2)' : 'transparent',
-            border: '1px solid rgba(0, 212, 255, 0.3)',
-            borderRadius: '6px',
-            color: lang === 'it' ? 'var(--neon-blue)' : 'rgba(255, 255, 255, 0.7)',
-            cursor: 'pointer',
-            fontSize: '12px',
-            fontWeight: 600
-          }}
-        >
-          IT
-        </button>
-        <button
-          onClick={() => changeLanguage('en')}
-          style={{
-            padding: '6px 12px',
-            background: lang === 'en' ? 'rgba(0, 212, 255, 0.2)' : 'transparent',
-            border: '1px solid rgba(0, 212, 255, 0.3)',
-            borderRadius: '6px',
-            color: lang === 'en' ? 'var(--neon-blue)' : 'rgba(255, 255, 255, 0.7)',
-            cursor: 'pointer',
-            fontSize: '12px',
-            fontWeight: 600
-          }}
-        >
-          EN
-        </button>
+        <LanguageSwitch />
       </div>
 
       <div className="neon-panel" style={{

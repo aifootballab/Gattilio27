@@ -4,6 +4,7 @@ import React from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { useTranslation } from '@/lib/i18n'
+import LanguageSwitch from '@/components/LanguageSwitch'
 import { ArrowLeft, Upload, AlertCircle, CheckCircle2, RefreshCw, Info, X, Plus, User, Settings, BarChart3, Zap, Gift, ChevronDown, ChevronUp } from 'lucide-react'
 
 export default function GestioneFormazionePage() {
@@ -668,6 +669,7 @@ export default function GestioneFormazionePage() {
           {t('swapFormation')}
         </h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginLeft: 'auto' }}>
+          <LanguageSwitch />
           {layout?.formation && (
             <div style={{ 
               fontSize: '18px', 
@@ -690,7 +692,7 @@ export default function GestioneFormazionePage() {
               }}
             >
               <Settings size={16} />
-              Cambia Formazione
+              {t('changeFormation')}
             </button>
           )}
         </div>
@@ -701,10 +703,10 @@ export default function GestioneFormazionePage() {
         <div className="card" style={{ padding: '48px 24px', textAlign: 'center', marginBottom: '24px' }}>
           <Info size={48} style={{ marginBottom: '16px', opacity: 0.5, color: 'var(--neon-blue)' }} />
           <div style={{ fontSize: '20px', marginBottom: '12px', fontWeight: 600 }}>
-            Crea la tua formazione
+            {t('createFormation')}
           </div>
           <div style={{ fontSize: '14px', opacity: 0.8, marginBottom: '24px' }}>
-            Seleziona una formazione tattica predefinita per iniziare. Poi potrai caricare le carte dei giocatori per ogni slot.
+            {t('selectFormationDesc')}
           </div>
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
             <button
@@ -713,7 +715,7 @@ export default function GestioneFormazionePage() {
               style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
             >
               <Settings size={16} />
-              Crea Formazione
+              {t('createFormationBtn')}
             </button>
             <button
               onClick={() => setShowUploadFormationModal(true)}
@@ -721,7 +723,7 @@ export default function GestioneFormazionePage() {
               style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
             >
               <Upload size={16} />
-              Importa da Screenshot (Avanzato)
+              {t('importFromScreenshot')}
             </button>
           </div>
         </div>
@@ -742,7 +744,7 @@ export default function GestioneFormazionePage() {
         padding: 'clamp(16px, 2vw, 24px)',
         position: 'relative',
         maxWidth: 'clamp(600px, 50vw, 800px)',
-        minHeight: 'clamp(600px, 75vh, 900px)',
+        minHeight: 'clamp(450px, 60vh, 650px)',
         aspectRatio: '2/3',
         margin: '0 auto',
         background: `
@@ -1204,7 +1206,7 @@ function UploadModal({ title, description, onUpload, onClose, uploading }) {
                 opacity: uploading ? 0.6 : 1
               }}
             >
-              {uploading ? 'Caricamento...' : 'Carica'}
+              {uploading ? t('loading') : t('upload')}
             </button>
           )}
         </div>
@@ -1505,7 +1507,7 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <h2 style={{ fontSize: '20px', fontWeight: 700, margin: 0 }}>
-            {currentPlayer ? 'Dettagli Giocatore' : 'Assegna Giocatore'}
+            {currentPlayer ? t('details') : t('assignPlayer')}
           </h2>
           <button
             onClick={onClose}
@@ -1523,7 +1525,7 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
 
         <div style={{ marginBottom: '20px', padding: '16px', background: 'rgba(0, 212, 255, 0.1)', borderRadius: '10px', border: '1px solid rgba(0, 212, 255, 0.2)' }}>
           <div style={{ fontSize: '13px', marginBottom: '8px', opacity: 0.8 }}>
-            <strong>Slot {slot.slot_index}</strong> • {slot.position?.position || '?'}
+            <strong>{t('slot')} {slot.slot_index}</strong> • {slot.position?.position || '?'}
           </div>
           {currentPlayer && (
             <>
@@ -1630,13 +1632,13 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
                 {isProfileComplete ? (
                   <>
                     <CheckCircle2 size={14} color="var(--neon-green)" />
-                    <span style={{ color: 'var(--neon-green)', fontWeight: 600 }}>Profilo Completo</span>
+                    <span style={{ color: 'var(--neon-green)', fontWeight: 600 }}>{t('profileComplete')}</span>
                   </>
                 ) : (
                   <>
                     <Info size={14} color="#fbbf24" />
                     <span style={{ color: '#fbbf24', fontWeight: 500 }}>
-                      {completedSections}/3 sezioni completate
+                      {completedSections}/3 {t('sectionsCompleted')}
                     </span>
                   </>
                 )}
@@ -1661,7 +1663,7 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
               }}>
                 <Info size={16} color="#fbbf24" />
                 <span style={{ color: '#fbbf24', fontWeight: 500 }}>
-                  Profilo parziale ({completedSections}/3). Clicca "Completa Profilo" per aggiungere dati mancanti.
+                  {t('partialProfile')} ({completedSections}/3). {t('clickToComplete')}
                 </span>
               </div>
             )}
@@ -1690,13 +1692,13 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <BarChart3 size={20} color="var(--neon-green)" />
-                    <span style={{ fontWeight: 600, fontSize: '15px' }}>Statistiche</span>
+                    <span style={{ fontWeight: 600, fontSize: '15px' }}>{t('statsSection')}</span>
                     {photoSlots.statistiche && (
                       <CheckCircle2 size={14} color="var(--neon-green)" style={{ marginLeft: '4px' }} />
                     )}
                     {!photoSlots.statistiche && hasStats && (
                       <span style={{ fontSize: '11px', opacity: 0.7, color: 'rgba(255, 255, 255, 0.6)', fontStyle: 'italic' }}>
-                        (estratti da card)
+                        {t('extractedFromCard')}
                       </span>
                     )}
                   </div>
@@ -1780,7 +1782,7 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
               }}>
                 <BarChart3 size={20} color="rgba(255, 255, 255, 0.4)" />
                 <span style={{ fontWeight: 500, fontSize: '14px', color: 'rgba(255, 255, 255, 0.6)' }}>
-                  Statistiche non disponibili
+                  {t('statsNotAvailable')}
                 </span>
               </div>
             )}
@@ -1809,7 +1811,7 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <Zap size={20} color="var(--neon-orange)" />
-                    <span style={{ fontWeight: 600, fontSize: '15px' }}>Abilità</span>
+                    <span style={{ fontWeight: 600, fontSize: '15px' }}>{t('skillsSection')}</span>
                     {photoSlots.abilita && (
                       <CheckCircle2 size={14} color="var(--neon-orange)" style={{ marginLeft: '4px' }} />
                     )}
@@ -1825,7 +1827,7 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
                   <div style={{ padding: '18px' }}>
                     {skills.length > 0 && (
                       <div style={{ marginBottom: '16px' }}>
-                        <div style={{ fontSize: '13px', fontWeight: 700, marginBottom: '10px', opacity: 0.9, color: 'var(--neon-orange)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>SKILLS ({skills.length})</div>
+                        <div style={{ fontSize: '13px', fontWeight: 700, marginBottom: '10px', opacity: 0.9, color: 'var(--neon-orange)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t('skillsLabel')} ({skills.length})</div>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                           {skills.map((skill, idx) => (
                             <span key={idx} style={{
@@ -1883,7 +1885,7 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
               }}>
                 <Zap size={20} color="rgba(255, 255, 255, 0.4)" />
                 <span style={{ fontWeight: 500, fontSize: '14px', color: 'rgba(255, 255, 255, 0.6)' }}>
-                  Abilità non disponibili
+                  {t('skillsSection')} {t('notAvailable')}
                 </span>
               </div>
             )}
@@ -1912,7 +1914,7 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <Gift size={20} color="var(--neon-purple)" />
-                    <span style={{ fontWeight: 600, fontSize: '15px' }}>Booster</span>
+                    <span style={{ fontWeight: 600, fontSize: '15px' }}>{t('boostersSection')}</span>
                     {photoSlots.booster && (
                       <CheckCircle2 size={14} color="var(--neon-purple)" style={{ marginLeft: '4px' }} />
                     )}
@@ -1927,7 +1929,7 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
                 {expandedSections.boosters && (
                   <div style={{ padding: '18px' }}>
                     <div style={{ fontSize: '13px', fontWeight: 700, marginBottom: '12px', opacity: 0.9, color: 'var(--neon-purple)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                      BOOSTER ATTIVI ({boosters.length})
+                      {t('activeBoosters')} ({boosters.length})
                     </div>
                     {boosters.map((booster, idx) => (
                       <div key={idx} style={{
@@ -1949,7 +1951,7 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
                         )}
                         {booster.condition && (
                           <div style={{ fontSize: '11px', opacity: 0.7, color: 'rgba(255, 255, 255, 0.7)', fontStyle: 'italic' }}>
-                            Condizione: {booster.condition}
+                            {t('condition')}: {booster.condition}
                           </div>
                         )}
                       </div>
@@ -1970,7 +1972,7 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
               }}>
                 <Gift size={20} color="rgba(255, 255, 255, 0.4)" />
                 <span style={{ fontWeight: 500, fontSize: '14px', color: 'rgba(255, 255, 255, 0.6)' }}>
-                  Booster non disponibili
+                  {t('boostersNotAvailable')}
                 </span>
               </div>
             )}
@@ -1991,7 +1993,7 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
                   }}
                 >
                   <User size={18} />
-                  Completa Profilo ({completedSections}/3)
+                  {t('completeProfile')} ({completedSections}/3)
                 </button>
               )}
               <button
@@ -2010,7 +2012,7 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
                 }}
               >
                 <Upload size={18} />
-                {isProfileComplete ? 'Aggiorna Foto' : 'Carica/Modifica Foto'}
+                {isProfileComplete ? t('updatePhoto') : t('uploadModifyPhoto')}
               </button>
               {onRemove && (
                 <button
@@ -2028,7 +2030,7 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
                   }}
                 >
                   <X size={16} />
-                  Rimuovi da Slot
+                  {t('removeFromSlot')}
                 </button>
               )}
             </div>
@@ -2089,9 +2091,9 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
 function UploadPlayerModal({ slot, images, onImagesChange, onUpload, onClose, uploading }) {
   const { t } = useTranslation()
   const imageTypes = [
-    { key: 'card', label: 'Card Giocatore', icon: '👤', color: 'var(--neon-blue)' },
-    { key: 'stats', label: 'Statistiche', icon: '📊', color: 'var(--neon-green)' },
-    { key: 'skills', label: 'Abilità/Booster', icon: '⭐', color: 'var(--neon-orange)' }
+    { key: 'card', label: t('card'), icon: '👤', color: 'var(--neon-blue)' },
+    { key: 'stats', label: t('statsLabel'), icon: '📊', color: 'var(--neon-green)' },
+    { key: 'skills', label: t('skillsBoosterLabel'), icon: '⭐', color: 'var(--neon-orange)' }
   ]
 
   const handleFileSelect = (e, type) => {
@@ -2158,7 +2160,7 @@ function UploadPlayerModal({ slot, images, onImagesChange, onUpload, onClose, up
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <h2 style={{ fontSize: '20px', fontWeight: 700, margin: 0 }}>
-            Carica Giocatore - Slot {slot.slot_index}
+            {t('uploadPlayer')} - {t('slot')} {slot.slot_index}
           </h2>
           <button
             onClick={onClose}
@@ -2207,7 +2209,7 @@ function UploadPlayerModal({ slot, images, onImagesChange, onUpload, onClose, up
                         fontSize: '12px'
                       }}
                     >
-                      Rimuovi
+                      {t('remove')}
                     </button>
                   )}
                 </div>

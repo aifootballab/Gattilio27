@@ -4,6 +4,7 @@ import React from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { useTranslation } from '@/lib/i18n'
+import LanguageSwitch from '@/components/LanguageSwitch'
 import { 
   LayoutDashboard, 
   Users, 
@@ -155,17 +156,20 @@ export default function DashboardPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <LayoutDashboard size={32} color="var(--neon-blue)" />
           <h1 className="neon-text" style={{ fontSize: 'clamp(24px, 5vw, 32px)', fontWeight: 700, margin: 0 }}>
-            Dashboard
+            {t('dashboard')}
           </h1>
         </div>
-        <button
-          onClick={handleLogout}
-          className="btn"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
-        >
-          <LogOut size={16} />
-          {t('logout')}
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginLeft: 'auto' }}>
+          <LanguageSwitch />
+          <button
+            onClick={handleLogout}
+            className="btn"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+          >
+            <LogOut size={16} />
+            {t('logout')}
+          </button>
+        </div>
       </div>
 
       {/* Error */}
