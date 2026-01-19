@@ -207,6 +207,43 @@ export default function GestioneFormazionePage() {
     }
   }
 
+  // Elimina giocatore dalle riserve (cancellazione completa)
+  const handleDeleteReserve = async (playerId) => {
+    if (!supabase) return
+
+    if (!confirm('Sei sicuro di voler eliminare definitivamente questo giocatore dalle riserve?')) {
+      return
+    }
+
+    setAssigning(true)
+    setError(null)
+
+    try {
+      const { data: session } = await supabase.auth.getSession()
+      if (!session?.session?.access_token) {
+        throw new Error('Sessione scaduta')
+      }
+
+      // Elimina giocatore dal database
+      const { error: deleteError } = await supabase
+        .from('players')
+        .delete()
+        .eq('id', playerId)
+
+      if (deleteError) {
+        throw new Error(deleteError.message || 'Errore eliminazione')
+      }
+
+      // Ricarica dati
+      window.location.reload()
+    } catch (err) {
+      console.error('[GestioneFormazione] Delete reserve error:', err)
+      setError(err.message || 'Errore eliminazione giocatore')
+    } finally {
+      setAssigning(false)
+    }
+  }
+
   const handleUploadPhoto = () => {
     // Apri modal upload giocatore per questo slot (mantieni selectedSlot)
     setShowAssignModal(false)
@@ -838,8 +875,8 @@ export default function GestioneFormazionePage() {
         {riserve.length > 0 && (
           <div style={{ 
             display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
-            gap: '12px'
+            gridTemplateColumns: 'repeat(auto-fill, minmax(clamp(150px, 18vw, 200px), 1fr))',
+            gap: 'clamp(12px, 1.5vw, 16px)'
           }}>
             {riserve.map((player) => (
               <ReserveCard 
@@ -851,6 +888,7 @@ export default function GestioneFormazionePage() {
                   }
                 }}
                 disabled={!showAssignModal}
+                onDelete={() => handleDeleteReserve(player.id)}
               />
             ))}
           </div>
@@ -1099,7 +1137,7 @@ function UploadModal({ title, description, onUpload, onClose, uploading }) {
   )
 }
 
-// Slot Card Component (posizionata sul campo)
+// Slot Card Component (posizionata sul campo) - Design Moderno 2024
 function SlotCard({ slot, onClick, onRemove }) {
   const { t } = useTranslation()
   const { slot_index, position, player } = slot
@@ -1113,49 +1151,50 @@ function SlotCard({ slot, onClick, onRemove }) {
         left: `${position.x}%`,
         top: `${position.y}%`,
         transform: 'translate(-50%, -50%)',
-        width: 'clamp(100px, 9vw, 145px)',
-        minHeight: 'clamp(115px, 12vh, 135px)',
-        maxWidth: '145px',
-        padding: 'clamp(10px, 1.2vw, 14px) clamp(8px, 1vw, 12px)',
+        width: 'clamp(110px, 10vw, 160px)',
+        minHeight: 'clamp(130px, 14vh, 150px)',
+        maxWidth: '160px',
+        padding: 'clamp(12px, 1.5vw, 16px)',
         background: isEmpty 
-          ? 'linear-gradient(135deg, rgba(0, 0, 0, 0.7) 0%, rgba(20, 20, 30, 0.8) 100%)' 
-          : 'linear-gradient(135deg, rgba(0, 212, 255, 0.35) 0%, rgba(59, 130, 246, 0.45) 50%, rgba(0, 212, 255, 0.35) 100%)',
+          ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.9) 50%, rgba(15, 23, 42, 0.95) 100%)' 
+          : 'linear-gradient(135deg, rgba(59, 130, 246, 0.4) 0%, rgba(147, 51, 234, 0.4) 50%, rgba(59, 130, 246, 0.4) 100%), linear-gradient(180deg, rgba(0, 212, 255, 0.2) 0%, rgba(59, 130, 246, 0.3) 100%)',
         border: isEmpty 
-          ? '2px solid rgba(255, 255, 255, 0.4)' 
-          : '2px solid rgba(0, 212, 255, 0.85)',
-        borderRadius: '12px',
+          ? '2px solid rgba(148, 163, 184, 0.3)' 
+          : '2px solid rgba(59, 130, 246, 0.6)',
+        borderRadius: '16px',
         cursor: 'pointer',
-        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
         textAlign: 'center',
         boxShadow: isEmpty
-          ? '0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
-          : '0 4px 16px rgba(0, 212, 255, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 0 20px rgba(0, 212, 255, 0.1)',
-        backdropFilter: 'blur(4px)',
-        zIndex: 1
+          ? '0 8px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.05)'
+          : '0 12px 32px rgba(59, 130, 246, 0.3), 0 0 40px rgba(147, 51, 234, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 0 0 1px rgba(59, 130, 246, 0.2)',
+        backdropFilter: 'blur(12px) saturate(180%)',
+        zIndex: 1,
+        overflow: 'hidden'
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.transform = 'translate(-50%, -50%) scale(1.15)'
+        e.currentTarget.style.transform = 'translate(-50%, -50%) scale(1.12) translateY(-4px)'
         e.currentTarget.style.boxShadow = isEmpty
-          ? '0 8px 32px rgba(0, 0, 0, 0.6), 0 0 30px rgba(255, 255, 255, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.25)'
-          : '0 10px 40px rgba(0, 212, 255, 0.6), 0 0 40px rgba(0, 212, 255, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.4)'
+          ? '0 16px 48px rgba(0, 0, 0, 0.6), 0 0 60px rgba(148, 163, 184, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
+          : '0 20px 60px rgba(59, 130, 246, 0.5), 0 0 80px rgba(147, 51, 234, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 0 0 2px rgba(59, 130, 246, 0.3)'
         e.currentTarget.style.zIndex = '10'
         e.currentTarget.style.borderColor = isEmpty 
-          ? 'rgba(255, 255, 255, 0.4)' 
-          : 'rgba(0, 212, 255, 0.9)'
+          ? 'rgba(148, 163, 184, 0.5)' 
+          : 'rgba(147, 51, 234, 0.8)'
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.transform = 'translate(-50%, -50%) scale(1)'
         e.currentTarget.style.boxShadow = isEmpty
-          ? '0 4px 16px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.1)'
-          : '0 6px 24px rgba(0, 212, 255, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 0 30px rgba(0, 212, 255, 0.25)'
+          ? '0 8px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.05)'
+          : '0 12px 32px rgba(59, 130, 246, 0.3), 0 0 40px rgba(147, 51, 234, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 0 0 1px rgba(59, 130, 246, 0.2)'
         e.currentTarget.style.zIndex = '1'
         e.currentTarget.style.borderColor = isEmpty 
-          ? 'rgba(255, 255, 255, 0.4)' 
-          : 'rgba(0, 212, 255, 0.85)'
+          ? 'rgba(148, 163, 184, 0.3)' 
+          : 'rgba(59, 130, 246, 0.6)'
       }}
     >
       {isEmpty ? (
@@ -1225,35 +1264,47 @@ function SlotCard({ slot, onClick, onRemove }) {
             SLOT {slot_index}
           </div>
           <div style={{ 
-            fontSize: 'clamp(11px, 1.2vw, 14px)', 
-            fontWeight: 700, 
-            marginBottom: '8px',
+            fontSize: 'clamp(12px, 1.3vw, 15px)', 
+            fontWeight: 800, 
+            marginBottom: '10px',
             color: '#ffffff',
             lineHeight: '1.3',
             wordBreak: 'break-word',
-            textShadow: '0 2px 6px rgba(0, 0, 0, 0.9), 0 0 12px rgba(0, 212, 255, 0.4)',
-            letterSpacing: '0.2px',
-            minHeight: '32px',
+            textShadow: '0 3px 8px rgba(0, 0, 0, 0.9), 0 0 16px rgba(59, 130, 246, 0.5), 0 0 32px rgba(147, 51, 234, 0.3)',
+            letterSpacing: '0.3px',
+            minHeight: '36px',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center'
+            justifyContent: 'center',
+            padding: '0 4px'
           }}>
             {player.player_name}
           </div>
           {player.overall_rating && (
             <div style={{ 
-              fontSize: 'clamp(16px, 2vw, 20px)', 
-              fontWeight: 800, 
+              fontSize: 'clamp(20px, 2.5vw, 28px)', 
+              fontWeight: 900, 
               color: '#fbbf24',
-              textShadow: '0 2px 6px rgba(0, 0, 0, 0.9), 0 0 16px rgba(251, 191, 36, 0.6)',
-              marginBottom: '6px',
-              background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.25) 0%, rgba(245, 158, 11, 0.25) 100%)',
-              padding: '6px 12px',
-              borderRadius: '8px',
-              border: '2px solid rgba(251, 191, 36, 0.5)',
-              boxShadow: 'inset 0 1px 3px rgba(255, 255, 255, 0.3), 0 2px 8px rgba(251, 191, 36, 0.3)',
-              minWidth: '50px'
+              textShadow: '0 3px 8px rgba(0, 0, 0, 0.9), 0 0 20px rgba(251, 191, 36, 0.7), 0 0 40px rgba(245, 158, 11, 0.4)',
+              marginBottom: '8px',
+              background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.3) 0%, rgba(245, 158, 11, 0.3) 50%, rgba(251, 191, 36, 0.3) 100%)',
+              padding: '8px 16px',
+              borderRadius: '12px',
+              border: '2px solid rgba(251, 191, 36, 0.6)',
+              boxShadow: 'inset 0 2px 4px rgba(255, 255, 255, 0.4), 0 4px 12px rgba(251, 191, 36, 0.4), 0 0 20px rgba(251, 191, 36, 0.3)',
+              minWidth: '60px',
+              position: 'relative',
+              overflow: 'hidden'
             }}>
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: '-100%',
+                width: '100%',
+                height: '100%',
+                background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent)',
+                animation: 'shimmer 2s infinite'
+              }} />
               {player.overall_rating}
             </div>
           )}
@@ -1264,29 +1315,32 @@ function SlotCard({ slot, onClick, onRemove }) {
                 onRemove()
               }}
               style={{
-                marginTop: '4px',
-                padding: '5px 12px',
-                background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.3) 0%, rgba(220, 38, 38, 0.35) 100%)',
-                border: '1px solid rgba(239, 68, 68, 0.6)',
-                borderRadius: '6px',
+                marginTop: '6px',
+                padding: '6px 14px',
+                background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.35) 0%, rgba(220, 38, 38, 0.4) 100%)',
+                border: '1.5px solid rgba(239, 68, 68, 0.7)',
+                borderRadius: '8px',
                 color: '#ffffff',
-                fontSize: 'clamp(9px, 0.9vw, 11px)',
+                fontSize: 'clamp(10px, 1vw, 12px)',
                 cursor: 'pointer',
                 fontWeight: 700,
-                textShadow: '0 1px 3px rgba(0, 0, 0, 0.8)',
-                transition: 'all 0.2s ease',
-                boxShadow: '0 2px 6px rgba(239, 68, 68, 0.4)',
-                letterSpacing: '0.3px'
+                textShadow: '0 2px 4px rgba(0, 0, 0, 0.8)',
+                transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                boxShadow: '0 3px 8px rgba(239, 68, 68, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
+                letterSpacing: '0.4px',
+                backdropFilter: 'blur(4px)'
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(239, 68, 68, 0.4) 0%, rgba(220, 38, 38, 0.45) 100%)'
-                e.currentTarget.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.5)'
-                e.currentTarget.style.transform = 'scale(1.05)'
+                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(239, 68, 68, 0.5) 0%, rgba(220, 38, 38, 0.55) 100%)'
+                e.currentTarget.style.boxShadow = '0 6px 16px rgba(239, 68, 68, 0.6), 0 0 24px rgba(239, 68, 68, 0.4)'
+                e.currentTarget.style.transform = 'scale(1.08) translateY(-2px)'
+                e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.9)'
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(239, 68, 68, 0.3) 0%, rgba(220, 38, 38, 0.35) 100%)'
-                e.currentTarget.style.boxShadow = '0 2px 6px rgba(239, 68, 68, 0.4)'
-                e.currentTarget.style.transform = 'scale(1)'
+                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(239, 68, 68, 0.35) 0%, rgba(220, 38, 38, 0.4) 100%)'
+                e.currentTarget.style.boxShadow = '0 3px 8px rgba(239, 68, 68, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
+                e.currentTarget.style.transform = 'scale(1) translateY(0)'
+                e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.7)'
               }}
             >
               Rimuovi
@@ -1298,40 +1352,121 @@ function SlotCard({ slot, onClick, onRemove }) {
   )
 }
 
-// Reserve Card Component
-function ReserveCard({ player, onClick, disabled }) {
+// Reserve Card Component - Design Moderno 2024
+function ReserveCard({ player, onClick, disabled, onDelete }) {
   return (
     <div
-      onClick={disabled ? undefined : onClick}
       style={{
-        padding: '12px',
-        background: 'rgba(168, 85, 247, 0.1)',
-        border: `1px solid ${disabled ? 'rgba(168, 85, 247, 0.2)' : 'rgba(168, 85, 247, 0.4)'}`,
-        borderRadius: '8px',
+        position: 'relative',
+        padding: 'clamp(14px, 1.5vw, 18px)',
+        background: 'linear-gradient(135deg, rgba(147, 51, 234, 0.15) 0%, rgba(168, 85, 247, 0.2) 50%, rgba(147, 51, 234, 0.15) 100%)',
+        border: `2px solid ${disabled ? 'rgba(168, 85, 247, 0.2)' : 'rgba(147, 51, 234, 0.5)'}`,
+        borderRadius: '14px',
         cursor: disabled ? 'default' : 'pointer',
         opacity: disabled ? 0.5 : 1,
-        transition: 'all 0.3s ease'
+        transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
+        boxShadow: disabled 
+          ? '0 4px 12px rgba(0, 0, 0, 0.2)'
+          : '0 8px 24px rgba(147, 51, 234, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
+        backdropFilter: 'blur(8px) saturate(150%)',
+        overflow: 'hidden'
       }}
       onMouseEnter={(e) => {
         if (!disabled) {
-          e.currentTarget.style.transform = 'translateY(-2px)'
-          e.currentTarget.style.boxShadow = 'var(--glow-purple)'
+          e.currentTarget.style.transform = 'translateY(-6px) scale(1.02)'
+          e.currentTarget.style.boxShadow = '0 16px 40px rgba(147, 51, 234, 0.4), 0 0 60px rgba(168, 85, 247, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.3)'
+          e.currentTarget.style.borderColor = 'rgba(147, 51, 234, 0.7)'
         }
       }}
       onMouseLeave={(e) => {
         if (!disabled) {
-          e.currentTarget.style.transform = 'translateY(0)'
-          e.currentTarget.style.boxShadow = 'none'
+          e.currentTarget.style.transform = 'translateY(0) scale(1)'
+          e.currentTarget.style.boxShadow = '0 8px 24px rgba(147, 51, 234, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
+          e.currentTarget.style.borderColor = 'rgba(147, 51, 234, 0.5)'
         }
       }}
     >
-      <div style={{ fontSize: '14px', fontWeight: 700, marginBottom: '4px', color: 'var(--neon-purple)' }}>
-        {player.player_name}
-      </div>
-      {player.overall_rating && (
-        <div style={{ fontSize: '12px', opacity: 0.8 }}>
-          {player.overall_rating}
+      {/* Pattern overlay */}
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.05) 0%, transparent 50%)',
+        pointerEvents: 'none'
+      }} />
+      
+      <div 
+        onClick={disabled ? undefined : onClick}
+        style={{ position: 'relative', zIndex: 1 }}
+      >
+        <div style={{ 
+          fontSize: 'clamp(14px, 1.5vw, 16px)', 
+          fontWeight: 700, 
+          marginBottom: '8px', 
+          color: '#ffffff',
+          textShadow: '0 2px 4px rgba(0, 0, 0, 0.5), 0 0 8px rgba(147, 51, 234, 0.4)',
+          lineHeight: '1.3'
+        }}>
+          {player.player_name}
         </div>
+        {player.overall_rating && (
+          <div style={{ 
+            fontSize: 'clamp(18px, 2vw, 22px)', 
+            fontWeight: 800,
+            color: '#fbbf24',
+            textShadow: '0 2px 6px rgba(0, 0, 0, 0.7), 0 0 12px rgba(251, 191, 36, 0.5)',
+            background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.2) 0%, rgba(245, 158, 11, 0.2) 100%)',
+            padding: '6px 12px',
+            borderRadius: '8px',
+            border: '1px solid rgba(251, 191, 36, 0.4)',
+            display: 'inline-block',
+            boxShadow: '0 2px 8px rgba(251, 191, 36, 0.3)'
+          }}>
+            {player.overall_rating}
+          </div>
+        )}
+      </div>
+      
+      {/* Bottone Rimuovi Riserva */}
+      {onDelete && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            onDelete()
+          }}
+          style={{
+            position: 'absolute',
+            top: '8px',
+            right: '8px',
+            width: '28px',
+            height: '28px',
+            borderRadius: '50%',
+            background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.3) 0%, rgba(220, 38, 38, 0.4) 100%)',
+            border: '1px solid rgba(239, 68, 68, 0.6)',
+            color: '#ffffff',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all 0.3s ease',
+            boxShadow: '0 2px 8px rgba(239, 68, 68, 0.4)',
+            zIndex: 2
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(239, 68, 68, 0.5) 0%, rgba(220, 38, 38, 0.6) 100%)'
+            e.currentTarget.style.transform = 'scale(1.15) rotate(90deg)'
+            e.currentTarget.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.6)'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(239, 68, 68, 0.3) 0%, rgba(220, 38, 38, 0.4) 100%)'
+            e.currentTarget.style.transform = 'scale(1) rotate(0deg)'
+            e.currentTarget.style.boxShadow = '0 2px 8px rgba(239, 68, 68, 0.4)'
+          }}
+        >
+          <X size={16} />
+        </button>
       )}
     </div>
   )
