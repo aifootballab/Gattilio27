@@ -21,6 +21,9 @@ export default function GestioneFormazionePage() {
   const [showUploadReserveModal, setShowUploadReserveModal] = React.useState(false)
   const [uploadingFormation, setUploadingFormation] = React.useState(false)
   const [uploadingReserve, setUploadingReserve] = React.useState(false)
+  const [showUploadPlayerModal, setShowUploadPlayerModal] = React.useState(false)
+  const [uploadImages, setUploadImages] = React.useState([])
+  const [uploadingPlayer, setUploadingPlayer] = React.useState(false)
 
   // Carica layout e giocatori
   React.useEffect(() => {
