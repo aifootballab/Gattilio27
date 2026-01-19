@@ -696,21 +696,6 @@ export default function GestioneFormazionePage() {
         />
       )}
 
-      {/* Modal Upload Giocatore per Slot */}
-      {showUploadPlayerModal && selectedSlot && (
-        <UploadPlayerModal
-          slot={selectedSlot}
-          images={uploadImages}
-          onImagesChange={setUploadImages}
-          onUpload={handleUploadPlayerToSlot}
-          onClose={() => {
-            setShowUploadPlayerModal(false)
-            setUploadImages([])
-          }}
-          uploading={uploadingPlayer}
-        />
-      )}
-
       <style jsx>{`
         @keyframes spin {
           to { transform: rotate(360deg); }
@@ -1061,11 +1046,7 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
             <button
               onClick={() => {
                 onClose()
-                // Apri modal upload inline
-                setTimeout(() => {
-                  // Gestito da modal upload che verrà aggiunto
-                  alert('Funzionalità in sviluppo: upload foto per questo slot')
-                }, 100)
+                onUploadPhoto()
               }}
               className="btn"
               style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}
@@ -1143,6 +1124,204 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
             )}
           </div>
         )}
+      </div>
+    </div>
+  )
+}
+
+// Upload Player Modal Component (per caricare nuovo giocatore con 3 immagini)
+function UploadPlayerModal({ slot, images, onImagesChange, onUpload, onClose, uploading }) {
+  const { t } = useTranslation()
+  const imageTypes = [
+    { key: 'card', label: 'Card Giocatore', icon: '👤', color: 'var(--neon-blue)' },
+    { key: 'stats', label: 'Statistiche', icon: '📊', color: 'var(--neon-green)' },
+    { key: 'skills', label: 'Abilità/Booster', icon: '⭐', color: 'var(--neon-orange)' }
+  ]
+
+  const handleFileSelect = (e, type) => {
+    const file = e.target.files?.[0]
+    if (!file || !file.type.startsWith('image/')) {
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const dataUrl = e.target.result
+      const existingIndex = images.findIndex(img => img.type === type)
+      
+      if (existingIndex >= 0) {
+        // Sostituisci immagine esistente
+        const newImages = [...images]
+        newImages[existingIndex] = { file, dataUrl, type, name: file.name }
+        onImagesChange(newImages)
+      } else {
+        // Aggiungi nuova immagine
+        onImagesChange([...images, { file, dataUrl, type, name: file.name }])
+      }
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const removeImage = (type) => {
+    onImagesChange(images.filter(img => img.type !== type))
+  }
+
+  const getImageForType = (type) => {
+    return images.find(img => img.type === type)
+  }
+
+  return (
+    <div 
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'rgba(0, 0, 0, 0.8)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1001,
+        padding: '24px'
+      }}
+      onClick={onClose}
+    >
+      <div 
+        className="card"
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          maxWidth: '600px',
+          width: '100%',
+          maxHeight: '90vh',
+          overflowY: 'auto',
+          padding: '24px',
+          background: 'rgba(10, 14, 39, 0.95)',
+          border: '2px solid var(--neon-blue)'
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <h2 style={{ fontSize: '20px', fontWeight: 700, margin: 0 }}>
+            Carica Giocatore - Slot {slot.slot_index}
+          </h2>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'rgba(255, 255, 255, 0.7)',
+              cursor: 'pointer',
+              padding: '4px'
+            }}
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <div style={{ fontSize: '14px', opacity: 0.8, marginBottom: '24px' }}>
+          Carica fino a 3 immagini per completare il profilo del giocatore:
+        </div>
+
+        {/* Upload Sections */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
+          {imageTypes.map(({ key, label, icon, color }) => {
+            const image = getImageForType(key)
+            return (
+              <div key={key} style={{ 
+                padding: '16px', 
+                background: 'rgba(0, 212, 255, 0.05)', 
+                borderRadius: '8px',
+                border: `1px solid ${image ? 'rgba(0, 212, 255, 0.3)' : 'rgba(255, 255, 255, 0.1)'}`
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '20px' }}>{icon}</span>
+                    <span style={{ fontWeight: 600 }}>{label}</span>
+                  </div>
+                  {image && (
+                    <button
+                      onClick={() => removeImage(key)}
+                      style={{
+                        background: 'rgba(239, 68, 68, 0.2)',
+                        border: '1px solid rgba(239, 68, 68, 0.4)',
+                        color: '#ef4444',
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '12px'
+                      }}
+                    >
+                      Rimuovi
+                    </button>
+                  )}
+                </div>
+                {image ? (
+                  <div>
+                    <img
+                      src={image.dataUrl}
+                      alt={label}
+                      style={{
+                        width: '100%',
+                        maxHeight: '200px',
+                        objectFit: 'contain',
+                        borderRadius: '8px',
+                        border: '1px solid rgba(255,255,255,0.1)'
+                      }}
+                    />
+                    <div style={{ fontSize: '12px', opacity: 0.7, marginTop: '8px' }}>
+                      {image.name}
+                    </div>
+                  </div>
+                ) : (
+                  <label style={{
+                    display: 'block',
+                    padding: '16px',
+                    border: '2px dashed rgba(0, 212, 255, 0.3)',
+                    borderRadius: '8px',
+                    textAlign: 'center',
+                    cursor: 'pointer',
+                    background: 'rgba(0, 212, 255, 0.05)'
+                  }}>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleFileSelect(e, key)}
+                      style={{ display: 'none' }}
+                      disabled={uploading}
+                    />
+                    <Upload size={24} style={{ marginBottom: '8px', color }} />
+                    <div style={{ fontSize: '14px' }}>Clicca per caricare {label.toLowerCase()}</div>
+                  </label>
+                )}
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Actions */}
+        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+          <button 
+            onClick={onClose} 
+            className="btn"
+            disabled={uploading}
+            style={{ padding: '10px 20px' }}
+          >
+            Annulla
+          </button>
+          {images.length > 0 && (
+            <button 
+              onClick={onUpload} 
+              className="btn primary"
+              disabled={uploading}
+              style={{ 
+                padding: '10px 20px',
+                opacity: uploading ? 0.6 : 1
+              }}
+            >
+              {uploading ? 'Caricamento...' : `Carica Giocatore (${images.length} immagini)`}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   )
