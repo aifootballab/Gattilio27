@@ -1216,7 +1216,7 @@ function SlotCard({ slot, onClick, onRemove }) {
         transform: 'translate(-50%, -50%)',
         width: cardWidth,
         minHeight: cardMinHeight,
-        maxWidth: hasNearbyCards ? '145px' : '160px',
+        maxWidth: hasNearbyCards ? '130px' : '145px',
         padding: cardPadding,
         background: isEmpty 
           ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.9) 50%, rgba(15, 23, 42, 0.95) 100%)' 
@@ -1359,14 +1359,14 @@ function SlotCard({ slot, onClick, onRemove }) {
           <div style={{ 
             fontSize: 'clamp(13px, 1.4vw, 16px)', 
             fontWeight: 900, 
-            marginBottom: '12px',
+            marginBottom: '8px',
             marginTop: '8px',
             color: '#ffffff',
             lineHeight: '1.2',
             wordBreak: 'break-word',
             textShadow: '0 4px 12px rgba(0, 0, 0, 0.9), 0 0 24px rgba(59, 130, 246, 0.6), 0 0 48px rgba(147, 51, 234, 0.4)',
             letterSpacing: '0.4px',
-            minHeight: '40px',
+            minHeight: 'auto',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -1376,51 +1376,6 @@ function SlotCard({ slot, onClick, onRemove }) {
           }}>
             {player.player_name}
           </div>
-          
-          {/* Rating - design premium */}
-          {player.overall_rating && (
-            <div style={{ 
-              fontSize: 'clamp(24px, 3vw, 32px)', 
-              fontWeight: 900, 
-              color: '#fbbf24',
-              textShadow: '0 4px 12px rgba(0, 0, 0, 0.9), 0 0 24px rgba(251, 191, 36, 0.8), 0 0 48px rgba(245, 158, 11, 0.5)',
-              marginBottom: '10px',
-              background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.35) 0%, rgba(245, 158, 11, 0.35) 50%, rgba(251, 191, 36, 0.35) 100%)',
-              padding: '10px 20px',
-              borderRadius: '14px',
-              border: '2.5px solid rgba(251, 191, 36, 0.7)',
-              boxShadow: 'inset 0 3px 6px rgba(255, 255, 255, 0.5), 0 6px 16px rgba(251, 191, 36, 0.5), 0 0 32px rgba(251, 191, 36, 0.4)',
-              minWidth: '70px',
-              position: 'relative',
-              overflow: 'hidden',
-              zIndex: 1
-            }}>
-              {/* Shimmer effect */}
-              <div style={{
-                position: 'absolute',
-                top: 0,
-                left: '-100%',
-                width: '100%',
-                height: '100%',
-                background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent)',
-                animation: 'shimmer 2.5s infinite'
-              }} />
-              {/* Glow interno */}
-              <div style={{
-                position: 'absolute',
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%)',
-                width: '80%',
-                height: '80%',
-                background: 'radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 70%)',
-                borderRadius: '50%'
-              }} />
-              <span style={{ position: 'relative', zIndex: 1 }}>
-                {player.overall_rating}
-              </span>
-            </div>
-          )}
           {onRemove && (
             <button
               onClick={(e) => {
