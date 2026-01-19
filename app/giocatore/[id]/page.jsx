@@ -4,7 +4,7 @@ import React from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { useTranslation } from '@/lib/i18n'
-import { ArrowLeft, Upload, AlertCircle, CheckCircle2, RefreshCw, User, BarChart3, Zap, Gift } from 'lucide-react'
+import { ArrowLeft, Upload, AlertCircle, CheckCircle2, RefreshCw, User, BarChart3, Zap, Gift, ChevronDown, ChevronUp, Award } from 'lucide-react'
 
 export default function PlayerDetailPage() {
   const { t } = useTranslation()
@@ -19,6 +19,11 @@ export default function PlayerDetailPage() {
   const [uploadType, setUploadType] = React.useState(null) // 'stats', 'skills', 'booster'
   const [images, setImages] = React.useState([])
   const [confirmModal, setConfirmModal] = React.useState(null) // { show, extractedData, nameMismatch, teamMismatch, positionMismatch, onConfirm, onCancel }
+  const [expandedSections, setExpandedSections] = React.useState({
+    stats: true,
+    skills: true,
+    boosters: true
+  })
 
   // Carica dati giocatore
   React.useEffect(() => {
@@ -95,6 +100,11 @@ export default function PlayerDetailPage() {
 
   // Funzione per aggiornare il giocatore con i dati estratti
   const performUpdate = async (extractedPlayerData, type) => {
+    if (!player) {
+      setError('Giocatore non trovato')
+      return
+    }
+    
     setUploading(true)
     setError(null)
 
@@ -273,6 +283,16 @@ export default function PlayerDetailPage() {
   }
 
   const photoSlots = player.photo_slots || {}
+  
+  // Calcola se profilo è completo
+  const isProfileComplete = photoSlots.card && photoSlots.statistiche && photoSlots.abilita && photoSlots.booster
+
+  const toggleSection = (section) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }))
+  }
 
   return (
     <main style={{ padding: '32px 24px', minHeight: '100vh', maxWidth: '1200px', margin: '0 auto' }}>
@@ -281,7 +301,8 @@ export default function PlayerDetailPage() {
         display: 'flex', 
         alignItems: 'center', 
         gap: '16px',
-        marginBottom: '32px'
+        marginBottom: '24px',
+        flexWrap: 'wrap'
       }}>
         <button
           onClick={() => router.push('/gestione-formazione')}
@@ -294,6 +315,24 @@ export default function PlayerDetailPage() {
         <h1 className="neon-text" style={{ fontSize: 'clamp(24px, 5vw, 32px)', fontWeight: 700, margin: 0 }}>
           {player.player_name}
         </h1>
+        {isProfileComplete && (
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '8px 16px',
+            background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(34, 197, 94, 0.1))',
+            border: '2px solid #22c55e',
+            borderRadius: '20px',
+            fontSize: '14px',
+            fontWeight: 600,
+            color: '#22c55e',
+            marginLeft: 'auto'
+          }}>
+            <Award size={18} />
+            Profilo Completo
+          </div>
+        )}
       </div>
 
       {/* Error */}
@@ -331,118 +370,34 @@ export default function PlayerDetailPage() {
       {/* Upload Sections */}
       <div style={{ display: 'grid', gap: '24px' }}>
         {/* Statistiche */}
-        <div className="card" style={{ padding: '24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-            <BarChart3 size={24} color="var(--neon-blue)" />
-            <h2 style={{ fontSize: '20px', fontWeight: 700, margin: 0 }}>Statistiche</h2>
-            {photoSlots.statistiche && (
-              <CheckCircle2 size={20} color="#22c55e" />
-            )}
-          </div>
-          {photoSlots.statistiche ? (
-            <div style={{ padding: '16px', background: 'rgba(34, 197, 94, 0.1)', borderRadius: '8px', color: '#22c55e' }}>
-              ✅ Statistiche completate
-            </div>
-          ) : (
-            <div>
-              <label style={{
-                display: 'block',
-                padding: '16px',
-                border: '2px dashed rgba(0, 212, 255, 0.3)',
-                borderRadius: '8px',
-                textAlign: 'center',
-                cursor: 'pointer',
-                background: 'rgba(0, 212, 255, 0.05)'
-              }}>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => handleFileSelect(e, 'stats')}
-                  style={{ display: 'none' }}
-                  disabled={uploading}
-                />
-                <Upload size={24} style={{ marginBottom: '8px', color: 'var(--neon-blue)' }} />
-                <div style={{ fontSize: '14px' }}>Carica screenshot statistiche</div>
-              </label>
-            </div>
-          )}
-        </div>
+        <StatsSection
+          player={player}
+          photoSlots={photoSlots}
+          isExpanded={expandedSections.stats}
+          onToggle={() => toggleSection('stats')}
+          onFileSelect={(e) => handleFileSelect(e, 'stats')}
+          uploading={uploading}
+        />
 
         {/* Abilità */}
-        <div className="card" style={{ padding: '24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-            <Zap size={24} color="var(--neon-purple)" />
-            <h2 style={{ fontSize: '20px', fontWeight: 700, margin: 0 }}>Abilità</h2>
-            {photoSlots.abilita && (
-              <CheckCircle2 size={20} color="#22c55e" />
-            )}
-          </div>
-          {photoSlots.abilita ? (
-            <div style={{ padding: '16px', background: 'rgba(34, 197, 94, 0.1)', borderRadius: '8px', color: '#22c55e' }}>
-              ✅ Abilità completate
-            </div>
-          ) : (
-            <div>
-              <label style={{
-                display: 'block',
-                padding: '16px',
-                border: '2px dashed rgba(168, 85, 247, 0.3)',
-                borderRadius: '8px',
-                textAlign: 'center',
-                cursor: 'pointer',
-                background: 'rgba(168, 85, 247, 0.05)'
-              }}>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => handleFileSelect(e, 'skills')}
-                  style={{ display: 'none' }}
-                  disabled={uploading}
-                />
-                <Upload size={24} style={{ marginBottom: '8px', color: 'var(--neon-purple)' }} />
-                <div style={{ fontSize: '14px' }}>Carica screenshot abilità</div>
-              </label>
-            </div>
-          )}
-        </div>
+        <SkillsSection
+          player={player}
+          photoSlots={photoSlots}
+          isExpanded={expandedSections.skills}
+          onToggle={() => toggleSection('skills')}
+          onFileSelect={(e) => handleFileSelect(e, 'skills')}
+          uploading={uploading}
+        />
 
         {/* Booster */}
-        <div className="card" style={{ padding: '24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-            <Gift size={24} color="var(--neon-orange)" />
-            <h2 style={{ fontSize: '20px', fontWeight: 700, margin: 0 }}>Booster</h2>
-            {photoSlots.booster && (
-              <CheckCircle2 size={20} color="#22c55e" />
-            )}
-          </div>
-          {photoSlots.booster ? (
-            <div style={{ padding: '16px', background: 'rgba(34, 197, 94, 0.1)', borderRadius: '8px', color: '#22c55e' }}>
-              ✅ Booster completati
-            </div>
-          ) : (
-            <div>
-              <label style={{
-                display: 'block',
-                padding: '16px',
-                border: '2px dashed rgba(255, 107, 53, 0.3)',
-                borderRadius: '8px',
-                textAlign: 'center',
-                cursor: 'pointer',
-                background: 'rgba(255, 107, 53, 0.05)'
-              }}>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => handleFileSelect(e, 'booster')}
-                  style={{ display: 'none' }}
-                  disabled={uploading}
-                />
-                <Upload size={24} style={{ marginBottom: '8px', color: 'var(--neon-orange)' }} />
-                <div style={{ fontSize: '14px' }}>Carica screenshot booster</div>
-              </label>
-            </div>
-          )}
-        </div>
+        <BoostersSection
+          player={player}
+          photoSlots={photoSlots}
+          isExpanded={expandedSections.boosters}
+          onToggle={() => toggleSection('boosters')}
+          onFileSelect={(e) => handleFileSelect(e, 'booster')}
+          uploading={uploading}
+        />
       </div>
 
       {/* Upload Button */}
@@ -516,6 +471,413 @@ export default function PlayerDetailPage() {
         }
       `}</style>
     </main>
+  )
+}
+
+// Componente Sezione Statistiche
+function StatsSection({ player, photoSlots, isExpanded, onToggle, onFileSelect, uploading }) {
+  if (!player) return null
+  
+  const baseStats = player.base_stats || {}
+  const hasStats = photoSlots.statistiche && baseStats && Object.keys(baseStats).length > 0
+
+  return (
+    <div className="card" style={{ padding: '24px' }}>
+      <div 
+        style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'space-between',
+          marginBottom: isExpanded ? '16px' : 0,
+          cursor: 'pointer'
+        }}
+        onClick={onToggle}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <BarChart3 size={24} color="var(--neon-blue)" />
+          <h2 style={{ fontSize: '20px', fontWeight: 700, margin: 0 }}>Statistiche</h2>
+          {photoSlots.statistiche && (
+            <CheckCircle2 size={20} color="#22c55e" />
+          )}
+        </div>
+        {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+      </div>
+
+      {isExpanded && (
+        <>
+          {hasStats ? (
+            <div style={{ marginBottom: '16px' }}>
+              {/* Attacco */}
+              {baseStats.attacking && Object.keys(baseStats.attacking).length > 0 && (
+                <div style={{ marginBottom: '20px' }}>
+                  <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '12px', color: 'var(--neon-blue)' }}>
+                    Attacco
+                  </h3>
+                  <div style={{ 
+                    display: 'grid', 
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', 
+                    gap: '12px' 
+                  }}>
+                    {Object.entries(baseStats.attacking).map(([key, value]) => (
+                      <div key={key} style={{
+                        padding: '12px',
+                        background: 'rgba(0, 212, 255, 0.05)',
+                        borderRadius: '8px',
+                        border: '1px solid rgba(0, 212, 255, 0.2)'
+                      }}>
+                        <div style={{ fontSize: '12px', opacity: 0.7, marginBottom: '4px' }}>
+                          {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                        </div>
+                        <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--neon-blue)' }}>
+                          {value}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Difesa */}
+              {baseStats.defending && Object.keys(baseStats.defending).length > 0 && (
+                <div style={{ marginBottom: '20px' }}>
+                  <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '12px', color: '#ef4444' }}>
+                    Difesa
+                  </h3>
+                  <div style={{ 
+                    display: 'grid', 
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', 
+                    gap: '12px' 
+                  }}>
+                    {Object.entries(baseStats.defending).map(([key, value]) => (
+                      <div key={key} style={{
+                        padding: '12px',
+                        background: 'rgba(239, 68, 68, 0.05)',
+                        borderRadius: '8px',
+                        border: '1px solid rgba(239, 68, 68, 0.2)'
+                      }}>
+                        <div style={{ fontSize: '12px', opacity: 0.7, marginBottom: '4px' }}>
+                          {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                        </div>
+                        <div style={{ fontSize: '18px', fontWeight: 700, color: '#ef4444' }}>
+                          {value}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Forza/Fisico */}
+              {baseStats.athleticism && Object.keys(baseStats.athleticism).length > 0 && (
+                <div style={{ marginBottom: '20px' }}>
+                  <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '12px', color: '#f59e0b' }}>
+                    Forza
+                  </h3>
+                  <div style={{ 
+                    display: 'grid', 
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', 
+                    gap: '12px' 
+                  }}>
+                    {Object.entries(baseStats.athleticism).map(([key, value]) => (
+                      <div key={key} style={{
+                        padding: '12px',
+                        background: 'rgba(245, 158, 11, 0.05)',
+                        borderRadius: '8px',
+                        border: '1px solid rgba(245, 158, 11, 0.2)'
+                      }}>
+                        <div style={{ fontSize: '12px', opacity: 0.7, marginBottom: '4px' }}>
+                          {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                        </div>
+                        <div style={{ fontSize: '18px', fontWeight: 700, color: '#f59e0b' }}>
+                          {value}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div style={{ 
+              padding: '16px', 
+              background: 'rgba(0, 212, 255, 0.05)', 
+              borderRadius: '8px', 
+              marginBottom: '16px',
+              textAlign: 'center',
+              color: 'rgba(255, 255, 255, 0.6)'
+            }}>
+              Nessuna statistica disponibile
+            </div>
+          )}
+
+          {/* Pulsante Aggiorna (sempre visibile) */}
+          <label style={{
+            display: 'block',
+            padding: '12px 16px',
+            border: '2px solid rgba(0, 212, 255, 0.3)',
+            borderRadius: '8px',
+            textAlign: 'center',
+            cursor: uploading ? 'not-allowed' : 'pointer',
+            background: 'rgba(0, 212, 255, 0.05)',
+            opacity: uploading ? 0.6 : 1
+          }}>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={onFileSelect}
+              style={{ display: 'none' }}
+              disabled={uploading}
+            />
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+              <Upload size={18} color="var(--neon-blue)" />
+              <span style={{ fontSize: '14px', fontWeight: 600 }}>
+                {photoSlots.statistiche ? 'Aggiorna Statistiche' : 'Carica Statistiche'}
+              </span>
+            </div>
+          </label>
+        </>
+      )}
+    </div>
+  )
+}
+
+// Componente Sezione Abilità
+function SkillsSection({ player, photoSlots, isExpanded, onToggle, onFileSelect, uploading }) {
+  if (!player) return null
+  
+  const skills = player.skills || []
+  const comSkills = player.com_skills || []
+  const hasSkills = photoSlots.abilita && (skills.length > 0 || comSkills.length > 0)
+
+  return (
+    <div className="card" style={{ padding: '24px' }}>
+      <div 
+        style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'space-between',
+          marginBottom: isExpanded ? '16px' : 0,
+          cursor: 'pointer'
+        }}
+        onClick={onToggle}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <Zap size={24} color="var(--neon-purple)" />
+          <h2 style={{ fontSize: '20px', fontWeight: 700, margin: 0 }}>Abilità</h2>
+          {photoSlots.abilita && (
+            <CheckCircle2 size={20} color="#22c55e" />
+          )}
+        </div>
+        {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+      </div>
+
+      {isExpanded && (
+        <>
+          {hasSkills ? (
+            <div style={{ marginBottom: '16px' }}>
+              {/* Abilità Giocatore */}
+              {skills.length > 0 && (
+                <div style={{ marginBottom: '20px' }}>
+                  <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '12px', color: 'var(--neon-purple)' }}>
+                    Abilità Giocatore
+                  </h3>
+                  <div style={{ 
+                    display: 'flex', 
+                    flexWrap: 'wrap', 
+                    gap: '8px' 
+                  }}>
+                    {skills.map((skill, idx) => (
+                      <div key={idx} style={{
+                        padding: '8px 12px',
+                        background: 'rgba(168, 85, 247, 0.1)',
+                        border: '1px solid rgba(168, 85, 247, 0.3)',
+                        borderRadius: '20px',
+                        fontSize: '13px',
+                        fontWeight: 500,
+                        color: 'var(--neon-purple)'
+                      }}>
+                        {skill}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Abilità Aggiuntive */}
+              {comSkills.length > 0 && (
+                <div style={{ marginBottom: '20px' }}>
+                  <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '12px', color: '#a855f7' }}>
+                    Abilità Aggiuntive
+                  </h3>
+                  <div style={{ 
+                    display: 'flex', 
+                    flexWrap: 'wrap', 
+                    gap: '8px' 
+                  }}>
+                    {comSkills.map((skill, idx) => (
+                      <div key={idx} style={{
+                        padding: '8px 12px',
+                        background: 'rgba(168, 85, 247, 0.1)',
+                        border: '1px solid rgba(168, 85, 247, 0.3)',
+                        borderRadius: '20px',
+                        fontSize: '13px',
+                        fontWeight: 500,
+                        color: '#a855f7'
+                      }}>
+                        {skill}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div style={{ 
+              padding: '16px', 
+              background: 'rgba(168, 85, 247, 0.05)', 
+              borderRadius: '8px', 
+              marginBottom: '16px',
+              textAlign: 'center',
+              color: 'rgba(255, 255, 255, 0.6)'
+            }}>
+              Nessuna abilità disponibile
+            </div>
+          )}
+
+          {/* Pulsante Aggiorna (sempre visibile) */}
+          <label style={{
+            display: 'block',
+            padding: '12px 16px',
+            border: '2px solid rgba(168, 85, 247, 0.3)',
+            borderRadius: '8px',
+            textAlign: 'center',
+            cursor: uploading ? 'not-allowed' : 'pointer',
+            background: 'rgba(168, 85, 247, 0.05)',
+            opacity: uploading ? 0.6 : 1
+          }}>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={onFileSelect}
+              style={{ display: 'none' }}
+              disabled={uploading}
+            />
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+              <Upload size={18} color="var(--neon-purple)" />
+              <span style={{ fontSize: '14px', fontWeight: 600 }}>
+                {photoSlots.abilita ? 'Aggiorna Abilità' : 'Carica Abilità'}
+              </span>
+            </div>
+          </label>
+        </>
+      )}
+    </div>
+  )
+}
+
+// Componente Sezione Booster
+function BoostersSection({ player, photoSlots, isExpanded, onToggle, onFileSelect, uploading }) {
+  if (!player) return null
+  
+  const boosters = player.available_boosters || []
+  const hasBoosters = photoSlots.booster && Array.isArray(boosters) && boosters.length > 0
+
+  return (
+    <div className="card" style={{ padding: '24px' }}>
+      <div 
+        style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'space-between',
+          marginBottom: isExpanded ? '16px' : 0,
+          cursor: 'pointer'
+        }}
+        onClick={onToggle}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <Gift size={24} color="var(--neon-orange)" />
+          <h2 style={{ fontSize: '20px', fontWeight: 700, margin: 0 }}>Booster</h2>
+          {photoSlots.booster && (
+            <CheckCircle2 size={20} color="#22c55e" />
+          )}
+        </div>
+        {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+      </div>
+
+      {isExpanded && (
+        <>
+          {hasBoosters ? (
+            <div style={{ marginBottom: '16px' }}>
+              {boosters.map((booster, idx) => (
+                <div key={idx} style={{
+                  padding: '16px',
+                  background: 'rgba(255, 107, 53, 0.1)',
+                  border: '1px solid rgba(255, 107, 53, 0.3)',
+                  borderRadius: '8px',
+                  marginBottom: '12px'
+                }}>
+                  <div style={{ 
+                    fontSize: '16px', 
+                    fontWeight: 700, 
+                    marginBottom: '8px',
+                    color: 'var(--neon-orange)'
+                  }}>
+                    {booster.name || `Booster ${idx + 1}`}
+                  </div>
+                  {booster.effect && (
+                    <div style={{ fontSize: '14px', marginBottom: '4px', opacity: 0.9 }}>
+                      <strong>Effetto:</strong> {booster.effect}
+                    </div>
+                  )}
+                  {booster.condition && (
+                    <div style={{ fontSize: '13px', opacity: 0.7 }}>
+                      <strong>Condizione:</strong> {booster.condition}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ 
+              padding: '16px', 
+              background: 'rgba(255, 107, 53, 0.05)', 
+              borderRadius: '8px', 
+              marginBottom: '16px',
+              textAlign: 'center',
+              color: 'rgba(255, 255, 255, 0.6)'
+            }}>
+              Nessun booster disponibile
+            </div>
+          )}
+
+          {/* Pulsante Aggiorna (sempre visibile) */}
+          <label style={{
+            display: 'block',
+            padding: '12px 16px',
+            border: '2px solid rgba(255, 107, 53, 0.3)',
+            borderRadius: '8px',
+            textAlign: 'center',
+            cursor: uploading ? 'not-allowed' : 'pointer',
+            background: 'rgba(255, 107, 53, 0.05)',
+            opacity: uploading ? 0.6 : 1
+          }}>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={onFileSelect}
+              style={{ display: 'none' }}
+              disabled={uploading}
+            />
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+              <Upload size={18} color="var(--neon-orange)" />
+              <span style={{ fontSize: '14px', fontWeight: 600 }}>
+                {photoSlots.booster ? 'Aggiorna Booster' : 'Carica Booster'}
+              </span>
+            </div>
+          </label>
+        </>
+      )}
+    </div>
   )
 }
 
