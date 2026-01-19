@@ -13,17 +13,18 @@ Una web app che permette:
 ## Architettura
 
 ### Frontend
-- `app/page.tsx` - Homepage con upload screenshot
-- `app/rosa/page.jsx` - Upload screenshot e estrazione dati (1-6 screenshot)
-- `app/opponent-formation/page.jsx` - Estrazione formazione avversario
+- `app/page.jsx` - Homepage (redirect a `/login`)
+- `app/login/page.jsx` - Autenticazione Supabase
+- `app/upload/page.jsx` - Upload screenshot e estrazione dati (1-3 screenshot)
+- `app/lista-giocatori/page.jsx` - Lista giocatori salvati (query dirette Supabase con RLS)
 
 ### Backend (Next.js API Routes)
-- `app/api/extract-batch/route.js` - Estrazione batch da 1-6 screenshot (raggruppa per giocatore)
 - `app/api/extract-player/route.js` - Estrazione dati da singolo screenshot con OpenAI
-- `app/api/extract-formation/route.js` - Estrazione formazione avversario
-- `app/api/supabase/save-player/route.js` - Salvataggio giocatore in `players` (sempre nuovo record)
-- `app/api/supabase/reset-my-data/route.js` - Reset dati utente
-- `app/api/supabase/save-opponent-formation/route.js` - Salvataggio formazione avversario
+- `app/api/supabase/save-player/route.js` - Salvataggio giocatore (logica business: lookup playing_style)
+
+**Note Architettura:**
+- Frontend usa **query dirette Supabase** con RLS per lettura giocatori (scalabile, sicuro)
+- Backend API routes solo per operazioni con logica business (`save-player` ha lookup playing_style)
 
 ---
 
@@ -46,7 +47,9 @@ Ogni utente ha la sua rosa personale salvata in Supabase.
 - `created_at`, `updated_at` - Timestamps
 
 **RLS (Row Level Security)**:
-- Utenti possono vedere/solo i propri giocatori (`WHERE user_id = auth.uid()`)
+- Policy: "Users can view own players" (`WHERE user_id = auth.uid()`)
+- Frontend usa query dirette Supabase: RLS filtra automaticamente per utente autenticato
+- Sicuro: anon key esposta ma RLS protegge i dati
 
 ### Tabelle di supporto
 
@@ -87,29 +90,22 @@ Estrae dati da screenshot con OpenAI Vision.
 
 ### Operazioni Database
 
-#### `POST /api/extract-batch`
-Estrae e raggruppa dati da 1-6 screenshot.
+#### Lettura Giocatori (Query Dirette Frontend)
 
-**Request**:
-```json
-{
-  "images": [{ "id": "...", "imageDataUrl": "data:image/..." }]
-}
+**Frontend** (`app/lista-giocatori/page.jsx`):
+```javascript
+// Query diretta Supabase - RLS filtra automaticamente per auth.uid()
+const { data: players, error } = await supabase
+  .from('players')
+  .select('*')
+  .order('created_at', { ascending: false })
+// RLS policy garantisce che l'utente vede solo i propri giocatori
 ```
 
-**Response**:
-```json
-{
-  "groups": [
-    {
-      "group_id": "g1",
-      "label": "Nome Giocatore",
-      "player": { ... },
-      "completeness": { "percentage": 100, ... }
-    }
-  ]
-}
-```
+**Vantaggi:**
+- ✅ Scalabile: PostgreSQL filtra nel DB (indice su `user_id`)
+- ✅ Sicuro: RLS protegge i dati automaticamente
+- ✅ Performante: query filtrata nel database (non carica tutti i record)
 
 #### `POST /api/supabase/save-player`
 Salva sempre come nuovo record (permetti doppi, nessun limite).

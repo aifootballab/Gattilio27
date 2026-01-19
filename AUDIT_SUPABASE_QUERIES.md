@@ -289,16 +289,18 @@ user_id: uuid (FK -> auth.users.id)
 - ✅ Uso `userId` coerente (diretto, senza conversioni)
 - ✅ Creazione client Supabase identica
 
-**Problema Corrente:**
-- La query `get-players` non trova giocatori nonostante esistano nel DB
-- ✅ Il codice è stato corretto per usare `userId` direttamente (come `save-player`)
-- ⏳ **Da testare** su Vercel dopo deploy
+**Problema Risolto:** ✅
+- Bug identificato: `.eq('user_id', userId)` con `serviceKey` e UUID non funzionava correttamente
+- Soluzione implementata: **Migrazione a query dirette Supabase con RLS**
+- Frontend ora usa query dirette: `supabase.from('players').select('*')` - RLS filtra automaticamente
+- API route `/api/supabase/get-players` **rimossa** (non più necessaria)
 
-**Next Steps:**
-1. Testare su Vercel dopo deploy
-2. Verificare log server-side per confermare se la query trova i giocatori
-3. Se ancora non funziona, considerare fallback con SQL raw o stored procedure
+**Stato Attuale:**
+- ✅ Frontend: Query dirette Supabase con RLS (scalabile, sicuro, performante)
+- ✅ Backend: Solo `save-player` API route (ha logica business: lookup playing_style)
+- ✅ RLS protegge i dati: Policy "Users can view own players" funziona correttamente
 
 ---
 
-**Audit completato:** 2026-01-18
+**Audit completato:** 2026-01-18  
+**Aggiornato:** 2026-01-19 (migrazione query dirette completata)

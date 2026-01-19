@@ -195,9 +195,19 @@ const { data: players, error } = await supabase
 
 ---
 
-**Nota:** Il problema attuale (Ronaldo non visibile) potrebbe essere:
-- Cache browser (hard refresh: Ctrl+Shift+R)
-- Deploy non ancora attivo
-- Problema con workaround (carica tutti ma non filtra correttamente?)
+---
 
-Dopo migrazione a query dirette, questi problemi spariranno.
+## ✅ STATO IMPLEMENTAZIONE
+
+**Migrazione Completata:** ✅ **IMPLEMENTATA** (2026-01-19)
+
+- ✅ Frontend: Query dirette Supabase implementate in `app/lista-giocatori/page.jsx`
+- ✅ RLS: Policy "Users can view own players" funziona correttamente
+- ✅ API Route: `/api/supabase/get-players` rimossa (non più necessaria)
+- ✅ Performance: Query filtrata nel DB con indici (scalabile)
+- ✅ Sicurezza: RLS protegge i dati automaticamente
+
+**Risultato:**
+- ✅ Tutti i giocatori visibili (incluso Ronaldo)
+- ✅ Query veloci anche con molti utenti
+- ✅ Codice più semplice da mantenere

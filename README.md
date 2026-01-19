@@ -23,24 +23,22 @@ Web app per coaching eFootball con estrazione dati da screenshot e gestione rosa
 ```
 app/
 ├── api/                    # API Routes
-│   ├── extract-batch/      # Estrazione batch da 1-6 screenshot
 │   ├── extract-player/     # Estrazione dati da singolo screenshot
-│   ├── extract-formation/  # Estrazione formazione avversario
 │   └── supabase/          # Operazioni database
-│       ├── save-player/    # Salvataggio giocatore
-│       ├── reset-my-data/  # Reset dati utente
-│       └── save-opponent-formation/ # Salvataggio formazione
-├── dashboard/              # Dashboard principale
+│       └── save-player/    # Salvataggio giocatore (logica business)
 ├── login/                  # Pagina login
-├── rosa/                   # Upload screenshot e estrazione
-└── opponent-formation/     # Estrazione formazione avversario
+├── upload/                 # Upload screenshot e estrazione
+└── lista-giocatori/        # Lista giocatori salvati (query dirette Supabase)
 
 lib/
-├── authHelper.js          # Helper autenticazione
-├── supabaseClient.js      # Client Supabase
-├── i18n.js                # Internazionalizzazione
-└── normalize.js           # Utility normalizzazione
+├── authHelper.js          # Helper autenticazione (per API routes)
+├── supabaseClient.js      # Client Supabase (query dirette frontend)
+└── i18n.js                # Internazionalizzazione
 ```
+
+**Note Architettura:**
+- Frontend usa **query dirette Supabase** con RLS per lettura giocatori (scalabile)
+- Backend API routes solo per operazioni con logica business (`save-player`)
 
 ## Environment Variables
 
@@ -69,4 +67,6 @@ Il progetto è configurato per deploy automatico su Vercel tramite GitHub.
 
 - Le chiavi API devono essere configurate su Vercel → Settings → Environment Variables
 - `SUPABASE_SERVICE_ROLE_KEY` è server-only e non deve essere esposta al client
-- Il database Supabase deve avere la tabella `players` (ogni utente ha la sua rosa di giocatori)
+- Il database Supabase deve avere le tabelle `players` e `playing_styles` con RLS abilitato
+- Frontend usa **query dirette Supabase** con RLS per lettura giocatori (scalabile, sicuro)
+- Backend API routes solo per operazioni con logica business (`save-player`)
