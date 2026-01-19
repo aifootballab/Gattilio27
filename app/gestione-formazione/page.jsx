@@ -344,16 +344,38 @@ export default function GestioneFormazionePage() {
       </div>
 
       {/* Riserve */}
-      {riserve.length > 0 && (
-        <div style={{ marginBottom: '24px' }}>
+      <div style={{ marginBottom: '24px' }}>
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          marginBottom: '16px'
+        }}>
           <h2 style={{ 
             fontSize: '20px', 
-            fontWeight: 700, 
-            marginBottom: '16px',
-            color: 'var(--neon-purple)'
+            fontWeight: 700,
+            color: 'var(--neon-purple)',
+            margin: 0
           }}>
             {t('riserve')} ({riserve.length})
           </h2>
+          <button
+            onClick={() => setShowUploadReserveModal(true)}
+            className="btn"
+            style={{ 
+              display: 'inline-flex', 
+              alignItems: 'center', 
+              gap: '8px',
+              background: 'rgba(168, 85, 247, 0.2)',
+              borderColor: 'var(--neon-purple)',
+              color: 'var(--neon-purple)'
+            }}
+          >
+            <Plus size={16} />
+            {t('loadReserve')}
+          </button>
+        </div>
+        {riserve.length > 0 && (
           <div style={{ 
             display: 'grid', 
             gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
