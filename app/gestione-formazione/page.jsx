@@ -273,7 +273,7 @@ export default function GestioneFormazionePage() {
       }
 
       if (!playerData || !playerData.player_name) {
-        throw new Error('Impossibile estrarre dati giocatore dalle immagini')
+        throw new Error('Errore: dati giocatore non estratti. Verifica le immagini e riprova.')
       }
 
       // Salva giocatore e assegna allo slot
@@ -619,9 +619,9 @@ export default function GestioneFormazionePage() {
       {!noLayoutContent && (
       <div className="card" style={{ 
         marginBottom: '32px',
-        padding: '24px',
+        padding: 'clamp(16px, 2vw, 24px)',
         position: 'relative',
-        minHeight: '500px',
+        minHeight: 'clamp(400px, 50vh, 600px)',
         background: `
           linear-gradient(90deg, rgba(22, 163, 74, 0.15) 0%, rgba(34, 197, 94, 0.2) 50%, rgba(22, 163, 74, 0.15) 100%),
           repeating-linear-gradient(
@@ -1103,9 +1103,10 @@ function SlotCard({ slot, onClick, onRemove }) {
         left: `${position.x}%`,
         top: `${position.y}%`,
         transform: 'translate(-50%, -50%)',
-        width: 'clamp(90px, 8.5vw, 130px)',
-        minHeight: '110px',
-        padding: '10px',
+        width: 'clamp(100px, 9vw, 145px)',
+        minHeight: 'clamp(115px, 12vh, 135px)',
+        maxWidth: '145px',
+        padding: 'clamp(10px, 1.2vw, 14px) clamp(8px, 1vw, 12px)',
         background: isEmpty 
           ? 'linear-gradient(135deg, rgba(0, 0, 0, 0.7) 0%, rgba(20, 20, 30, 0.8) 100%)' 
           : 'linear-gradient(135deg, rgba(0, 212, 255, 0.35) 0%, rgba(59, 130, 246, 0.45) 50%, rgba(0, 212, 255, 0.35) 100%)',
@@ -1150,48 +1151,52 @@ function SlotCard({ slot, onClick, onRemove }) {
       {isEmpty ? (
         <>
           <div style={{ 
-            fontSize: '11px', 
+            fontSize: '9px', 
             opacity: 0.95, 
-            marginBottom: '6px',
+            marginBottom: '4px',
             fontWeight: 700,
             color: '#ffffff',
-            textShadow: '0 1px 3px rgba(0, 0, 0, 0.8)'
+            textShadow: '0 1px 3px rgba(0, 0, 0, 0.9)',
+            letterSpacing: '0.5px'
           }}>
-            Slot {slot_index}
+            SLOT {slot_index}
           </div>
           <div style={{ 
-            fontSize: '10px', 
-            opacity: 0.9, 
-            marginBottom: '10px',
+            fontSize: 'clamp(9px, 1vw, 11px)', 
+            opacity: 0.95, 
+            marginBottom: '12px',
             color: '#ffffff',
             textTransform: 'uppercase',
-            letterSpacing: '0.5px',
-            fontWeight: 600,
-            textShadow: '0 1px 2px rgba(0, 0, 0, 0.7)'
+            letterSpacing: '0.8px',
+            fontWeight: 700,
+            textShadow: '0 1px 3px rgba(0, 0, 0, 0.8)'
           }}>
             {position.position || '?'}
           </div>
           <div style={{
-            width: '48px',
-            height: '48px',
+            width: 'clamp(44px, 5vw, 56px)',
+            height: 'clamp(44px, 5vw, 56px)',
             borderRadius: '50%',
-            background: 'rgba(0, 212, 255, 0.15)',
-            border: '2px dashed rgba(0, 212, 255, 0.4)',
+            background: 'rgba(0, 212, 255, 0.2)',
+            border: '2px dashed rgba(0, 212, 255, 0.5)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            marginBottom: '8px',
-            transition: 'all 0.3s ease'
+            marginBottom: '10px',
+            transition: 'all 0.3s ease',
+            boxShadow: '0 0 20px rgba(0, 212, 255, 0.2)'
           }}>
-            <Plus size={24} style={{ color: 'rgba(0, 212, 255, 0.8)' }} />
+            <Plus size={clamp(20, 2.5, 28)} style={{ color: 'rgba(0, 212, 255, 0.9)' }} />
           </div>
           <div style={{ 
-            fontSize: '10px', 
+            fontSize: 'clamp(9px, 0.9vw, 11px)', 
             marginTop: '4px', 
             opacity: 1,
             color: '#ffffff',
-            fontWeight: 600,
-            textShadow: '0 1px 2px rgba(0, 0, 0, 0.8)'
+            fontWeight: 700,
+            textShadow: '0 1px 3px rgba(0, 0, 0, 0.9)',
+            letterSpacing: '0.2px',
+            lineHeight: '1.3'
           }}>
             Clicca per assegnare
           </div>
@@ -1199,39 +1204,45 @@ function SlotCard({ slot, onClick, onRemove }) {
       ) : (
         <>
           <div style={{ 
-            fontSize: '10px', 
-            opacity: 0.8, 
-            marginBottom: '6px',
-            fontWeight: 600,
-            color: 'rgba(255, 255, 255, 0.7)',
-            textShadow: '0 1px 2px rgba(0, 0, 0, 0.5)'
+            fontSize: '9px', 
+            opacity: 0.9, 
+            marginBottom: '4px',
+            fontWeight: 700,
+            color: '#ffffff',
+            textShadow: '0 1px 3px rgba(0, 0, 0, 0.9)',
+            letterSpacing: '0.5px'
           }}>
-            Slot {slot_index}
+            SLOT {slot_index}
           </div>
           <div style={{ 
-            fontSize: '13px', 
+            fontSize: 'clamp(11px, 1.2vw, 14px)', 
             fontWeight: 700, 
-            marginBottom: '6px',
+            marginBottom: '8px',
             color: '#ffffff',
-            lineHeight: '1.2',
+            lineHeight: '1.3',
             wordBreak: 'break-word',
-            textShadow: '0 2px 4px rgba(0, 0, 0, 0.6), 0 0 8px rgba(0, 212, 255, 0.3)',
-            letterSpacing: '0.3px'
+            textShadow: '0 2px 6px rgba(0, 0, 0, 0.9), 0 0 12px rgba(0, 212, 255, 0.4)',
+            letterSpacing: '0.2px',
+            minHeight: '32px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
           }}>
             {player.player_name}
           </div>
           {player.overall_rating && (
             <div style={{ 
-              fontSize: '14px', 
-              fontWeight: 700, 
+              fontSize: 'clamp(16px, 2vw, 20px)', 
+              fontWeight: 800, 
               color: '#fbbf24',
-              textShadow: '0 2px 4px rgba(0, 0, 0, 0.7), 0 0 12px rgba(251, 191, 36, 0.5)',
-              marginBottom: '8px',
-              background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.2) 0%, rgba(245, 158, 11, 0.2) 100%)',
-              padding: '4px 10px',
-              borderRadius: '6px',
-              border: '1px solid rgba(251, 191, 36, 0.4)',
-              boxShadow: 'inset 0 1px 2px rgba(255, 255, 255, 0.2)'
+              textShadow: '0 2px 6px rgba(0, 0, 0, 0.9), 0 0 16px rgba(251, 191, 36, 0.6)',
+              marginBottom: '6px',
+              background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.25) 0%, rgba(245, 158, 11, 0.25) 100%)',
+              padding: '6px 12px',
+              borderRadius: '8px',
+              border: '2px solid rgba(251, 191, 36, 0.5)',
+              boxShadow: 'inset 0 1px 3px rgba(255, 255, 255, 0.3), 0 2px 8px rgba(251, 191, 36, 0.3)',
+              minWidth: '50px'
             }}>
               {player.overall_rating}
             </div>
@@ -1243,27 +1254,28 @@ function SlotCard({ slot, onClick, onRemove }) {
                 onRemove()
               }}
               style={{
-                marginTop: '6px',
-                padding: '4px 10px',
-                background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.25) 0%, rgba(220, 38, 38, 0.3) 100%)',
-                border: '1px solid rgba(239, 68, 68, 0.5)',
+                marginTop: '4px',
+                padding: '5px 12px',
+                background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.3) 0%, rgba(220, 38, 38, 0.35) 100%)',
+                border: '1px solid rgba(239, 68, 68, 0.6)',
                 borderRadius: '6px',
-                color: '#fecaca',
-                fontSize: '10px',
+                color: '#ffffff',
+                fontSize: 'clamp(9px, 0.9vw, 11px)',
                 cursor: 'pointer',
-                fontWeight: 600,
-                textShadow: '0 1px 2px rgba(0, 0, 0, 0.5)',
+                fontWeight: 700,
+                textShadow: '0 1px 3px rgba(0, 0, 0, 0.8)',
                 transition: 'all 0.2s ease',
-                boxShadow: '0 2px 4px rgba(239, 68, 68, 0.3)'
+                boxShadow: '0 2px 6px rgba(239, 68, 68, 0.4)',
+                letterSpacing: '0.3px'
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(239, 68, 68, 0.35) 0%, rgba(220, 38, 38, 0.4) 100%)'
-                e.currentTarget.style.boxShadow = '0 4px 8px rgba(239, 68, 68, 0.4)'
+                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(239, 68, 68, 0.4) 0%, rgba(220, 38, 38, 0.45) 100%)'
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.5)'
                 e.currentTarget.style.transform = 'scale(1.05)'
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(239, 68, 68, 0.25) 0%, rgba(220, 38, 38, 0.3) 100%)'
-                e.currentTarget.style.boxShadow = '0 2px 4px rgba(239, 68, 68, 0.3)'
+                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(239, 68, 68, 0.3) 0%, rgba(220, 38, 38, 0.35) 100%)'
+                e.currentTarget.style.boxShadow = '0 2px 6px rgba(239, 68, 68, 0.4)'
                 e.currentTarget.style.transform = 'scale(1)'
               }}
             >
@@ -1339,9 +1351,19 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
   const boosters = Array.isArray(currentPlayer?.available_boosters) ? currentPlayer.available_boosters : []
   const photoSlots = currentPlayer?.photo_slots || {}
 
-  const hasStats = photoSlots.statistiche && baseStats && Object.keys(baseStats).length > 0
-  const hasSkills = photoSlots.abilita && (skills.length > 0 || comSkills.length > 0)
-  const hasBoosters = photoSlots.booster && boosters.length > 0
+  // Mostra sempre i dati se presenti (anche se photo_slots non completo)
+  const hasStats = baseStats && Object.keys(baseStats).length > 0
+  const hasSkills = skills.length > 0 || comSkills.length > 0
+  const hasBoosters = boosters && boosters.length > 0
+  
+  // Calcola completezza profilo
+  const isProfileComplete = photoSlots.card && photoSlots.statistiche && photoSlots.abilita && photoSlots.booster
+  const completedSections = [
+    photoSlots.card && 'Card',
+    photoSlots.statistiche && 'Statistiche',
+    photoSlots.abilita && 'Abilità',
+    photoSlots.booster && 'Booster'
+  ].filter(Boolean).length
 
   return (
     <div style={{
@@ -1390,85 +1412,170 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
           </button>
         </div>
 
-        <div style={{ marginBottom: '20px', padding: '12px', background: 'rgba(0, 212, 255, 0.1)', borderRadius: '8px' }}>
-          <div style={{ fontSize: '14px', marginBottom: '4px' }}>
+        <div style={{ marginBottom: '20px', padding: '16px', background: 'rgba(0, 212, 255, 0.1)', borderRadius: '10px', border: '1px solid rgba(0, 212, 255, 0.2)' }}>
+          <div style={{ fontSize: '13px', marginBottom: '8px', opacity: 0.8 }}>
             <strong>Slot {slot.slot_index}</strong> • {slot.position?.position || '?'}
           </div>
           {currentPlayer && (
-            <div style={{ fontSize: '16px', fontWeight: 700, marginTop: '8px', color: 'var(--neon-blue)' }}>
-              {currentPlayer.player_name}
-              {currentPlayer.overall_rating && (
-                <span style={{ marginLeft: '12px', color: '#fbbf24', fontSize: '18px' }}>
-                  {currentPlayer.overall_rating}
-                </span>
-              )}
-            </div>
+            <>
+              <div style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                <span>{currentPlayer.player_name}</span>
+                {currentPlayer.overall_rating && (
+                  <span style={{ 
+                    color: '#fbbf24', 
+                    fontSize: '20px',
+                    fontWeight: 800,
+                    textShadow: '0 2px 6px rgba(251, 191, 36, 0.6)'
+                  }}>
+                    {currentPlayer.overall_rating}
+                  </span>
+                )}
+              </div>
+              {/* Indicatore Completezza */}
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '8px',
+                fontSize: '12px',
+                padding: '6px 12px',
+                background: isProfileComplete 
+                  ? 'rgba(34, 197, 94, 0.15)' 
+                  : 'rgba(251, 191, 36, 0.15)',
+                borderRadius: '6px',
+                border: `1px solid ${isProfileComplete ? 'rgba(34, 197, 94, 0.3)' : 'rgba(251, 191, 36, 0.3)'}`
+              }}>
+                {isProfileComplete ? (
+                  <>
+                    <CheckCircle2 size={14} color="var(--neon-green)" />
+                    <span style={{ color: 'var(--neon-green)', fontWeight: 600 }}>Profilo Completo</span>
+                  </>
+                ) : (
+                  <>
+                    <Info size={14} color="#fbbf24" />
+                    <span style={{ color: '#fbbf24', fontWeight: 500 }}>
+                      {completedSections}/4 sezioni completate
+                    </span>
+                  </>
+                )}
+              </div>
+            </>
           )}
         </div>
 
         {currentPlayer ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {/* Messaggio informativo */}
+            {!isProfileComplete && (
+              <div style={{
+                padding: '12px 16px',
+                background: 'rgba(251, 191, 36, 0.1)',
+                border: '1px solid rgba(251, 191, 36, 0.3)',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                fontSize: '13px'
+              }}>
+                <Info size={16} color="#fbbf24" />
+                <span style={{ color: '#fbbf24', fontWeight: 500 }}>
+                  Profilo parziale ({completedSections}/4). Clicca "Completa Profilo" per aggiungere dati mancanti.
+                </span>
+              </div>
+            )}
+            
             {/* Sezione Statistiche */}
-            {hasStats && (
+            {hasStats ? (
               <div style={{
                 background: 'rgba(34, 197, 94, 0.1)',
                 border: '1px solid rgba(34, 197, 94, 0.3)',
-                borderRadius: '8px',
+                borderRadius: '10px',
                 overflow: 'hidden'
               }}>
                 <div
                   onClick={() => toggleSection('stats')}
                   style={{
-                    padding: '12px 16px',
+                    padding: '14px 18px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     cursor: 'pointer',
-                    background: 'rgba(34, 197, 94, 0.15)'
+                    background: 'rgba(34, 197, 94, 0.15)',
+                    transition: 'background 0.2s ease'
                   }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(34, 197, 94, 0.2)'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(34, 197, 94, 0.15)'}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <BarChart3 size={18} color="var(--neon-green)" />
-                    <span style={{ fontWeight: 600 }}>Statistiche</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <BarChart3 size={20} color="var(--neon-green)" />
+                    <span style={{ fontWeight: 600, fontSize: '15px' }}>Statistiche</span>
+                    {photoSlots.statistiche && (
+                      <CheckCircle2 size={14} color="var(--neon-green)" style={{ marginLeft: '4px' }} />
+                    )}
+                    {!photoSlots.statistiche && hasStats && (
+                      <span style={{ fontSize: '11px', opacity: 0.7, color: 'rgba(255, 255, 255, 0.6)', fontStyle: 'italic' }}>
+                        (estratti da card)
+                      </span>
+                    )}
                   </div>
                   {expandedSections.stats ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                 </div>
                 {expandedSections.stats && (
-                  <div style={{ padding: '16px' }}>
-                    {baseStats.attacking && (
-                      <div style={{ marginBottom: '12px' }}>
-                        <div style={{ fontSize: '12px', fontWeight: 600, marginBottom: '6px', opacity: 0.8 }}>ATTACCO</div>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px', fontSize: '12px' }}>
+                  <div style={{ padding: '18px' }}>
+                    {baseStats.attacking && Object.keys(baseStats.attacking).length > 0 && (
+                      <div style={{ marginBottom: '16px' }}>
+                        <div style={{ fontSize: '13px', fontWeight: 700, marginBottom: '10px', opacity: 0.9, color: 'var(--neon-green)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>ATTACCO</div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '8px', fontSize: '13px' }}>
                           {Object.entries(baseStats.attacking).map(([key, value]) => (
-                            <div key={key} style={{ display: 'flex', justifyContent: 'space-between' }}>
-                              <span style={{ opacity: 0.8 }}>{key.replace(/_/g, ' ')}:</span>
-                              <span style={{ fontWeight: 600, color: 'var(--neon-green)' }}>{value}</span>
+                            <div key={key} style={{ 
+                              display: 'flex', 
+                              justifyContent: 'space-between',
+                              padding: '6px 10px',
+                              background: 'rgba(34, 197, 94, 0.05)',
+                              borderRadius: '6px',
+                              border: '1px solid rgba(34, 197, 94, 0.1)'
+                            }}>
+                              <span style={{ opacity: 0.85, fontWeight: 500 }}>{key.replace(/_/g, ' ')}:</span>
+                              <span style={{ fontWeight: 700, color: 'var(--neon-green)', fontSize: '14px' }}>{value}</span>
                             </div>
                           ))}
                         </div>
                       </div>
                     )}
-                    {baseStats.defending && (
-                      <div style={{ marginBottom: '12px' }}>
-                        <div style={{ fontSize: '12px', fontWeight: 600, marginBottom: '6px', opacity: 0.8 }}>DIFESA</div>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px', fontSize: '12px' }}>
+                    {baseStats.defending && Object.keys(baseStats.defending).length > 0 && (
+                      <div style={{ marginBottom: '16px' }}>
+                        <div style={{ fontSize: '13px', fontWeight: 700, marginBottom: '10px', opacity: 0.9, color: 'var(--neon-green)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>DIFESA</div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '8px', fontSize: '13px' }}>
                           {Object.entries(baseStats.defending).map(([key, value]) => (
-                            <div key={key} style={{ display: 'flex', justifyContent: 'space-between' }}>
-                              <span style={{ opacity: 0.8 }}>{key.replace(/_/g, ' ')}:</span>
-                              <span style={{ fontWeight: 600, color: 'var(--neon-green)' }}>{value}</span>
+                            <div key={key} style={{ 
+                              display: 'flex', 
+                              justifyContent: 'space-between',
+                              padding: '6px 10px',
+                              background: 'rgba(34, 197, 94, 0.05)',
+                              borderRadius: '6px',
+                              border: '1px solid rgba(34, 197, 94, 0.1)'
+                            }}>
+                              <span style={{ opacity: 0.85, fontWeight: 500 }}>{key.replace(/_/g, ' ')}:</span>
+                              <span style={{ fontWeight: 700, color: 'var(--neon-green)', fontSize: '14px' }}>{value}</span>
                             </div>
                           ))}
                         </div>
                       </div>
                     )}
-                    {baseStats.athleticism && (
+                    {baseStats.athleticism && Object.keys(baseStats.athleticism).length > 0 && (
                       <div>
-                        <div style={{ fontSize: '12px', fontWeight: 600, marginBottom: '6px', opacity: 0.8 }}>FORZA</div>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px', fontSize: '12px' }}>
+                        <div style={{ fontSize: '13px', fontWeight: 700, marginBottom: '10px', opacity: 0.9, color: 'var(--neon-green)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>FORZA</div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '8px', fontSize: '13px' }}>
                           {Object.entries(baseStats.athleticism).map(([key, value]) => (
-                            <div key={key} style={{ display: 'flex', justifyContent: 'space-between' }}>
-                              <span style={{ opacity: 0.8 }}>{key.replace(/_/g, ' ')}:</span>
-                              <span style={{ fontWeight: 600, color: 'var(--neon-green)' }}>{value}</span>
+                            <div key={key} style={{ 
+                              display: 'flex', 
+                              justifyContent: 'space-between',
+                              padding: '6px 10px',
+                              background: 'rgba(34, 197, 94, 0.05)',
+                              borderRadius: '6px',
+                              border: '1px solid rgba(34, 197, 94, 0.1)'
+                            }}>
+                              <span style={{ opacity: 0.85, fontWeight: 500 }}>{key.replace(/_/g, ' ')}:</span>
+                              <span style={{ fontWeight: 700, color: 'var(--neon-green)', fontSize: '14px' }}>{value}</span>
                             </div>
                           ))}
                         </div>
@@ -1477,47 +1584,77 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
                   </div>
                 )}
               </div>
+            ) : (
+              <div style={{
+                background: 'rgba(100, 100, 100, 0.1)',
+                border: '1px dashed rgba(255, 255, 255, 0.2)',
+                borderRadius: '10px',
+                padding: '14px 18px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                opacity: 0.6
+              }}>
+                <BarChart3 size={20} color="rgba(255, 255, 255, 0.4)" />
+                <span style={{ fontWeight: 500, fontSize: '14px', color: 'rgba(255, 255, 255, 0.6)' }}>
+                  Statistiche non disponibili
+                </span>
+              </div>
             )}
 
             {/* Sezione Abilità */}
-            {hasSkills && (
+            {hasSkills ? (
               <div style={{
                 background: 'rgba(251, 191, 36, 0.1)',
                 border: '1px solid rgba(251, 191, 36, 0.3)',
-                borderRadius: '8px',
+                borderRadius: '10px',
                 overflow: 'hidden'
               }}>
                 <div
                   onClick={() => toggleSection('skills')}
                   style={{
-                    padding: '12px 16px',
+                    padding: '14px 18px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     cursor: 'pointer',
-                    background: 'rgba(251, 191, 36, 0.15)'
+                    background: 'rgba(251, 191, 36, 0.15)',
+                    transition: 'background 0.2s ease'
                   }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(251, 191, 36, 0.2)'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(251, 191, 36, 0.15)'}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Zap size={18} color="var(--neon-orange)" />
-                    <span style={{ fontWeight: 600 }}>Abilità</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <Zap size={20} color="var(--neon-orange)" />
+                    <span style={{ fontWeight: 600, fontSize: '15px' }}>Abilità</span>
+                    {photoSlots.abilita && (
+                      <CheckCircle2 size={14} color="var(--neon-orange)" style={{ marginLeft: '4px' }} />
+                    )}
+                    {!photoSlots.abilita && hasSkills && (
+                      <span style={{ fontSize: '11px', opacity: 0.7, color: 'rgba(255, 255, 255, 0.6)', fontStyle: 'italic' }}>
+                        (estratti da card)
+                      </span>
+                    )}
                   </div>
                   {expandedSections.skills ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                 </div>
                 {expandedSections.skills && (
-                  <div style={{ padding: '16px' }}>
+                  <div style={{ padding: '18px' }}>
                     {skills.length > 0 && (
-                      <div style={{ marginBottom: '12px' }}>
-                        <div style={{ fontSize: '12px', fontWeight: 600, marginBottom: '8px', opacity: 0.8 }}>SKILLS</div>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                      <div style={{ marginBottom: '16px' }}>
+                        <div style={{ fontSize: '13px', fontWeight: 700, marginBottom: '10px', opacity: 0.9, color: 'var(--neon-orange)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>SKILLS ({skills.length})</div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                           {skills.map((skill, idx) => (
                             <span key={idx} style={{
-                              padding: '4px 10px',
+                              padding: '6px 12px',
                               background: 'rgba(251, 191, 36, 0.2)',
-                              border: '1px solid rgba(251, 191, 36, 0.4)',
-                              borderRadius: '4px',
-                              fontSize: '11px',
-                              color: '#fbbf24'
+                              border: '1px solid rgba(251, 191, 36, 0.5)',
+                              borderRadius: '6px',
+                              fontSize: '12px',
+                              fontWeight: 600,
+                              color: '#fbbf24',
+                              textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)',
+                              boxShadow: '0 2px 4px rgba(251, 191, 36, 0.2)'
                             }}>
                               {skill}
                             </span>
@@ -1527,16 +1664,19 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
                     )}
                     {comSkills.length > 0 && (
                       <div>
-                        <div style={{ fontSize: '12px', fontWeight: 600, marginBottom: '8px', opacity: 0.8 }}>COM SKILLS</div>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                        <div style={{ fontSize: '13px', fontWeight: 700, marginBottom: '10px', opacity: 0.9, color: 'var(--neon-orange)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>COM SKILLS ({comSkills.length})</div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                           {comSkills.map((skill, idx) => (
                             <span key={idx} style={{
-                              padding: '4px 10px',
+                              padding: '6px 12px',
                               background: 'rgba(251, 191, 36, 0.2)',
-                              border: '1px solid rgba(251, 191, 36, 0.4)',
-                              borderRadius: '4px',
-                              fontSize: '11px',
-                              color: '#fbbf24'
+                              border: '1px solid rgba(251, 191, 36, 0.5)',
+                              borderRadius: '6px',
+                              fontSize: '12px',
+                              fontWeight: 600,
+                              color: '#fbbf24',
+                              textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)',
+                              boxShadow: '0 2px 4px rgba(251, 191, 36, 0.2)'
                             }}>
                               {skill}
                             </span>
@@ -1550,50 +1690,66 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
             )}
 
             {/* Sezione Booster */}
-            {hasBoosters && (
+            {hasBoosters ? (
               <div style={{
                 background: 'rgba(168, 85, 247, 0.1)',
                 border: '1px solid rgba(168, 85, 247, 0.3)',
-                borderRadius: '8px',
+                borderRadius: '10px',
                 overflow: 'hidden'
               }}>
                 <div
                   onClick={() => toggleSection('boosters')}
                   style={{
-                    padding: '12px 16px',
+                    padding: '14px 18px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     cursor: 'pointer',
-                    background: 'rgba(168, 85, 247, 0.15)'
+                    background: 'rgba(168, 85, 247, 0.15)',
+                    transition: 'background 0.2s ease'
                   }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(168, 85, 247, 0.2)'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(168, 85, 247, 0.15)'}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Gift size={18} color="var(--neon-purple)" />
-                    <span style={{ fontWeight: 600 }}>Booster</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <Gift size={20} color="var(--neon-purple)" />
+                    <span style={{ fontWeight: 600, fontSize: '15px' }}>Booster</span>
+                    {photoSlots.booster && (
+                      <CheckCircle2 size={14} color="var(--neon-purple)" style={{ marginLeft: '4px' }} />
+                    )}
+                    {!photoSlots.booster && hasBoosters && (
+                      <span style={{ fontSize: '11px', opacity: 0.7, color: 'rgba(255, 255, 255, 0.6)', fontStyle: 'italic' }}>
+                        (estratti da card)
+                      </span>
+                    )}
                   </div>
                   {expandedSections.boosters ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                 </div>
                 {expandedSections.boosters && (
-                  <div style={{ padding: '16px' }}>
+                  <div style={{ padding: '18px' }}>
+                    <div style={{ fontSize: '13px', fontWeight: 700, marginBottom: '12px', opacity: 0.9, color: 'var(--neon-purple)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      BOOSTER ATTIVI ({boosters.length})
+                    </div>
                     {boosters.map((booster, idx) => (
                       <div key={idx} style={{
-                        marginBottom: idx < boosters.length - 1 ? '12px' : 0,
-                        padding: '10px',
-                        background: 'rgba(168, 85, 247, 0.1)',
-                        borderRadius: '6px',
-                        border: '1px solid rgba(168, 85, 247, 0.2)'
+                        marginBottom: idx < boosters.length - 1 ? '14px' : 0,
+                        padding: '14px',
+                        background: 'rgba(168, 85, 247, 0.15)',
+                        borderRadius: '8px',
+                        border: '1px solid rgba(168, 85, 247, 0.3)',
+                        boxShadow: '0 2px 8px rgba(168, 85, 247, 0.15)'
                       }}>
-                        <div style={{ fontWeight: 600, marginBottom: '4px', color: 'var(--neon-purple)', fontSize: '13px' }}>
+                        <div style={{ fontWeight: 700, marginBottom: '6px', color: 'var(--neon-purple)', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <Gift size={16} />
                           {booster.name || `Booster ${idx + 1}`}
                         </div>
                         {booster.effect && (
-                          <div style={{ fontSize: '11px', opacity: 0.8 }}>
-                            {booster.effect}
+                          <div style={{ fontSize: '12px', opacity: 0.9, marginBottom: '6px', lineHeight: '1.5', color: 'rgba(255, 255, 255, 0.9)' }}>
+                            <strong>Effetto:</strong> {booster.effect}
                           </div>
                         )}
                         {booster.condition && (
-                          <div style={{ fontSize: '10px', opacity: 0.6, marginTop: '4px' }}>
+                          <div style={{ fontSize: '11px', opacity: 0.7, color: 'rgba(255, 255, 255, 0.7)', fontStyle: 'italic' }}>
                             Condizione: {booster.condition}
                           </div>
                         )}
@@ -1602,28 +1758,60 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
                   </div>
                 )}
               </div>
+            ) : (
+              <div style={{
+                background: 'rgba(100, 100, 100, 0.1)',
+                border: '1px dashed rgba(255, 255, 255, 0.2)',
+                borderRadius: '10px',
+                padding: '14px 18px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                opacity: 0.6
+              }}>
+                <Gift size={20} color="rgba(255, 255, 255, 0.4)" />
+                <span style={{ fontWeight: 500, fontSize: '14px', color: 'rgba(255, 255, 255, 0.6)' }}>
+                  Booster non disponibili
+                </span>
+              </div>
             )}
 
             {/* Azioni */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '8px' }}>
-              <button
-                onClick={() => router.push(`/giocatore/${currentPlayer.id}`)}
-                className="btn"
-                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}
-              >
-                <User size={16} />
-                Completa Profilo
-              </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '12px', paddingTop: '16px', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
+              {!isProfileComplete && (
+                <button
+                  onClick={() => router.push(`/giocatore/${currentPlayer.id}`)}
+                  className="btn primary"
+                  style={{ 
+                    width: '100%', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '8px', 
+                    justifyContent: 'center',
+                    padding: '12px'
+                  }}
+                >
+                  <User size={18} />
+                  Completa Profilo ({completedSections}/4)
+                </button>
+              )}
               <button
                 onClick={() => {
                   onClose()
                   setTimeout(() => onUploadPhoto(), 100)
                 }}
                 className="btn"
-                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}
+                style={{ 
+                  width: '100%', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '8px', 
+                  justifyContent: 'center',
+                  padding: '12px'
+                }}
               >
-                <Upload size={16} />
-                Cambia Giocatore (Carica Foto)
+                <Upload size={18} />
+                {isProfileComplete ? 'Aggiorna Foto' : 'Carica/Modifica Foto'}
               </button>
               {onRemove && (
                 <button
@@ -1887,7 +2075,7 @@ function UploadPlayerModal({ slot, images, onImagesChange, onUpload, onClose, up
                 opacity: uploading ? 0.6 : 1
               }}
             >
-              {uploading ? 'Caricamento...' : `Carica Giocatore (${images.length} immagini)`}
+              {uploading ? 'Estrazione in corso...' : `Salva Giocatore (${images.length} foto)`}
             </button>
           )}
         </div>
