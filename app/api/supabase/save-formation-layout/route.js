@@ -30,20 +30,44 @@ export async function POST(req) {
 
     const { formation, slot_positions } = await req.json()
 
-    if (!formation || !slot_positions || typeof slot_positions !== 'object') {
+    if (!formation) {
       return NextResponse.json(
-        { error: 'formation and slot_positions are required' },
+        { error: 'formation is required' },
         { status: 400 }
       )
     }
 
-    // Valida che ci siano 11 slot (0-10)
-    const slotKeys = Object.keys(slot_positions).map(Number).filter(n => n >= 0 && n <= 10)
-    if (slotKeys.length !== 11) {
-      return NextResponse.json(
-        { error: 'slot_positions must contain exactly 11 slots (0-10)' },
-        { status: 400 }
-      )
+    // Completa slot mancanti se necessario (0-10)
+    const completeSlotPositions = (slots) => {
+      const complete = { ...(slots || {}) }
+      const defaultPositions = {
+        0: { x: 50, y: 90, position: 'PT' },
+        1: { x: 20, y: 70, position: 'DC' },
+        2: { x: 40, y: 70, position: 'DC' },
+        3: { x: 60, y: 70, position: 'DC' },
+        4: { x: 80, y: 70, position: 'DC' },
+        5: { x: 30, y: 50, position: 'MED' },
+        6: { x: 50, y: 50, position: 'MED' },
+        7: { x: 70, y: 50, position: 'MED' },
+        8: { x: 25, y: 25, position: 'SP' },
+        9: { x: 50, y: 25, position: 'CF' },
+        10: { x: 75, y: 25, position: 'SP' }
+      }
+      
+      for (let i = 0; i <= 10; i++) {
+        if (!complete[i]) {
+          complete[i] = defaultPositions[i] || { x: 50, y: 50, position: '?' }
+        }
+      }
+      
+      return complete
+    }
+    
+    const completeSlots = completeSlotPositions(slot_positions)
+    const slotKeys = Object.keys(completeSlots).map(Number).filter(n => n >= 0 && n <= 10)
+    
+    if (slotKeys.length < 11) {
+      console.warn(`[save-formation-layout] Solo ${slotKeys.length} slot, completati a 11`)
     }
 
     const admin = createClient(supabaseUrl, serviceKey, {
@@ -74,7 +98,7 @@ export async function POST(req) {
       .upsert({
         user_id: userId,
         formation: String(formation).trim(),
-        slot_positions: slot_positions,
+        slot_positions: completeSlots,
         updated_at: new Date().toISOString()
       }, {
         onConflict: 'user_id'

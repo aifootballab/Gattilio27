@@ -168,14 +168,46 @@ export default function UploadPage() {
             throw new Error(extractData.error || 'Errore estrazione formazione')
           }
 
-          if (!extractData.formation || !extractData.slot_positions) {
+          if (!extractData.formation) {
             throw new Error(t('formationExtractionFailed'))
           }
 
-          // Valida che ci siano 11 slot
-          const slotKeys = Object.keys(extractData.slot_positions || {}).map(Number).filter(n => n >= 0 && n <= 10)
-          if (slotKeys.length !== 11) {
-            throw new Error('Formazione incompleta: devono esserci 11 slot (0-10)')
+          // Completa slot mancanti con coordinate di default
+          const completeSlotPositions = (slotPositions, formation) => {
+            const complete = { ...(slotPositions || {}) }
+            
+            // Coordinate di default per ogni slot (basate su formazione standard 4-3-3)
+            const defaultPositions = {
+              0: { x: 50, y: 90, position: 'PT' }, // Portiere
+              1: { x: 20, y: 70, position: 'DC' }, // Difensore sinistro
+              2: { x: 40, y: 70, position: 'DC' }, // Difensore centro-sinistra
+              3: { x: 60, y: 70, position: 'DC' }, // Difensore centro-destra
+              4: { x: 80, y: 70, position: 'DC' }, // Difensore destro
+              5: { x: 30, y: 50, position: 'MED' }, // Centrocampista sinistro
+              6: { x: 50, y: 50, position: 'MED' }, // Centrocampista centro
+              7: { x: 70, y: 50, position: 'MED' }, // Centrocampista destro
+              8: { x: 25, y: 25, position: 'SP' }, // Attaccante sinistro
+              9: { x: 50, y: 25, position: 'CF' }, // Attaccante centro
+              10: { x: 75, y: 25, position: 'SP' } // Attaccante destro
+            }
+            
+            // Completa slot mancanti (0-10)
+            for (let i = 0; i <= 10; i++) {
+              if (!complete[i]) {
+                complete[i] = defaultPositions[i] || { x: 50, y: 50, position: '?' }
+              }
+            }
+            
+            return complete
+          }
+          
+          // Completa slot mancanti
+          const slotPositions = completeSlotPositions(extractData.slot_positions, extractData.formation)
+          
+          // Verifica che ora ci siano tutti gli 11 slot
+          const slotKeys = Object.keys(slotPositions).map(Number).filter(n => n >= 0 && n <= 10)
+          if (slotKeys.length < 11) {
+            console.warn(`[Upload] Solo ${slotKeys.length} slot dopo completamento, usando default`)
           }
 
           setProcessing(t('savingFormation'))
@@ -189,7 +221,7 @@ export default function UploadPage() {
             },
             body: JSON.stringify({
               formation: extractData.formation,
-              slot_positions: extractData.slot_positions
+              slot_positions: slotPositions
             })
           })
 
