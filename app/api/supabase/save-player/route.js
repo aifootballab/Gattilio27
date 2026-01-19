@@ -106,7 +106,11 @@ export async function POST(req) {
       // slot_index: accetta dal body (0-10 per titolari, null per riserve)
       slot_index: player.slot_index !== undefined && player.slot_index !== null 
         ? Math.max(0, Math.min(10, Number(player.slot_index))) 
-        : null
+        : null,
+      // photo_slots: traccia quali foto sono state caricate
+      photo_slots: player.photo_slots && typeof player.photo_slots === 'object' 
+        ? player.photo_slots 
+        : {}
     }
 
     // Inserisci nuovo giocatore

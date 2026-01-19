@@ -4,7 +4,7 @@ import React from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { useTranslation } from '@/lib/i18n'
-import { ArrowLeft, Upload, AlertCircle, CheckCircle2, RefreshCw, Info, X, Plus, User, Settings } from 'lucide-react'
+import { ArrowLeft, Upload, AlertCircle, CheckCircle2, RefreshCw, Info, X, Plus, User, Settings, BarChart3, Zap, Gift, ChevronDown, ChevronUp } from 'lucide-react'
 
 export default function GestioneFormazionePage() {
   const { t } = useTranslation()
@@ -225,6 +225,7 @@ export default function GestioneFormazionePage() {
       // Carica tutte le immagini e estrai dati
       let playerData = null
       let allExtractedData = {}
+      const photoSlots = {} // Traccia quali foto sono state caricate
 
       for (const img of uploadImages) {
         const extractRes = await fetch('/api/extract-player', {
@@ -257,6 +258,17 @@ export default function GestioneFormazionePage() {
             }
           }
           allExtractedData[img.type] = extractData.player
+          
+          // Traccia foto caricate basandosi sul tipo
+          if (img.type === 'card') {
+            photoSlots.card = true
+          } else if (img.type === 'stats') {
+            photoSlots.statistiche = true
+          } else if (img.type === 'skills') {
+            photoSlots.abilita = true
+          } else if (img.type === 'booster') {
+            photoSlots.booster = true
+          }
         }
       }
 
@@ -274,7 +286,8 @@ export default function GestioneFormazionePage() {
         body: JSON.stringify({
           player: {
             ...playerData,
-            slot_index: selectedSlot.slot_index
+            slot_index: selectedSlot.slot_index,
+            photo_slots: photoSlots // Includi photo_slots tracciati
           }
         })
       })
@@ -460,6 +473,9 @@ export default function GestioneFormazionePage() {
       }
 
       // 2. Salva come riserva (slot_index = null)
+      // Traccia foto card caricata
+      const photoSlots = { card: true }
+      
       const saveRes = await fetch('/api/supabase/save-player', {
         method: 'POST',
         headers: {
@@ -469,7 +485,8 @@ export default function GestioneFormazionePage() {
         body: JSON.stringify({
           player: {
             ...extractData.player,
-            slot_index: null // Riserva
+            slot_index: null, // Riserva
+            photo_slots: photoSlots // Traccia foto card caricata
           }
         })
       })
@@ -1090,11 +1107,11 @@ function SlotCard({ slot, onClick, onRemove }) {
         minHeight: '110px',
         padding: '10px',
         background: isEmpty 
-          ? 'linear-gradient(135deg, rgba(0, 0, 0, 0.5) 0%, rgba(30, 30, 30, 0.6) 100%)' 
-          : 'linear-gradient(135deg, rgba(0, 212, 255, 0.2) 0%, rgba(59, 130, 246, 0.25) 50%, rgba(0, 212, 255, 0.2) 100%)',
+          ? 'linear-gradient(135deg, rgba(0, 0, 0, 0.7) 0%, rgba(20, 20, 30, 0.8) 100%)' 
+          : 'linear-gradient(135deg, rgba(0, 212, 255, 0.35) 0%, rgba(59, 130, 246, 0.45) 50%, rgba(0, 212, 255, 0.35) 100%)',
         border: isEmpty 
-          ? '2px solid rgba(255, 255, 255, 0.25)' 
-          : '2px solid rgba(0, 212, 255, 0.6)',
+          ? '2px solid rgba(255, 255, 255, 0.4)' 
+          : '2px solid rgba(0, 212, 255, 0.85)',
         borderRadius: '12px',
         cursor: 'pointer',
         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -1112,8 +1129,8 @@ function SlotCard({ slot, onClick, onRemove }) {
       onMouseEnter={(e) => {
         e.currentTarget.style.transform = 'translate(-50%, -50%) scale(1.15)'
         e.currentTarget.style.boxShadow = isEmpty
-          ? '0 8px 24px rgba(0, 0, 0, 0.4), 0 0 20px rgba(255, 255, 255, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
-          : '0 8px 32px rgba(0, 212, 255, 0.4), 0 0 30px rgba(0, 212, 255, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.3)'
+          ? '0 8px 32px rgba(0, 0, 0, 0.6), 0 0 30px rgba(255, 255, 255, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.25)'
+          : '0 10px 40px rgba(0, 212, 255, 0.6), 0 0 40px rgba(0, 212, 255, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.4)'
         e.currentTarget.style.zIndex = '10'
         e.currentTarget.style.borderColor = isEmpty 
           ? 'rgba(255, 255, 255, 0.4)' 
@@ -1122,34 +1139,35 @@ function SlotCard({ slot, onClick, onRemove }) {
       onMouseLeave={(e) => {
         e.currentTarget.style.transform = 'translate(-50%, -50%) scale(1)'
         e.currentTarget.style.boxShadow = isEmpty
-          ? '0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
-          : '0 4px 16px rgba(0, 212, 255, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 0 20px rgba(0, 212, 255, 0.1)'
+          ? '0 4px 16px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.1)'
+          : '0 6px 24px rgba(0, 212, 255, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 0 30px rgba(0, 212, 255, 0.25)'
         e.currentTarget.style.zIndex = '1'
         e.currentTarget.style.borderColor = isEmpty 
-          ? 'rgba(255, 255, 255, 0.25)' 
-          : 'rgba(0, 212, 255, 0.6)'
+          ? 'rgba(255, 255, 255, 0.4)' 
+          : 'rgba(0, 212, 255, 0.85)'
       }}
     >
       {isEmpty ? (
         <>
           <div style={{ 
             fontSize: '11px', 
-            opacity: 0.8, 
+            opacity: 0.95, 
             marginBottom: '6px',
-            fontWeight: 600,
-            color: 'rgba(255, 255, 255, 0.9)',
-            textShadow: '0 1px 2px rgba(0, 0, 0, 0.5)'
+            fontWeight: 700,
+            color: '#ffffff',
+            textShadow: '0 1px 3px rgba(0, 0, 0, 0.8)'
           }}>
             Slot {slot_index}
           </div>
           <div style={{ 
             fontSize: '10px', 
-            opacity: 0.7, 
+            opacity: 0.9, 
             marginBottom: '10px',
-            color: 'rgba(255, 255, 255, 0.8)',
+            color: '#ffffff',
             textTransform: 'uppercase',
             letterSpacing: '0.5px',
-            fontWeight: 500
+            fontWeight: 600,
+            textShadow: '0 1px 2px rgba(0, 0, 0, 0.7)'
           }}>
             {position.position || '?'}
           </div>
@@ -1170,9 +1188,10 @@ function SlotCard({ slot, onClick, onRemove }) {
           <div style={{ 
             fontSize: '10px', 
             marginTop: '4px', 
-            opacity: 0.9,
-            color: 'rgba(255, 255, 255, 0.9)',
-            fontWeight: 500
+            opacity: 1,
+            color: '#ffffff',
+            fontWeight: 600,
+            textShadow: '0 1px 2px rgba(0, 0, 0, 0.8)'
           }}>
             Clicca per assegnare
           </div>
@@ -1300,6 +1319,29 @@ function ReserveCard({ player, onClick, disabled }) {
 function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUploadPhoto, onRemove, onClose, assigning }) {
   const { t } = useTranslation()
   const router = useRouter()
+  const [expandedSections, setExpandedSections] = React.useState({
+    stats: true,
+    skills: true,
+    boosters: true
+  })
+
+  const toggleSection = (section) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }))
+  }
+
+  // Estrai dati giocatore
+  const baseStats = currentPlayer?.base_stats || {}
+  const skills = Array.isArray(currentPlayer?.skills) ? currentPlayer.skills : []
+  const comSkills = Array.isArray(currentPlayer?.com_skills) ? currentPlayer.com_skills : []
+  const boosters = Array.isArray(currentPlayer?.available_boosters) ? currentPlayer.available_boosters : []
+  const photoSlots = currentPlayer?.photo_slots || {}
+
+  const hasStats = photoSlots.statistiche && baseStats && Object.keys(baseStats).length > 0
+  const hasSkills = photoSlots.abilita && (skills.length > 0 || comSkills.length > 0)
+  const hasBoosters = photoSlots.booster && boosters.length > 0
 
   return (
     <div style={{
@@ -1321,8 +1363,10 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
         className="card"
         onClick={(e) => e.stopPropagation()}
         style={{
-          maxWidth: '500px',
+          maxWidth: '700px',
           width: '100%',
+          maxHeight: '90vh',
+          overflowY: 'auto',
           padding: '24px',
           background: 'rgba(10, 14, 39, 0.95)',
           border: '2px solid var(--neon-blue)'
@@ -1330,7 +1374,7 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <h2 style={{ fontSize: '20px', fontWeight: 700, margin: 0 }}>
-            {currentPlayer ? 'Modifica Slot' : 'Assegna Giocatore'}
+            {currentPlayer ? 'Dettagli Giocatore' : 'Assegna Giocatore'}
           </h2>
           <button
             onClick={onClose}
@@ -1348,56 +1392,259 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
 
         <div style={{ marginBottom: '20px', padding: '12px', background: 'rgba(0, 212, 255, 0.1)', borderRadius: '8px' }}>
           <div style={{ fontSize: '14px', marginBottom: '4px' }}>
-            <strong>Slot {slot.slot_index}</strong> • {slot.position || '?'}
+            <strong>Slot {slot.slot_index}</strong> • {slot.position?.position || '?'}
           </div>
           {currentPlayer && (
-            <div style={{ fontSize: '13px', opacity: 0.8 }}>
-              Giocatore attuale: <strong>{currentPlayer.player_name}</strong>
+            <div style={{ fontSize: '16px', fontWeight: 700, marginTop: '8px', color: 'var(--neon-blue)' }}>
+              {currentPlayer.player_name}
+              {currentPlayer.overall_rating && (
+                <span style={{ marginLeft: '12px', color: '#fbbf24', fontSize: '18px' }}>
+                  {currentPlayer.overall_rating}
+                </span>
+              )}
             </div>
           )}
         </div>
 
         {currentPlayer ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <button
-              onClick={() => router.push(`/giocatore/${currentPlayer.id}`)}
-              className="btn"
-              style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}
-            >
-              <User size={16} />
-              Completa Profilo
-            </button>
-            <button
-              onClick={() => {
-                // Chiudi AssignModal ma mantieni selectedSlot per UploadPlayerModal
-                setShowAssignModal(false)
-                onUploadPhoto()
-              }}
-              className="btn"
-              style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}
-            >
-              <Upload size={16} />
-              Cambia Giocatore (Carica Foto)
-            </button>
-            {onRemove && (
-              <button
-                onClick={onRemove}
-                className="btn"
-                style={{ 
-                  width: '100%', 
-                  background: 'rgba(239, 68, 68, 0.2)',
-                  borderColor: '#ef4444',
-                  color: '#ef4444',
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '8px', 
-                  justifyContent: 'center' 
-                }}
-              >
-                <X size={16} />
-                Rimuovi da Slot
-              </button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {/* Sezione Statistiche */}
+            {hasStats && (
+              <div style={{
+                background: 'rgba(34, 197, 94, 0.1)',
+                border: '1px solid rgba(34, 197, 94, 0.3)',
+                borderRadius: '8px',
+                overflow: 'hidden'
+              }}>
+                <div
+                  onClick={() => toggleSection('stats')}
+                  style={{
+                    padding: '12px 16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    cursor: 'pointer',
+                    background: 'rgba(34, 197, 94, 0.15)'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <BarChart3 size={18} color="var(--neon-green)" />
+                    <span style={{ fontWeight: 600 }}>Statistiche</span>
+                  </div>
+                  {expandedSections.stats ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                </div>
+                {expandedSections.stats && (
+                  <div style={{ padding: '16px' }}>
+                    {baseStats.attacking && (
+                      <div style={{ marginBottom: '12px' }}>
+                        <div style={{ fontSize: '12px', fontWeight: 600, marginBottom: '6px', opacity: 0.8 }}>ATTACCO</div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px', fontSize: '12px' }}>
+                          {Object.entries(baseStats.attacking).map(([key, value]) => (
+                            <div key={key} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <span style={{ opacity: 0.8 }}>{key.replace(/_/g, ' ')}:</span>
+                              <span style={{ fontWeight: 600, color: 'var(--neon-green)' }}>{value}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {baseStats.defending && (
+                      <div style={{ marginBottom: '12px' }}>
+                        <div style={{ fontSize: '12px', fontWeight: 600, marginBottom: '6px', opacity: 0.8 }}>DIFESA</div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px', fontSize: '12px' }}>
+                          {Object.entries(baseStats.defending).map(([key, value]) => (
+                            <div key={key} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <span style={{ opacity: 0.8 }}>{key.replace(/_/g, ' ')}:</span>
+                              <span style={{ fontWeight: 600, color: 'var(--neon-green)' }}>{value}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {baseStats.athleticism && (
+                      <div>
+                        <div style={{ fontSize: '12px', fontWeight: 600, marginBottom: '6px', opacity: 0.8 }}>FORZA</div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px', fontSize: '12px' }}>
+                          {Object.entries(baseStats.athleticism).map(([key, value]) => (
+                            <div key={key} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <span style={{ opacity: 0.8 }}>{key.replace(/_/g, ' ')}:</span>
+                              <span style={{ fontWeight: 600, color: 'var(--neon-green)' }}>{value}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             )}
+
+            {/* Sezione Abilità */}
+            {hasSkills && (
+              <div style={{
+                background: 'rgba(251, 191, 36, 0.1)',
+                border: '1px solid rgba(251, 191, 36, 0.3)',
+                borderRadius: '8px',
+                overflow: 'hidden'
+              }}>
+                <div
+                  onClick={() => toggleSection('skills')}
+                  style={{
+                    padding: '12px 16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    cursor: 'pointer',
+                    background: 'rgba(251, 191, 36, 0.15)'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Zap size={18} color="var(--neon-orange)" />
+                    <span style={{ fontWeight: 600 }}>Abilità</span>
+                  </div>
+                  {expandedSections.skills ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                </div>
+                {expandedSections.skills && (
+                  <div style={{ padding: '16px' }}>
+                    {skills.length > 0 && (
+                      <div style={{ marginBottom: '12px' }}>
+                        <div style={{ fontSize: '12px', fontWeight: 600, marginBottom: '8px', opacity: 0.8 }}>SKILLS</div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                          {skills.map((skill, idx) => (
+                            <span key={idx} style={{
+                              padding: '4px 10px',
+                              background: 'rgba(251, 191, 36, 0.2)',
+                              border: '1px solid rgba(251, 191, 36, 0.4)',
+                              borderRadius: '4px',
+                              fontSize: '11px',
+                              color: '#fbbf24'
+                            }}>
+                              {skill}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {comSkills.length > 0 && (
+                      <div>
+                        <div style={{ fontSize: '12px', fontWeight: 600, marginBottom: '8px', opacity: 0.8 }}>COM SKILLS</div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                          {comSkills.map((skill, idx) => (
+                            <span key={idx} style={{
+                              padding: '4px 10px',
+                              background: 'rgba(251, 191, 36, 0.2)',
+                              border: '1px solid rgba(251, 191, 36, 0.4)',
+                              borderRadius: '4px',
+                              fontSize: '11px',
+                              color: '#fbbf24'
+                            }}>
+                              {skill}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Sezione Booster */}
+            {hasBoosters && (
+              <div style={{
+                background: 'rgba(168, 85, 247, 0.1)',
+                border: '1px solid rgba(168, 85, 247, 0.3)',
+                borderRadius: '8px',
+                overflow: 'hidden'
+              }}>
+                <div
+                  onClick={() => toggleSection('boosters')}
+                  style={{
+                    padding: '12px 16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    cursor: 'pointer',
+                    background: 'rgba(168, 85, 247, 0.15)'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Gift size={18} color="var(--neon-purple)" />
+                    <span style={{ fontWeight: 600 }}>Booster</span>
+                  </div>
+                  {expandedSections.boosters ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                </div>
+                {expandedSections.boosters && (
+                  <div style={{ padding: '16px' }}>
+                    {boosters.map((booster, idx) => (
+                      <div key={idx} style={{
+                        marginBottom: idx < boosters.length - 1 ? '12px' : 0,
+                        padding: '10px',
+                        background: 'rgba(168, 85, 247, 0.1)',
+                        borderRadius: '6px',
+                        border: '1px solid rgba(168, 85, 247, 0.2)'
+                      }}>
+                        <div style={{ fontWeight: 600, marginBottom: '4px', color: 'var(--neon-purple)', fontSize: '13px' }}>
+                          {booster.name || `Booster ${idx + 1}`}
+                        </div>
+                        {booster.effect && (
+                          <div style={{ fontSize: '11px', opacity: 0.8 }}>
+                            {booster.effect}
+                          </div>
+                        )}
+                        {booster.condition && (
+                          <div style={{ fontSize: '10px', opacity: 0.6, marginTop: '4px' }}>
+                            Condizione: {booster.condition}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Azioni */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '8px' }}>
+              <button
+                onClick={() => router.push(`/giocatore/${currentPlayer.id}`)}
+                className="btn"
+                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}
+              >
+                <User size={16} />
+                Completa Profilo
+              </button>
+              <button
+                onClick={() => {
+                  onClose()
+                  setTimeout(() => onUploadPhoto(), 100)
+                }}
+                className="btn"
+                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}
+              >
+                <Upload size={16} />
+                Cambia Giocatore (Carica Foto)
+              </button>
+              {onRemove && (
+                <button
+                  onClick={onRemove}
+                  className="btn"
+                  style={{ 
+                    width: '100%', 
+                    background: 'rgba(239, 68, 68, 0.2)',
+                    borderColor: '#ef4444',
+                    color: '#ef4444',
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '8px', 
+                    justifyContent: 'center' 
+                  }}
+                >
+                  <X size={16} />
+                  Rimuovi da Slot
+                </button>
+              )}
+            </div>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
