@@ -35,62 +35,34 @@ export default function ListaGiocatoriPage() {
           return
         }
 
-        if (!session?.session?.access_token) {
+        if (!session?.session) {
           setError('Sessione non valida. Reindirizzamento al login...')
           setTimeout(() => router.push('/login'), 1000)
           return
         }
 
-        const token = session.session.access_token
+        // Query diretta a Supabase - RLS filtra automaticamente per auth.uid()
+        const { data: players, error: queryError } = await supabase
+          .from('players')
+          .select('*')
+          .order('created_at', { ascending: false })
 
-        // Chiama API
-        const res = await fetch('/api/supabase/get-players', {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        })
-
-        const data = await res.json()
-
-        if (!res.ok) {
-          throw new Error(data.error || 'Errore caricamento giocatori')
+        if (queryError) {
+          throw new Error(queryError.message || 'Errore caricamento giocatori')
         }
 
-        // API restituisce: { players: [...], count: N }
-        // Verifica struttura risposta
-        console.log('[ListaGiocatori] Response data:', data)
-        console.log('[ListaGiocatori] data.players type:', typeof data?.players)
-        console.log('[ListaGiocatori] data.players isArray:', Array.isArray(data?.players))
-        console.log('[ListaGiocatori] data.players length:', data?.players?.length)
-        console.log('[ListaGiocatori] data.players content:', JSON.stringify(data?.players, null, 2))
-        
-        // Normalizza array giocatori: gestisce variazioni nei dati estratti dalle foto
-        let rawPlayers = []
-        if (Array.isArray(data?.players)) {
-          rawPlayers = data.players
-        } else if (Array.isArray(data)) {
-          // Fallback: se data è direttamente un array
-          rawPlayers = data
-        }
-        
-        console.log('[ListaGiocatori] rawPlayers length after parsing:', rawPlayers.length)
-
-        // Filtra e normalizza: solo giocatori con id e nome valido
-        const playersArray = rawPlayers
+        // Normalizza array giocatori: solo quelli con id e nome valido
+        const playersArray = (players || [])
           .filter(p => {
-            // Deve avere id e player_name valido (stringa non vuota)
             if (!p || !p.id) return false
             const name = p.player_name
             if (!name || typeof name !== 'string' || name.trim().length === 0) {
-              console.warn('[ListaGiocatori] Player without valid name:', p.id, p)
+              console.warn('[ListaGiocatori] Player without valid name:', p.id)
               return false
             }
             return true
           })
           .map(p => ({
-            // Normalizza ogni campo: fallback per dati mancanti
             id: p.id,
             player_name: String(p.player_name || 'Unknown').trim(),
             position: p.position ? String(p.position).trim() : null,
@@ -99,11 +71,17 @@ export default function ListaGiocatoriPage() {
             card_type: p.card_type ? String(p.card_type).trim() : null
           }))
 
-        console.log('[ListaGiocatori] Players loaded:', playersArray.length, 'from', rawPlayers.length, 'raw')
         setPlayers(playersArray)
       } catch (err) {
-        console.error('[ListaGiocatori] Fetch error:', err)
-        setError(err.message || 'Errore caricamento giocatori')
+        console.error('[ListaGiocatori] Error:', err)
+        
+        // Gestione errori auth-specifici
+        if (err.message?.includes('JWT') || err.message?.includes('session') || err.message?.includes('auth')) {
+          setError('Sessione scaduta. Reindirizzamento al login...')
+          setTimeout(() => router.push('/login'), 1000)
+        } else {
+          setError(err.message || 'Errore caricamento giocatori')
+        }
       } finally {
         setLoading(false)
       }
