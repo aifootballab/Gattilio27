@@ -23,7 +23,7 @@ export default function PlayerDetailPage() {
   // Carica dati giocatore
   React.useEffect(() => {
     if (!playerId || !supabase) {
-      router.push('/lista-giocatori')
+      router.push('/gestione-formazione')
       return
     }
 
