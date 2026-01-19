@@ -358,10 +358,21 @@ export default function GestioneFormazionePage() {
 // Player Card Component (mobile-friendly)
 function PlayerCard({ player, isTitolare, isSelected, onClick, disabled }) {
   const { t } = useTranslation()
+  const router = useRouter()
+  
+  const handleDoubleClick = (e) => {
+    e.stopPropagation()
+    if (player?.id && !disabled) {
+      router.push(`/giocatore/${player.id}`)
+    }
+  }
+
   return (
     <div 
       className="card"
       onClick={onClick}
+      onDoubleClick={handleDoubleClick}
+      title="Doppio click per aprire dettaglio"
       style={{
         padding: '12px',
         border: `2px solid ${

@@ -299,9 +299,18 @@ export default function ListaGiocatoriPage() {
 // Player Card Component (responsive)
 function PlayerCard({ player, isTitolare }) {
   const { t } = useTranslation()
+  const router = useRouter()
+  
+  const handleClick = () => {
+    if (player?.id) {
+      router.push(`/giocatore/${player.id}`)
+    }
+  }
+
   return (
     <div 
       className="card"
+      onClick={handleClick}
       style={{
         padding: '12px',
         border: `1px solid ${isTitolare ? 'rgba(0, 212, 255, 0.3)' : 'rgba(168, 85, 247, 0.3)'}`,
