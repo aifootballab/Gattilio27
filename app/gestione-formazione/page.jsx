@@ -1687,6 +1687,22 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
                   </div>
                 )}
               </div>
+            ) : (
+              <div style={{
+                background: 'rgba(100, 100, 100, 0.1)',
+                border: '1px dashed rgba(255, 255, 255, 0.2)',
+                borderRadius: '10px',
+                padding: '14px 18px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                opacity: 0.6
+              }}>
+                <Zap size={20} color="rgba(255, 255, 255, 0.4)" />
+                <span style={{ fontWeight: 500, fontSize: '14px', color: 'rgba(255, 255, 255, 0.6)' }}>
+                  Abilità non disponibili
+                </span>
+              </div>
             )}
 
             {/* Sezione Booster */}
