@@ -28,7 +28,7 @@ export async function POST(req) {
 
     const userId = userData.user.id
 
-    const { formation, slot_positions } = await req.json()
+    const { formation, slot_positions, preserve_slots } = await req.json()
 
     if (!formation) {
       return NextResponse.json(
@@ -74,22 +74,49 @@ export async function POST(req) {
       auth: { autoRefreshToken: false, persistSession: false }
     })
 
-    // 1. Cancella vecchi titolari (slot_index 0-10 → NULL, tornano riserve)
-    const { error: updateError } = await admin
-      .from('players')
-      .update({ 
-        slot_index: null,
-        updated_at: new Date().toISOString()
-      })
-      .eq('user_id', userId)
-      .in('slot_index', [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+    // 1. Gestione cambio formazione intelligente
+    // Se preserve_slots è fornito, libera solo i giocatori da slot che non sono nella nuova formazione
+    // Altrimenti, libera tutti i titolari (comportamento originale)
+    if (preserve_slots && Array.isArray(preserve_slots)) {
+      // Libera solo giocatori da slot che non esistono nella nuova formazione
+      const slotsToFree = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].filter(slot => !preserve_slots.includes(slot))
+      
+      if (slotsToFree.length > 0) {
+        const { error: updateError } = await admin
+          .from('players')
+          .update({ 
+            slot_index: null,
+            updated_at: new Date().toISOString()
+          })
+          .eq('user_id', userId)
+          .in('slot_index', slotsToFree)
 
-    if (updateError) {
-      console.error('[save-formation-layout] Error clearing old starters:', updateError)
-      return NextResponse.json(
-        { error: `Failed to clear old starters: ${updateError.message}` },
-        { status: 500 }
-      )
+        if (updateError) {
+          console.error('[save-formation-layout] Error clearing old starters:', updateError)
+          return NextResponse.json(
+            { error: `Failed to clear old starters: ${updateError.message}` },
+            { status: 500 }
+          )
+        }
+      }
+    } else {
+      // Comportamento originale: libera tutti i titolari
+      const { error: updateError } = await admin
+        .from('players')
+        .update({ 
+          slot_index: null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', userId)
+        .in('slot_index', [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+
+      if (updateError) {
+        console.error('[save-formation-layout] Error clearing old starters:', updateError)
+        return NextResponse.json(
+          { error: `Failed to clear old starters: ${updateError.message}` },
+          { status: 500 }
+        )
+      }
     }
 
     // 2. Salva/aggiorna layout (UPSERT)
