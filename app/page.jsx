@@ -253,26 +253,6 @@ export default function DashboardPage() {
               </span>
               <ArrowRight size={18} />
             </button>
-            <a
-              href="#"
-              onClick={(e) => e.preventDefault()}
-              style={{
-                padding: '12px 16px',
-                color: 'var(--neon-blue)',
-                textDecoration: 'none',
-                display: 'block',
-                borderRadius: '8px',
-                transition: 'all 0.3s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(0, 212, 255, 0.1)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'transparent'
-              }}
-            >
-              ciao
-            </a>
             {/* Futuro: Analytics, Settings, ecc. */}
           </div>
         </div>

@@ -291,6 +291,7 @@ export default function GestioneFormazionePage() {
       let playerData = null
       let allExtractedData = {}
       const photoSlots = {} // Traccia quali foto sono state caricate
+      const errors = [] // Raccogli errori per mostrare messaggio specifico
 
       for (const img of uploadImages) {
         const extractRes = await fetch('/api/extract-player', {
@@ -301,7 +302,9 @@ export default function GestioneFormazionePage() {
 
         const extractData = await extractRes.json()
         if (!extractRes.ok) {
-          console.warn('[UploadPlayer] Errore estrazione:', extractData.error)
+          const errorMsg = extractData.error || 'Errore sconosciuto'
+          console.warn('[UploadPlayer] Errore estrazione:', errorMsg)
+          errors.push(errorMsg)
           continue
         }
 
@@ -341,7 +344,17 @@ export default function GestioneFormazionePage() {
         }
       }
 
+      // Se tutte le immagini sono fallite, mostra errore specifico
       if (!playerData || !playerData.player_name) {
+        if (errors.length > 0) {
+          // Se c'è un errore di quota OpenAI, mostralo chiaramente
+          const quotaError = errors.find(e => e.includes('quota') || e.includes('billing'))
+          if (quotaError) {
+            throw new Error('Quota OpenAI esaurita. Controlla il tuo piano e i dettagli di fatturazione su https://platform.openai.com/account/billing')
+          }
+          // Altrimenti mostra il primo errore specifico
+          throw new Error(`Errore estrazione dati: ${errors[0]}`)
+        }
         throw new Error('Errore: dati giocatore non estratti. Verifica le immagini e riprova.')
       }
 
@@ -400,7 +413,12 @@ export default function GestioneFormazionePage() {
 
       const extractData = await extractRes.json()
       if (!extractRes.ok) {
-        throw new Error(extractData.error || 'Errore estrazione formazione')
+        const errorMsg = extractData.error || 'Errore estrazione formazione'
+        // Se c'è un errore di quota OpenAI, mostralo chiaramente
+        if (errorMsg.includes('quota') || errorMsg.includes('billing')) {
+          throw new Error('Quota OpenAI esaurita. Controlla il tuo piano e i dettagli di fatturazione su https://platform.openai.com/account/billing')
+        }
+        throw new Error(errorMsg)
       }
 
       if (!extractData.formation) {
@@ -534,7 +552,12 @@ export default function GestioneFormazionePage() {
 
       const extractData = await extractRes.json()
       if (!extractRes.ok) {
-        throw new Error(extractData.error || 'Errore estrazione dati')
+        const errorMsg = extractData.error || 'Errore estrazione dati'
+        // Se c'è un errore di quota OpenAI, mostralo chiaramente
+        if (errorMsg.includes('quota') || errorMsg.includes('billing')) {
+          throw new Error('Quota OpenAI esaurita. Controlla il tuo piano e i dettagli di fatturazione su https://platform.openai.com/account/billing')
+        }
+        throw new Error(errorMsg)
       }
 
       if (!extractData.player || !extractData.player.player_name) {
@@ -748,22 +771,23 @@ export default function GestioneFormazionePage() {
         aspectRatio: '2/3',
         margin: '0 auto',
         background: `
-          linear-gradient(90deg, rgba(22, 163, 74, 0.15) 0%, rgba(34, 197, 94, 0.2) 50%, rgba(22, 163, 74, 0.15) 100%),
+          linear-gradient(180deg, rgba(5, 8, 21, 0.4) 0%, rgba(10, 14, 39, 0.3) 50%, rgba(5, 8, 21, 0.4) 100%),
+          linear-gradient(90deg, rgba(22, 163, 74, 0.08) 0%, rgba(34, 197, 94, 0.12) 50%, rgba(22, 163, 74, 0.08) 100%),
           repeating-linear-gradient(
             0deg,
             transparent,
             transparent 2px,
-            rgba(34, 197, 94, 0.1) 2px,
-            rgba(34, 197, 94, 0.1) 4px
+            rgba(34, 197, 94, 0.05) 2px,
+            rgba(34, 197, 94, 0.05) 4px
           ),
-          linear-gradient(180deg, rgba(16, 185, 129, 0.25) 0%, rgba(5, 150, 105, 0.3) 50%, rgba(16, 185, 129, 0.25) 100%)
+          linear-gradient(180deg, rgba(16, 185, 129, 0.12) 0%, rgba(5, 150, 105, 0.15) 50%, rgba(16, 185, 129, 0.12) 100%)
         `,
         borderRadius: '16px',
         border: '2px solid rgba(0, 212, 255, 0.3)',
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 0 60px rgba(34, 197, 94, 0.1)',
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 0 60px rgba(34, 197, 94, 0.05)',
         overflow: 'hidden'
       }}>
-        {/* Pattern texture erba */}
+        {/* Pattern texture erba - ridotto opacità */}
         <div style={{
           position: 'absolute',
           top: 0,
@@ -775,36 +799,51 @@ export default function GestioneFormazionePage() {
               45deg,
               transparent,
               transparent 10px,
-              rgba(34, 197, 94, 0.03) 10px,
-              rgba(34, 197, 94, 0.03) 20px
+              rgba(34, 197, 94, 0.015) 10px,
+              rgba(34, 197, 94, 0.015) 20px
             )
+          `,
+          pointerEvents: 'none',
+          opacity: 0.6
+        }} />
+        
+        {/* Overlay scuro per dissolvenza e contrasto */}
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: `
+            radial-gradient(ellipse at center, transparent 0%, rgba(5, 8, 21, 0.3) 100%),
+            linear-gradient(180deg, rgba(5, 8, 21, 0.2) 0%, transparent 20%, transparent 80%, rgba(5, 8, 21, 0.2) 100%)
           `,
           pointerEvents: 'none'
         }} />
 
-        {/* Linea centrocampo */}
+        {/* Linea centrocampo - più visibile */}
         <div style={{
           position: 'absolute',
           top: '50%',
           left: 0,
           right: 0,
           height: '3px',
-          background: 'rgba(255, 255, 255, 0.4)',
+          background: 'rgba(255, 255, 255, 0.5)',
           transform: 'translateY(-50%)',
-          boxShadow: '0 0 8px rgba(255, 255, 255, 0.3)'
+          boxShadow: '0 0 12px rgba(255, 255, 255, 0.4)'
         }} />
         
-        {/* Cerchio centrocampo */}
+        {/* Cerchio centrocampo - più visibile */}
         <div style={{
           position: 'absolute',
           top: '50%',
           left: '50%',
           width: '120px',
           height: '120px',
-          border: '3px solid rgba(255, 255, 255, 0.3)',
+          border: '3px solid rgba(255, 255, 255, 0.4)',
           borderRadius: '50%',
           transform: 'translate(-50%, -50%)',
-          boxShadow: '0 0 12px rgba(255, 255, 255, 0.2)'
+          boxShadow: '0 0 16px rgba(255, 255, 255, 0.3)'
         }} />
         <div style={{
           position: 'absolute',
@@ -818,17 +857,17 @@ export default function GestioneFormazionePage() {
           boxShadow: '0 0 8px rgba(255, 255, 255, 0.4)'
         }} />
 
-        {/* Area di rigore superiore */}
+        {/* Area di rigore superiore - più visibile */}
         <div style={{
           position: 'absolute',
           top: '8%',
           left: '10%',
           right: '10%',
           height: '18%',
-          border: '3px solid rgba(255, 255, 255, 0.25)',
+          border: '3px solid rgba(255, 255, 255, 0.35)',
           borderBottom: 'none',
           borderRadius: '12px 12px 0 0',
-          boxShadow: '0 -2px 8px rgba(255, 255, 255, 0.15)'
+          boxShadow: '0 -2px 10px rgba(255, 255, 255, 0.2)'
         }} />
         <div style={{
           position: 'absolute',
@@ -836,23 +875,23 @@ export default function GestioneFormazionePage() {
           left: '20%',
           right: '20%',
           height: '8%',
-          border: '3px solid rgba(255, 255, 255, 0.25)',
+          border: '3px solid rgba(255, 255, 255, 0.35)',
           borderBottom: 'none',
           borderRadius: '8px 8px 0 0',
-          boxShadow: '0 -2px 6px rgba(255, 255, 255, 0.15)'
+          boxShadow: '0 -2px 8px rgba(255, 255, 255, 0.2)'
         }} />
 
-        {/* Area di rigore inferiore */}
+        {/* Area di rigore inferiore - più visibile */}
         <div style={{
           position: 'absolute',
           bottom: '8%',
           left: '10%',
           right: '10%',
           height: '18%',
-          border: '3px solid rgba(255, 255, 255, 0.25)',
+          border: '3px solid rgba(255, 255, 255, 0.35)',
           borderTop: 'none',
           borderRadius: '0 0 12px 12px',
-          boxShadow: '0 2px 8px rgba(255, 255, 255, 0.15)'
+          boxShadow: '0 2px 10px rgba(255, 255, 255, 0.2)'
         }} />
         <div style={{
           position: 'absolute',
@@ -860,21 +899,21 @@ export default function GestioneFormazionePage() {
           left: '20%',
           right: '20%',
           height: '8%',
-          border: '3px solid rgba(255, 255, 255, 0.25)',
+          border: '3px solid rgba(255, 255, 255, 0.35)',
           borderTop: 'none',
           borderRadius: '0 0 8px 8px',
-          boxShadow: '0 2px 6px rgba(255, 255, 255, 0.15)'
+          boxShadow: '0 2px 8px rgba(255, 255, 255, 0.2)'
         }} />
 
-        {/* Linee laterali */}
+        {/* Linee laterali - più visibili */}
         <div style={{
           position: 'absolute',
           top: 0,
           left: '5%',
           bottom: 0,
           width: '2px',
-          background: 'rgba(255, 255, 255, 0.3)',
-          boxShadow: '0 0 6px rgba(255, 255, 255, 0.2)'
+          background: 'rgba(255, 255, 255, 0.4)',
+          boxShadow: '0 0 8px rgba(255, 255, 255, 0.3)'
         }} />
         <div style={{
           position: 'absolute',
@@ -882,19 +921,19 @@ export default function GestioneFormazionePage() {
           right: '5%',
           bottom: 0,
           width: '2px',
-          background: 'rgba(255, 255, 255, 0.3)',
-          boxShadow: '0 0 6px rgba(255, 255, 255, 0.2)'
+          background: 'rgba(255, 255, 255, 0.4)',
+          boxShadow: '0 0 8px rgba(255, 255, 255, 0.3)'
         }} />
 
-        {/* Linee orizzontali (zone campo) */}
+        {/* Linee orizzontali (zone campo) - più visibili */}
         <div style={{
           position: 'absolute',
           top: '25%',
           left: '5%',
           right: '5%',
           height: '1px',
-          background: 'rgba(255, 255, 255, 0.15)',
-          boxShadow: '0 0 4px rgba(255, 255, 255, 0.1)'
+          background: 'rgba(255, 255, 255, 0.25)',
+          boxShadow: '0 0 6px rgba(255, 255, 255, 0.15)'
         }} />
         <div style={{
           position: 'absolute',
@@ -902,8 +941,8 @@ export default function GestioneFormazionePage() {
           left: '5%',
           right: '5%',
           height: '1px',
-          background: 'rgba(255, 255, 255, 0.15)',
-          boxShadow: '0 0 4px rgba(255, 255, 255, 0.1)'
+          background: 'rgba(255, 255, 255, 0.25)',
+          boxShadow: '0 0 6px rgba(255, 255, 255, 0.15)'
         }} />
 
         {/* Card giocatori posizionate */}
@@ -2248,7 +2287,7 @@ function UploadPlayerModal({ slot, images, onImagesChange, onUpload, onClose, up
                       disabled={uploading}
                     />
                     <Upload size={24} style={{ marginBottom: '8px', color }} />
-                    <div style={{ fontSize: '14px' }}>Clicca per caricare {label.toLowerCase()}</div>
+                    <div style={{ fontSize: '14px' }}>Clicca per caricare {label ? label.toLowerCase() : key}</div>
                   </label>
                 )}
               </div>

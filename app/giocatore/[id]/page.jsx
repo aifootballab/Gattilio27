@@ -214,7 +214,12 @@ export default function PlayerDetailPage() {
 
       const extractData = await extractRes.json()
       if (!extractRes.ok) {
-        throw new Error(extractData.error || 'Errore estrazione dati')
+        const errorMsg = extractData.error || 'Errore estrazione dati'
+        // Se c'è un errore di quota OpenAI, mostralo chiaramente
+        if (errorMsg.includes('quota') || errorMsg.includes('billing')) {
+          throw new Error('Quota OpenAI esaurita. Controlla il tuo piano e i dettagli di fatturazione su https://platform.openai.com/account/billing')
+        }
+        throw new Error(errorMsg)
       }
 
       if (!extractData.player) {
