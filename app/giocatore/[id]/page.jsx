@@ -468,7 +468,7 @@ export default function PlayerDetailPage() {
             ) : (
               <>
                 <CheckCircle2 size={20} />
-                Salva e Aggiorna
+                {t('saveAndUpdate') || 'Salva e Aggiorna'}
               </>
             )}
           </button>
@@ -518,6 +518,7 @@ export default function PlayerDetailPage() {
 
 // Componente Sezione Statistiche
 function StatsSection({ player, photoSlots, isExpanded, onToggle, onFileSelect, uploading }) {
+  const { t } = useTranslation()
   if (!player) return null
   
   const baseStats = player.base_stats || {}
@@ -648,7 +649,7 @@ function StatsSection({ player, photoSlots, isExpanded, onToggle, onFileSelect, 
               textAlign: 'center',
               color: 'rgba(255, 255, 255, 0.6)'
             }}>
-              Nessuna statistica disponibile
+              {t('statsNotAvailable')}
             </div>
           )}
 
@@ -685,6 +686,7 @@ function StatsSection({ player, photoSlots, isExpanded, onToggle, onFileSelect, 
 
 // Componente Sezione Abilità
 function SkillsSection({ player, photoSlots, isExpanded, onToggle, onFileSelect, uploading }) {
+  const { t } = useTranslation()
   if (!player) return null
   
   const skills = player.skills || []
@@ -819,6 +821,7 @@ function SkillsSection({ player, photoSlots, isExpanded, onToggle, onFileSelect,
 
 // Componente Sezione Booster
 function BoostersSection({ player, photoSlots, isExpanded, onToggle, onFileSelect, uploading }) {
+  const { t } = useTranslation()
   if (!player) return null
   
   const boosters = player.available_boosters || []

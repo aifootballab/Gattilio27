@@ -1564,7 +1564,7 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
                     gap: '4px'
                   }}>
                     <User size={12} />
-                    {currentPlayer.age} anni
+                    {currentPlayer.age} {t('years')}
                   </div>
                 )}
                 {(currentPlayer.club_name || currentPlayer.team) && (
