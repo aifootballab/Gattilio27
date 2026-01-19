@@ -27,7 +27,7 @@ export async function GET(req) {
     }
 
     const userId = userData.user.id
-    console.log(`[get-players] User ID: ${userId}`)
+    console.log(`[get-players] User ID: ${userId}, type: ${typeof userId}`)
     
     const admin = createClient(supabaseUrl, serviceKey, {
       auth: { autoRefreshToken: false, persistSession: false }
@@ -42,16 +42,22 @@ export async function GET(req) {
     if (!debugError && allPlayers) {
       console.log(`[get-players] DEBUG: Found ${allPlayers.length} total players in DB (first 10):`)
       allPlayers.forEach((p, idx) => {
-        console.log(`  Player ${idx + 1}: id=${p.id}, user_id=${p.user_id}, player_name=${p.player_name}`)
+        const userIdMatch = String(p.user_id) === String(userId)
+        console.log(`  Player ${idx + 1}: id=${p.id}, user_id=${p.user_id} (${typeof p.user_id}), player_name=${p.player_name}, match=${userIdMatch}`)
       })
       // Verifica se ci sono giocatori con user_id diverso
       const differentUserIds = [...new Set(allPlayers.map(p => p.user_id))]
       console.log(`[get-players] DEBUG: Found ${differentUserIds.length} different user_ids in DB:`, differentUserIds)
-      const userMatch = allPlayers.some(p => p.user_id === userId)
-      console.log(`[get-players] DEBUG: Current user_id ${userId} matches any player: ${userMatch}`)
+      const userMatch = allPlayers.some(p => String(p.user_id) === String(userId))
+      console.log(`[get-players] DEBUG: Current user_id ${userId} (${typeof userId}) matches any player: ${userMatch}`)
+    } else if (debugError) {
+      console.error(`[get-players] DEBUG query error:`, debugError)
     }
 
     // Recupera giocatori dell'utente (ordinati per data creazione)
+    // Usa userId direttamente (come in save-player) - Supabase gestisce il tipo UUID automaticamente
+    console.log(`[get-players] Querying players with user_id: ${userId} (type: ${typeof userId})`)
+    
     const { data: players, error: queryError } = await admin
       .from('players')
       .select('*')
