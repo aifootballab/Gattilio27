@@ -198,9 +198,98 @@ export default function GestioneFormazionePage() {
   }
 
   const handleUploadPhoto = () => {
-    // Upload gestito inline tramite modal (non più redirect a /upload)
+    // Apri modal upload giocatore per questo slot
     setShowAssignModal(false)
-    // TODO: Aprire modal upload specifico per questo slot in futuro
+    setShowUploadPlayerModal(true)
+  }
+
+  const handleUploadPlayerToSlot = async () => {
+    if (!selectedSlot || uploadImages.length === 0) return
+
+    setUploadingPlayer(true)
+    setError(null)
+
+    try {
+      const { data: session } = await supabase.auth.getSession()
+      if (!session?.session?.access_token) {
+        throw new Error('Sessione scaduta')
+      }
+
+      const token = session.session.access_token
+
+      // Carica tutte le immagini e estrai dati
+      let playerData = null
+      let allExtractedData = {}
+
+      for (const img of uploadImages) {
+        const extractRes = await fetch('/api/extract-player', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageDataUrl: img.dataUrl })
+        })
+
+        const extractData = await extractRes.json()
+        if (!extractRes.ok) {
+          console.warn('[UploadPlayer] Errore estrazione:', extractData.error)
+          continue
+        }
+
+        if (extractData.player) {
+          // Merge dati (prima immagine = dati base)
+          if (!playerData) {
+            playerData = extractData.player
+          } else {
+            // Merge dati aggiuntivi
+            playerData = {
+              ...playerData,
+              ...extractData.player,
+              // Mantieni dati migliori
+              overall_rating: extractData.player.overall_rating || playerData.overall_rating,
+              base_stats: extractData.player.base_stats || playerData.base_stats,
+              skills: extractData.player.skills || playerData.skills,
+              com_skills: extractData.player.com_skills || playerData.com_skills,
+              boosters: extractData.player.boosters || playerData.boosters
+            }
+          }
+          allExtractedData[img.type] = extractData.player
+        }
+      }
+
+      if (!playerData || !playerData.player_name) {
+        throw new Error('Impossibile estrarre dati giocatore dalle immagini')
+      }
+
+      // Salva giocatore e assegna allo slot
+      const saveRes = await fetch('/api/supabase/save-player', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          player: {
+            ...playerData,
+            slot_index: selectedSlot.slot_index
+          }
+        })
+      })
+
+      const saveData = await saveRes.json()
+      if (!saveRes.ok) {
+        throw new Error(saveData.error || 'Errore salvataggio giocatore')
+      }
+
+      setShowUploadPlayerModal(false)
+      setUploadImages([])
+      setSelectedSlot(null)
+      // Ricarica dati
+      window.location.reload()
+    } catch (err) {
+      console.error('[GestioneFormazione] Upload player error:', err)
+      setError(err.message || 'Errore caricamento giocatore')
+    } finally {
+      setUploadingPlayer(false)
+    }
   }
 
   const handleUploadFormation = async (imageDataUrl) => {
@@ -604,6 +693,21 @@ export default function GestioneFormazionePage() {
           onUpload={handleUploadReserve}
           onClose={() => setShowUploadReserveModal(false)}
           uploading={uploadingReserve}
+        />
+      )}
+
+      {/* Modal Upload Giocatore per Slot */}
+      {showUploadPlayerModal && selectedSlot && (
+        <UploadPlayerModal
+          slot={selectedSlot}
+          images={uploadImages}
+          onImagesChange={setUploadImages}
+          onUpload={handleUploadPlayerToSlot}
+          onClose={() => {
+            setShowUploadPlayerModal(false)
+            setUploadImages([])
+          }}
+          uploading={uploadingPlayer}
         />
       )}
 
