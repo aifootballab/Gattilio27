@@ -57,7 +57,7 @@ export default function LoginPage() {
           setLoading(false)
           // Redirect dopo successo
           setTimeout(() => {
-            router.push('/upload')
+            router.push('/')
             router.refresh()
           }, 1000)
         }
@@ -79,7 +79,7 @@ export default function LoginPage() {
           setLoading(false)
           // Redirect dopo successo
           setTimeout(() => {
-            router.push('/upload')
+            router.push('/')
             router.refresh()
           }, 500)
         }

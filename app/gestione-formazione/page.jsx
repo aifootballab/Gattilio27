@@ -194,8 +194,9 @@ export default function GestioneFormazionePage() {
   }
 
   const handleUploadPhoto = () => {
-    // Redirect a upload con slot pre-selezionato
-    router.push(`/upload?slot=${selectedSlot?.slot_index}`)
+    // Upload gestito inline tramite modal (non più redirect a /upload)
+    setShowAssignModal(false)
+    // TODO: Aprire modal upload specifico per questo slot in futuro
   }
 
   if (loading) {
@@ -213,7 +214,7 @@ export default function GestioneFormazionePage() {
       <main style={{ padding: '32px 24px', minHeight: '100vh', maxWidth: '1200px', margin: '0 auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '32px' }}>
           <button
-            onClick={() => router.push('/lista-giocatori')}
+            onClick={() => router.push('/')}
             className="btn"
             style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
           >
@@ -234,12 +235,12 @@ export default function GestioneFormazionePage() {
             Carica prima uno screenshot della formazione completa per vedere il campo 2D
           </div>
           <button
-            onClick={() => router.push('/upload')}
+            onClick={() => setShowUploadFormationModal(true)}
             className="btn primary"
             style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
           >
             <Upload size={16} />
-            Carica Formazione
+            {t('loadFormation')}
           </button>
         </div>
       </main>
@@ -264,12 +265,12 @@ export default function GestioneFormazionePage() {
         flexWrap: 'wrap'
       }}>
         <button
-          onClick={() => router.push('/lista-giocatori')}
+          onClick={() => router.push('/')}
           className="btn"
           style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
         >
           <ArrowLeft size={16} />
-          {t('back')}
+          Dashboard
         </button>
         <h1 className="neon-text" style={{ fontSize: 'clamp(24px, 5vw, 32px)', fontWeight: 700, margin: 0 }}>
           {t('swapFormation')}
@@ -371,8 +372,33 @@ export default function GestioneFormazionePage() {
               />
             ))}
           </div>
-        </div>
-      )}
+        )}
+        {riserve.length === 0 && (
+          <div style={{ 
+            padding: '24px', 
+            textAlign: 'center', 
+            background: 'rgba(168, 85, 247, 0.05)',
+            borderRadius: '8px',
+            border: '1px dashed rgba(168, 85, 247, 0.3)'
+          }}>
+            <div style={{ fontSize: '14px', opacity: 0.7, marginBottom: '12px' }}>
+              Nessuna riserva. Carica giocatori per aggiungerli alle riserve.
+            </div>
+            <button
+              onClick={() => setShowUploadReserveModal(true)}
+              className="btn"
+              style={{ 
+                display: 'inline-flex', 
+                alignItems: 'center', 
+                gap: '8px'
+              }}
+            >
+              <Plus size={16} />
+              {t('loadFirstReserve')}
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Modal Assegnazione */}
       {showAssignModal && selectedSlot && (
@@ -391,12 +417,162 @@ export default function GestioneFormazionePage() {
         />
       )}
 
+      {/* Modal Upload Formazione */}
+      {showUploadFormationModal && (
+        <UploadModal
+          title={t('loadFormation')}
+          description="Carica uno screenshot della formazione completa (11 giocatori sul campo)"
+          onUpload={handleUploadFormation}
+          onClose={() => setShowUploadFormationModal(false)}
+          uploading={uploadingFormation}
+        />
+      )}
+
+      {/* Modal Upload Riserva */}
+      {showUploadReserveModal && (
+        <UploadModal
+          title={t('loadReserve')}
+          description="Carica uno screenshot della card del giocatore"
+          onUpload={handleUploadReserve}
+          onClose={() => setShowUploadReserveModal(false)}
+          uploading={uploadingReserve}
+        />
+      )}
+
       <style jsx>{`
         @keyframes spin {
           to { transform: rotate(360deg); }
         }
       `}</style>
     </main>
+  )
+}
+
+// Componente Modal Upload
+function UploadModal({ title, description, onUpload, onClose, uploading }) {
+  const [image, setImage] = React.useState(null)
+  const [preview, setPreview] = React.useState(null)
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files?.[0]
+    if (!file || !file.type.startsWith('image/')) {
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const dataUrl = e.target.result
+      setPreview(dataUrl)
+      setImage({ file, dataUrl })
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleConfirm = () => {
+    if (image?.dataUrl) {
+      onUpload(image.dataUrl)
+    }
+  }
+
+  return (
+    <div 
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'rgba(0, 0, 0, 0.8)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1000,
+        padding: '24px'
+      }}
+      onClick={onClose}
+    >
+      <div 
+        className="card"
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          maxWidth: '500px',
+          width: '100%',
+          padding: '24px',
+          background: 'rgba(10, 14, 39, 0.95)',
+          border: '2px solid var(--neon-blue)'
+        }}
+      >
+        <h2 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '12px', marginTop: 0 }}>
+          {title}
+        </h2>
+        <div style={{ fontSize: '14px', opacity: 0.8, marginBottom: '20px' }}>
+          {description}
+        </div>
+
+        {!preview ? (
+          <label style={{
+            display: 'block',
+            padding: '32px',
+            border: '2px dashed rgba(0, 212, 255, 0.3)',
+            borderRadius: '8px',
+            textAlign: 'center',
+            cursor: 'pointer',
+            background: 'rgba(0, 212, 255, 0.05)'
+          }}>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleFileSelect}
+              style={{ display: 'none' }}
+              disabled={uploading}
+            />
+              <Upload size={32} style={{ marginBottom: '12px', color: 'var(--neon-blue)' }} />
+              <div style={{ fontSize: '14px' }}>Clicca per selezionare immagine</div>
+              <div style={{ fontSize: '12px', opacity: 0.6, marginTop: '8px' }}>
+                Formati supportati: JPG, PNG
+              </div>
+          </label>
+        ) : (
+          <div style={{ marginBottom: '20px' }}>
+            <img
+              src={preview}
+              alt="Preview"
+              style={{
+                width: '100%',
+                maxHeight: '300px',
+                objectFit: 'contain',
+                borderRadius: '8px',
+                border: '1px solid rgba(255,255,255,0.1)'
+              }}
+            />
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+          <button 
+            onClick={onClose} 
+            className="btn"
+            disabled={uploading}
+            style={{ padding: '10px 20px' }}
+          >
+            Annulla
+          </button>
+          {preview && (
+            <button 
+              onClick={handleConfirm} 
+              className="btn primary"
+              disabled={uploading}
+              style={{ 
+                padding: '10px 20px',
+                opacity: uploading ? 0.6 : 1
+              }}
+            >
+              {uploading ? 'Caricamento...' : 'Carica'}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -611,7 +787,14 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
               Completa Profilo
             </button>
             <button
-              onClick={onUploadPhoto}
+              onClick={() => {
+                onClose()
+                // Apri modal upload inline
+                setTimeout(() => {
+                  // Gestito da modal upload che verrà aggiunto
+                  alert('Funzionalità in sviluppo: upload foto per questo slot')
+                }, 100)
+              }}
               className="btn"
               style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}
             >
@@ -641,7 +824,13 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <button
-              onClick={onUploadPhoto}
+              onClick={() => {
+                onClose()
+                // Apri modal upload inline per questo slot
+                setTimeout(() => {
+                  alert('Funzionalità in sviluppo: upload foto per questo slot')
+                }, 100)
+              }}
               className="btn primary"
               style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}
             >

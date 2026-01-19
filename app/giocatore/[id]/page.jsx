@@ -274,7 +274,7 @@ export default function PlayerDetailPage() {
         marginBottom: '32px'
       }}>
         <button
-          onClick={() => router.push('/lista-giocatori')}
+          onClick={() => router.push('/gestione-formazione')}
           className="btn"
           style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
         >
