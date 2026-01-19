@@ -13,6 +13,7 @@ export default function PlayerDetailPage() {
   const playerId = params?.id
 
   const [player, setPlayer] = React.useState(null)
+  const [playingStyleName, setPlayingStyleName] = React.useState(null)
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState(null)
   const [uploading, setUploading] = React.useState(false)
@@ -58,6 +59,19 @@ export default function PlayerDetailPage() {
         }
 
         setPlayer(data)
+
+        // Carica nome stile di gioco se presente
+        if (data.playing_style_id) {
+          const { data: styleData } = await supabase
+            .from('playing_styles')
+            .select('name')
+            .eq('id', data.playing_style_id)
+            .single()
+          
+          if (styleData) {
+            setPlayingStyleName(styleData.name)
+          }
+        }
       } catch (err) {
         console.error('[PlayerDetail] Error:', err)
         setError(err.message || 'Errore caricamento giocatore')
@@ -364,10 +378,28 @@ export default function PlayerDetailPage() {
               <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--neon-blue)' }}>{player.overall_rating}</div>
             </div>
           )}
-          {player.team && (
+          {player.age && (
             <div>
-              <div style={{ fontSize: '12px', opacity: 0.7, marginBottom: '4px' }}>Team</div>
-              <div style={{ fontSize: '16px', fontWeight: 600 }}>{player.team}</div>
+              <div style={{ fontSize: '12px', opacity: 0.7, marginBottom: '4px' }}>Età</div>
+              <div style={{ fontSize: '16px', fontWeight: 600 }}>{player.age} anni</div>
+            </div>
+          )}
+          {(player.club_name || player.team) && (
+            <div>
+              <div style={{ fontSize: '12px', opacity: 0.7, marginBottom: '4px' }}>Club</div>
+              <div style={{ fontSize: '16px', fontWeight: 600 }}>{player.club_name || player.team}</div>
+            </div>
+          )}
+          {player.nationality && (
+            <div>
+              <div style={{ fontSize: '12px', opacity: 0.7, marginBottom: '4px' }}>Nazionalità</div>
+              <div style={{ fontSize: '16px', fontWeight: 600 }}>{player.nationality}</div>
+            </div>
+          )}
+          {(playingStyleName || player.role) && (
+            <div>
+              <div style={{ fontSize: '12px', opacity: 0.7, marginBottom: '4px' }}>Stile di Gioco</div>
+              <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--neon-orange)' }}>{playingStyleName || player.role}</div>
             </div>
           )}
         </div>

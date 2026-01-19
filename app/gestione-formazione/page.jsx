@@ -63,7 +63,19 @@ export default function GestioneFormazionePage() {
           })
         }
 
-        // 2. Carica giocatori
+        // 2. Carica stili di gioco (per lookup)
+        const { data: playingStyles, error: stylesError } = await supabase
+          .from('playing_styles')
+          .select('id, name')
+        
+        const stylesLookup = {}
+        if (playingStyles && !stylesError) {
+          playingStyles.forEach(style => {
+            stylesLookup[style.id] = style.name
+          })
+        }
+
+        // 3. Carica giocatori
         const { data: players, error: playersError } = await supabase
           .from('players')
           .select('*')
@@ -82,6 +94,15 @@ export default function GestioneFormazionePage() {
             overall_rating: p.overall_rating != null ? Number(p.overall_rating) : null,
             team: p.team ? String(p.team).trim() : null,
             slot_index: p.slot_index != null ? Number(p.slot_index) : null,
+            // Dati aggiuntivi per visualizzazione
+            age: p.age != null ? Number(p.age) : null,
+            club_name: p.club_name ? String(p.club_name).trim() : null,
+            nationality: p.nationality ? String(p.nationality).trim() : null,
+            role: p.role ? String(p.role).trim() : null,
+            playing_style_id: p.playing_style_id || null,
+            playing_style_name: p.playing_style_id && stylesLookup[p.playing_style_id] 
+              ? stylesLookup[p.playing_style_id] 
+              : null,
             // Includi tutti i dati estratti per visualizzazione nel modal
             base_stats: p.base_stats || null,
             skills: p.skills || null,
@@ -714,13 +735,16 @@ export default function GestioneFormazionePage() {
         </div>
       )}
 
-      {/* Campo 2D */}
+      {/* Campo 2D - Layout Verticale */}
       {!noLayoutContent && (
       <div className="card" style={{ 
         marginBottom: '32px',
         padding: 'clamp(16px, 2vw, 24px)',
         position: 'relative',
-        minHeight: 'clamp(400px, 50vh, 600px)',
+        maxWidth: 'clamp(600px, 50vw, 800px)',
+        minHeight: 'clamp(600px, 75vh, 900px)',
+        aspectRatio: '2/3',
+        margin: '0 auto',
         background: `
           linear-gradient(90deg, rgba(22, 163, 74, 0.15) 0%, rgba(34, 197, 94, 0.2) 50%, rgba(22, 163, 74, 0.15) 100%),
           repeating-linear-gradient(
@@ -1633,7 +1657,7 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
           </div>
           {currentPlayer && (
             <>
-              <div style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+              <div style={{ fontSize: '18px', fontWeight: 700, marginBottom: '12px', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
                 <span>{currentPlayer.player_name}</span>
                 {currentPlayer.overall_rating && (
                   <span style={{ 
@@ -1644,6 +1668,80 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
                   }}>
                     {currentPlayer.overall_rating}
                   </span>
+                )}
+              </div>
+              
+              {/* Info aggiuntive: Età, Club, Nazionalità, Stile */}
+              <div style={{ 
+                display: 'flex', 
+                flexWrap: 'wrap', 
+                gap: '8px', 
+                marginBottom: '12px' 
+              }}>
+                {currentPlayer.age && (
+                  <div style={{
+                    padding: '4px 10px',
+                    background: 'rgba(59, 130, 246, 0.2)',
+                    border: '1px solid rgba(59, 130, 246, 0.4)',
+                    borderRadius: '12px',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    color: '#60a5fa',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}>
+                    <User size={12} />
+                    {currentPlayer.age} anni
+                  </div>
+                )}
+                {(currentPlayer.club_name || currentPlayer.team) && (
+                  <div style={{
+                    padding: '4px 10px',
+                    background: 'rgba(147, 51, 234, 0.2)',
+                    border: '1px solid rgba(147, 51, 234, 0.4)',
+                    borderRadius: '12px',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    color: '#a78bfa',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}>
+                    🏆 {currentPlayer.club_name || currentPlayer.team}
+                  </div>
+                )}
+                {currentPlayer.nationality && (
+                  <div style={{
+                    padding: '4px 10px',
+                    background: 'rgba(34, 197, 94, 0.2)',
+                    border: '1px solid rgba(34, 197, 94, 0.4)',
+                    borderRadius: '12px',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    color: '#4ade80',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}>
+                    🌍 {currentPlayer.nationality}
+                  </div>
+                )}
+                {(currentPlayer.playing_style_name || currentPlayer.role) && (
+                  <div style={{
+                    padding: '4px 10px',
+                    background: 'rgba(251, 191, 36, 0.2)',
+                    border: '1px solid rgba(251, 191, 36, 0.4)',
+                    borderRadius: '12px',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    color: '#fbbf24',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}>
+                    ⚽ {currentPlayer.playing_style_name || currentPlayer.role}
+                  </div>
                 )}
               </div>
               {/* Indicatore Completezza */}
