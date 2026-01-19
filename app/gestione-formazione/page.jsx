@@ -1255,7 +1255,7 @@ function SlotCard({ slot, onClick, onRemove }) {
             position: 'relative',
             zIndex: 1
           }}>
-            <Plus size={clamp(28, 3, 32)} style={{ color: 'rgba(0, 212, 255, 1)', filter: 'drop-shadow(0 0 8px rgba(0, 212, 255, 0.8))' }} />
+            <Plus size={30} style={{ color: 'rgba(0, 212, 255, 1)', filter: 'drop-shadow(0 0 8px rgba(0, 212, 255, 0.8))' }} />
           </div>
           <div style={{ 
             fontSize: 'clamp(10px, 1vw, 12px)', 
