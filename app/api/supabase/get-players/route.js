@@ -33,35 +33,13 @@ export async function GET(req) {
       auth: { autoRefreshToken: false, persistSession: false }
     })
 
-    // DEBUG: Verifica tutti i giocatori nel DB (prima della query filtrata)
-    const { data: allPlayers, error: debugError } = await admin
-      .from('players')
-      .select('id, user_id, player_name')
-      .limit(10)
-    
-    if (!debugError && allPlayers) {
-      console.log(`[get-players] DEBUG: Found ${allPlayers.length} total players in DB (first 10):`)
-      allPlayers.forEach((p, idx) => {
-        const userIdMatch = String(p.user_id) === String(userId)
-        console.log(`  Player ${idx + 1}: id=${p.id}, user_id=${p.user_id} (${typeof p.user_id}), player_name=${p.player_name}, match=${userIdMatch}`)
-      })
-      // Verifica se ci sono giocatori con user_id diverso
-      const differentUserIds = [...new Set(allPlayers.map(p => p.user_id))]
-      console.log(`[get-players] DEBUG: Found ${differentUserIds.length} different user_ids in DB:`, differentUserIds)
-      const userMatch = allPlayers.some(p => String(p.user_id) === String(userId))
-      console.log(`[get-players] DEBUG: Current user_id ${userId} (${typeof userId}) matches any player: ${userMatch}`)
-    } else if (debugError) {
-      console.error(`[get-players] DEBUG query error:`, debugError)
-    }
-
-    // Recupera giocatori dell'utente (ordinati per data creazione)
-    // Usa userId direttamente (come in save-player) - Supabase gestisce il tipo UUID automaticamente
+    // WORKAROUND: .eq('user_id', userId) non funziona correttamente con serviceKey e UUID
+    // Recuperiamo tutti i giocatori e filtriamo lato JavaScript (la query senza .eq() funziona)
     console.log(`[get-players] Querying players with user_id: ${userId} (type: ${typeof userId})`)
     
-    const { data: players, error: queryError } = await admin
+    const { data: allPlayers, error: queryError } = await admin
       .from('players')
       .select('*')
-      .eq('user_id', userId)
       .order('created_at', { ascending: false })
 
     if (queryError) {
@@ -72,17 +50,13 @@ export async function GET(req) {
       )
     }
 
-    // Gestione risposta: players può essere null o array
-    const playersList = players || []
-    console.log(`[get-players] Raw query result: ${playersList.length} players`)
+    // Filtra giocatori dell'utente lato JavaScript (workaround per bug .eq() con UUID)
+    const playersList = (allPlayers || []).filter(p => String(p.user_id) === String(userId))
+    console.log(`[get-players] Total players in DB: ${(allPlayers || []).length}, filtered for user_id ${userId}: ${playersList.length}`)
+    
     if (playersList.length > 0) {
-      // Verifica user_id match per ogni giocatore
       playersList.forEach((p, idx) => {
-        const match = p.user_id === userId
-        console.log(`[get-players] Player ${idx + 1}: id=${p.id}, user_id=${p.user_id}, player_name=${p.player_name}, user_match=${match}`)
-        if (!match) {
-          console.warn(`[get-players] ⚠️ MISMATCH: Player ${p.id} has user_id=${p.user_id} but query used user_id=${userId}`)
-        }
+        console.log(`[get-players] Player ${idx + 1}: id=${p.id}, user_id=${p.user_id}, player_name=${p.player_name}`)
       })
     } else {
       console.log(`[get-players] No players found for user_id: ${userId}`)
