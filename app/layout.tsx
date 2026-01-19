@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import LanguageProviderWrapper from '@/components/LanguageProviderWrapper'
 
 export const metadata: Metadata = {
   title: 'Gattilio27 - Rosa (Production)',
@@ -14,9 +15,11 @@ export default function RootLayout({
   return (
     <html lang="it">
       <body>
-        {/* Custom Background Layer - QUI PUOI INSERIRE IL TUO SFONDO */}
-        <div className="custom-background" />
-        {children}
+        <LanguageProviderWrapper>
+          {/* Custom Background Layer - QUI PUOI INSERIRE IL TUO SFONDO */}
+          <div className="custom-background" />
+          {children}
+        </LanguageProviderWrapper>
       </body>
     </html>
   )

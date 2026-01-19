@@ -743,8 +743,8 @@ export default function GestioneFormazionePage() {
         marginBottom: '32px',
         padding: 'clamp(16px, 2vw, 24px)',
         position: 'relative',
-        maxWidth: 'clamp(600px, 50vw, 800px)',
-        minHeight: 'clamp(450px, 60vh, 650px)',
+        maxWidth: 'clamp(540px, 45vw, 720px)',
+        minHeight: 'clamp(292px, 39vh, 422px)',
         aspectRatio: '2/3',
         margin: '0 auto',
         background: `
