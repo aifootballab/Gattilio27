@@ -4,12 +4,13 @@ import React from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { useTranslation } from '@/lib/i18n'
-import { Users, Upload, LogOut, AlertCircle } from 'lucide-react'
+import { Users, Upload, LogOut, AlertCircle, Settings, ArrowRight } from 'lucide-react'
 
 export default function ListaGiocatoriPage() {
   const { t, lang, changeLanguage } = useTranslation()
   const router = useRouter()
-  const [players, setPlayers] = React.useState([])
+  const [titolari, setTitolari] = React.useState([])
+  const [riserve, setRiserve] = React.useState([])
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState(null)
 
@@ -68,10 +69,21 @@ export default function ListaGiocatoriPage() {
             position: p.position ? String(p.position).trim() : null,
             overall_rating: p.overall_rating != null ? Number(p.overall_rating) : null,
             team: p.team ? String(p.team).trim() : null,
-            card_type: p.card_type ? String(p.card_type).trim() : null
+            card_type: p.card_type ? String(p.card_type).trim() : null,
+            slot_index: p.slot_index != null ? Number(p.slot_index) : null
           }))
 
-        setPlayers(playersArray)
+        // Separazione titolari (slot_index 0-10) e riserve (slot_index null)
+        const titolariArray = playersArray
+          .filter(p => p.slot_index !== null && p.slot_index >= 0 && p.slot_index <= 10)
+          .sort((a, b) => (a.slot_index || 0) - (b.slot_index || 0))
+        
+        const riserveArray = playersArray
+          .filter(p => p.slot_index === null)
+          .sort((a, b) => (a.player_name || '').localeCompare(b.player_name || ''))
+
+        setTitolari(titolariArray)
+        setRiserve(riserveArray)
       } catch (err) {
         console.error('[ListaGiocatori] Error:', err)
         
@@ -114,14 +126,33 @@ export default function ListaGiocatoriPage() {
     router.push('/upload')
   }
 
+  const totalPlayers = titolari.length + riserve.length
+
   return (
     <main style={{ padding: '32px 24px', minHeight: '100vh' }}>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
-        <h1 className="neon-text" style={{ fontSize: '32px', fontWeight: 700 }}>
+      <div style={{ 
+        display: 'flex', 
+        flexWrap: 'wrap',
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        marginBottom: '24px',
+        gap: '12px'
+      }}>
+        <h1 className="neon-text" style={{ fontSize: 'clamp(24px, 5vw, 32px)', fontWeight: 700, margin: 0 }}>
           {t('myPlayers')}
         </h1>
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+          {titolari.length > 0 && (
+            <button
+              onClick={() => router.push('/gestione-formazione')}
+              className="btn"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+            >
+              <Settings size={16} />
+              {t('swapFormation')}
+            </button>
+          )}
           <button
             onClick={handleGoToUpload}
             className="btn"
@@ -160,19 +191,34 @@ export default function ListaGiocatoriPage() {
       {!loading && !error && (
         <div>
           {/* Count */}
-          {players.length > 0 && (
-            <div style={{ marginBottom: '24px', fontSize: '16px', opacity: 0.8 }}>
-              {players.length} {t('playersSaved')}
+          {totalPlayers > 0 && (
+            <div style={{ marginBottom: '24px', fontSize: '14px', opacity: 0.8 }}>
+              {totalPlayers} {t('playersSaved')} • {titolari.length} {t('titolari')} • {riserve.length} {t('riserve')}
             </div>
           )}
 
           {/* Empty State */}
-          {players.length === 0 && (
-            <div className="card" style={{ padding: '40px', textAlign: 'center' }}>
+          {totalPlayers === 0 && (
+            <div className="card" style={{ padding: '32px 24px', textAlign: 'center' }}>
               <Users size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
-              <div style={{ fontSize: '18px', marginBottom: '8px' }}>{t('noPlayersSaved')}</div>
-              <div style={{ fontSize: '14px', opacity: 0.7, marginBottom: '24px' }}>
+              <div style={{ fontSize: '18px', marginBottom: '8px', fontWeight: 600 }}>{t('noPlayersSaved')}</div>
+              <div style={{ fontSize: '14px', opacity: 0.8, marginBottom: '16px', lineHeight: '1.6' }}>
                 {t('uploadScreenshotsToSee')}
+              </div>
+              <div style={{ 
+                fontSize: '13px', 
+                opacity: 0.7, 
+                marginBottom: '24px',
+                padding: '12px',
+                background: 'rgba(0, 212, 255, 0.05)',
+                borderRadius: '8px',
+                textAlign: 'left',
+                maxWidth: '500px',
+                margin: '0 auto 24px'
+              }}>
+                <div style={{ marginBottom: '6px' }}><strong>💡 Suggerimento:</strong></div>
+                <div style={{ marginBottom: '4px' }}>• Carica prima una <strong>formazione completa</strong> per avere i tuoi 11 titolari</div>
+                <div>• Poi carica le <strong>card giocatori singoli</strong> per aggiungere riserve</div>
               </div>
               <button
                 onClick={handleGoToUpload}
@@ -185,61 +231,138 @@ export default function ListaGiocatoriPage() {
             </div>
           )}
 
-          {/* Players Grid */}
-          {players.length > 0 && (
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', 
-              gap: '16px' 
-            }}>
-              {players.map((player) => (
-                <div 
-                  key={player.id} 
-                  className="card"
-                  style={{
-                    padding: '16px',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    borderRadius: '8px'
-                  }}
-                >
-                  {/* Player Name */}
-                  <div style={{ 
-                    fontSize: '18px', 
-                    fontWeight: 700, 
-                    marginBottom: '8px',
-                    color: 'var(--neon-blue)'
-                  }}>
-                    {player.player_name}
-                  </div>
+          {/* Titolari Section */}
+          {titolari.length > 0 && (
+            <div style={{ marginBottom: '32px' }}>
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                marginBottom: '16px'
+              }}>
+                <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--neon-blue)' }}>
+                  {t('titolari')} ({titolari.length}/11)
+                </h2>
+                {titolari.length > 0 && (
+                  <button
+                    onClick={() => router.push('/gestione-formazione')}
+                    className="btn"
+                    style={{ 
+                      display: 'inline-flex', 
+                      alignItems: 'center', 
+                      gap: '6px',
+                      fontSize: '14px',
+                      padding: '8px 16px'
+                    }}
+                  >
+                    <Settings size={14} />
+                    {t('swapFormation')}
+                    <ArrowRight size={14} />
+                  </button>
+                )}
+              </div>
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
+                gap: '12px'
+              }}>
+                {titolari.map((player) => (
+                  <PlayerCard key={player.id} player={player} isTitolare={true} />
+                ))}
+              </div>
+            </div>
+          )}
 
-                  {/* Basic Info */}
-                  <div style={{ fontSize: '14px', marginBottom: '8px', opacity: 0.8 }}>
-                    {player.position && <span>{player.position}</span>}
-                    {player.position && player.overall_rating && <span> • </span>}
-                    {player.overall_rating && (
-                      <span style={{ fontWeight: 600 }}>{player.overall_rating}</span>
-                    )}
-                  </div>
-
-                  {/* Team */}
-                  {player.team && (
-                    <div style={{ fontSize: '12px', opacity: 0.6, marginBottom: '4px' }}>
-                      {player.team}
-                    </div>
-                  )}
-
-                  {/* Card Type */}
-                  {player.card_type && (
-                    <div style={{ fontSize: '12px', opacity: 0.6 }}>
-                      {player.card_type}
-                    </div>
-                  )}
-                </div>
-              ))}
+          {/* Riserve Section */}
+          {riserve.length > 0 && (
+            <div>
+              <h2 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '16px', color: 'var(--neon-purple)' }}>
+                {t('riserve')} ({riserve.length})
+              </h2>
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
+                gap: '12px'
+              }}>
+                {riserve.map((player) => (
+                  <PlayerCard key={player.id} player={player} isTitolare={false} />
+                ))}
+              </div>
             </div>
           )}
         </div>
       )}
     </main>
+  )
+}
+
+// Player Card Component (responsive)
+function PlayerCard({ player, isTitolare }) {
+  const { t } = useTranslation()
+  return (
+    <div 
+      className="card"
+      style={{
+        padding: '12px',
+        border: `1px solid ${isTitolare ? 'rgba(0, 212, 255, 0.3)' : 'rgba(168, 85, 247, 0.3)'}`,
+        borderRadius: '8px',
+        transition: 'all 0.3s ease',
+        cursor: 'pointer'
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = 'translateY(-2px)'
+        e.currentTarget.style.boxShadow = isTitolare 
+          ? 'var(--glow-blue)' 
+          : 'var(--glow-purple)'
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = 'translateY(0)'
+        e.currentTarget.style.boxShadow = 'none'
+      }}
+    >
+      {/* Player Name */}
+      <div style={{ 
+        fontSize: '16px', 
+        fontWeight: 700, 
+        marginBottom: '6px',
+        color: isTitolare ? 'var(--neon-blue)' : 'var(--neon-purple)',
+        lineHeight: '1.2',
+        wordBreak: 'break-word'
+      }}>
+        {player.player_name}
+      </div>
+
+      {/* Basic Info */}
+      <div style={{ fontSize: '13px', marginBottom: '6px', opacity: 0.8 }}>
+        {player.position && <span>{player.position}</span>}
+        {player.position && player.overall_rating && <span> • </span>}
+        {player.overall_rating && (
+          <span style={{ fontWeight: 600 }}>{player.overall_rating}</span>
+        )}
+      </div>
+
+      {/* Slot Index Badge (solo per titolari) */}
+      {isTitolare && player.slot_index !== null && (
+        <div style={{
+          display: 'inline-block',
+          fontSize: '11px',
+          padding: '2px 6px',
+          background: 'rgba(0, 212, 255, 0.2)',
+          border: '1px solid rgba(0, 212, 255, 0.4)',
+          borderRadius: '4px',
+          marginTop: '4px',
+          opacity: 0.8
+        }}>
+          {t('slot')} {player.slot_index}
+        </div>
+      )}
+
+      {/* Team (solo se c'è spazio) */}
+      {player.team && (
+        <div style={{ fontSize: '11px', opacity: 0.6, marginTop: '4px', lineHeight: '1.2' }}>
+          {player.team.length > 20 ? player.team.substring(0, 20) + '...' : player.team}
+        </div>
+      )}
+    </div>
   )
 }

@@ -100,9 +100,13 @@ export async function POST(req) {
         ai_playstyles: Array.isArray(player.ai_playstyles) ? player.ai_playstyles : [],
         matches_played: player.matches_played || null,
         goals: player.goals || null,
-        assists: player.assists || null
+        assists: player.assists || null,
+        player_face_description: player.player_face_description || null
       },
-      slot_index: null
+      // slot_index: accetta dal body (0-10 per titolari, null per riserve)
+      slot_index: player.slot_index !== undefined && player.slot_index !== null 
+        ? Math.max(0, Math.min(10, Number(player.slot_index))) 
+        : null
     }
 
     // Inserisci nuovo giocatore
