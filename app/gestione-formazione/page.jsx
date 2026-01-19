@@ -4,7 +4,7 @@ import React from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { useTranslation } from '@/lib/i18n'
-import { ArrowLeft, Upload, AlertCircle, CheckCircle2, RefreshCw, Info, X, Plus, User } from 'lucide-react'
+import { ArrowLeft, Upload, AlertCircle, CheckCircle2, RefreshCw, Info, X, Plus, User, Settings } from 'lucide-react'
 
 export default function GestioneFormazionePage() {
   const { t } = useTranslation()
@@ -379,6 +379,47 @@ export default function GestioneFormazionePage() {
     }
   }
 
+  const handleSelectManualFormation = async (formation, slotPositions) => {
+    setUploadingFormation(true)
+    setError(null)
+
+    try {
+      const { data: session } = await supabase.auth.getSession()
+      if (!session?.session?.access_token) {
+        throw new Error('Sessione scaduta')
+      }
+
+      const token = session.session.access_token
+
+      // Salva layout
+      const layoutRes = await fetch('/api/supabase/save-formation-layout', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          formation: formation,
+          slot_positions: slotPositions
+        })
+      })
+
+      const layoutData = await layoutRes.json()
+      if (!layoutRes.ok) {
+        throw new Error(layoutData.error || 'Errore salvataggio layout')
+      }
+
+      setShowFormationSelector(false)
+      // Ricarica dati
+      window.location.reload()
+    } catch (err) {
+      console.error('[GestioneFormazione] Manual formation error:', err)
+      setError(err.message || 'Errore salvataggio formazione')
+    } finally {
+      setUploadingFormation(false)
+    }
+  }
+
   const handleUploadReserve = async (imageDataUrl) => {
     setUploadingReserve(true)
     setError(null)
@@ -697,6 +738,15 @@ export default function GestioneFormazionePage() {
           onUpload={handleUploadReserve}
           onClose={() => setShowUploadReserveModal(false)}
           uploading={uploadingReserve}
+        />
+      )}
+
+      {/* Modal Selezione Formazione Manuale */}
+      {showFormationSelector && (
+        <FormationSelectorModal
+          onSelect={handleSelectManualFormation}
+          onClose={() => setShowFormationSelector(false)}
+          loading={uploadingFormation}
         />
       )}
 
