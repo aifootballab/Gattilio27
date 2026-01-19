@@ -409,7 +409,6 @@ export default function GestioneFormazionePage() {
         throw new Error(layoutData.error || 'Errore salvataggio layout')
       }
 
-      setShowFormationSelector(false)
       // Ricarica dati
       window.location.reload()
     } catch (err) {

@@ -71,7 +71,7 @@ lib/
 - `POST /api/supabase/save-player` - Salva/aggiorna giocatore
 - `PATCH /api/supabase/assign-player-to-slot` - Assegna giocatore a slot
 
-**Documentazione Completa**: Vedi `DOCUMENTAZIONE_COMPLETA_AGGIORNATA.md`
+**Documentazione Completa**: Vedi `DOCUMENTAZIONE_COMPLETA.md`
 
 ## ⚙️ Environment Variables
 
@@ -100,13 +100,14 @@ Crea `.env.local` con le variabili d'ambiente (vedi `.env.example`).
 
 ## 📚 Documentazione
 
-- **Documentazione Completa**: `DOCUMENTAZIONE_COMPLETA_AGGIORNATA.md`
+- **Documentazione Completa**: `DOCUMENTAZIONE_COMPLETA.md`
   - Stack tecnologico dettagliato
   - Schema database completo
   - Endpoint API con esempi
   - Flussi principali
   - Configurazione e deploy
   - Troubleshooting
+  - Problemi risolti
 
 ## 🏗️ Architettura
 
@@ -137,7 +138,7 @@ Crea `.env.local` con le variabili d'ambiente (vedi `.env.example`).
 
 ## 🐛 Troubleshooting
 
-Vedi `DOCUMENTAZIONE_COMPLETA_AGGIORNATA.md` per troubleshooting dettagliato.
+Vedi `DOCUMENTAZIONE_COMPLETA.md` per troubleshooting dettagliato.
 
 ## 📖 Risorse
 

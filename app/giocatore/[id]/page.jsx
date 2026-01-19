@@ -93,6 +93,71 @@ export default function PlayerDetailPage() {
     reader.readAsDataURL(file)
   }
 
+  // Funzione per aggiornare il giocatore con i dati estratti
+  const performUpdate = async (extractedPlayerData, type) => {
+    setUploading(true)
+    setError(null)
+
+    try {
+      const updateData = {}
+      const photoSlots = player.photo_slots || {}
+
+      if (type === 'stats') {
+        if (extractedPlayerData.base_stats) {
+          updateData.base_stats = extractedPlayerData.base_stats
+        }
+        photoSlots.statistiche = true
+      } else if (type === 'skills') {
+        if (extractedPlayerData.skills) {
+          updateData.skills = extractedPlayerData.skills
+        }
+        if (extractedPlayerData.com_skills) {
+          updateData.com_skills = extractedPlayerData.com_skills
+        }
+        photoSlots.abilita = true
+      } else if (type === 'booster') {
+        if (extractedPlayerData.boosters) {
+          updateData.available_boosters = extractedPlayerData.boosters
+        }
+        photoSlots.booster = true
+      }
+
+      updateData.photo_slots = photoSlots
+      updateData.updated_at = new Date().toISOString()
+
+      // Aggiorna in Supabase
+      const { error: updateError } = await supabase
+        .from('players')
+        .update(updateData)
+        .eq('id', playerId)
+
+      if (updateError) {
+        throw new Error(updateError.message || 'Errore aggiornamento giocatore')
+      }
+
+      // Ricarica dati giocatore
+      const { data: updatedPlayer } = await supabase
+        .from('players')
+        .select('*')
+        .eq('id', playerId)
+        .single()
+
+      setPlayer(updatedPlayer)
+      setImages([])
+      setUploadType(null)
+      
+      // Success message
+      setTimeout(() => {
+        setError(null)
+      }, 3000)
+    } catch (err) {
+      console.error('[PlayerDetail] Update error:', err)
+      setError(err.message || 'Errore aggiornamento giocatore')
+    } finally {
+      setUploading(false)
+    }
+  }
+
   const handleUploadAndUpdate = async () => {
     if (images.length === 0 || !uploadType || !player) {
       setError('Seleziona un\'immagine')
@@ -172,64 +237,9 @@ export default function PlayerDetailPage() {
         }
       })
       setUploading(false)
-      return
-
-      // 4. Aggiorna giocatore con dati aggiuntivi (eseguito solo dopo conferma)
-      const updateData = {}
-      const photoSlots = player.photo_slots || {}
-
-      if (uploadType === 'stats') {
-        if (extractData.player.base_stats) {
-          updateData.base_stats = extractData.player.base_stats
-        }
-        photoSlots.statistiche = true
-      } else if (uploadType === 'skills') {
-        if (extractData.player.skills) {
-          updateData.skills = extractData.player.skills
-        }
-        if (extractData.player.com_skills) {
-          updateData.com_skills = extractData.player.com_skills
-        }
-        photoSlots.abilita = true
-      } else if (uploadType === 'booster') {
-        if (extractData.player.boosters) {
-          updateData.available_boosters = extractData.player.boosters
-        }
-        photoSlots.booster = true
-      }
-
-      updateData.photo_slots = photoSlots
-      updateData.updated_at = new Date().toISOString()
-
-      // 3. Aggiorna in Supabase
-      const { error: updateError } = await supabase
-        .from('players')
-        .update(updateData)
-        .eq('id', playerId)
-
-      if (updateError) {
-        throw new Error(updateError.message || 'Errore aggiornamento giocatore')
-      }
-
-      // 4. Ricarica dati giocatore
-      const { data: updatedPlayer } = await supabase
-        .from('players')
-        .select('*')
-        .eq('id', playerId)
-        .single()
-
-      setPlayer(updatedPlayer)
-      setImages([])
-      setUploadType(null)
-      
-      // Success message
-      setTimeout(() => {
-        setError(null)
-      }, 3000)
     } catch (err) {
       console.error('[PlayerDetail] Upload error:', err)
       setError(err.message || 'Errore caricamento foto')
-    } finally {
       setUploading(false)
     }
   }
