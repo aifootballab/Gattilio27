@@ -124,6 +124,11 @@ export default function PlayerDetailPage() {
         if (extractedPlayerData.com_skills) {
           updateData.com_skills = extractedPlayerData.com_skills
         }
+        // Se ci sono booster estratti dalla stessa foto, salvali e traccia
+        if (extractedPlayerData.boosters && Array.isArray(extractedPlayerData.boosters) && extractedPlayerData.boosters.length > 0) {
+          updateData.available_boosters = extractedPlayerData.boosters
+          photoSlots.booster = true
+        }
         photoSlots.abilita = true
       } else if (type === 'booster') {
         if (extractedPlayerData.boosters) {
@@ -284,8 +289,9 @@ export default function PlayerDetailPage() {
 
   const photoSlots = player.photo_slots || {}
   
-  // Calcola se profilo è completo
-  const isProfileComplete = photoSlots.card && photoSlots.statistiche && photoSlots.abilita && photoSlots.booster
+  // Calcola se profilo è completo: 3 foto (Card, Statistiche, Abilità/Booster)
+  // Abilità e Booster possono essere nella stessa foto
+  const isProfileComplete = photoSlots.card && photoSlots.statistiche && (photoSlots.abilita || photoSlots.booster)
 
   const toggleSection = (section) => {
     setExpandedSections(prev => ({

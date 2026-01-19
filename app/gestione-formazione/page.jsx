@@ -81,7 +81,13 @@ export default function GestioneFormazionePage() {
             position: p.position ? String(p.position).trim() : null,
             overall_rating: p.overall_rating != null ? Number(p.overall_rating) : null,
             team: p.team ? String(p.team).trim() : null,
-            slot_index: p.slot_index != null ? Number(p.slot_index) : null
+            slot_index: p.slot_index != null ? Number(p.slot_index) : null,
+            // Includi tutti i dati estratti per visualizzazione nel modal
+            base_stats: p.base_stats || null,
+            skills: p.skills || null,
+            com_skills: p.com_skills || null,
+            available_boosters: p.available_boosters || null,
+            photo_slots: p.photo_slots || null
           }))
 
         const titolariArray = playersArray
@@ -266,6 +272,10 @@ export default function GestioneFormazionePage() {
             photoSlots.statistiche = true
           } else if (img.type === 'skills') {
             photoSlots.abilita = true
+            // Se ci sono booster estratti dalla stessa foto, traccia anche booster
+            if (extractData.player?.boosters && Array.isArray(extractData.player.boosters) && extractData.player.boosters.length > 0) {
+              photoSlots.booster = true
+            }
           } else if (img.type === 'booster') {
             photoSlots.booster = true
           }
@@ -1356,13 +1366,13 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
   const hasSkills = skills.length > 0 || comSkills.length > 0
   const hasBoosters = boosters && boosters.length > 0
   
-  // Calcola completezza profilo
-  const isProfileComplete = photoSlots.card && photoSlots.statistiche && photoSlots.abilita && photoSlots.booster
+  // Calcola completezza profilo: 3 foto (Card, Statistiche, Abilità/Booster)
+  // Abilità e Booster possono essere nella stessa foto
+  const isProfileComplete = photoSlots.card && photoSlots.statistiche && (photoSlots.abilita || photoSlots.booster)
   const completedSections = [
     photoSlots.card && 'Card',
     photoSlots.statistiche && 'Statistiche',
-    photoSlots.abilita && 'Abilità',
-    photoSlots.booster && 'Booster'
+    (photoSlots.abilita || photoSlots.booster) && 'Abilità/Booster'
   ].filter(Boolean).length
 
   return (
@@ -1453,7 +1463,7 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
                   <>
                     <Info size={14} color="#fbbf24" />
                     <span style={{ color: '#fbbf24', fontWeight: 500 }}>
-                      {completedSections}/4 sezioni completate
+                      {completedSections}/3 sezioni completate
                     </span>
                   </>
                 )}
@@ -1478,7 +1488,7 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
               }}>
                 <Info size={16} color="#fbbf24" />
                 <span style={{ color: '#fbbf24', fontWeight: 500 }}>
-                  Profilo parziale ({completedSections}/4). Clicca "Completa Profilo" per aggiungere dati mancanti.
+                  Profilo parziale ({completedSections}/3). Clicca "Completa Profilo" per aggiungere dati mancanti.
                 </span>
               </div>
             )}
@@ -1808,7 +1818,7 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
                   }}
                 >
                   <User size={18} />
-                  Completa Profilo ({completedSections}/4)
+                  Completa Profilo ({completedSections}/3)
                 </button>
               )}
               <button
