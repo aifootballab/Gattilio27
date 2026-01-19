@@ -1062,7 +1062,8 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
             </button>
             <button
               onClick={() => {
-                onClose()
+                // Chiudi AssignModal ma mantieni selectedSlot per UploadPlayerModal
+                setShowAssignModal(false)
                 onUploadPhoto()
               }}
               className="btn"
