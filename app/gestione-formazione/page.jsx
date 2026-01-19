@@ -1151,16 +1151,16 @@ function SlotCard({ slot, onClick, onRemove }) {
         left: `${position.x}%`,
         top: `${position.y}%`,
         transform: 'translate(-50%, -50%)',
-        width: 'clamp(110px, 10vw, 160px)',
-        minHeight: 'clamp(130px, 14vh, 150px)',
-        maxWidth: '160px',
-        padding: 'clamp(12px, 1.5vw, 16px)',
+        width: 'clamp(120px, 11vw, 170px)',
+        minHeight: 'clamp(140px, 15vh, 165px)',
+        maxWidth: '170px',
+        padding: 'clamp(14px, 1.6vw, 18px)',
         background: isEmpty 
           ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.9) 50%, rgba(15, 23, 42, 0.95) 100%)' 
-          : 'linear-gradient(135deg, rgba(59, 130, 246, 0.4) 0%, rgba(147, 51, 234, 0.4) 50%, rgba(59, 130, 246, 0.4) 100%), linear-gradient(180deg, rgba(0, 212, 255, 0.2) 0%, rgba(59, 130, 246, 0.3) 100%)',
+          : 'linear-gradient(135deg, rgba(59, 130, 246, 0.5) 0%, rgba(147, 51, 234, 0.5) 50%, rgba(59, 130, 246, 0.5) 100%), linear-gradient(180deg, rgba(0, 212, 255, 0.25) 0%, rgba(59, 130, 246, 0.35) 100%), linear-gradient(45deg, rgba(147, 51, 234, 0.1) 0%, transparent 50%)',
         border: isEmpty 
-          ? '2px solid rgba(148, 163, 184, 0.3)' 
-          : '2px solid rgba(59, 130, 246, 0.6)',
+          ? '2.5px solid rgba(148, 163, 184, 0.4)' 
+          : '2.5px solid rgba(147, 51, 234, 0.7)',
         borderRadius: '16px',
         cursor: 'pointer',
         transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
@@ -1197,115 +1197,164 @@ function SlotCard({ slot, onClick, onRemove }) {
           : 'rgba(59, 130, 246, 0.6)'
       }}
     >
+      {/* Pattern decorativo background */}
+      {!isEmpty && (
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'radial-gradient(circle at 30% 20%, rgba(147, 51, 234, 0.15) 0%, transparent 50%), radial-gradient(circle at 70% 80%, rgba(59, 130, 246, 0.15) 0%, transparent 50%)',
+          pointerEvents: 'none',
+          zIndex: 0
+        }} />
+      )}
+      
       {isEmpty ? (
         <>
           <div style={{ 
-            fontSize: '9px', 
-            opacity: 0.95, 
-            marginBottom: '4px',
-            fontWeight: 700,
-            color: '#ffffff',
-            textShadow: '0 1px 3px rgba(0, 0, 0, 0.9)',
-            letterSpacing: '0.5px'
+            fontSize: '8px', 
+            opacity: 0.8, 
+            marginBottom: '6px',
+            fontWeight: 800,
+            color: 'rgba(148, 163, 184, 0.9)',
+            textShadow: '0 1px 2px rgba(0, 0, 0, 0.5)',
+            letterSpacing: '1px',
+            textTransform: 'uppercase',
+            position: 'relative',
+            zIndex: 1
           }}>
             SLOT {slot_index}
           </div>
           <div style={{ 
-            fontSize: 'clamp(9px, 1vw, 11px)', 
-            opacity: 0.95, 
-            marginBottom: '12px',
+            fontSize: 'clamp(10px, 1.1vw, 12px)', 
+            marginBottom: '14px',
             color: '#ffffff',
             textTransform: 'uppercase',
-            letterSpacing: '0.8px',
-            fontWeight: 700,
-            textShadow: '0 1px 3px rgba(0, 0, 0, 0.8)'
+            letterSpacing: '1px',
+            fontWeight: 800,
+            textShadow: '0 2px 4px rgba(0, 0, 0, 0.7), 0 0 8px rgba(148, 163, 184, 0.3)',
+            position: 'relative',
+            zIndex: 1
           }}>
             {position.position || '?'}
           </div>
           <div style={{
-            width: '52px',
-            height: '52px',
+            width: 'clamp(56px, 6vw, 64px)',
+            height: 'clamp(56px, 6vw, 64px)',
             borderRadius: '50%',
-            background: 'rgba(0, 212, 255, 0.2)',
-            border: '2px dashed rgba(0, 212, 255, 0.5)',
+            background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.25) 0%, rgba(59, 130, 246, 0.3) 100%)',
+            border: '3px dashed rgba(0, 212, 255, 0.6)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            marginBottom: '10px',
-            transition: 'all 0.3s ease',
-            boxShadow: '0 0 20px rgba(0, 212, 255, 0.2)'
+            marginBottom: '12px',
+            transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            boxShadow: '0 0 30px rgba(0, 212, 255, 0.3), inset 0 0 20px rgba(0, 212, 255, 0.1)',
+            position: 'relative',
+            zIndex: 1
           }}>
-            <Plus size={26} style={{ color: 'rgba(0, 212, 255, 0.9)' }} />
+            <Plus size={clamp(28, 3, 32)} style={{ color: 'rgba(0, 212, 255, 1)', filter: 'drop-shadow(0 0 8px rgba(0, 212, 255, 0.8))' }} />
           </div>
           <div style={{ 
-            fontSize: 'clamp(9px, 0.9vw, 11px)', 
+            fontSize: 'clamp(10px, 1vw, 12px)', 
             marginTop: '4px', 
-            opacity: 1,
-            color: '#ffffff',
-            fontWeight: 700,
-            textShadow: '0 1px 3px rgba(0, 0, 0, 0.9)',
-            letterSpacing: '0.2px',
-            lineHeight: '1.3'
+            color: 'rgba(148, 163, 184, 0.95)',
+            fontWeight: 600,
+            textShadow: '0 1px 3px rgba(0, 0, 0, 0.7)',
+            letterSpacing: '0.3px',
+            lineHeight: '1.4',
+            position: 'relative',
+            zIndex: 1
           }}>
             Clicca per assegnare
           </div>
         </>
       ) : (
         <>
+          {/* Badge posizione in alto */}
           <div style={{ 
-            fontSize: '9px', 
-            opacity: 0.9, 
-            marginBottom: '4px',
-            fontWeight: 700,
-            color: '#ffffff',
-            textShadow: '0 1px 3px rgba(0, 0, 0, 0.9)',
-            letterSpacing: '0.5px'
+            position: 'absolute',
+            top: '8px',
+            right: '8px',
+            fontSize: '7px',
+            fontWeight: 800,
+            color: 'rgba(255, 255, 255, 0.7)',
+            background: 'rgba(0, 0, 0, 0.4)',
+            padding: '3px 6px',
+            borderRadius: '4px',
+            letterSpacing: '0.5px',
+            textTransform: 'uppercase',
+            zIndex: 2
           }}>
-            SLOT {slot_index}
+            {position.position || '?'}
           </div>
+          
+          {/* Nome giocatore - più prominente */}
           <div style={{ 
-            fontSize: 'clamp(12px, 1.3vw, 15px)', 
-            fontWeight: 800, 
-            marginBottom: '10px',
+            fontSize: 'clamp(13px, 1.4vw, 16px)', 
+            fontWeight: 900, 
+            marginBottom: '12px',
+            marginTop: '8px',
             color: '#ffffff',
-            lineHeight: '1.3',
+            lineHeight: '1.2',
             wordBreak: 'break-word',
-            textShadow: '0 3px 8px rgba(0, 0, 0, 0.9), 0 0 16px rgba(59, 130, 246, 0.5), 0 0 32px rgba(147, 51, 234, 0.3)',
-            letterSpacing: '0.3px',
-            minHeight: '36px',
+            textShadow: '0 4px 12px rgba(0, 0, 0, 0.9), 0 0 24px rgba(59, 130, 246, 0.6), 0 0 48px rgba(147, 51, 234, 0.4)',
+            letterSpacing: '0.4px',
+            minHeight: '40px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '0 4px'
+            padding: '0 6px',
+            position: 'relative',
+            zIndex: 1
           }}>
             {player.player_name}
           </div>
+          
+          {/* Rating - design premium */}
           {player.overall_rating && (
             <div style={{ 
-              fontSize: 'clamp(20px, 2.5vw, 28px)', 
+              fontSize: 'clamp(24px, 3vw, 32px)', 
               fontWeight: 900, 
               color: '#fbbf24',
-              textShadow: '0 3px 8px rgba(0, 0, 0, 0.9), 0 0 20px rgba(251, 191, 36, 0.7), 0 0 40px rgba(245, 158, 11, 0.4)',
-              marginBottom: '8px',
-              background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.3) 0%, rgba(245, 158, 11, 0.3) 50%, rgba(251, 191, 36, 0.3) 100%)',
-              padding: '8px 16px',
-              borderRadius: '12px',
-              border: '2px solid rgba(251, 191, 36, 0.6)',
-              boxShadow: 'inset 0 2px 4px rgba(255, 255, 255, 0.4), 0 4px 12px rgba(251, 191, 36, 0.4), 0 0 20px rgba(251, 191, 36, 0.3)',
-              minWidth: '60px',
+              textShadow: '0 4px 12px rgba(0, 0, 0, 0.9), 0 0 24px rgba(251, 191, 36, 0.8), 0 0 48px rgba(245, 158, 11, 0.5)',
+              marginBottom: '10px',
+              background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.35) 0%, rgba(245, 158, 11, 0.35) 50%, rgba(251, 191, 36, 0.35) 100%)',
+              padding: '10px 20px',
+              borderRadius: '14px',
+              border: '2.5px solid rgba(251, 191, 36, 0.7)',
+              boxShadow: 'inset 0 3px 6px rgba(255, 255, 255, 0.5), 0 6px 16px rgba(251, 191, 36, 0.5), 0 0 32px rgba(251, 191, 36, 0.4)',
+              minWidth: '70px',
               position: 'relative',
-              overflow: 'hidden'
+              overflow: 'hidden',
+              zIndex: 1
             }}>
+              {/* Shimmer effect */}
               <div style={{
                 position: 'absolute',
                 top: 0,
                 left: '-100%',
                 width: '100%',
                 height: '100%',
-                background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent)',
-                animation: 'shimmer 2s infinite'
+                background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent)',
+                animation: 'shimmer 2.5s infinite'
               }} />
-              {player.overall_rating}
+              {/* Glow interno */}
+              <div style={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: '80%',
+                height: '80%',
+                background: 'radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 70%)',
+                borderRadius: '50%'
+              }} />
+              <span style={{ position: 'relative', zIndex: 1 }}>
+                {player.overall_rating}
+              </span>
             </div>
           )}
           {onRemove && (
@@ -1315,32 +1364,34 @@ function SlotCard({ slot, onClick, onRemove }) {
                 onRemove()
               }}
               style={{
-                marginTop: '6px',
-                padding: '6px 14px',
-                background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.35) 0%, rgba(220, 38, 38, 0.4) 100%)',
-                border: '1.5px solid rgba(239, 68, 68, 0.7)',
-                borderRadius: '8px',
+                marginTop: '8px',
+                padding: '7px 16px',
+                background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.4) 0%, rgba(220, 38, 38, 0.45) 100%)',
+                border: '2px solid rgba(239, 68, 68, 0.75)',
+                borderRadius: '10px',
                 color: '#ffffff',
-                fontSize: 'clamp(10px, 1vw, 12px)',
+                fontSize: 'clamp(11px, 1.1vw, 13px)',
                 cursor: 'pointer',
-                fontWeight: 700,
-                textShadow: '0 2px 4px rgba(0, 0, 0, 0.8)',
+                fontWeight: 800,
+                textShadow: '0 2px 6px rgba(0, 0, 0, 0.9), 0 0 12px rgba(239, 68, 68, 0.5)',
                 transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                boxShadow: '0 3px 8px rgba(239, 68, 68, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
-                letterSpacing: '0.4px',
-                backdropFilter: 'blur(4px)'
+                boxShadow: '0 4px 12px rgba(239, 68, 68, 0.5), inset 0 2px 4px rgba(255, 255, 255, 0.25)',
+                letterSpacing: '0.5px',
+                backdropFilter: 'blur(6px)',
+                position: 'relative',
+                zIndex: 1
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(239, 68, 68, 0.5) 0%, rgba(220, 38, 38, 0.55) 100%)'
-                e.currentTarget.style.boxShadow = '0 6px 16px rgba(239, 68, 68, 0.6), 0 0 24px rgba(239, 68, 68, 0.4)'
-                e.currentTarget.style.transform = 'scale(1.08) translateY(-2px)'
-                e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.9)'
+                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(239, 68, 68, 0.6) 0%, rgba(220, 38, 38, 0.65) 100%)'
+                e.currentTarget.style.boxShadow = '0 8px 20px rgba(239, 68, 68, 0.7), 0 0 32px rgba(239, 68, 68, 0.5), inset 0 2px 6px rgba(255, 255, 255, 0.3)'
+                e.currentTarget.style.transform = 'scale(1.1) translateY(-3px)'
+                e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 1)'
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(239, 68, 68, 0.35) 0%, rgba(220, 38, 38, 0.4) 100%)'
-                e.currentTarget.style.boxShadow = '0 3px 8px rgba(239, 68, 68, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
+                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(239, 68, 68, 0.4) 0%, rgba(220, 38, 38, 0.45) 100%)'
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.5), inset 0 2px 4px rgba(255, 255, 255, 0.25)'
                 e.currentTarget.style.transform = 'scale(1) translateY(0)'
-                e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.7)'
+                e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.75)'
               }}
             >
               Rimuovi
