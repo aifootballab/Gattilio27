@@ -741,15 +741,6 @@ export default function GestioneFormazionePage() {
         />
       )}
 
-      {/* Modal Selezione Formazione Manuale */}
-      {showFormationSelector && (
-        <FormationSelectorModal
-          onSelect={handleSelectManualFormation}
-          onClose={() => setShowFormationSelector(false)}
-          loading={uploadingFormation}
-        />
-      )}
-
       {/* Modal Upload Giocatore per Slot */}
       {showUploadPlayerModal && selectedSlot && (
         <UploadPlayerModal
@@ -1387,6 +1378,223 @@ function UploadPlayerModal({ slot, images, onImagesChange, onUpload, onClose, up
               }}
             >
               {uploading ? 'Caricamento...' : `Carica Giocatore (${images.length} immagini)`}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Formation Selector Modal Component
+function FormationSelectorModal({ onSelect, onClose, loading }) {
+  const { t } = useTranslation()
+  
+  // Formazioni predefinite con posizioni slot
+  const formations = {
+    '4-4-3': {
+      name: '4-4-3',
+      slot_positions: {
+        0: { x: 50, y: 90, position: 'PT' },
+        1: { x: 25, y: 75, position: 'TD' },
+        2: { x: 40, y: 75, position: 'DC' },
+        3: { x: 60, y: 75, position: 'DC' },
+        4: { x: 75, y: 75, position: 'TS' },
+        5: { x: 30, y: 50, position: 'MED' },
+        6: { x: 50, y: 50, position: 'MED' },
+        7: { x: 70, y: 50, position: 'MED' },
+        8: { x: 25, y: 25, position: 'SP' },
+        9: { x: 50, y: 25, position: 'CF' },
+        10: { x: 75, y: 25, position: 'SP' }
+      }
+    },
+    '4-3-3': {
+      name: '4-3-3',
+      slot_positions: {
+        0: { x: 50, y: 90, position: 'PT' },
+        1: { x: 25, y: 75, position: 'TD' },
+        2: { x: 40, y: 75, position: 'DC' },
+        3: { x: 60, y: 75, position: 'DC' },
+        4: { x: 75, y: 75, position: 'TS' },
+        5: { x: 35, y: 50, position: 'MED' },
+        6: { x: 50, y: 50, position: 'MED' },
+        7: { x: 65, y: 50, position: 'MED' },
+        8: { x: 25, y: 25, position: 'SP' },
+        9: { x: 50, y: 25, position: 'CF' },
+        10: { x: 75, y: 25, position: 'SP' }
+      }
+    },
+    '4-2-3-1': {
+      name: '4-2-3-1',
+      slot_positions: {
+        0: { x: 50, y: 90, position: 'PT' },
+        1: { x: 25, y: 75, position: 'TD' },
+        2: { x: 40, y: 75, position: 'DC' },
+        3: { x: 60, y: 75, position: 'DC' },
+        4: { x: 75, y: 75, position: 'TS' },
+        5: { x: 40, y: 60, position: 'MED' },
+        6: { x: 60, y: 60, position: 'MED' },
+        7: { x: 30, y: 35, position: 'TRQ' },
+        8: { x: 50, y: 35, position: 'TRQ' },
+        9: { x: 70, y: 35, position: 'TRQ' },
+        10: { x: 50, y: 15, position: 'CF' }
+      }
+    },
+    '3-5-2': {
+      name: '3-5-2',
+      slot_positions: {
+        0: { x: 50, y: 90, position: 'PT' },
+        1: { x: 35, y: 75, position: 'DC' },
+        2: { x: 50, y: 75, position: 'DC' },
+        3: { x: 65, y: 75, position: 'DC' },
+        4: { x: 20, y: 50, position: 'TD' },
+        5: { x: 40, y: 50, position: 'MED' },
+        6: { x: 50, y: 50, position: 'MED' },
+        7: { x: 60, y: 50, position: 'MED' },
+        8: { x: 80, y: 50, position: 'TS' },
+        9: { x: 40, y: 25, position: 'CF' },
+        10: { x: 60, y: 25, position: 'CF' }
+      }
+    },
+    '5-4-1': {
+      name: '5-4-1',
+      slot_positions: {
+        0: { x: 50, y: 90, position: 'PT' },
+        1: { x: 20, y: 75, position: 'TD' },
+        2: { x: 35, y: 75, position: 'DC' },
+        3: { x: 50, y: 75, position: 'DC' },
+        4: { x: 65, y: 75, position: 'DC' },
+        5: { x: 80, y: 75, position: 'TS' },
+        6: { x: 35, y: 50, position: 'MED' },
+        7: { x: 50, y: 50, position: 'MED' },
+        8: { x: 65, y: 50, position: 'MED' },
+        9: { x: 50, y: 25, position: 'CF' },
+        10: { x: 50, y: 25, position: 'CF' }
+      }
+    }
+  }
+
+  const [selectedFormation, setSelectedFormation] = React.useState(null)
+
+  const handleConfirm = () => {
+    if (selectedFormation && formations[selectedFormation]) {
+      onSelect(formations[selectedFormation].name, formations[selectedFormation].slot_positions)
+    }
+  }
+
+  return (
+    <div 
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'rgba(0, 0, 0, 0.8)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1001,
+        padding: '24px'
+      }}
+      onClick={onClose}
+    >
+      <div 
+        className="card"
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          maxWidth: '600px',
+          width: '100%',
+          maxHeight: '90vh',
+          overflowY: 'auto',
+          padding: '24px',
+          background: 'rgba(10, 14, 39, 0.95)',
+          border: '2px solid var(--neon-blue)'
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <h2 style={{ fontSize: '20px', fontWeight: 700, margin: 0 }}>
+            Seleziona Formazione Tattica
+          </h2>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'rgba(255, 255, 255, 0.7)',
+              cursor: 'pointer',
+              padding: '4px'
+            }}
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <div style={{ fontSize: '14px', opacity: 0.8, marginBottom: '24px' }}>
+          Scegli una formazione predefinita. Potrai modificare le posizioni dei giocatori dopo.
+        </div>
+
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+          gap: '12px',
+          marginBottom: '24px'
+        }}>
+          {Object.keys(formations).map((key) => {
+            const formation = formations[key]
+            const isSelected = selectedFormation === key
+            return (
+              <button
+                key={key}
+                onClick={() => setSelectedFormation(key)}
+                style={{
+                  padding: '16px',
+                  background: isSelected ? 'rgba(0, 212, 255, 0.2)' : 'rgba(0, 212, 255, 0.05)',
+                  border: `2px solid ${isSelected ? 'var(--neon-blue)' : 'rgba(0, 212, 255, 0.3)'}`,
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontSize: '18px',
+                  fontWeight: 700,
+                  color: isSelected ? 'var(--neon-blue)' : 'rgba(255, 255, 255, 0.9)',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  if (!isSelected) {
+                    e.target.style.background = 'rgba(0, 212, 255, 0.1)'
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isSelected) {
+                    e.target.style.background = 'rgba(0, 212, 255, 0.05)'
+                  }
+                }}
+              >
+                {formation.name}
+              </button>
+            )
+          })}
+        </div>
+
+        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+          <button 
+            onClick={onClose} 
+            className="btn"
+            disabled={loading}
+            style={{ padding: '10px 20px' }}
+          >
+            Annulla
+          </button>
+          {selectedFormation && (
+            <button 
+              onClick={handleConfirm} 
+              className="btn primary"
+              disabled={loading}
+              style={{ 
+                padding: '10px 20px',
+                opacity: loading ? 0.6 : 1
+              }}
+            >
+              {loading ? 'Salvataggio...' : 'Conferma Formazione'}
             </button>
           )}
         </div>
