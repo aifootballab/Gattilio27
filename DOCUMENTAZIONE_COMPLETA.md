@@ -27,7 +27,9 @@
 
 - ✅ **Dashboard**: Panoramica squadra con statistiche
 - ✅ **Gestione Formazione 2D**: Campo interattivo con slot cliccabili
-- ✅ **Upload Formazione**: Estrazione disposizione tattica da screenshot
+- ✅ **14 Formazioni Ufficiali eFootball**: Selezione tra tutti i moduli tattici ufficiali
+- ✅ **Cambio Formazione Intelligente**: Mantiene giocatori quando si cambia modulo
+- ✅ **Upload Formazione**: Estrazione disposizione tattica da screenshot (opzione avanzata)
 - ✅ **Upload Giocatori**: Estrazione dati da card (fino a 3 immagini)
 - ✅ **Gestione Riserve**: Upload e gestione giocatori riserva
 - ✅ **Profilazione Giocatori**: Completamento profilo con foto aggiuntive
@@ -220,7 +222,8 @@ Authorization: Bearer <token>
 ```json
 {
   "formation": "4-3-3",
-  "slot_positions": { ... }
+  "slot_positions": { ... },
+  "preserve_slots": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] // Opzionale: slot da preservare
 }
 ```
 
@@ -238,7 +241,9 @@ Authorization: Bearer <token>
 
 **Note**: 
 - UPSERT (aggiorna se esiste)
-- Libera vecchi titolari (slot_index → NULL)
+- Se `preserve_slots` è fornito: libera solo giocatori da slot non presenti nell'array
+- Se `preserve_slots` non è fornito: libera tutti i titolari (slot_index → NULL)
+- Permette cambio formazione intelligente mantenendo giocatori esistenti
 
 ---
 
@@ -328,12 +333,26 @@ Authorization: Bearer <token>
 **Funzionalità**:
 - Campo 2D interattivo con slot posizionati
 - Click slot → Modal assegnazione
-- Upload formazione (screenshot completo)
+- **14 Formazioni Ufficiali eFootball**: Selezione manuale tra tutti i moduli tattici
+- **Cambio Formazione**: Bottone nell'header per modificare formazione anche con rosa completa
+- Upload formazione (screenshot completo - opzione avanzata)
 - Upload riserve (screenshot card)
 - Upload giocatore per slot (fino a 3 immagini)
 
-**Flusso Carica Formazione**:
-1. Click "Carica Formazione" → Modal upload
+**Formazioni Disponibili**:
+- **4 Difensori**: 4-3-3, 4-2-3-1, 4-4-2, 4-1-2-3, 4-5-1, 4-4-1-1, 4-2-2-2
+- **3 Difensori**: 3-5-2, 3-4-3, 3-1-4-2, 3-4-1-2
+- **5 Difensori**: 5-3-2, 5-4-1, 5-2-3
+
+**Flusso Crea/Modifica Formazione**:
+1. Click "Crea Formazione" o "Cambia Formazione" → Modal selezione
+2. Scegli formazione tattica → Preview posizioni
+3. Click "Conferma Formazione" → Salvataggio layout
+4. I giocatori esistenti vengono mantenuti nei loro slot_index (0-10)
+5. Cambiano solo le coordinate visuali (x, y) e i ruoli sul campo
+
+**Flusso Upload Formazione (Avanzato)**:
+1. Click "Importa da Screenshot" → Modal upload
 2. Seleziona screenshot → Preview
 3. Click "Carica" → Estrazione OpenAI
 4. Salvataggio layout → Ricarica pagina
@@ -348,6 +367,7 @@ Authorization: Bearer <token>
 **Note**: 
 - Slot 0-10 = titolari (posizionati sul campo)
 - Slot NULL = riserve (lista sotto campo)
+- **Cambio Formazione Intelligente**: I giocatori mantengono le loro posizioni numeriche (0-10), cambiano solo le coordinate visuali sul campo
 
 ---
 
@@ -575,5 +595,29 @@ npm start
 
 ---
 
+---
+
+## 🆕 Changelog
+
+### Versione 1.1.0 (Gennaio 2025)
+
+**Nuove Funzionalità**:
+- ✅ **14 Formazioni Ufficiali eFootball**: Aggiunte tutte le formazioni tattiche ufficiali del gioco
+- ✅ **Cambio Formazione Intelligente**: Possibilità di cambiare formazione mantenendo i giocatori già assegnati
+- ✅ **Bottone "Cambia Formazione"**: Accesso rapido nell'header per modificare la formazione anche con rosa completa
+- ✅ **API `preserve_slots`**: Supporto per preservare giocatori esistenti durante il cambio formazione
+
+**Miglioramenti UX**:
+- Selezione manuale formazione come opzione principale
+- Upload da screenshot come opzione avanzata
+- Messaggi informativi chiari nel modal di selezione
+
+**Note Tecniche**:
+- I giocatori mantengono i loro `slot_index` (0-10) quando si cambia formazione
+- Cambiano solo le coordinate visuali (x, y) e i ruoli (position) nel layout
+- Tutte le formazioni usano sempre gli stessi 11 slot (0-10), solo cambiano le posizioni sul campo
+
+---
+
 **Documentazione aggiornata al**: Gennaio 2025  
-**Versione App**: 1.0.0
+**Versione App**: 1.1.0
