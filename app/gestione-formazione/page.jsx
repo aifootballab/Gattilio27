@@ -1174,8 +1174,8 @@ function SlotCard({ slot, onClick, onRemove }) {
             {position.position || '?'}
           </div>
           <div style={{
-            width: 'clamp(44px, 5vw, 56px)',
-            height: 'clamp(44px, 5vw, 56px)',
+            width: '52px',
+            height: '52px',
             borderRadius: '50%',
             background: 'rgba(0, 212, 255, 0.2)',
             border: '2px dashed rgba(0, 212, 255, 0.5)',
@@ -1186,7 +1186,7 @@ function SlotCard({ slot, onClick, onRemove }) {
             transition: 'all 0.3s ease',
             boxShadow: '0 0 20px rgba(0, 212, 255, 0.2)'
           }}>
-            <Plus size={clamp(20, 2.5, 28)} style={{ color: 'rgba(0, 212, 255, 0.9)' }} />
+            <Plus size={26} style={{ color: 'rgba(0, 212, 255, 0.9)' }} />
           </div>
           <div style={{ 
             fontSize: 'clamp(9px, 0.9vw, 11px)', 
