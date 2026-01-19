@@ -17,6 +17,10 @@ export default function GestioneFormazionePage() {
   const [selectedSlot, setSelectedSlot] = React.useState(null) // { slot_index, position }
   const [showAssignModal, setShowAssignModal] = React.useState(false)
   const [assigning, setAssigning] = React.useState(false)
+  const [showUploadFormationModal, setShowUploadFormationModal] = React.useState(false)
+  const [showUploadReserveModal, setShowUploadReserveModal] = React.useState(false)
+  const [uploadingFormation, setUploadingFormation] = React.useState(false)
+  const [uploadingReserve, setUploadingReserve] = React.useState(false)
 
   // Carica layout e giocatori
   React.useEffect(() => {
@@ -197,6 +201,148 @@ export default function GestioneFormazionePage() {
     // Upload gestito inline tramite modal (non più redirect a /upload)
     setShowAssignModal(false)
     // TODO: Aprire modal upload specifico per questo slot in futuro
+  }
+
+  const handleUploadFormation = async (imageDataUrl) => {
+    setUploadingFormation(true)
+    setError(null)
+
+    try {
+      const { data: session } = await supabase.auth.getSession()
+      if (!session?.session?.access_token) {
+        throw new Error('Sessione scaduta')
+      }
+
+      const token = session.session.access_token
+
+      // 1. Estrai formazione
+      const extractRes = await fetch('/api/extract-formation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageDataUrl })
+      })
+
+      const extractData = await extractRes.json()
+      if (!extractRes.ok) {
+        throw new Error(extractData.error || 'Errore estrazione formazione')
+      }
+
+      if (!extractData.formation) {
+        throw new Error(t('formationExtractionFailed'))
+      }
+
+      // Completa slot mancanti
+      const completeSlotPositions = (slotPositions) => {
+        const complete = { ...(slotPositions || {}) }
+        const defaultPositions = {
+          0: { x: 50, y: 90, position: 'PT' },
+          1: { x: 20, y: 70, position: 'DC' },
+          2: { x: 40, y: 70, position: 'DC' },
+          3: { x: 60, y: 70, position: 'DC' },
+          4: { x: 80, y: 70, position: 'DC' },
+          5: { x: 30, y: 50, position: 'MED' },
+          6: { x: 50, y: 50, position: 'MED' },
+          7: { x: 70, y: 50, position: 'MED' },
+          8: { x: 25, y: 25, position: 'SP' },
+          9: { x: 50, y: 25, position: 'CF' },
+          10: { x: 75, y: 25, position: 'SP' }
+        }
+        for (let i = 0; i <= 10; i++) {
+          if (!complete[i]) {
+            complete[i] = defaultPositions[i] || { x: 50, y: 50, position: '?' }
+          }
+        }
+        return complete
+      }
+
+      const slotPositions = completeSlotPositions(extractData.slot_positions)
+
+      // 2. Salva layout
+      const layoutRes = await fetch('/api/supabase/save-formation-layout', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          formation: extractData.formation,
+          slot_positions: slotPositions
+        })
+      })
+
+      const layoutData = await layoutRes.json()
+      if (!layoutRes.ok) {
+        throw new Error(layoutData.error || 'Errore salvataggio layout')
+      }
+
+      setShowUploadFormationModal(false)
+      // Ricarica dati
+      window.location.reload()
+    } catch (err) {
+      console.error('[GestioneFormazione] Upload formation error:', err)
+      setError(err.message || 'Errore caricamento formazione')
+    } finally {
+      setUploadingFormation(false)
+    }
+  }
+
+  const handleUploadReserve = async (imageDataUrl) => {
+    setUploadingReserve(true)
+    setError(null)
+
+    try {
+      const { data: session } = await supabase.auth.getSession()
+      if (!session?.session?.access_token) {
+        throw new Error('Sessione scaduta')
+      }
+
+      const token = session.session.access_token
+
+      // 1. Estrai giocatore
+      const extractRes = await fetch('/api/extract-player', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageDataUrl })
+      })
+
+      const extractData = await extractRes.json()
+      if (!extractRes.ok) {
+        throw new Error(extractData.error || 'Errore estrazione dati')
+      }
+
+      if (!extractData.player || !extractData.player.player_name) {
+        throw new Error('Impossibile estrarre dati giocatore')
+      }
+
+      // 2. Salva come riserva (slot_index = null)
+      const saveRes = await fetch('/api/supabase/save-player', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          player: {
+            ...extractData.player,
+            slot_index: null // Riserva
+          }
+        })
+      })
+
+      const saveData = await saveRes.json()
+      if (!saveRes.ok) {
+        throw new Error(saveData.error || 'Errore salvataggio giocatore')
+      }
+
+      setShowUploadReserveModal(false)
+      // Ricarica dati
+      window.location.reload()
+    } catch (err) {
+      console.error('[GestioneFormazione] Upload reserve error:', err)
+      setError(err.message || 'Errore caricamento riserva')
+    } finally {
+      setUploadingReserve(false)
+    }
   }
 
   if (loading) {
