@@ -306,6 +306,10 @@ Authorization: Bearer <token>
 
 ---
 
+**Nota**: L'endpoint `PATCH /api/supabase/swap-formation` è stato rimosso perché mai utilizzato nel codice.
+
+---
+
 ## 📄 Pagine e Flussi
 
 ### `/` - Dashboard

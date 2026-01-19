@@ -31,8 +31,7 @@ app/
 │   └── supabase/                 # Operazioni database
 │       ├── assign-player-to-slot/
 │       ├── save-formation-layout/
-│       ├── save-player/
-│       └── swap-formation/
+│       └── save-player/
 ├── gestione-formazione/          # ⭐ Pagina principale (2D field)
 ├── giocatore/[id]/               # Dettaglio giocatore
 ├── login/                        # Autenticazione

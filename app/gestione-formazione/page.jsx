@@ -17,6 +17,7 @@ export default function GestioneFormazionePage() {
   const [selectedSlot, setSelectedSlot] = React.useState(null) // { slot_index, position }
   const [showAssignModal, setShowAssignModal] = React.useState(false)
   const [assigning, setAssigning] = React.useState(false)
+  const [showFormationSelectorModal, setShowFormationSelectorModal] = React.useState(false)
   const [showUploadFormationModal, setShowUploadFormationModal] = React.useState(false)
   const [showUploadReserveModal, setShowUploadReserveModal] = React.useState(false)
   const [uploadingFormation, setUploadingFormation] = React.useState(false)
@@ -487,51 +488,15 @@ export default function GestioneFormazionePage() {
     )
   }
 
-  // Se non c'è layout, mostra messaggio
-  if (!layout || !layout.slot_positions) {
-    return (
-      <main style={{ padding: '32px 24px', minHeight: '100vh', maxWidth: '1200px', margin: '0 auto' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '32px' }}>
-          <button
-            onClick={() => router.push('/')}
-            className="btn"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
-          >
-            <ArrowLeft size={16} />
-            {t('back')}
-          </button>
-          <h1 className="neon-text" style={{ fontSize: 'clamp(24px, 5vw, 32px)', fontWeight: 700, margin: 0 }}>
-            {t('swapFormation')}
-          </h1>
-        </div>
+  // Se non c'è layout, mostra messaggio con opzioni
+  const noLayoutContent = !layout || !layout.slot_positions
 
-        <div className="card" style={{ padding: '48px 24px', textAlign: 'center' }}>
-          <Info size={48} style={{ marginBottom: '16px', opacity: 0.5, color: 'var(--neon-blue)' }} />
-          <div style={{ fontSize: '20px', marginBottom: '12px', fontWeight: 600 }}>
-            Nessuna formazione caricata
-          </div>
-          <div style={{ fontSize: '14px', opacity: 0.8, marginBottom: '24px' }}>
-            Carica prima uno screenshot della formazione completa per vedere il campo 2D
-          </div>
-          <button
-            onClick={() => setShowUploadFormationModal(true)}
-            className="btn primary"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
-          >
-            <Upload size={16} />
-            {t('loadFormation')}
-          </button>
-        </div>
-      </main>
-    )
-  }
-
-  // Genera array slot 0-10 con posizioni
-  const slots = Array.from({ length: 11 }, (_, i) => ({
+  // Genera array slot 0-10 con posizioni (solo se layout esiste)
+  const slots = layout?.slot_positions ? Array.from({ length: 11 }, (_, i) => ({
     slot_index: i,
     position: layout.slot_positions[i] || { x: 50, y: 50, position: '?' },
     player: titolari.find(p => p.slot_index === i) || null
-  }))
+  })) : []
 
   return (
     <main style={{ padding: '16px', minHeight: '100vh', maxWidth: '1400px', margin: '0 auto' }}>
@@ -554,7 +519,7 @@ export default function GestioneFormazionePage() {
         <h1 className="neon-text" style={{ fontSize: 'clamp(24px, 5vw, 32px)', fontWeight: 700, margin: 0 }}>
           {t('swapFormation')}
         </h1>
-        {layout.formation && (
+        {layout?.formation && (
           <div style={{ 
             fontSize: '18px', 
             fontWeight: 600, 
@@ -566,6 +531,37 @@ export default function GestioneFormazionePage() {
         )}
       </div>
 
+      {/* Se non c'è layout, mostra messaggio */}
+      {noLayoutContent && (
+        <div className="card" style={{ padding: '48px 24px', textAlign: 'center', marginBottom: '24px' }}>
+          <Info size={48} style={{ marginBottom: '16px', opacity: 0.5, color: 'var(--neon-blue)' }} />
+          <div style={{ fontSize: '20px', marginBottom: '12px', fontWeight: 600 }}>
+            Crea la tua formazione
+          </div>
+          <div style={{ fontSize: '14px', opacity: 0.8, marginBottom: '24px' }}>
+            Seleziona una formazione tattica predefinita per iniziare. Poi potrai caricare le carte dei giocatori per ogni slot.
+          </div>
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <button
+              onClick={() => setShowFormationSelectorModal(true)}
+              className="btn primary"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+            >
+              <Settings size={16} />
+              Crea Formazione
+            </button>
+            <button
+              onClick={() => setShowUploadFormationModal(true)}
+              className="btn"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+            >
+              <Upload size={16} />
+              Importa da Screenshot (Avanzato)
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Error */}
       {error && (
         <div className="error" style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -575,6 +571,7 @@ export default function GestioneFormazionePage() {
       )}
 
       {/* Campo 2D */}
+      {!noLayoutContent && (
       <div className="card" style={{ 
         marginBottom: '32px',
         padding: '24px',
@@ -621,6 +618,7 @@ export default function GestioneFormazionePage() {
           />
         ))}
       </div>
+      )}
 
       {/* Riserve */}
       <div style={{ marginBottom: '24px' }}>
@@ -718,11 +716,20 @@ export default function GestioneFormazionePage() {
         />
       )}
 
-      {/* Modal Upload Formazione */}
+      {/* Modal Selezione Formazione Manuale */}
+      {showFormationSelectorModal && (
+        <FormationSelectorModal
+          onSelect={handleSelectManualFormation}
+          onClose={() => setShowFormationSelectorModal(false)}
+          loading={uploadingFormation}
+        />
+      )}
+
+      {/* Modal Upload Formazione (Opzione Avanzata) */}
       {showUploadFormationModal && (
         <UploadModal
-          title={t('loadFormation')}
-          description="Carica uno screenshot della formazione completa (11 giocatori sul campo)"
+          title="Importa Formazione da Screenshot"
+          description="Carica uno screenshot della formazione completa (11 giocatori sul campo). Questa opzione estrae automaticamente formazione e posizioni."
           onUpload={handleUploadFormation}
           onClose={() => setShowUploadFormationModal(false)}
           uploading={uploadingFormation}
