@@ -151,12 +151,12 @@ export default function UploadPage() {
       let errors = []
 
       if (uploadType === 'formation') {
-        // ESTRAZIONE FORMAZIONE (1 foto, 11 giocatori)
+        // ESTRAZIONE FORMAZIONE (solo layout, non giocatori)
         const img = images[0]
         setProcessing(t('extractingFormation'))
 
         try {
-          // 1. Estrai formazione (11 giocatori)
+          // 1. Estrai formazione (layout + opzionalmente giocatori per preview)
           const extractRes = await fetch('/api/extract-formation', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -168,54 +168,43 @@ export default function UploadPage() {
             throw new Error(extractData.error || 'Errore estrazione formazione')
           }
 
-            if (!extractData.players || !Array.isArray(extractData.players) || extractData.players.length === 0) {
+          if (!extractData.formation || !extractData.slot_positions) {
             throw new Error(t('formationExtractionFailed'))
           }
 
-          const players = extractData.players
-          setProcessing(t('savingTitolari').replace('{count}', players.length))
+          // Valida che ci siano 11 slot
+          const slotKeys = Object.keys(extractData.slot_positions || {}).map(Number).filter(n => n >= 0 && n <= 10)
+          if (slotKeys.length !== 11) {
+            throw new Error('Formazione incompleta: devono esserci 11 slot (0-10)')
+          }
 
-          // 2. Salva ogni giocatore con slot_index
-          for (let i = 0; i < players.length; i++) {
-            const player = players[i]
-            
-            // Normalizza slot_index (0-10)
-            const slotIndex = player.slot_index !== undefined ? Math.max(0, Math.min(10, Number(player.slot_index))) : i
+          setProcessing(t('savingFormation'))
 
-            const saveRes = await fetch('/api/supabase/save-player', {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({ 
-                player: {
-                  ...player,
-                  slot_index: slotIndex
-                }
-              })
+          // 2. Salva layout formazione (cancella vecchi titolari e salva nuovo layout)
+          const layoutRes = await fetch('/api/supabase/save-formation-layout', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              formation: extractData.formation,
+              slot_positions: extractData.slot_positions
             })
+          })
 
-            const saveData = await saveRes.json()
-            if (!saveRes.ok) {
-              errors.push(`${player.player_name || `${t('player')} ${i + 1}`}: ${saveData.error || t('saveError')}`)
-            } else {
-              savedCount++
-            }
+          const layoutData = await layoutRes.json()
+          if (!layoutRes.ok) {
+            throw new Error(layoutData.error || 'Errore salvataggio layout')
           }
 
-          if (savedCount > 0) {
-            setSuccess(`${t('formationSaved')} - ${savedCount} ${t('playersExtracted')}`)
-            if (errors.length > 0) {
-              setError(`Attenzione: ${errors.join('; ')}`)
-            } else {
-              setImages([])
-              setTimeout(() => router.push('/lista-giocatori'), 2000)
-            }
-          } else {
-            setError(`Errore: ${errors.join('; ') || 'Nessun giocatore salvato'}`)
-          }
-          } catch (formErr) {
+          setSuccess(t('formationLayoutSaved'))
+          setImages([])
+          
+          // Redirect a gestione-formazione per assegnare giocatori
+          setTimeout(() => router.push('/gestione-formazione'), 1500)
+
+        } catch (formErr) {
           console.error('[Upload] Formation error:', formErr)
           setError(formErr?.message || t('formationExtractionError'))
         }

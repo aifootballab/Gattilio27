@@ -4,58 +4,67 @@ import React from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { useTranslation } from '@/lib/i18n'
-import { ArrowLeft, SwapHorizontal, AlertCircle, CheckCircle2, RefreshCw, Info, HelpCircle } from 'lucide-react'
+import { ArrowLeft, Upload, AlertCircle, CheckCircle2, RefreshCw, Info, X, Plus, User } from 'lucide-react'
 
 export default function GestioneFormazionePage() {
-  const { t, lang, changeLanguage } = useTranslation()
+  const { t } = useTranslation()
   const router = useRouter()
-  const [titolari, setTitolari] = React.useState([])
-  const [riserve, setRiserve] = React.useState([])
+  const [layout, setLayout] = React.useState(null) // { formation, slot_positions }
+  const [titolari, setTitolari] = React.useState([]) // Giocatori con slot_index 0-10
+  const [riserve, setRiserve] = React.useState([]) // Giocatori con slot_index NULL
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState(null)
-  const [success, setSuccess] = React.useState(null)
-  const [selectedPlayer, setSelectedPlayer] = React.useState(null) // ID giocatore selezionato per swap
-  const [swapping, setSwapping] = React.useState(false)
+  const [selectedSlot, setSelectedSlot] = React.useState(null) // { slot_index, position }
+  const [showAssignModal, setShowAssignModal] = React.useState(false)
+  const [assigning, setAssigning] = React.useState(false)
 
-  // Verifica sessione e carica giocatori
+  // Carica layout e giocatori
   React.useEffect(() => {
     if (!supabase) {
       router.push('/login')
       return
     }
 
-    const fetchPlayers = async () => {
+    const fetchData = async () => {
       setLoading(true)
       setError(null)
 
       try {
-        // Verifica sessione
         const { data: session, error: sessionError } = await supabase.auth.getSession()
         
-        if (sessionError) {
-          console.warn('[GestioneFormazione] Session error, redirecting to login:', sessionError.message)
+        if (sessionError || !session?.session) {
           setError('Sessione scaduta. Reindirizzamento al login...')
           setTimeout(() => router.push('/login'), 1000)
           return
         }
 
-        if (!session?.session) {
-          setError('Sessione non valida. Reindirizzamento al login...')
-          setTimeout(() => router.push('/login'), 1000)
-          return
+        // 1. Carica layout formazione
+        const { data: layoutData, error: layoutError } = await supabase
+          .from('formation_layout')
+          .select('formation, slot_positions')
+          .maybeSingle()
+
+        if (layoutError && layoutError.code !== 'PGRST116') { // PGRST116 = no rows
+          throw new Error(layoutError.message || 'Errore caricamento layout')
         }
 
-        // Query diretta a Supabase - RLS filtra automaticamente per auth.uid()
-        const { data: players, error: queryError } = await supabase
+        if (layoutData) {
+          setLayout({
+            formation: layoutData.formation,
+            slot_positions: layoutData.slot_positions || {}
+          })
+        }
+
+        // 2. Carica giocatori
+        const { data: players, error: playersError } = await supabase
           .from('players')
           .select('*')
           .order('created_at', { ascending: false })
 
-        if (queryError) {
-          throw new Error(queryError.message || 'Errore caricamento giocatori')
+        if (playersError) {
+          throw new Error(playersError.message || 'Errore caricamento giocatori')
         }
 
-        // Normalizza e separa titolari/riserve
         const playersArray = (players || [])
           .filter(p => p && p.id && p.player_name)
           .map(p => ({
@@ -79,15 +88,14 @@ export default function GestioneFormazionePage() {
         setRiserve(riserveArray)
       } catch (err) {
         console.error('[GestioneFormazione] Error:', err)
-        setError(err.message || 'Errore caricamento giocatori')
+        setError(err.message || 'Errore caricamento dati')
       } finally {
         setLoading(false)
       }
     }
 
-    fetchPlayers()
+    fetchData()
 
-    // Listener per cambiamenti auth
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (event === 'SIGNED_OUT' || (event === 'TOKEN_REFRESHED' && !session)) {
@@ -101,94 +109,113 @@ export default function GestioneFormazionePage() {
     }
   }, [router])
 
-  const handleSwap = async (playerId1, playerId2) => {
-    if (!supabase) {
-      setError('Supabase non disponibile')
-      return
-    }
+  const handleSlotClick = (slotIndex) => {
+    const slotPos = layout?.slot_positions?.[slotIndex]
+    if (!slotPos) return
 
-    setSwapping(true)
+    setSelectedSlot({ slot_index: slotIndex, ...slotPos })
+    setShowAssignModal(true)
+  }
+
+  const handleAssignFromReserve = async (playerId) => {
+    if (!selectedSlot || !supabase) return
+
+    setAssigning(true)
     setError(null)
-    setSuccess(null)
-    setSelectedPlayer(null)
 
     try {
-      // Ottieni token
-      const { data: session, error: sessionError } = await supabase.auth.getSession()
-      
-      if (sessionError || !session?.session?.access_token) {
-        setError('Sessione scaduta. Reindirizzamento al login...')
-        setTimeout(() => router.push('/login'), 1000)
-        return
+      const { data: session } = await supabase.auth.getSession()
+      if (!session?.session?.access_token) {
+        throw new Error('Sessione scaduta')
       }
 
-      const token = session.session.access_token
-
-      // Chiama API swap
-      const res = await fetch('/api/supabase/swap-formation', {
+      const res = await fetch('/api/supabase/assign-player-to-slot', {
         method: 'PATCH',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${session.session.access_token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ playerId1, playerId2 })
+        body: JSON.stringify({
+          slot_index: selectedSlot.slot_index,
+          player_id: playerId
+        })
       })
 
       const data = await res.json()
       if (!res.ok) {
-        throw new Error(data.error || t('swapFormationError'))
+        throw new Error(data.error || 'Errore assegnazione')
       }
 
-      setSuccess('Formazione aggiornata con successo!')
-
-      // Ricarica giocatori
-      setTimeout(() => {
-        window.location.reload()
-      }, 1000)
+      // Ricarica dati
+      window.location.reload()
     } catch (err) {
-      console.error('[GestioneFormazione] Swap error:', err)
-      setError(err.message || t('swapFormationError'))
+      console.error('[GestioneFormazione] Assign error:', err)
+      setError(err.message || 'Errore assegnazione giocatore')
     } finally {
-      setSwapping(false)
+      setAssigning(false)
+      setShowAssignModal(false)
+      setSelectedSlot(null)
     }
   }
 
-  const handlePlayerClick = (playerId, isTitolare) => {
-    if (swapping) return
+  const handleRemoveFromSlot = async (playerId) => {
+    if (!supabase) return
 
-    if (selectedPlayer === null) {
-      // Seleziona primo giocatore
-      setSelectedPlayer({ id: playerId, isTitolare })
-      setError(null)
-      setSuccess(null)
-    } else {
-      // Swap con secondo giocatore
-      if (selectedPlayer.id === playerId) {
-        // Click stesso giocatore → deseleziona
-        setSelectedPlayer(null)
-      } else {
-        // Swap
-        handleSwap(selectedPlayer.id, playerId)
+    setAssigning(true)
+    setError(null)
+
+    try {
+      const { data: session } = await supabase.auth.getSession()
+      if (!session?.session?.access_token) {
+        throw new Error('Sessione scaduta')
       }
+
+      // Rimuovi da slot (torna riserva)
+      const { error: updateError } = await supabase
+        .from('players')
+        .update({ 
+          slot_index: null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', playerId)
+
+      if (updateError) {
+        throw new Error(updateError.message || 'Errore rimozione')
+      }
+
+      // Ricarica dati
+      window.location.reload()
+    } catch (err) {
+      console.error('[GestioneFormazione] Remove error:', err)
+      setError(err.message || 'Errore rimozione giocatore')
+    } finally {
+      setAssigning(false)
     }
   }
 
-  return (
-    <main style={{ padding: '16px', minHeight: '100vh', maxWidth: '1200px', margin: '0 auto' }}>
-      {/* Header */}
-      <div style={{ 
-        display: 'flex', 
-        flexWrap: 'wrap',
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
-        marginBottom: '24px',
-        gap: '12px'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+  const handleUploadPhoto = () => {
+    // Redirect a upload con slot pre-selezionato
+    router.push(`/upload?slot=${selectedSlot?.slot_index}`)
+  }
+
+  if (loading) {
+    return (
+      <main style={{ padding: '32px 24px', minHeight: '100vh', textAlign: 'center' }}>
+        <RefreshCw size={32} style={{ animation: 'spin 1s linear infinite', marginBottom: '16px', color: 'var(--neon-blue)' }} />
+        <div>{t('loading')}</div>
+      </main>
+    )
+  }
+
+  // Se non c'è layout, mostra messaggio
+  if (!layout || !layout.slot_positions) {
+    return (
+      <main style={{ padding: '32px 24px', minHeight: '100vh', maxWidth: '1200px', margin: '0 auto' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '32px' }}>
           <button
             onClick={() => router.push('/lista-giocatori')}
             className="btn"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 12px' }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
           >
             <ArrowLeft size={16} />
             {t('back')}
@@ -197,39 +224,67 @@ export default function GestioneFormazionePage() {
             {t('swapFormation')}
           </h1>
         </div>
-        {selectedPlayer && (
+
+        <div className="card" style={{ padding: '48px 24px', textAlign: 'center' }}>
+          <Info size={48} style={{ marginBottom: '16px', opacity: 0.5, color: 'var(--neon-blue)' }} />
+          <div style={{ fontSize: '20px', marginBottom: '12px', fontWeight: 600 }}>
+            Nessuna formazione caricata
+          </div>
+          <div style={{ fontSize: '14px', opacity: 0.8, marginBottom: '24px' }}>
+            Carica prima uno screenshot della formazione completa per vedere il campo 2D
+          </div>
+          <button
+            onClick={() => router.push('/upload')}
+            className="btn primary"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+          >
+            <Upload size={16} />
+            Carica Formazione
+          </button>
+        </div>
+      </main>
+    )
+  }
+
+  // Genera array slot 0-10 con posizioni
+  const slots = Array.from({ length: 11 }, (_, i) => ({
+    slot_index: i,
+    position: layout.slot_positions[i] || { x: 50, y: 50, position: '?' },
+    player: titolari.find(p => p.slot_index === i) || null
+  }))
+
+  return (
+    <main style={{ padding: '16px', minHeight: '100vh', maxWidth: '1400px', margin: '0 auto' }}>
+      {/* Header */}
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: '16px',
+        marginBottom: '24px',
+        flexWrap: 'wrap'
+      }}>
+        <button
+          onClick={() => router.push('/lista-giocatori')}
+          className="btn"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+        >
+          <ArrowLeft size={16} />
+          {t('back')}
+        </button>
+        <h1 className="neon-text" style={{ fontSize: 'clamp(24px, 5vw, 32px)', fontWeight: 700, margin: 0 }}>
+          {t('swapFormation')}
+        </h1>
+        {layout.formation && (
           <div style={{ 
-            fontSize: '14px', 
-            padding: '8px 12px',
-            background: 'rgba(0, 212, 255, 0.1)',
-            border: '1px solid rgba(0, 212, 255, 0.3)',
-            borderRadius: '8px',
-            color: 'var(--neon-blue)'
+            fontSize: '18px', 
+            fontWeight: 600, 
+            color: 'var(--neon-blue)',
+            marginLeft: 'auto'
           }}>
-            {t('selectedPlayer')} • {t('clickAnotherPlayer')}
+            {layout.formation}
           </div>
         )}
       </div>
-
-      {/* Guide Box */}
-      {!loading && !error && (
-        <div className="card" style={{ marginBottom: '24px', padding: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-            <Info size={18} color="var(--neon-blue)" />
-            <strong style={{ fontSize: '14px', color: 'var(--neon-blue)' }}>
-              {t('guideSwapTitle')}
-            </strong>
-          </div>
-          <div style={{ fontSize: '13px', lineHeight: '1.6', opacity: 0.9 }}>
-            <div style={{ marginBottom: '6px' }}>{t('guideSwapStep1')}</div>
-            <div style={{ marginBottom: '6px' }}>{t('guideSwapStep2')}</div>
-            <div style={{ marginBottom: '8px' }}>{t('guideSwapStep3')}</div>
-            <div style={{ fontSize: '12px', opacity: 0.8, fontStyle: 'italic', marginTop: '8px', paddingTop: '8px', borderTop: '1px solid rgba(0, 212, 255, 0.2)' }}>
-              {t('guideSwapNote')}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Error */}
       {error && (
@@ -239,111 +294,101 @@ export default function GestioneFormazionePage() {
         </div>
       )}
 
-      {/* Success */}
-      {success && (
+      {/* Campo 2D */}
+      <div className="card" style={{ 
+        marginBottom: '32px',
+        padding: '24px',
+        position: 'relative',
+        minHeight: '500px',
+        background: 'linear-gradient(180deg, rgba(34, 139, 34, 0.1) 0%, rgba(0, 100, 0, 0.2) 100%)',
+        borderRadius: '12px',
+        border: '2px solid rgba(0, 212, 255, 0.2)'
+      }}>
+        {/* Linee campo (opzionale, decorativo) */}
         <div style={{
-          marginBottom: '24px',
-          padding: '12px',
-          background: 'rgba(34, 197, 94, 0.1)',
-          border: '1px solid rgba(34, 197, 94, 0.3)',
-          borderRadius: '8px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          color: '#22c55e'
-        }}>
-          <CheckCircle2 size={18} />
-          {success}
+          position: 'absolute',
+          top: '50%',
+          left: 0,
+          right: 0,
+          height: '2px',
+          background: 'rgba(255, 255, 255, 0.1)',
+          transform: 'translateY(-50%)'
+        }} />
+        <div style={{
+          position: 'absolute',
+          top: '25%',
+          left: 0,
+          right: 0,
+          height: '1px',
+          background: 'rgba(255, 255, 255, 0.05)'
+        }} />
+        <div style={{
+          position: 'absolute',
+          top: '75%',
+          left: 0,
+          right: 0,
+          height: '1px',
+          background: 'rgba(255, 255, 255, 0.05)'
+        }} />
+
+        {/* Card giocatori posizionate */}
+        {slots.map((slot) => (
+          <SlotCard
+            key={slot.slot_index}
+            slot={slot}
+            onClick={() => handleSlotClick(slot.slot_index)}
+            onRemove={slot.player ? () => handleRemoveFromSlot(slot.player.id) : null}
+          />
+        ))}
+      </div>
+
+      {/* Riserve */}
+      {riserve.length > 0 && (
+        <div style={{ marginBottom: '24px' }}>
+          <h2 style={{ 
+            fontSize: '20px', 
+            fontWeight: 700, 
+            marginBottom: '16px',
+            color: 'var(--neon-purple)'
+          }}>
+            {t('riserve')} ({riserve.length})
+          </h2>
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+            gap: '12px'
+          }}>
+            {riserve.map((player) => (
+              <ReserveCard 
+                key={player.id}
+                player={player}
+                onClick={() => {
+                  if (selectedSlot && showAssignModal) {
+                    handleAssignFromReserve(player.id)
+                  }
+                }}
+                disabled={!showAssignModal}
+              />
+            ))}
+          </div>
         </div>
       )}
 
-      {/* Loading */}
-      {loading && (
-        <div style={{ textAlign: 'center', padding: '40px', color: 'var(--neon-blue)' }}>
-          <RefreshCw size={24} style={{ animation: 'spin 0.6s linear infinite', marginBottom: '12px' }} />
-          <div>{t('loading')}</div>
-        </div>
-      )}
-
-      {/* Formazione */}
-      {!loading && !error && (
-        <div>
-          {/* Titolari Section */}
-          <div style={{ marginBottom: '32px' }}>
-            <h2 style={{ 
-              fontSize: '20px', 
-              fontWeight: 700, 
-              marginBottom: '16px',
-              color: 'var(--neon-blue)'
-            }}>
-              {t('titolari')} ({titolari.length}/11)
-            </h2>
-            
-            {titolari.length === 0 ? (
-              <div className="card" style={{ padding: '24px', textAlign: 'center', opacity: 0.7 }}>
-                <div>{t('noStarters')}</div>
-                <div style={{ fontSize: '14px', marginTop: '8px', opacity: 0.7 }}>
-                  {t('uploadFormationFirst')}
-                </div>
-              </div>
-            ) : (
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
-                gap: '12px'
-              }}>
-                {titolari.map((player) => (
-                  <PlayerCard 
-                    key={player.id} 
-                    player={player} 
-                    isTitolare={true}
-                    isSelected={selectedPlayer?.id === player.id}
-                    onClick={() => handlePlayerClick(player.id, true)}
-                    disabled={swapping}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Riserve Section */}
-          <div>
-            <h2 style={{ 
-              fontSize: '20px', 
-              fontWeight: 700, 
-              marginBottom: '16px',
-              color: 'var(--neon-purple)'
-            }}>
-              {t('riserve')} ({riserve.length})
-            </h2>
-            
-            {riserve.length === 0 ? (
-              <div className="card" style={{ padding: '24px', textAlign: 'center', opacity: 0.7 }}>
-                <div style={{ fontSize: '16px', marginBottom: '8px' }}>{t('noReserves')}</div>
-                <div style={{ fontSize: '14px', marginTop: '8px', opacity: 0.8 }}>
-                  {t('guideEmptyReserves')}
-                </div>
-              </div>
-            ) : (
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
-                gap: '12px'
-              }}>
-                {riserve.map((player) => (
-                  <PlayerCard 
-                    key={player.id} 
-                    player={player} 
-                    isTitolare={false}
-                    isSelected={selectedPlayer?.id === player.id}
-                    onClick={() => handlePlayerClick(player.id, false)}
-                    disabled={swapping}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+      {/* Modal Assegnazione */}
+      {showAssignModal && selectedSlot && (
+        <AssignModal
+          slot={selectedSlot}
+          currentPlayer={slots.find(s => s.slot_index === selectedSlot.slot_index)?.player}
+          riserve={riserve}
+          onAssignFromReserve={handleAssignFromReserve}
+          onUploadPhoto={handleUploadPhoto}
+          onRemove={currentPlayer => handleRemoveFromSlot(currentPlayer.id)}
+          onClose={() => {
+            setShowAssignModal(false)
+            setSelectedSlot(null)
+          }}
+          assigning={assigning}
+        />
       )}
 
       <style jsx>{`
@@ -355,103 +400,289 @@ export default function GestioneFormazionePage() {
   )
 }
 
-// Player Card Component (mobile-friendly)
-function PlayerCard({ player, isTitolare, isSelected, onClick, disabled }) {
+// Slot Card Component (posizionata sul campo)
+function SlotCard({ slot, onClick, onRemove }) {
   const { t } = useTranslation()
-  const router = useRouter()
-  
-  const handleDoubleClick = (e) => {
-    e.stopPropagation()
-    if (player?.id && !disabled) {
-      router.push(`/giocatore/${player.id}`)
-    }
-  }
+  const { slot_index, position, player } = slot
+  const isEmpty = !player
 
   return (
-    <div 
-      className="card"
+    <div
       onClick={onClick}
-      onDoubleClick={handleDoubleClick}
-      title="Doppio click per aprire dettaglio"
       style={{
-        padding: '12px',
-        border: `2px solid ${
-          isSelected 
-            ? 'var(--neon-blue)' 
-            : (isTitolare ? 'rgba(0, 212, 255, 0.3)' : 'rgba(168, 85, 247, 0.3)')
-        }`,
+        position: 'absolute',
+        left: `${position.x}%`,
+        top: `${position.y}%`,
+        transform: 'translate(-50%, -50%)',
+        width: 'clamp(80px, 8vw, 120px)',
+        minHeight: '100px',
+        padding: '8px',
+        background: isEmpty 
+          ? 'rgba(0, 0, 0, 0.4)' 
+          : 'rgba(0, 212, 255, 0.15)',
+        border: `2px solid ${isEmpty ? 'rgba(255, 255, 255, 0.2)' : 'var(--neon-blue)'}`,
         borderRadius: '8px',
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        opacity: disabled ? 0.6 : 1,
+        cursor: 'pointer',
         transition: 'all 0.3s ease',
-        background: isSelected ? 'rgba(0, 212, 255, 0.15)' : 'rgba(10, 14, 39, 0.6)',
-        transform: isSelected ? 'scale(1.05)' : 'scale(1)',
-        boxShadow: isSelected ? 'var(--glow-blue)' : 'none'
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        textAlign: 'center'
       }}
       onMouseEnter={(e) => {
-        if (!disabled && !isSelected) {
-          e.currentTarget.style.transform = 'scale(1.02)'
-          e.currentTarget.style.boxShadow = isTitolare ? 'var(--glow-blue)' : 'var(--glow-purple)'
+        e.currentTarget.style.transform = 'translate(-50%, -50%) scale(1.1)'
+        e.currentTarget.style.boxShadow = 'var(--glow-blue)'
+        e.currentTarget.style.zIndex = '10'
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = 'translate(-50%, -50%) scale(1)'
+        e.currentTarget.style.boxShadow = 'none'
+        e.currentTarget.style.zIndex = '1'
+      }}
+    >
+      {isEmpty ? (
+        <>
+          <div style={{ fontSize: '12px', opacity: 0.7, marginBottom: '4px' }}>
+            Slot {slot_index}
+          </div>
+          <div style={{ fontSize: '10px', opacity: 0.6, marginBottom: '8px' }}>
+            {position.position || '?'}
+          </div>
+          <Plus size={24} style={{ color: 'var(--neon-blue)', opacity: 0.6 }} />
+          <div style={{ fontSize: '11px', marginTop: '4px', opacity: 0.8 }}>
+            Clicca per assegnare
+          </div>
+        </>
+      ) : (
+        <>
+          <div style={{ fontSize: '11px', opacity: 0.7, marginBottom: '4px' }}>
+            Slot {slot_index}
+          </div>
+          <div style={{ 
+            fontSize: '13px', 
+            fontWeight: 700, 
+            marginBottom: '4px',
+            color: 'var(--neon-blue)',
+            lineHeight: '1.2',
+            wordBreak: 'break-word'
+          }}>
+            {player.player_name}
+          </div>
+          {player.overall_rating && (
+            <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--neon-blue)' }}>
+              {player.overall_rating}
+            </div>
+          )}
+          {onRemove && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                onRemove()
+              }}
+              style={{
+                marginTop: '4px',
+                padding: '2px 6px',
+                background: 'rgba(239, 68, 68, 0.2)',
+                border: '1px solid rgba(239, 68, 68, 0.4)',
+                borderRadius: '4px',
+                color: '#ef4444',
+                fontSize: '10px',
+                cursor: 'pointer'
+              }}
+            >
+              Rimuovi
+            </button>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
+// Reserve Card Component
+function ReserveCard({ player, onClick, disabled }) {
+  return (
+    <div
+      onClick={disabled ? undefined : onClick}
+      style={{
+        padding: '12px',
+        background: 'rgba(168, 85, 247, 0.1)',
+        border: `1px solid ${disabled ? 'rgba(168, 85, 247, 0.2)' : 'rgba(168, 85, 247, 0.4)'}`,
+        borderRadius: '8px',
+        cursor: disabled ? 'default' : 'pointer',
+        opacity: disabled ? 0.5 : 1,
+        transition: 'all 0.3s ease'
+      }}
+      onMouseEnter={(e) => {
+        if (!disabled) {
+          e.currentTarget.style.transform = 'translateY(-2px)'
+          e.currentTarget.style.boxShadow = 'var(--glow-purple)'
         }
       }}
       onMouseLeave={(e) => {
-        if (!isSelected) {
-          e.currentTarget.style.transform = 'scale(1)'
+        if (!disabled) {
+          e.currentTarget.style.transform = 'translateY(0)'
           e.currentTarget.style.boxShadow = 'none'
         }
       }}
     >
-      {/* Player Name */}
-      <div style={{ 
-        fontSize: '14px', 
-        fontWeight: 700, 
-        marginBottom: '6px',
-        color: isTitolare ? 'var(--neon-blue)' : 'var(--neon-purple)',
-        lineHeight: '1.2',
-        wordBreak: 'break-word'
-      }}>
+      <div style={{ fontSize: '14px', fontWeight: 700, marginBottom: '4px', color: 'var(--neon-purple)' }}>
         {player.player_name}
       </div>
+      {player.overall_rating && (
+        <div style={{ fontSize: '12px', opacity: 0.8 }}>
+          {player.overall_rating}
+        </div>
+      )}
+    </div>
+  )
+}
 
-      {/* Basic Info */}
-      <div style={{ fontSize: '12px', marginBottom: '4px', opacity: 0.8 }}>
-        {player.position && <span>{player.position}</span>}
-        {player.position && player.overall_rating && <span> • </span>}
-        {player.overall_rating && (
-          <span style={{ fontWeight: 600 }}>{player.overall_rating}</span>
+// Assign Modal Component
+function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUploadPhoto, onRemove, onClose, assigning }) {
+  const { t } = useTranslation()
+  const router = useRouter()
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: 'rgba(0, 0, 0, 0.8)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1000,
+      padding: '24px'
+    }}
+    onClick={onClose}
+    >
+      <div 
+        className="card"
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          maxWidth: '500px',
+          width: '100%',
+          padding: '24px',
+          background: 'rgba(10, 14, 39, 0.95)',
+          border: '2px solid var(--neon-blue)'
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <h2 style={{ fontSize: '20px', fontWeight: 700, margin: 0 }}>
+            {currentPlayer ? 'Modifica Slot' : 'Assegna Giocatore'}
+          </h2>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'rgba(255, 255, 255, 0.7)',
+              cursor: 'pointer',
+              padding: '4px'
+            }}
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <div style={{ marginBottom: '20px', padding: '12px', background: 'rgba(0, 212, 255, 0.1)', borderRadius: '8px' }}>
+          <div style={{ fontSize: '14px', marginBottom: '4px' }}>
+            <strong>Slot {slot.slot_index}</strong> • {slot.position || '?'}
+          </div>
+          {currentPlayer && (
+            <div style={{ fontSize: '13px', opacity: 0.8 }}>
+              Giocatore attuale: <strong>{currentPlayer.player_name}</strong>
+            </div>
+          )}
+        </div>
+
+        {currentPlayer ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <button
+              onClick={() => router.push(`/giocatore/${currentPlayer.id}`)}
+              className="btn"
+              style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}
+            >
+              <User size={16} />
+              Completa Profilo
+            </button>
+            <button
+              onClick={onUploadPhoto}
+              className="btn"
+              style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}
+            >
+              <Upload size={16} />
+              Cambia Giocatore (Carica Foto)
+            </button>
+            {onRemove && (
+              <button
+                onClick={onRemove}
+                className="btn"
+                style={{ 
+                  width: '100%', 
+                  background: 'rgba(239, 68, 68, 0.2)',
+                  borderColor: '#ef4444',
+                  color: '#ef4444',
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '8px', 
+                  justifyContent: 'center' 
+                }}
+              >
+                <X size={16} />
+                Rimuovi da Slot
+              </button>
+            )}
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <button
+              onClick={onUploadPhoto}
+              className="btn primary"
+              style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}
+            >
+              <Upload size={16} />
+              {t('uploadPlayerPhoto')}
+            </button>
+
+            {riserve.length > 0 && (
+              <>
+                <div style={{ fontSize: '14px', fontWeight: 600, marginTop: '12px', marginBottom: '8px' }}>
+                  {t('orSelectFromReserves')}:
+                </div>
+                <div style={{ maxHeight: '200px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {riserve.map((player) => (
+                    <button
+                      key={player.id}
+                      onClick={() => onAssignFromReserve(player.id)}
+                      disabled={assigning}
+                      className="btn"
+                      style={{
+                        width: '100%',
+                        textAlign: 'left',
+                        padding: '12px',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        opacity: assigning ? 0.6 : 1
+                      }}
+                    >
+                      <span>{player.player_name}</span>
+                      {player.overall_rating && (
+                        <span style={{ fontSize: '12px', opacity: 0.8 }}>{player.overall_rating}</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         )}
       </div>
-
-      {/* Slot Index Badge (solo per titolari) */}
-      {isTitolare && player.slot_index !== null && (
-        <div style={{
-          display: 'inline-block',
-          fontSize: '10px',
-          padding: '2px 6px',
-          background: 'rgba(0, 212, 255, 0.2)',
-          border: '1px solid rgba(0, 212, 255, 0.4)',
-          borderRadius: '4px',
-          marginTop: '4px',
-          opacity: 0.8
-        }}>
-          {t('slot')} {player.slot_index}
-        </div>
-      )}
-
-      {/* Selected Indicator */}
-      {isSelected && (
-        <div style={{
-          marginTop: '8px',
-          fontSize: '11px',
-          color: 'var(--neon-blue)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '4px'
-        }}>
-          <SwapHorizontal size={12} />
-          Selezionato
-        </div>
-      )}
     </div>
   )
 }

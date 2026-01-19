@@ -18,6 +18,7 @@ export default function PlayerDetailPage() {
   const [uploading, setUploading] = React.useState(false)
   const [uploadType, setUploadType] = React.useState(null) // 'stats', 'skills', 'booster'
   const [images, setImages] = React.useState([])
+  const [confirmModal, setConfirmModal] = React.useState(null) // { show, extractedData, nameMismatch, teamMismatch, positionMismatch, onConfirm, onCancel }
 
   // Carica dati giocatore
   React.useEffect(() => {
@@ -125,7 +126,55 @@ export default function PlayerDetailPage() {
         throw new Error('Impossibile estrarre dati dall\'immagine')
       }
 
-      // 2. Aggiorna giocatore con dati aggiuntivi
+      // 2. VALIDAZIONE: Confronta nome + squadra + ruolo (o età)
+      const normalize = (value) => {
+        if (!value) return ''
+        return String(value).toLowerCase().trim().replace(/\s+/g, ' ')
+      }
+
+      const extractedName = normalize(extractData.player.player_name)
+      const currentName = normalize(player.player_name)
+      const nameMismatch = extractedName !== currentName
+
+      const extractedTeam = normalize(extractData.player.team)
+      const currentTeam = normalize(player.team)
+      const teamMismatch = extractedTeam !== currentTeam && extractedTeam !== '' && currentTeam !== ''
+
+      const extractedPosition = normalize(extractData.player.position)
+      const currentPosition = normalize(player.position)
+      const positionMismatch = extractedPosition !== currentPosition && extractedPosition !== '' && currentPosition !== ''
+
+      // Fallback: confronta età se ruolo non disponibile
+      const extractedAge = extractData.player.age ? Number(extractData.player.age) : null
+      const currentAge = player.age ? Number(player.age) : null
+      const ageMismatch = extractedAge !== null && currentAge !== null && extractedAge !== currentAge
+
+      const hasMismatch = nameMismatch || teamMismatch || positionMismatch || ageMismatch
+
+      // 3. Mostra modal conferma SEMPRE
+      setConfirmModal({
+        show: true,
+        extractedData: extractData.player,
+        nameMismatch,
+        teamMismatch,
+        positionMismatch,
+        ageMismatch,
+        hasMismatch,
+        uploadType,
+        onConfirm: async () => {
+          await performUpdate(extractData.player, uploadType)
+          setConfirmModal(null)
+        },
+        onCancel: () => {
+          setImages([])
+          setUploadType(null)
+          setConfirmModal(null)
+        }
+      })
+      setUploading(false)
+      return
+
+      // 4. Aggiorna giocatore con dati aggiuntivi (eseguito solo dopo conferma)
       const updateData = {}
       const photoSlots = player.photo_slots || {}
 
@@ -435,11 +484,181 @@ export default function PlayerDetailPage() {
         </div>
       )}
 
+      {/* Modal Conferma Aggiornamento */}
+      {confirmModal && confirmModal.show && (
+        <ConfirmUpdateModal
+          currentPlayer={player}
+          extractedData={confirmModal.extractedData}
+          nameMismatch={confirmModal.nameMismatch}
+          teamMismatch={confirmModal.teamMismatch}
+          positionMismatch={confirmModal.positionMismatch}
+          ageMismatch={confirmModal.ageMismatch}
+          hasMismatch={confirmModal.hasMismatch}
+          uploadType={confirmModal.uploadType}
+          onConfirm={confirmModal.onConfirm}
+          onCancel={confirmModal.onCancel}
+        />
+      )}
+
       <style jsx>{`
         @keyframes spin {
           to { transform: rotate(360deg); }
         }
       `}</style>
     </main>
+  )
+}
+
+// Componente Modal Conferma
+function ConfirmUpdateModal({ 
+  currentPlayer, 
+  extractedData, 
+  nameMismatch, 
+  teamMismatch, 
+  positionMismatch,
+  ageMismatch,
+  hasMismatch,
+  uploadType,
+  onConfirm, 
+  onCancel 
+}) {
+  const { t } = useTranslation()
+  const uploadTypeLabels = {
+    stats: t('stats') || 'Statistiche',
+    skills: t('skills') || 'Abilità',
+    booster: t('boosters') || 'Booster'
+  }
+
+  return (
+    <div 
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'rgba(0, 0, 0, 0.8)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1000,
+        padding: '24px'
+      }}
+      onClick={onCancel}
+    >
+      <div 
+        className="card"
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          maxWidth: '500px',
+          width: '100%',
+          padding: '24px',
+          background: 'rgba(10, 14, 39, 0.95)',
+          border: `2px solid ${hasMismatch ? '#ef4444' : 'var(--neon-blue)'}`
+        }}
+      >
+        <h2 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '20px', marginTop: 0 }}>
+          {t('confirmUpdate')} {uploadTypeLabels[uploadType] || ''}
+        </h2>
+
+        {/* Confronto Dati */}
+        <div style={{ marginBottom: '20px' }}>
+          <div style={{ 
+            padding: '12px', 
+            background: 'rgba(0, 212, 255, 0.1)', 
+            borderRadius: '8px',
+            marginBottom: '12px'
+          }}>
+            <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '8px' }}>{t('currentPlayer')}:</div>
+            <div style={{ fontSize: '13px', opacity: 0.9 }}>
+              <div><strong>Nome:</strong> {currentPlayer.player_name || 'N/A'}</div>
+              {currentPlayer.team && <div><strong>Squadra:</strong> {currentPlayer.team}</div>}
+              {currentPlayer.position && <div><strong>Ruolo:</strong> {currentPlayer.position}</div>}
+              {currentPlayer.age && <div><strong>Età:</strong> {currentPlayer.age}</div>}
+            </div>
+          </div>
+
+          <div style={{ 
+            padding: '12px', 
+            background: hasMismatch ? 'rgba(239, 68, 68, 0.1)' : 'rgba(34, 197, 94, 0.1)', 
+            borderRadius: '8px',
+            border: `1px solid ${hasMismatch ? '#ef4444' : '#22c55e'}`
+          }}>
+            <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '8px' }}>{t('extractedData')}:</div>
+            <div style={{ fontSize: '13px', opacity: 0.9 }}>
+              <div style={{ color: nameMismatch ? '#ef4444' : 'inherit' }}>
+                <strong>Nome:</strong> {extractedData.player_name || 'N/A'}
+                {nameMismatch && ' ⚠️'}
+              </div>
+              {extractedData.team && (
+                <div style={{ color: teamMismatch ? '#ef4444' : 'inherit' }}>
+                  <strong>Squadra:</strong> {extractedData.team}
+                  {teamMismatch && ' ⚠️'}
+                </div>
+              )}
+              {extractedData.position && (
+                <div style={{ color: positionMismatch ? '#ef4444' : 'inherit' }}>
+                  <strong>Ruolo:</strong> {extractedData.position}
+                  {positionMismatch && ' ⚠️'}
+                </div>
+              )}
+              {extractedData.age && (
+                <div style={{ color: ageMismatch ? '#ef4444' : 'inherit' }}>
+                  <strong>Età:</strong> {extractedData.age}
+                  {ageMismatch && ' ⚠️'}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Warning se mismatch */}
+        {hasMismatch && (
+          <div style={{ 
+            padding: '12px', 
+            background: 'rgba(239, 68, 68, 0.2)',
+            border: '1px solid #ef4444',
+            borderRadius: '8px',
+            marginBottom: '20px',
+            fontSize: '13px'
+          }}>
+            <div style={{ fontWeight: 700, marginBottom: '4px', color: '#ef4444' }}>
+              ⚠️ {t('dataMismatch')}
+            </div>
+            <div style={{ opacity: 0.9 }}>
+              {nameMismatch && <div>• {t('nameDifferent')}</div>}
+              {teamMismatch && <div>• {t('teamDifferent')}</div>}
+              {positionMismatch && <div>• {t('positionDifferent')}</div>}
+              {ageMismatch && <div>• {t('ageDifferent')}</div>}
+              <div style={{ marginTop: '8px' }}>
+                {t('ensureSamePlayer')}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Bottoni */}
+        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+          <button 
+            onClick={onCancel} 
+            className="btn"
+            style={{ padding: '10px 20px' }}
+          >
+            {t('cancel')}
+          </button>
+          <button 
+            onClick={onConfirm} 
+            className="btn primary"
+            style={{ 
+              padding: '10px 20px',
+              background: hasMismatch ? '#ef4444' : 'var(--neon-blue)',
+              borderColor: hasMismatch ? '#ef4444' : 'var(--neon-blue)'
+            }}
+          >
+            {hasMismatch ? t('confirmAnyway') : t('confirm')}
+          </button>
+        </div>
+      </div>
+    </div>
   )
 }

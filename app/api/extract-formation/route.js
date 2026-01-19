@@ -134,7 +134,8 @@ Restituisci SOLO JSON valido, senza altro testo. Assicurati che ci siano ESATTAM
 
     return NextResponse.json({
       formation: formationData.formation || null,
-      players: formationData.players || []
+      slot_positions: formationData.slot_positions || {},
+      players: formationData.players || [] // Opzionale, per preview
     })
   } catch (err) {
     console.error('[extract-formation] Error:', err)
