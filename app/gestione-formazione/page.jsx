@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { useTranslation } from '@/lib/i18n'
 import LanguageSwitch from '@/components/LanguageSwitch'
 import { ArrowLeft, Upload, AlertCircle, CheckCircle2, RefreshCw, Info, X, Plus, User, Settings, BarChart3, Zap, Gift, ChevronDown, ChevronUp, Users, Star } from 'lucide-react'
+import TacticalSettingsPanel from '@/components/TacticalSettingsPanel'
 
 export default function GestioneFormazionePage() {
   const { t } = useTranslation()
@@ -27,6 +28,8 @@ export default function GestioneFormazionePage() {
   const [uploadImages, setUploadImages] = React.useState([])
   const [uploadingPlayer, setUploadingPlayer] = React.useState(false)
   const [activeCoach, setActiveCoach] = React.useState(null)
+  const [tacticalSettings, setTacticalSettings] = React.useState(null)
+  const [savingTacticalSettings, setSavingTacticalSettings] = React.useState(false)
 
   // Carica layout e giocatori
   React.useEffect(() => {
@@ -133,6 +136,16 @@ export default function GestioneFormazionePage() {
 
         if (!coachError && coachData) {
           setActiveCoach(coachData)
+        }
+
+        // 5. Carica impostazioni tattiche
+        const { data: tacticalSettingsData, error: tacticalError } = await supabase
+          .from('team_tactical_settings')
+          .select('*')
+          .maybeSingle()
+
+        if (!tacticalError && tacticalSettingsData) {
+          setTacticalSettings(tacticalSettingsData)
         }
       } catch (err) {
         console.error('[GestioneFormazione] Error:', err)
@@ -401,6 +414,49 @@ export default function GestioneFormazionePage() {
       setError(err.message || 'Errore caricamento giocatore')
     } finally {
       setUploadingPlayer(false)
+    }
+  }
+
+  // Salva impostazioni tattiche
+  const handleSaveTacticalSettings = async (settings) => {
+    setSavingTacticalSettings(true)
+    setError(null)
+
+    try {
+      const { data: session } = await supabase.auth.getSession()
+      if (!session?.session?.access_token) {
+        throw new Error('Sessione scaduta')
+      }
+
+      const token = session.session.access_token
+
+      const res = await fetch('/api/supabase/save-tactical-settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(settings)
+      })
+
+      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data.error || 'Errore salvataggio impostazioni tattiche')
+      }
+
+      // Aggiorna state locale
+      setTacticalSettings(data.settings)
+      
+      // Mostra feedback positivo
+      setError(null)
+      
+      // Ricarica per aggiornare UI (stesso pattern esistente)
+      window.location.reload()
+    } catch (err) {
+      console.error('[GestioneFormazione] Save tactical settings error:', err)
+      setError(err.message || 'Errore salvataggio impostazioni tattiche')
+    } finally {
+      setSavingTacticalSettings(false)
     }
   }
 
@@ -830,9 +886,17 @@ export default function GestioneFormazionePage() {
         </div>
       )}
 
-      {/* Campo 2D - Layout Verticale */}
+      {/* Campo 2D + Pannello Impostazioni Tattiche - Layout Responsive */}
       {!noLayoutContent && (
-      <div className="card" style={{ 
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 720px), 1fr))',
+        gap: '24px',
+        marginBottom: '32px',
+        alignItems: 'start'
+      }}>
+        {/* Campo 2D */}
+        <div className="card" style={{ 
         marginBottom: '32px',
         padding: 'clamp(16px, 2vw, 24px)',
         position: 'relative',
@@ -1024,6 +1088,15 @@ export default function GestioneFormazionePage() {
             onRemove={slot.player ? () => handleRemoveFromSlot(slot.player.id) : null}
           />
         ))}
+        </div>
+
+        {/* Pannello Impostazioni Tattiche */}
+        <TacticalSettingsPanel
+          titolari={titolari}
+          tacticalSettings={tacticalSettings}
+          onSave={handleSaveTacticalSettings}
+          saving={savingTacticalSettings}
+        />
       </div>
       )}
 
