@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { useTranslation } from '@/lib/i18n'
 import LanguageSwitch from '@/components/LanguageSwitch'
-import { ArrowLeft, Upload, AlertCircle, CheckCircle2, RefreshCw, Info, X, Plus, User, Settings, BarChart3, Zap, Gift, ChevronDown, ChevronUp } from 'lucide-react'
+import { ArrowLeft, Upload, AlertCircle, CheckCircle2, RefreshCw, Info, X, Plus, User, Settings, BarChart3, Zap, Gift, ChevronDown, ChevronUp, Users, Star } from 'lucide-react'
 
 export default function GestioneFormazionePage() {
   const { t } = useTranslation()
@@ -26,6 +26,7 @@ export default function GestioneFormazionePage() {
   const [showUploadPlayerModal, setShowUploadPlayerModal] = React.useState(false)
   const [uploadImages, setUploadImages] = React.useState([])
   const [uploadingPlayer, setUploadingPlayer] = React.useState(false)
+  const [activeCoach, setActiveCoach] = React.useState(null)
 
   // Carica layout e giocatori
   React.useEffect(() => {
@@ -122,6 +123,17 @@ export default function GestioneFormazionePage() {
 
         setTitolari(titolariArray)
         setRiserve(riserveArray)
+
+        // 4. Carica allenatore attivo
+        const { data: coachData, error: coachError } = await supabase
+          .from('coaches')
+          .select('*')
+          .eq('is_active', true)
+          .maybeSingle()
+
+        if (!coachError && coachData) {
+          setActiveCoach(coachData)
+        }
       } catch (err) {
         console.error('[GestioneFormazione] Error:', err)
         setError(err.message || 'Errore caricamento dati')
@@ -718,8 +730,63 @@ export default function GestioneFormazionePage() {
               {t('changeFormation')}
             </button>
           )}
+          <button
+            onClick={() => router.push('/allenatori')}
+            className="btn"
+            style={{ 
+              display: 'inline-flex', 
+              alignItems: 'center', 
+              gap: '8px',
+              fontSize: '14px',
+              padding: '8px 16px'
+            }}
+          >
+            <Users size={16} />
+            {t('coachesLink')}
+          </button>
         </div>
       </div>
+
+      {/* Info Allenatore Attivo */}
+      {activeCoach && (
+        <div className="card" style={{ 
+          marginBottom: '24px',
+          padding: '16px', 
+          background: 'rgba(0, 212, 255, 0.05)',
+          border: '2px solid var(--neon-blue)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '12px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+            <Star size={20} fill="var(--neon-blue)" color="var(--neon-blue)" />
+            <div>
+              <div style={{ fontSize: '16px', fontWeight: 600, marginBottom: '4px' }}>
+                {t('coachActiveTitle')}: {activeCoach.coach_name}
+              </div>
+              {activeCoach.team && (
+                <div style={{ fontSize: '14px', opacity: 0.8 }}>
+                  {activeCoach.team}
+                </div>
+              )}
+            </div>
+          </div>
+          {activeCoach.playing_style_competence && typeof activeCoach.playing_style_competence === 'object' && (
+            <div style={{ fontSize: '12px', opacity: 0.7 }}>
+              {Object.entries(activeCoach.playing_style_competence)
+                .filter(([_, value]) => value != null)
+                .slice(0, 3)
+                .map(([style, value]) => (
+                  <span key={style} style={{ marginRight: '12px' }}>
+                    {style.replace(/_/g, ' ')}: <strong>{value}</strong>
+                  </span>
+                ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Se non c'è layout, mostra messaggio */}
       {noLayoutContent && (

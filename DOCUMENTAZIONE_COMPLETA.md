@@ -13,9 +13,16 @@
 4. [Database Schema](#database-schema)
 5. [API Endpoints](#api-endpoints)
 6. [Pagine e Flussi](#pagine-e-flussi)
-7. [Problemi Risolti](#problemi-risolti)
-8. [Configurazione](#configurazione)
-9. [Troubleshooting](#troubleshooting)
+7. [Sicurezza](#sicurezza)
+8. [Problemi Risolti](#problemi-risolti)
+9. [Configurazione](#configurazione)
+10. [Troubleshooting](#troubleshooting)
+
+**Documenti Correlati**:
+- `DOCUMENTAZIONE_LIBRERIE.md` - Documentazione librerie (`lib/`)
+- `DOCUMENTAZIONE_COMPONENTI.md` - Documentazione componenti (`components/`)
+- `AUDIT_SICUREZZA.md` - Audit sicurezza completo
+- `AUDIT_DOCUMENTAZIONE.md` - Audit documentazione
 
 ---
 
@@ -116,9 +123,22 @@ CREATE POLICY "Users can only update their own players"
 ```
 
 **Note Importanti**:
-- `slot_index`: 0-10 = titolare, NULL = riserva
-- `photo_slots`: `{ card: true, statistiche: true, abilita: true, booster: true }`
+- `slot_index`: 0-10 = titolare, NULL = riserva (constraint CHECK)
+- `photo_slots`: Traccia quali foto sono state caricate (vedi struttura sotto)
 - `metadata`: Dati aggiuntivi (source, saved_at, player_face_description, ecc.)
+
+**Struttura `photo_slots` (JSONB)**:
+```json
+{
+  "card": true,           // Foto card principale caricata
+  "statistiche": true,    // Foto statistiche dettagliate caricata
+  "abilita": true,        // Foto abilità caricata
+  "booster": true         // Foto booster caricata (può essere nella stessa foto di abilità)
+}
+```
+- Tracciamento automatico durante upload
+- Usato per determinare completezza profilo giocatore
+- Profilo completo = card + statistiche + (abilita O booster)
 
 ### Tabella `formation_layout`
 
@@ -175,7 +195,10 @@ CREATE POLICY "Users can only see their own layout"
 }
 ```
 
-**Note**: Usa OpenAI GPT-4 Vision. Estrae solo layout, non salva giocatori.
+**Note**: 
+- Usa OpenAI GPT-4 Vision. Estrae solo layout, non salva giocatori.
+- ⚠️ **SICUREZZA**: Endpoint pubblico, nessuna autenticazione richiesta (vedi sezione Sicurezza)
+- ⚠️ **RATE LIMITING**: Non implementato (rischio abuso quota OpenAI)
 
 ---
 
@@ -207,7 +230,12 @@ CREATE POLICY "Users can only see their own layout"
 }
 ```
 
-**Note**: Normalizza dati (converte numeri, limita array).
+**Note**: 
+- Normalizza dati (converte numeri, limita array).
+- Limiti array: skills max 40, com_skills max 20, ai_playstyles max 10, boosters max 10
+- ⚠️ **SICUREZZA**: Endpoint pubblico, nessuna autenticazione richiesta (vedi sezione Sicurezza)
+- ⚠️ **RATE LIMITING**: Non implementato (rischio abuso quota OpenAI)
+- ⚠️ **VALIDAZIONE**: Non valida dimensione immagine (rischio DoS)
 
 ---
 
@@ -246,6 +274,8 @@ Authorization: Bearer <token>
 - Se `preserve_slots` è fornito: libera solo giocatori da slot non presenti nell'array
 - Se `preserve_slots` non è fornito: libera tutti i titolari (slot_index → NULL)
 - Permette cambio formazione intelligente mantenendo giocatori esistenti
+- **Completamento Slot Mancanti**: Se `slot_positions` non contiene tutti gli 11 slot (0-10), vengono completati con posizioni default
+- **Posizioni Default**: Portiere (0: x=50, y=90), Difensori (1-4), Centrocampisti (5-7), Attaccanti (8-10)
 
 ---
 
@@ -315,7 +345,10 @@ Authorization: Bearer <token>
 }
 ```
 
-**Note**: Libera vecchio giocatore nello slot se presente.
+**Note**: 
+- Libera vecchio giocatore nello slot se presente (slot_index → NULL)
+- Verifica che giocatore appartenga all'utente autenticato (sicurezza)
+- Supporta due modalità: assegnazione giocatore esistente (`player_id`) o creazione nuovo (`player_data`)
 
 ---
 
@@ -381,6 +414,53 @@ Authorization: Bearer <token>
    - **Booster**: available_boosters con nome/effetto/condizione
 3. Sezioni espandibili/collassabili per migliore UX
 4. Azioni disponibili:
+
+**Funzioni Handler Principali** (`app/gestione-formazione/page.jsx`):
+
+- **`handleUploadPlayerToSlot()`**: 
+  - Carica fino a 3 immagini (card, stats, skills)
+  - Estrae dati da ogni immagine con `/api/extract-player`
+  - Merge dati da tutte le immagini
+  - Traccia `photo_slots` automaticamente
+  - Salva giocatore e assegna a slot con `/api/supabase/save-player`
+  - Gestisce errori OpenAI (quota esaurita, ecc.)
+
+- **`handleUploadReserve()`**:
+  - Carica 1 immagine card giocatore
+  - Estrae dati con `/api/extract-player`
+  - Salva come riserva (slot_index = null) con `/api/supabase/save-player`
+  - Traccia `photo_slots.card = true`
+
+- **`handleUploadFormation()`**:
+  - Carica screenshot formazione completa
+  - Estrae formazione e slot_positions con `/api/extract-formation`
+  - Salva layout con `/api/supabase/save-formation-layout`
+  - Libera tutti i titolari (slot_index → NULL)
+
+- **`handleSelectManualFormation()`**:
+  - Selezione formazione da modal (14 formazioni ufficiali)
+  - Usa posizioni predefinite per formazione scelta
+  - Salva layout con `preserve_slots` per mantenere giocatori esistenti
+
+- **`handleAssignFromReserve()`**:
+  - Assegna giocatore esistente da riserve a slot
+  - Usa `/api/supabase/assign-player-to-slot`
+  - Libera vecchio giocatore nello slot se presente
+
+- **`handleRemoveFromSlot()`**:
+  - Rimuove giocatore da slot (torna riserva)
+  - Aggiorna `slot_index = null` direttamente con Supabase client
+  - **NON elimina** giocatore dal database
+
+- **`handleDeleteReserve()`**:
+  - Elimina definitivamente giocatore dalle riserve
+  - Richiede conferma utente
+  - Usa `.delete()` Supabase (eliminazione permanente)
+
+- **`handleSlotClick()`**:
+  - Gestisce click su slot campo 2D
+  - Apre modal assegnazione (`AssignModal`)
+  - Passa slot selezionato e riserve disponibili
    - Completa Profilo (redirect a `/giocatore/[id]`)
    - Cambia Giocatore (upload nuove foto)
    - Rimuovi da Slot
@@ -594,10 +674,53 @@ npm start
 
 ## 🔒 Sicurezza
 
-- ✅ **RLS**: Row Level Security su tutte le tabelle
-- ✅ **Auth**: Validazione token Bearer in API routes
+### Autenticazione
+
+- ✅ **RLS**: Row Level Security su tutte le tabelle (`players`, `formation_layout`)
+- ✅ **Auth API Routes**: Validazione token Bearer in tutte le API routes Supabase
 - ✅ **Service Role Key**: Server-only, non esposto al client
 - ✅ **Input Validation**: Normalizzazione e validazione dati
+
+### Endpoint Pubblici
+
+⚠️ **IMPORTANTE**: I seguenti endpoint sono pubblici (nessuna autenticazione):
+- `POST /api/extract-player` - Estrazione dati giocatore
+- `POST /api/extract-formation` - Estrazione formazione
+
+**Rischi**:
+- Possibile abuso quota OpenAI
+- Nessun rate limiting implementato
+- Nessuna validazione dimensione immagine
+
+**Raccomandazioni** (vedi `AUDIT_SICUREZZA.md`):
+- Aggiungere autenticazione Bearer token
+- Implementare rate limiting
+- Validare dimensione max immagine (es. 10MB)
+
+### Validazione Input
+
+- ✅ **Normalizzazione**: `toInt()`, `toText()` per sanitizzazione
+- ✅ **Limiti Array**: skills max 40, com_skills max 20, ai_playstyles max 10, boosters max 10
+- ✅ **Validazione Slot**: slot_index sempre 0-10 (constraint database)
+- ⚠️ **Lunghezza Campi**: Non validata (rischio DoS con campi molto lunghi)
+
+### Database Security
+
+- ✅ **RLS Policies**: Tutte le tabelle protette
+- ✅ **User Isolation**: Ogni utente vede solo i propri dati
+- ✅ **Foreign Keys**: Relazioni con `auth.users` e `playing_styles`
+
+**Policies Verificate**:
+- `players`: SELECT, INSERT, UPDATE, DELETE (solo user_id = auth.uid())
+- `formation_layout`: ALL (solo user_id = auth.uid())
+- `playing_styles`: SELECT (pubblico, catalogo)
+
+### Logging e Privacy
+
+- ⚠️ **User ID nei Log**: Alcuni log contengono user_id (GDPR compliance)
+- ✅ **Error Messages**: Sanitizzati (non espongono dettagli sistema)
+
+**Per dettagli completi**: Vedi `AUDIT_SICUREZZA.md`
 
 ---
 

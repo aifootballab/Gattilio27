@@ -102,14 +102,57 @@ Crea `.env.local` con le variabili d'ambiente (vedi `.env.example`).
 
 ## 📚 Documentazione
 
-- **Documentazione Completa**: `DOCUMENTAZIONE_COMPLETA.md`
+### Documenti Principali
+
+- **`DOCUMENTAZIONE_COMPLETA.md`** - Documentazione principale completa
   - Stack tecnologico dettagliato
   - Schema database completo
   - Endpoint API con esempi
-  - Flussi principali
+  - Flussi principali e funzioni handler
+  - Sicurezza e validazione
   - Configurazione e deploy
   - Troubleshooting
-  - Problemi risolti
+
+- **`DOCUMENTAZIONE_LIBRERIE.md`** - Documentazione librerie (`lib/`)
+  - `authHelper.js` - Validazione token
+  - `supabaseClient.js` - Client Supabase
+  - `normalize.js` - Normalizzazione dati
+  - `i18n.js` - Sistema traduzioni
+
+- **`DOCUMENTAZIONE_COMPONENTI.md`** - Documentazione componenti (`components/`)
+  - `LanguageSwitch.jsx` - Selettore lingua
+  - `LanguageProviderWrapper.jsx` - Wrapper i18n
+
+### Audit e Verifica
+
+- **`AUDIT_SICUREZZA.md`** - Audit sicurezza completo
+  - Vulnerabilità identificate
+  - Raccomandazioni prioritarie
+  - Checklist implementazione
+
+- **`AUDIT_DOCUMENTAZIONE.md`** - Audit documentazione
+  - Gap identificati
+  - Allineamento codice/documentazione
+  - Checklist aggiornamento
+
+- **`VERIFICA_COMPLETA.md`** - Checklist verifica funzionalità
+- **`WORKFLOW_FORMazione_COMPLETO.md`** - Workflow formazioni dettagliato
+- **`ANALISI_ENTERPRISE_FORMATION.md`** - Analisi decisioni enterprise
+
+## 🔒 Sicurezza
+
+⚠️ **IMPORTANTE**: Alcuni endpoint sono pubblici (vedi `AUDIT_SICUREZZA.md` per dettagli):
+- `POST /api/extract-player` - Nessuna autenticazione
+- `POST /api/extract-formation` - Nessuna autenticazione
+
+**Raccomandazioni**:
+- Aggiungere autenticazione Bearer token
+- Implementare rate limiting
+- Validare dimensione immagini
+
+**Per dettagli completi**: Vedi `AUDIT_SICUREZZA.md`
+
+---
 
 ## 🏗️ Architettura
 
