@@ -886,21 +886,22 @@ export default function GestioneFormazionePage() {
         </div>
       )}
 
-      {/* Campo 2D + Pannello Impostazioni Tattiche - Layout Responsive */}
+      {/* Campo 2D + Pannello Impostazioni Tattiche - Layout Responsive Enterprise */}
       {!noLayoutContent && (
-      <div style={{
+      <div className="formation-layout-container" style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 720px), 1fr))',
-        gap: '24px',
+        gridTemplateColumns: '1fr 340px',
+        gap: '20px',
         marginBottom: '32px',
         alignItems: 'start'
       }}>
         {/* Campo 2D */}
         <div className="card" style={{ 
-        marginBottom: '32px',
+        marginBottom: '0',
         padding: 'clamp(16px, 2vw, 24px)',
         position: 'relative',
-        maxWidth: 'clamp(540px, 45vw, 720px)',
+        width: '100%',
+        maxWidth: '100%',
         minHeight: 'clamp(292px, 39vh, 422px)',
         aspectRatio: '2/3',
         margin: '0 auto',
@@ -1090,13 +1091,18 @@ export default function GestioneFormazionePage() {
         ))}
         </div>
 
-        {/* Pannello Impostazioni Tattiche */}
-        <TacticalSettingsPanel
-          titolari={titolari}
-          tacticalSettings={tacticalSettings}
-          onSave={handleSaveTacticalSettings}
-          saving={savingTacticalSettings}
-        />
+        {/* Pannello Impostazioni Tattiche - Laterale Compatto */}
+        <div style={{
+          position: 'sticky',
+          top: '20px'
+        }}>
+          <TacticalSettingsPanel
+            titolari={titolari}
+            tacticalSettings={tacticalSettings}
+            onSave={handleSaveTacticalSettings}
+            saving={savingTacticalSettings}
+          />
+        </div>
       </div>
       )}
 

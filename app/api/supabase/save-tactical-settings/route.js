@@ -33,11 +33,13 @@ export async function POST(req) {
 
     // Validazione team_playing_style
     const validStyles = ['possesso_palla', 'contropiede_veloce', 'contrattacco', 'vie_laterali', 'passaggio_lungo']
-    if (team_playing_style && !validStyles.includes(team_playing_style)) {
-      return NextResponse.json(
-        { error: `Invalid team_playing_style. Must be one of: ${validStyles.join(', ')}` },
-        { status: 400 }
-      )
+    if (team_playing_style !== null && team_playing_style !== undefined && team_playing_style !== '') {
+      if (typeof team_playing_style !== 'string' || !validStyles.includes(team_playing_style.trim())) {
+        return NextResponse.json(
+          { error: `Invalid team_playing_style. Must be one of: ${validStyles.join(', ')}` },
+          { status: 400 }
+        )
+      }
     }
 
     // Validazione individual_instructions (opzionale, ma se presente deve essere oggetto)
@@ -70,18 +72,59 @@ export async function POST(req) {
     if (individual_instructions && typeof individual_instructions === 'object') {
       for (const categoryKey in individual_instructions) {
         const instructionData = individual_instructions[categoryKey]
-        if (instructionData && instructionData.player_id && instructionData.instruction) {
-          const validationResult = validateIndividualInstruction(
-            categoryKey,
-            instructionData.player_id,
-            instructionData.instruction,
-            titolari
-          )
-          if (!validationResult.valid) {
+        
+        // Se instructionData esiste, deve avere entrambi player_id e instruction validi
+        if (instructionData) {
+          // Se instruction è presente, player_id deve essere presente e non vuoto
+          if (instructionData.instruction && (!instructionData.player_id || instructionData.player_id.trim() === '')) {
             return NextResponse.json(
-              { error: validationResult.error },
+              { error: `Player ID is required for instruction in category ${categoryKey}` },
               { status: 400 }
             )
+          }
+          
+          // Se player_id è presente, instruction deve essere presente
+          if (instructionData.player_id && instructionData.player_id.trim() !== '' && !instructionData.instruction) {
+            return NextResponse.json(
+              { error: `Instruction is required for player in category ${categoryKey}` },
+              { status: 400 }
+            )
+          }
+          
+          // Validazione completa solo se entrambi sono presenti
+          if (instructionData.player_id && instructionData.player_id.trim() !== '' && instructionData.instruction) {
+            const validationResult = validateIndividualInstruction(
+              categoryKey,
+              instructionData.player_id.trim(),
+              instructionData.instruction,
+              titolari
+            )
+            if (!validationResult.valid) {
+              return NextResponse.json(
+                { error: validationResult.error },
+                { status: 400 }
+              )
+            }
+          }
+        }
+      }
+    }
+
+    // Sanitizzazione: rimuovi istruzioni incomplete (senza player_id o instruction)
+    const sanitizedInstructions = {}
+    if (individual_instructions && typeof individual_instructions === 'object') {
+      for (const categoryKey in individual_instructions) {
+        const instructionData = individual_instructions[categoryKey]
+        // Salva solo se ha entrambi player_id e instruction validi
+        if (instructionData && 
+            instructionData.player_id && 
+            instructionData.player_id.trim() !== '' && 
+            instructionData.instruction && 
+            instructionData.instruction.trim() !== '') {
+          sanitizedInstructions[categoryKey] = {
+            player_id: instructionData.player_id.trim(),
+            instruction: instructionData.instruction.trim(),
+            enabled: instructionData.enabled !== false // default true
           }
         }
       }
@@ -92,8 +135,8 @@ export async function POST(req) {
       .from('team_tactical_settings')
       .upsert({
         user_id: userId,
-        team_playing_style: team_playing_style || null,
-        individual_instructions: individual_instructions || {},
+        team_playing_style: team_playing_style && team_playing_style.trim() !== '' ? team_playing_style.trim() : null,
+        individual_instructions: sanitizedInstructions,
         updated_at: new Date().toISOString()
       }, {
         onConflict: 'user_id'

@@ -51,40 +51,44 @@ export default function TacticalSettingsPanel({
 
   return (
     <div className="card" style={{
-      padding: 'clamp(16px, 2vw, 24px)',
-      marginBottom: '24px',
+      padding: 'clamp(12px, 1.5vw, 18px)',
+      marginBottom: '0',
       background: 'rgba(10, 14, 39, 0.95)',
-      border: '2px solid var(--neon-blue)',
-      borderRadius: '12px'
+      border: '1px solid rgba(0, 212, 255, 0.3)',
+      borderRadius: '10px',
+      maxWidth: '100%',
+      width: '100%'
     }}>
-      {/* Header */}
+      {/* Header - Compatto Enterprise */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
-        gap: '12px',
-        marginBottom: '24px',
-        paddingBottom: '16px',
-        borderBottom: '1px solid rgba(0, 212, 255, 0.2)'
+        gap: '8px',
+        marginBottom: '16px',
+        paddingBottom: '12px',
+        borderBottom: '1px solid rgba(0, 212, 255, 0.15)'
       }}>
-        <Settings size={20} color="var(--neon-blue)" />
+        <Settings size={16} color="var(--neon-blue)" />
         <h2 style={{
-          fontSize: 'clamp(18px, 2.5vw, 22px)',
-          fontWeight: 700,
+          fontSize: 'clamp(14px, 1.8vw, 16px)',
+          fontWeight: 600,
           margin: 0,
-          color: 'var(--neon-blue)'
+          color: 'var(--neon-blue)',
+          letterSpacing: '0.3px'
         }}>
-          {t('individualInstructions')}
+          {t('tacticalSettings')}
         </h2>
       </div>
 
-      {/* Team Playing Style */}
-      <div style={{ marginBottom: '24px' }}>
+      {/* Team Playing Style - Compatto */}
+      <div style={{ marginBottom: '16px' }}>
         <label style={{
           display: 'block',
-          fontSize: 'clamp(14px, 1.5vw, 16px)',
+          fontSize: 'clamp(12px, 1.3vw, 13px)',
           fontWeight: 600,
-          marginBottom: '8px',
-          color: '#fff'
+          marginBottom: '6px',
+          color: '#fff',
+          opacity: 0.9
         }}>
           {t('teamPlayingStyle')}
         </label>
@@ -127,20 +131,21 @@ export default function TacticalSettingsPanel({
           />
         </div>
         <div style={{
-          fontSize: 'clamp(11px, 1.2vw, 13px)',
-          opacity: 0.7,
-          marginTop: '4px'
+          fontSize: 'clamp(10px, 1.1vw, 11px)',
+          opacity: 0.6,
+          marginTop: '4px',
+          lineHeight: '1.3'
         }}>
           {t('teamPlayingStyleDescription')}
         </div>
       </div>
 
-      {/* Individual Instructions - 4 Categorie */}
+      {/* Individual Instructions - 4 Categorie - Layout Verticale Compatto */}
       <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-        gap: '16px',
-        marginBottom: '24px'
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px',
+        marginBottom: '16px'
       }}>
         {Object.entries(INDIVIDUAL_INSTRUCTIONS_CONFIG).map(([category, config]) => {
           const currentSetting = individualInstructions[category] || {}
@@ -151,29 +156,30 @@ export default function TacticalSettingsPanel({
               key={category}
               className="card"
               style={{
-                padding: '16px',
-                background: 'rgba(0, 212, 255, 0.05)',
-                border: '1px solid rgba(0, 212, 255, 0.2)',
-                borderRadius: '8px'
+                padding: '12px',
+                background: 'rgba(0, 212, 255, 0.04)',
+                border: '1px solid rgba(0, 212, 255, 0.15)',
+                borderRadius: '6px'
               }}
             >
-              {/* Titolo Categoria */}
+              {/* Titolo Categoria - Compatto */}
               <div style={{
-                fontSize: 'clamp(14px, 1.5vw, 16px)',
+                fontSize: 'clamp(12px, 1.3vw, 13px)',
                 fontWeight: 600,
-                marginBottom: '12px',
-                color: 'var(--neon-blue)'
+                marginBottom: '8px',
+                color: 'var(--neon-blue)',
+                opacity: 0.9
               }}>
                 {t(config.nameKey)}
               </div>
               
-              {/* Dropdown Istruzione */}
-              <div style={{ marginBottom: '12px' }}>
+              {/* Dropdown Istruzione - Compatto */}
+              <div style={{ marginBottom: '8px' }}>
                 <label style={{
                   display: 'block',
-                  fontSize: 'clamp(12px, 1.3vw, 14px)',
-                  opacity: 0.8,
-                  marginBottom: '6px'
+                  fontSize: 'clamp(11px, 1.2vw, 12px)',
+                  opacity: 0.75,
+                  marginBottom: '4px'
                 }}>
                   {t('instruction')}:
                 </label>
@@ -217,13 +223,13 @@ export default function TacticalSettingsPanel({
                 </div>
               </div>
 
-              {/* Dropdown Giocatore */}
-              <div style={{ marginBottom: '12px' }}>
+              {/* Dropdown Giocatore - Compatto */}
+              <div style={{ marginBottom: '8px' }}>
                 <label style={{
                   display: 'block',
-                  fontSize: 'clamp(12px, 1.3vw, 14px)',
-                  opacity: 0.8,
-                  marginBottom: '6px'
+                  fontSize: 'clamp(11px, 1.2vw, 12px)',
+                  opacity: 0.75,
+                  marginBottom: '4px'
                 }}>
                   {t('selectPlayer')}:
                 </label>
@@ -285,7 +291,7 @@ export default function TacticalSettingsPanel({
         })}
       </div>
 
-      {/* Bottone Salva */}
+      {/* Bottone Salva - Compatto Enterprise */}
       <button
         onClick={handleSave}
         disabled={saving}
@@ -295,14 +301,15 @@ export default function TacticalSettingsPanel({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: '8px',
-          padding: '12px',
-          fontSize: 'clamp(14px, 1.5vw, 16px)',
-          fontWeight: 600
+          gap: '6px',
+          padding: '10px 12px',
+          fontSize: 'clamp(12px, 1.3vw, 13px)',
+          fontWeight: 600,
+          marginTop: '8px'
         }}
       >
-        <Save size={18} />
-        {saving ? t('loadingTacticalSettings') : t('saveTacticalSettings')}
+        <Save size={14} />
+        {saving ? t('saving') : t('save')}
       </button>
     </div>
   )

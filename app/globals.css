@@ -42,6 +42,26 @@ body {
   overflow-x: hidden;
 }
 
+/* Layout Responsive Enterprise - Formation + Tactical Panel */
+.formation-layout-container {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 20px;
+  margin-bottom: 32px;
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .formation-layout-container {
+    grid-template-columns: 1fr;
+  }
+  
+  .formation-layout-container > div:last-child {
+    position: static !important;
+    margin-top: 24px;
+  }
+}
+
 /* Custom Background Layer - Sfondo personalizzato */
 .custom-background {
   position: fixed;
