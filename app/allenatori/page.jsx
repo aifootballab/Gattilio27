@@ -413,7 +413,7 @@ export default function AllenatoriPage() {
                         style={{ fontSize: '12px', padding: '6px 12px', flex: 1 }}
                       >
                         <Info size={14} style={{ marginRight: '4px' }} />
-                        {t('details')}
+                        {t('viewCoachDetails')}
                       </button>
                       {!coach.is_active && (
                         <button

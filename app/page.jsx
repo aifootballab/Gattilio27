@@ -63,7 +63,7 @@ export default function DashboardPage() {
           .order('overall_rating', { ascending: false, nullsLast: true })
 
         if (playersError) {
-          throw new Error(playersError.message || 'Errore caricamento dati')
+          throw new Error(playersError.message || t('coachDataLoadError'))
         }
 
         const playersArray = (players || []).filter(p => p && p.id && p.player_name)
@@ -92,7 +92,7 @@ export default function DashboardPage() {
         setTopPlayers(top)
       } catch (err) {
         console.error('[Dashboard] Error:', err)
-        setError(err.message || 'Errore caricamento dashboard')
+        setError(err.message || t('coachDataLoadError'))
       } finally {
         setLoading(false)
       }
@@ -196,19 +196,19 @@ export default function DashboardPage() {
           </h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ opacity: 0.8 }}>Titolari</span>
+              <span style={{ opacity: 0.8 }}>{t('titolari')}</span>
               <span style={{ fontSize: '24px', fontWeight: 700, color: 'var(--neon-blue)' }}>
                 {stats.titolari}/11
               </span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ opacity: 0.8 }}>Riserve</span>
+              <span style={{ opacity: 0.8 }}>{t('riserve')}</span>
               <span style={{ fontSize: '24px', fontWeight: 700, color: 'var(--neon-purple)' }}>
                 {stats.riserve}
               </span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ opacity: 0.8 }}>Totale</span>
+              <span style={{ opacity: 0.8 }}>{t('total')}</span>
               <span style={{ fontSize: '24px', fontWeight: 700 }}>
                 {stats.totalPlayers}
               </span>
@@ -221,7 +221,7 @@ export default function DashboardPage() {
                 borderRadius: '8px',
                 textAlign: 'center'
               }}>
-                <div style={{ fontSize: '12px', opacity: 0.7, marginBottom: '4px' }}>Formazione</div>
+                <div style={{ fontSize: '12px', opacity: 0.7, marginBottom: '4px' }}>{t('formation')}</div>
                 <div style={{ fontSize: '20px', fontWeight: 700, color: 'var(--neon-blue)' }}>
                   {stats.formation}
                 </div>
@@ -234,7 +234,7 @@ export default function DashboardPage() {
         <div className="card" style={{ padding: '24px' }}>
           <h2 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Settings size={24} color="var(--neon-purple)" />
-            Navigazione
+            {t('navigation')}
           </h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <button
@@ -278,7 +278,7 @@ export default function DashboardPage() {
             >
               <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <UserCheck size={18} />
-                Allenatori
+                {t('coachesLink')}
               </span>
               <ArrowRight size={18} />
             </button>
@@ -290,10 +290,10 @@ export default function DashboardPage() {
         <div className="card" style={{ padding: '24px' }}>
           <h2 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Brain size={24} color="var(--neon-orange)" />
-            AI Insights
+            {t('aiInsights')}
           </h2>
           <div style={{ opacity: 0.7, fontSize: '14px' }}>
-            Insights e suggerimenti AI verranno mostrati qui
+            {t('aiInsightsPlaceholder')}
           </div>
         </div>
       </div>
