@@ -272,14 +272,19 @@ export default function GestioneFormazionePage() {
         throw new Error('Sessione scaduta')
       }
 
-      // Elimina giocatore dal database
-      const { error: deleteError } = await supabase
-        .from('players')
-        .delete()
-        .eq('id', playerId)
+      // Elimina giocatore tramite endpoint API
+      const res = await fetch('/api/supabase/delete-player', {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${session.session.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ player_id: playerId })
+      })
 
-      if (deleteError) {
-        throw new Error(deleteError.message || 'Errore eliminazione')
+      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data.error || 'Errore eliminazione')
       }
 
       // Ricarica dati
