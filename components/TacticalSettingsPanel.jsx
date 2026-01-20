@@ -3,7 +3,7 @@
 import React from 'react'
 import { useTranslation } from '@/lib/i18n'
 import { INDIVIDUAL_INSTRUCTIONS_CONFIG } from '@/lib/tacticalInstructions'
-import { ChevronDown, Save, Settings } from 'lucide-react'
+import { ChevronDown, ChevronUp, Save, Settings } from 'lucide-react'
 
 export default function TacticalSettingsPanel({ 
   titolari, 
@@ -13,12 +13,21 @@ export default function TacticalSettingsPanel({
 }) {
   const { t } = useTranslation()
   
+  const [isCollapsed, setIsCollapsed] = React.useState(true) // Inizia collassato
   const [teamPlayingStyle, setTeamPlayingStyle] = React.useState(
     tacticalSettings?.team_playing_style || ''
   )
   const [individualInstructions, setIndividualInstructions] = React.useState(
     tacticalSettings?.individual_instructions || {}
   )
+
+  // Sincronizza state quando tacticalSettings cambia (dopo salvataggio)
+  React.useEffect(() => {
+    if (tacticalSettings) {
+      setTeamPlayingStyle(tacticalSettings.team_playing_style || '')
+      setIndividualInstructions(tacticalSettings.individual_instructions || {})
+    }
+  }, [tacticalSettings])
 
   // Opzioni stile di gioco di squadra
   const teamPlayingStyleOptions = [
@@ -51,34 +60,68 @@ export default function TacticalSettingsPanel({
 
   return (
     <div className="card" style={{
-      padding: 'clamp(12px, 1.5vw, 18px)',
-      marginBottom: '0',
+      marginBottom: '24px',
       background: 'rgba(10, 14, 39, 0.95)',
       border: '1px solid rgba(0, 212, 255, 0.3)',
       borderRadius: '10px',
-      maxWidth: '100%',
-      width: '100%'
+      overflow: 'hidden'
     }}>
-      {/* Header - Compatto Enterprise */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-        marginBottom: '16px',
-        paddingBottom: '12px',
-        borderBottom: '1px solid rgba(0, 212, 255, 0.15)'
-      }}>
-        <Settings size={16} color="var(--neon-blue)" />
-        <h2 style={{
-          fontSize: 'clamp(14px, 1.8vw, 16px)',
-          fontWeight: 600,
-          margin: 0,
-          color: 'var(--neon-blue)',
-          letterSpacing: '0.3px'
+      {/* Header - Clickabile per Collassare/Espandere */}
+      <div 
+        onClick={() => setIsCollapsed(!isCollapsed)}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '12px',
+          padding: 'clamp(14px, 2vw, 18px)',
+          cursor: 'pointer',
+          userSelect: 'none',
+          background: isCollapsed 
+            ? 'rgba(0, 212, 255, 0.05)' 
+            : 'rgba(0, 212, 255, 0.1)',
+          transition: 'background 0.2s ease',
+          borderBottom: isCollapsed ? 'none' : '1px solid rgba(0, 212, 255, 0.15)'
+        }}
+        onMouseEnter={(e) => {
+          if (isCollapsed) {
+            e.currentTarget.style.background = 'rgba(0, 212, 255, 0.08)'
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (isCollapsed) {
+            e.currentTarget.style.background = 'rgba(0, 212, 255, 0.05)'
+          }
+        }}
+      >
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px'
         }}>
-          {t('tacticalSettings')}
-        </h2>
+          <Settings size={18} color="var(--neon-blue)" />
+          <h2 style={{
+            fontSize: 'clamp(16px, 2vw, 18px)',
+            fontWeight: 600,
+            margin: 0,
+            color: 'var(--neon-blue)',
+            letterSpacing: '0.3px'
+          }}>
+            {t('tacticalSettings')}
+          </h2>
+        </div>
+        {isCollapsed ? (
+          <ChevronDown size={20} color="var(--neon-blue)" style={{ opacity: 0.7 }} />
+        ) : (
+          <ChevronUp size={20} color="var(--neon-blue)" style={{ opacity: 0.7 }} />
+        )}
       </div>
+
+      {/* Contenuto - Collassabile */}
+      {!isCollapsed && (
+      <div style={{
+        padding: 'clamp(16px, 2vw, 24px)'
+      }}>
 
       {/* Team Playing Style - Compatto */}
       <div style={{ marginBottom: '16px' }}>
@@ -311,6 +354,8 @@ export default function TacticalSettingsPanel({
         <Save size={14} />
         {saving ? t('saving') : t('save')}
       </button>
+      </div>
+      )}
     </div>
   )
 }
