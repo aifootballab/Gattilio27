@@ -113,68 +113,67 @@ export async function POST(req) {
         : {}
     }
 
-    // Validazione duplicati: verifica duplicati usando nome+età
+    // CONTROLLI INCROCIATI: verifica duplicati sia in campo che in riserve
     const playerName = playerData.player_name?.trim().toLowerCase()
-    const playerAge = playerData.age
+    const playerAge = playerData.age != null ? Number(playerData.age) : null
     
     if (playerName) {
-      if (playerData.slot_index !== null) {
-        // Validazione duplicati TITOLARI
-        let duplicateQuery = admin
-          .from('players')
-          .select('id, player_name, age, slot_index')
-          .eq('user_id', userId)
-          .not('slot_index', 'is', null)
-          .ilike('player_name', playerName)
+      // 1. Verifica duplicati in CAMPO (titolari) - sempre, indipendentemente da dove si salva
+      let duplicateInFieldQuery = admin
+        .from('players')
+        .select('id, player_name, age, slot_index')
+        .eq('user_id', userId)
+        .not('slot_index', 'is', null)
+        .ilike('player_name', playerName)
+      
+      const { data: duplicatesInField, error: dupFieldError } = await duplicateInFieldQuery
+      
+      if (!dupFieldError && duplicatesInField && duplicatesInField.length > 0) {
+        // Filtra per età se disponibile
+        const exactDuplicatesInField = playerAge != null
+          ? duplicatesInField.filter(p => p.age != null && Number(p.age) === playerAge && (playerData.slot_index === null || p.slot_index !== playerData.slot_index))
+          : duplicatesInField.filter(p => playerData.slot_index === null || p.slot_index !== playerData.slot_index)
         
-        const { data: duplicates, error: dupError } = await duplicateQuery
-        
-        if (!dupError && duplicates && duplicates.length > 0) {
-          // Filtra per età se disponibile
-          const exactDuplicates = playerAge != null
-            ? duplicates.filter(p => p.age != null && Number(p.age) === Number(playerAge) && p.slot_index !== playerData.slot_index)
-            : duplicates.filter(p => p.slot_index !== playerData.slot_index)
-          
-          if (exactDuplicates.length > 0) {
-            const dup = exactDuplicates[0]
-            return NextResponse.json(
-              { 
-                error: `Player "${playerData.player_name}"${playerAge ? ` (${playerAge} anni)` : ''} already in starting lineup at slot ${dup.slot_index}`,
-                duplicate_slot: dup.slot_index,
-                duplicate_player_id: dup.id
-              },
-              { status: 400 }
-            )
-          }
+        if (exactDuplicatesInField.length > 0) {
+          const dup = exactDuplicatesInField[0]
+          return NextResponse.json(
+            { 
+              error: `Player "${playerData.player_name}"${playerAge ? ` (${playerAge} anni)` : ''} already in starting lineup at slot ${dup.slot_index}`,
+              duplicate_slot: dup.slot_index,
+              duplicate_player_id: dup.id,
+              is_field: true
+            },
+            { status: 400 }
+          )
         }
-      } else {
-        // Validazione duplicati RISERVE
-        let duplicateQuery = admin
-          .from('players')
-          .select('id, player_name, age, slot_index')
-          .eq('user_id', userId)
-          .is('slot_index', null)
-          .ilike('player_name', playerName)
+      }
+      
+      // 2. Verifica duplicati in RISERVE - sempre, indipendentemente da dove si salva
+      let duplicateInReservesQuery = admin
+        .from('players')
+        .select('id, player_name, age, slot_index')
+        .eq('user_id', userId)
+        .is('slot_index', null)
+        .ilike('player_name', playerName)
+      
+      const { data: duplicatesInReserves, error: dupReservesError } = await duplicateInReservesQuery
+      
+      if (!dupReservesError && duplicatesInReserves && duplicatesInReserves.length > 0) {
+        // Filtra per età se disponibile
+        const exactDuplicatesInReserves = playerAge != null
+          ? duplicatesInReserves.filter(p => p.age != null && Number(p.age) === playerAge)
+          : duplicatesInReserves
         
-        const { data: duplicates, error: dupError } = await duplicateQuery
-        
-        if (!dupError && duplicates && duplicates.length > 0) {
-          // Filtra per età se disponibile
-          const exactDuplicates = playerAge != null
-            ? duplicates.filter(p => p.age != null && Number(p.age) === Number(playerAge))
-            : duplicates
-          
-          if (exactDuplicates.length > 0) {
-            const dup = exactDuplicates[0]
-            return NextResponse.json(
-              { 
-                error: `Player "${playerData.player_name}"${playerAge ? ` (${playerAge} anni)` : ''} already exists in reserves`,
-                duplicate_player_id: dup.id,
-                is_reserve: true
-              },
-              { status: 400 }
-            )
-          }
+        if (exactDuplicatesInReserves.length > 0) {
+          const dup = exactDuplicatesInReserves[0]
+          return NextResponse.json(
+            { 
+              error: `Player "${playerData.player_name}"${playerAge ? ` (${playerAge} anni)` : ''} already exists in reserves`,
+              duplicate_player_id: dup.id,
+              is_reserve: true
+            },
+            { status: 400 }
+          )
         }
       }
     }

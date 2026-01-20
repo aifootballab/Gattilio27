@@ -1564,6 +1564,7 @@ export default function GestioneFormazionePage() {
           onAssignFromReserve={handleAssignFromReserve}
           onUploadPhoto={handleUploadPhoto}
           onRemove={currentPlayer => handleRemoveFromSlot(currentPlayer.id)}
+          onDelete={currentPlayer => handleDeletePlayer(currentPlayer.id)}
           onClose={() => {
             setShowAssignModal(false)
             setSelectedSlot(null)

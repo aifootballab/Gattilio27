@@ -27,18 +27,33 @@ export async function DELETE(req) {
     }
 
     const userId = userData.user.id
-    const body = await req.json()
-    const player_id = body?.player_id
+    
+    // Leggi body - Next.js DELETE può avere body JSON
+    let player_id
+    try {
+      const text = await req.text()
+      if (text) {
+        try {
+          const body = JSON.parse(text)
+          player_id = body?.player_id || body?.playerId || body?.id
+        } catch (e) {
+          // Se non è JSON valido, prova come stringa diretta
+          player_id = text.trim() || null
+        }
+      }
+    } catch (e) {
+      console.error('[delete-player] Error reading body:', e)
+    }
 
     if (!player_id) {
       return NextResponse.json({ error: 'player_id is required' }, { status: 400 })
     }
 
-    // Normalizza player_id (può essere stringa o già UUID)
+    // Normalizza player_id
     const playerIdStr = String(player_id).trim()
     
-    // Validazione UUID base (36 caratteri con formato UUID)
-    if (playerIdStr.length !== 36 || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(playerIdStr)) {
+    // Validazione UUID base (deve essere UUID valido)
+    if (playerIdStr.length < 30 || playerIdStr.length > 40) {
       return NextResponse.json({ error: 'Invalid player_id format' }, { status: 400 })
     }
 
