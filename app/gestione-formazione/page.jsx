@@ -2595,9 +2595,9 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
                   {t('removeFromSlot')}
                 </button>
               )}
-              {onDelete && (
+              {onDelete && currentPlayer && (
                 <button
-                  onClick={onDelete}
+                  onClick={() => onDelete(currentPlayer)}
                   className="btn"
                   style={{ 
                     width: '100%', 
