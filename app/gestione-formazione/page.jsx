@@ -763,8 +763,11 @@ export default function GestioneFormazionePage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
             <Star size={20} fill="var(--neon-blue)" color="var(--neon-blue)" />
             <div>
+              <div style={{ fontSize: '14px', opacity: 0.8, marginBottom: '4px' }}>
+                {t('coachActiveTitle')}
+              </div>
               <div style={{ fontSize: '16px', fontWeight: 600, marginBottom: '4px' }}>
-                {t('coachActiveTitle')}: {activeCoach.coach_name}
+                {activeCoach.coach_name}
               </div>
               {activeCoach.team && (
                 <div style={{ fontSize: '14px', opacity: 0.8 }}>
@@ -780,7 +783,7 @@ export default function GestioneFormazionePage() {
                 .slice(0, 3)
                 .map(([style, value]) => (
                   <span key={style} style={{ marginRight: '12px' }}>
-                    {style.replace(/_/g, ' ')}: <strong>{value}</strong>
+                    {t(style) || style.replace(/_/g, ' ')}: <strong>{value}</strong>
                   </span>
                 ))}
             </div>
