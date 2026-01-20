@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { useTranslation } from '@/lib/i18n'
 import LanguageSwitch from '@/components/LanguageSwitch'
-import { ArrowLeft, Upload, AlertCircle, CheckCircle2, X, Trash2, Star, User, Info } from 'lucide-react'
+import { ArrowLeft, Upload, AlertCircle, CheckCircle2, X, Trash2, Star, User, Info, Plus } from 'lucide-react'
 
 export default function AllenatoriPage() {
   const { t } = useTranslation()
@@ -15,7 +15,7 @@ export default function AllenatoriPage() {
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState(null)
   const [showUploadModal, setShowUploadModal] = React.useState(false)
-  const [uploadImage, setUploadImage] = React.useState(null)
+  const [uploadImages, setUploadImages] = React.useState([]) // Array per 2 foto
   const [uploading, setUploading] = React.useState(false)
   const [selectedCoach, setSelectedCoach] = React.useState(null)
   const [showDetailsModal, setShowDetailsModal] = React.useState(false)
@@ -46,7 +46,7 @@ export default function AllenatoriPage() {
           .order('created_at', { ascending: false })
 
         if (coachesError) {
-          throw new Error(coachesError.message || 'Errore caricamento allenatori')
+          throw new Error(coachesError.message || t('coachLoadError'))
         }
 
         setCoaches(coachesData || [])
@@ -54,7 +54,7 @@ export default function AllenatoriPage() {
         setActiveCoach(active || null)
       } catch (err) {
         console.error('[Allenatori] Fetch error:', err)
-        setError(err.message || 'Errore caricamento dati')
+        setError(err.message || t('coachDataLoadError'))
       } finally {
         setLoading(false)
       }
@@ -63,27 +63,58 @@ export default function AllenatoriPage() {
     fetchCoaches()
   }, [router])
 
-  const handleImageSelect = (e) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+  const handleImageSelect = (files) => {
+    const fileArray = Array.from(files || [])
+    if (fileArray.length === 0) return
 
-    if (!file.type.startsWith('image/')) {
-      setError('Seleziona un file immagine')
+    const validFiles = fileArray.filter(f => f.type.startsWith('image/'))
+    if (validFiles.length === 0) {
+      setError(t('selectImageFile'))
       return
     }
 
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      setUploadImage({
-        file,
-        dataUrl: e.target.result
-      })
+    // Max 2 foto
+    if (uploadImages.length + validFiles.length > 2) {
+      setError(t('maxTwoPhotos'))
+      return
     }
-    reader.readAsDataURL(file)
+
+    validFiles.forEach((file, index) => {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        const newImage = {
+          id: Date.now() + index,
+          file,
+          dataUrl: e.target.result,
+          type: uploadImages.length === 0 ? 'main' : 'connection' // Prima foto = main, seconda = connection
+        }
+        setUploadImages(prev => [...prev, newImage])
+      }
+      reader.readAsDataURL(file)
+    })
+  }
+
+  const handleFileInputChange = (e) => {
+    handleImageSelect(e.target.files)
+    // Reset input per permettere di selezionare lo stesso file di nuovo
+    e.target.value = ''
+  }
+
+  const handleDrop = (e) => {
+    e.preventDefault()
+    handleImageSelect(e.dataTransfer.files)
+  }
+
+  const handleDragOver = (e) => {
+    e.preventDefault()
+  }
+
+  const removeImage = (id) => {
+    setUploadImages(prev => prev.filter(img => img.id !== id))
   }
 
   const handleUploadCoach = async () => {
-    if (!uploadImage) return
+    if (uploadImages.length === 0) return
 
     setUploading(true)
     setError(null)
@@ -91,35 +122,77 @@ export default function AllenatoriPage() {
     try {
       const { data: session } = await supabase.auth.getSession()
       if (!session?.session?.access_token) {
-        throw new Error('Sessione scaduta')
+        throw new Error(t('sessionExpired'))
       }
 
       const token = session.session.access_token
 
-      // Estrai dati dall'immagine
-      const extractRes = await fetch('/api/extract-coach', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageDataUrl: uploadImage.dataUrl })
-      })
+      // Estrai dati da tutte le immagini (max 2)
+      let coachData = null
+      let allExtractedData = {}
+      const photoSlots = {}
+      const errors = []
 
-      const extractData = await extractRes.json()
-      if (!extractRes.ok) {
-        const errorMsg = extractData.error || 'Errore estrazione dati'
-        if (errorMsg.includes('quota') || errorMsg.includes('billing')) {
-          throw new Error('Quota OpenAI esaurita. Controlla il tuo piano e i dettagli di fatturazione su https://platform.openai.com/account/billing')
+      for (const img of uploadImages) {
+        const extractRes = await fetch('/api/extract-coach', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageDataUrl: img.dataUrl })
+        })
+
+        const extractData = await extractRes.json()
+        if (!extractRes.ok) {
+          const errorMsg = extractData.error || t('unknownError')
+          console.warn('[UploadCoach] Errore estrazione:', errorMsg)
+          errors.push(errorMsg)
+          continue
         }
-        throw new Error(errorMsg)
+
+        if (extractData.coach) {
+          // Prima immagine = dati base
+          if (!coachData) {
+            coachData = extractData.coach
+            photoSlots.main = true
+          } else {
+            // Seconda immagine = merge dati (specialmente connection)
+            coachData = {
+              ...coachData,
+              ...extractData.coach,
+              // Mantieni connection dalla seconda foto se presente
+              connection: extractData.coach.connection || coachData.connection,
+              // Merge competenze (mantieni valori più alti)
+              playing_style_competence: {
+                ...coachData.playing_style_competence,
+                ...extractData.coach.playing_style_competence
+              },
+              // Merge booster
+              stat_boosters: [
+                ...(coachData.stat_boosters || []),
+                ...(extractData.coach.stat_boosters || [])
+              ]
+            }
+            photoSlots.connection = true
+          }
+          allExtractedData[img.type] = extractData.coach
+        }
       }
 
-      if (!extractData.coach || !extractData.coach.coach_name) {
-        throw new Error('Errore: dati allenatore non estratti. Verifica l\'immagine e riprova.')
+      // Verifica che almeno la prima foto abbia estratto dati
+      if (!coachData || !coachData.coach_name) {
+        if (errors.length > 0) {
+          const quotaError = errors.find(e => e.includes('quota') || e.includes('billing'))
+          if (quotaError) {
+            throw new Error(t('openAQuotaError'))
+          }
+          throw new Error(`${t('coachExtractError')}: ${errors[0]}`)
+        }
+        throw new Error(t('coachExtractError'))
       }
 
-      // Salva allenatore
-      const coachData = {
-        ...extractData.coach,
-        photo_slots: { main: true }
+      // Salva allenatore con photo_slots tracciato
+      const finalCoachData = {
+        ...coachData,
+        photo_slots: photoSlots
       }
 
       const saveRes = await fetch('/api/supabase/save-coach', {
@@ -128,19 +201,19 @@ export default function AllenatoriPage() {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ coach: coachData })
+        body: JSON.stringify({ coach: finalCoachData })
       })
 
       const saveData = await saveRes.json()
       if (!saveRes.ok) {
-        throw new Error(saveData.error || 'Errore salvataggio allenatore')
+        throw new Error(saveData.error || t('coachSaveError'))
       }
 
       // Ricarica lista
       window.location.reload()
     } catch (err) {
       console.error('[Allenatori] Upload error:', err)
-      setError(err.message || 'Errore caricamento allenatore')
+      setError(err.message || t('coachUploadError'))
     } finally {
       setUploading(false)
     }
@@ -152,7 +225,7 @@ export default function AllenatoriPage() {
     try {
       const { data: session } = await supabase.auth.getSession()
       if (!session?.session?.access_token) {
-        throw new Error('Sessione scaduta')
+        throw new Error(t('sessionExpired'))
       }
 
       const token = session.session.access_token
@@ -168,14 +241,14 @@ export default function AllenatoriPage() {
 
       const data = await res.json()
       if (!res.ok) {
-        throw new Error(data.error || 'Errore impostazione allenatore attivo')
+        throw new Error(data.error || t('coachSetActiveError'))
       }
 
       // Ricarica lista
       window.location.reload()
     } catch (err) {
       console.error('[Allenatori] Set active error:', err)
-      setError(err.message || 'Errore impostazione allenatore attivo')
+      setError(err.message || t('coachSetActiveError'))
     }
   }
 
@@ -191,14 +264,14 @@ export default function AllenatoriPage() {
         .eq('id', coachId)
 
       if (deleteError) {
-        throw new Error(deleteError.message || 'Errore eliminazione allenatore')
+        throw new Error(deleteError.message || t('coachDeleteError'))
       }
 
       // Ricarica lista
       window.location.reload()
     } catch (err) {
       console.error('[Allenatori] Delete error:', err)
-      setError(err.message || 'Errore eliminazione allenatore')
+      setError(err.message || t('coachDeleteError'))
     }
   }
 
@@ -327,7 +400,7 @@ export default function AllenatoriPage() {
                       <div style={{ marginBottom: '12px', fontSize: '12px', opacity: 0.7 }}>
                         {Object.entries(coach.playing_style_competence).slice(0, 2).map(([style, value]) => (
                           <div key={style} style={{ marginBottom: '4px' }}>
-                            {style.replace(/_/g, ' ')}: {value}
+                            {t(style) || style.replace(/_/g, ' ')}: {value}
                           </div>
                         ))}
                       </div>
@@ -410,7 +483,7 @@ export default function AllenatoriPage() {
             <button
               onClick={() => {
                 setShowUploadModal(false)
-                setUploadImage(null)
+                setUploadImages([])
               }}
               style={{
                 position: 'absolute',
@@ -427,41 +500,135 @@ export default function AllenatoriPage() {
             </button>
 
             <h2 style={{ fontSize: '24px', marginBottom: '20px' }}>{t('uploadCoach')}</h2>
-
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px' }}>
-                {t('selectCoachScreenshot')}
-              </label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageSelect}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  background: 'rgba(0, 212, 255, 0.05)',
-                  border: '2px solid rgba(0, 212, 255, 0.3)',
-                  borderRadius: '8px',
-                  color: 'white'
-                }}
-              />
+            <div style={{ fontSize: '14px', opacity: 0.8, marginBottom: '20px' }}>
+              {t('uploadCoachInstructions')}
             </div>
 
-            {uploadImage && (
-              <div style={{ marginBottom: '20px' }}>
-                <img
-                  src={uploadImage.dataUrl}
-                  alt="Preview"
-                  style={{ width: '100%', borderRadius: '8px', border: '2px solid rgba(0, 212, 255, 0.3)' }}
-                />
-              </div>
-            )}
+            {/* Drag & Drop Area */}
+            <div
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              style={{
+                marginBottom: '20px',
+                padding: uploadImages.length === 0 ? '48px' : '24px',
+                border: '2px dashed rgba(0, 212, 255, 0.3)',
+                borderRadius: '8px',
+                background: 'rgba(0, 212, 255, 0.05)',
+                textAlign: 'center',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                minHeight: uploadImages.length === 0 ? '200px' : 'auto'
+              }}
+              onMouseEnter={(e) => {
+                if (uploadImages.length < 2) {
+                  e.currentTarget.style.borderColor = 'var(--neon-blue)'
+                  e.currentTarget.style.background = 'rgba(0, 212, 255, 0.1)'
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'rgba(0, 212, 255, 0.3)'
+                e.currentTarget.style.background = 'rgba(0, 212, 255, 0.05)'
+              }}
+              onClick={() => {
+                if (uploadImages.length < 2) {
+                  document.getElementById('coach-file-input')?.click()
+                }
+              }}
+            >
+              {uploadImages.length === 0 ? (
+                <>
+                  <Upload size={32} style={{ marginBottom: '12px', color: 'var(--neon-blue)' }} />
+                  <div style={{ fontSize: '14px', marginBottom: '8px' }}>
+                    {t('dragDropPhotos')}
+                  </div>
+                  <div style={{ fontSize: '12px', opacity: 0.6 }}>
+                    {t('maxTwoPhotosFormat')}
+                  </div>
+                </>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                  {uploadImages.map((img) => (
+                    <div key={img.id} style={{ position: 'relative' }}>
+                      <img
+                        src={img.dataUrl}
+                        alt={`Preview ${img.type}`}
+                        style={{
+                          width: '100%',
+                          borderRadius: '8px',
+                          border: '2px solid rgba(0, 212, 255, 0.3)',
+                          maxHeight: '200px',
+                          objectFit: 'contain'
+                        }}
+                      />
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          removeImage(img.id)
+                        }}
+                        style={{
+                          position: 'absolute',
+                          top: '8px',
+                          right: '8px',
+                          background: 'rgba(239, 68, 68, 0.9)',
+                          border: 'none',
+                          borderRadius: '50%',
+                          width: '28px',
+                          height: '28px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'white'
+                        }}
+                      >
+                        <X size={16} />
+                      </button>
+                      <div style={{ fontSize: '11px', opacity: 0.7, marginTop: '4px', textAlign: 'center' }}>
+                        {img.type === 'main' ? t('mainPhoto') : t('connectionPhoto')}
+                      </div>
+                    </div>
+                  ))}
+                  {uploadImages.length < 2 && (
+                    <div
+                      style={{
+                        border: '2px dashed rgba(0, 212, 255, 0.3)',
+                        borderRadius: '8px',
+                        padding: '32px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        background: 'rgba(0, 212, 255, 0.03)',
+                        minHeight: '200px'
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        document.getElementById('coach-file-input')?.click()
+                      }}
+                    >
+                      <Plus size={24} style={{ marginBottom: '8px', color: 'var(--neon-blue)' }} />
+                      <div style={{ fontSize: '12px', opacity: 0.8 }}>{t('addPhoto')}</div>
+                    </div>
+                  )}
+                </div>
+              )}
+              <input
+                id="coach-file-input"
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleFileInputChange}
+                style={{ display: 'none' }}
+                disabled={uploading || uploadImages.length >= 2}
+              />
+            </div>
 
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
               <button
                 onClick={() => {
                   setShowUploadModal(false)
-                  setUploadImage(null)
+                  setUploadImages([])
                 }}
                 className="btn"
                 disabled={uploading}
@@ -471,7 +638,7 @@ export default function AllenatoriPage() {
               <button
                 onClick={handleUploadCoach}
                 className="btn primary"
-                disabled={!uploadImage || uploading}
+                disabled={uploadImages.length === 0 || uploading}
               >
                 {uploading ? t('loading') : t('upload')}
               </button>
@@ -536,7 +703,7 @@ export default function AllenatoriPage() {
                 <div style={{ display: 'grid', gap: '8px', fontSize: '14px' }}>
                   {Object.entries(selectedCoach.playing_style_competence).map(([style, value]) => (
                     <div key={style} style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>{style.replace(/_/g, ' ')}:</span>
+                      <span>{t(style) || style.replace(/_/g, ' ')}:</span>
                       <strong>{value}</strong>
                     </div>
                   ))}
