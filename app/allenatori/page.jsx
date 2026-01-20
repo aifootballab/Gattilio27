@@ -451,9 +451,16 @@ export default function AllenatoriPage() {
                 background: 'rgba(0, 212, 255, 0.05)',
                 border: '2px solid var(--neon-blue)'
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
                   <Star size={18} fill="var(--neon-blue)" color="var(--neon-blue)" />
-                  <strong>{t('activeCoach')}:</strong> {activeCoach.coach_name}
+                  <div>
+                    <div style={{ fontSize: '14px', opacity: 0.8, marginBottom: '4px' }}>
+                      {t('activeCoach')}
+                    </div>
+                    <div style={{ fontSize: '16px', fontWeight: 600 }}>
+                      {activeCoach.coach_name}
+                    </div>
+                  </div>
                 </div>
                 <div style={{ fontSize: '14px', opacity: 0.8 }}>
                   {t('activeCoachInfo')}
