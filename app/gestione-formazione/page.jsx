@@ -186,6 +186,66 @@ export default function GestioneFormazionePage() {
     setError(null)
 
     try {
+      // Validazione duplicati: verifica se stesso giocatore (nome+età) già presente nei titolari
+      const playerToAssign = riserve.find(p => p.id === playerId)
+      if (playerToAssign) {
+        const playerName = String(playerToAssign.player_name || '').trim().toLowerCase()
+        const playerAge = playerToAssign.age != null ? Number(playerToAssign.age) : null
+        
+        const duplicatePlayer = titolari.find(p => {
+          const pName = String(p.player_name || '').trim().toLowerCase()
+          const pAge = p.age != null ? Number(p.age) : null
+          
+          // Match esatto se nome+età corrispondono
+          if (playerName && pName && playerAge && pAge) {
+            return pName === playerName && pAge === playerAge && p.slot_index !== selectedSlot.slot_index
+          }
+          // Fallback: solo nome se età non disponibile
+          if (playerName && pName) {
+            return pName === playerName && p.slot_index !== selectedSlot.slot_index
+          }
+          return false
+        })
+
+        if (duplicatePlayer) {
+          const confirmMsg = `Il giocatore "${playerToAssign.player_name}"${playerAge ? ` (${playerAge} anni)` : ''} è già presente in formazione nello slot ${duplicatePlayer.slot_index}. Vuoi sostituirlo?`
+          if (!window.confirm(confirmMsg)) {
+            return
+          }
+          
+          // Verifica duplicati riserve prima di rimuovere vecchio titolare
+          const duplicateReserve = riserve.find(p => {
+            const pName = String(p.player_name || '').trim().toLowerCase()
+            const pAge = p.age != null ? Number(p.age) : null
+            return pName === playerName && 
+                   (playerAge ? pAge === playerAge : true) &&
+                   p.id !== duplicatePlayer.id &&
+                   p.id !== playerId // Escludi riserva che stiamo assegnando
+          })
+          
+          if (duplicateReserve) {
+            // Elimina duplicato riserva prima di rimuovere titolare
+            const { data: session } = await supabase.auth.getSession()
+            if (!session?.session?.access_token) {
+              throw new Error('Sessione scaduta')
+            }
+            
+            const deleteRes = await fetch('/api/supabase/delete-player', {
+              method: 'DELETE',
+              headers: {
+                'Authorization': `Bearer ${session.session.access_token}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ player_id: duplicateReserve.id })
+            })
+            if (!deleteRes.ok) {
+              const deleteData = await deleteRes.json()
+              throw new Error(deleteData.error || 'Errore eliminazione giocatore duplicato riserva')
+            }
+          }
+        }
+      }
+
       const { data: session } = await supabase.auth.getSession()
       if (!session?.session?.access_token) {
         throw new Error('Sessione scaduta')
@@ -232,17 +292,54 @@ export default function GestioneFormazionePage() {
         throw new Error('Sessione scaduta')
       }
 
-      // Rimuovi da slot (torna riserva)
-      const { error: updateError } = await supabase
-        .from('players')
-        .update({ 
-          slot_index: null,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', playerId)
+      // Rimuovi da slot tramite endpoint API
+      const res = await fetch('/api/supabase/remove-player-from-slot', {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${session.session.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ player_id: playerId })
+      })
 
-      if (updateError) {
-        throw new Error(updateError.message || 'Errore rimozione')
+      const data = await res.json()
+      if (!res.ok) {
+        // Se è errore di duplicato riserva, gestisci
+        if (data.duplicate_reserve_id) {
+          const confirmMsg = `Il giocatore "${data.duplicate_player_name || 'questo giocatore'}"${data.duplicate_player_age ? ` (${data.duplicate_player_age} anni)` : ''} è già presente nelle riserve. Vuoi eliminare il duplicato nelle riserve?`
+          if (window.confirm(confirmMsg)) {
+            // Elimina duplicato riserva
+            const deleteRes = await fetch('/api/supabase/delete-player', {
+              method: 'DELETE',
+              headers: {
+                'Authorization': `Bearer ${session.session.access_token}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ player_id: data.duplicate_reserve_id })
+            })
+            if (deleteRes.ok) {
+              // Riprova rimozione
+              const retryRes = await fetch('/api/supabase/remove-player-from-slot', {
+                method: 'PATCH',
+                headers: {
+                  'Authorization': `Bearer ${session.session.access_token}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ player_id: playerId })
+              })
+              const retryData = await retryRes.json()
+              if (!retryRes.ok) {
+                throw new Error(retryData.error || 'Errore rimozione dopo eliminazione duplicato')
+              }
+            } else {
+              throw new Error('Errore eliminazione giocatore duplicato riserva')
+            }
+          } else {
+            throw new Error('Operazione annullata: giocatore già presente nelle riserve')
+          }
+        } else {
+          throw new Error(data.error || 'Errore rimozione')
+        }
       }
 
       // Ricarica dati
@@ -250,6 +347,52 @@ export default function GestioneFormazionePage() {
     } catch (err) {
       console.error('[GestioneFormazione] Remove error:', err)
       setError(err.message || 'Errore rimozione giocatore')
+    } finally {
+      setAssigning(false)
+    }
+  }
+
+  // Elimina definitivamente giocatore (sia titolare che riserva)
+  const handleDeletePlayer = async (playerId) => {
+    if (!supabase) return
+
+    if (!confirm('Sei sicuro di voler eliminare definitivamente questo giocatore? Questa azione non può essere annullata.')) {
+      return
+    }
+
+    setAssigning(true)
+    setError(null)
+
+    try {
+      const { data: session } = await supabase.auth.getSession()
+      if (!session?.session?.access_token) {
+        throw new Error('Sessione scaduta')
+      }
+
+      // Elimina giocatore tramite endpoint API
+      const res = await fetch('/api/supabase/delete-player', {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${session.session.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ player_id: playerId })
+      })
+
+      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data.error || 'Errore eliminazione')
+      }
+
+      // Chiudi modal se aperto
+      setShowAssignModal(false)
+      setSelectedSlot(null)
+
+      // Ricarica dati
+      window.location.reload()
+    } catch (err) {
+      console.error('[GestioneFormazione] Delete player error:', err)
+      setError(err.message || 'Errore eliminazione giocatore')
     } finally {
       setAssigning(false)
     }
@@ -426,6 +569,32 @@ export default function GestioneFormazionePage() {
         if (!window.confirm(confirmMsg)) {
           return
         }
+        
+        // Verifica duplicati riserve prima di rimuovere vecchio titolare
+        const duplicateReserve = riserve.find(p => {
+          const pName = String(p.player_name || '').trim().toLowerCase()
+          const pAge = p.age != null ? Number(p.age) : null
+          return pName === playerName && 
+                 (playerAge ? pAge === playerAge : true) &&
+                 p.id !== duplicatePlayer.id
+        })
+        
+        if (duplicateReserve) {
+          // Elimina duplicato riserva prima di rimuovere titolare
+          const deleteRes = await fetch('/api/supabase/delete-player', {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ player_id: duplicateReserve.id })
+          })
+          if (!deleteRes.ok) {
+            const deleteData = await deleteRes.json()
+            throw new Error(deleteData.error || 'Errore eliminazione giocatore duplicato riserva')
+          }
+        }
+        
         // Rimuovi vecchio giocatore (torna riserva)
         await supabase
           .from('players')
@@ -750,6 +919,45 @@ export default function GestioneFormazionePage() {
         throw new Error('Errore: dati giocatore non estratti. Verifica le immagini e riprova.')
       }
 
+      // Validazione duplicati riserve: verifica se stesso giocatore (nome+età) già presente nelle riserve
+      const playerName = String(playerData.player_name || '').trim().toLowerCase()
+      const playerAge = playerData.age != null ? Number(playerData.age) : null
+      
+      const duplicateReserve = riserve.find(p => {
+        const pName = String(p.player_name || '').trim().toLowerCase()
+        const pAge = p.age != null ? Number(p.age) : null
+        
+        // Match esatto se nome+età corrispondono
+        if (playerName && pName && playerAge && pAge) {
+          return pName === playerName && pAge === playerAge
+        }
+        // Fallback: solo nome se età non disponibile
+        if (playerName && pName) {
+          return pName === playerName
+        }
+        return false
+      })
+
+      if (duplicateReserve) {
+        const confirmMsg = `Il giocatore "${playerData.player_name}"${playerAge ? ` (${playerAge} anni)` : ''} è già presente nelle riserve. Vuoi sostituirlo con i nuovi dati?`
+        if (!window.confirm(confirmMsg)) {
+          return
+        }
+        // Elimina vecchio giocatore riserva
+        const deleteRes = await fetch('/api/supabase/delete-player', {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ player_id: duplicateReserve.id })
+        })
+        if (!deleteRes.ok) {
+          const deleteData = await deleteRes.json()
+          throw new Error(deleteData.error || 'Errore eliminazione giocatore duplicato')
+        }
+      }
+
       // Salva come riserva (slot_index = null)
       const saveRes = await fetch('/api/supabase/save-player', {
         method: 'POST',
@@ -768,7 +976,48 @@ export default function GestioneFormazionePage() {
 
       const saveData = await saveRes.json()
       if (!saveRes.ok) {
-        throw new Error(saveData.error || 'Errore salvataggio giocatore')
+        // Se è un errore di duplicato riserva, mostra messaggio chiaro
+        if (saveData.is_reserve && saveData.duplicate_player_id) {
+          const confirmMsg = `Il giocatore "${playerData.player_name}"${playerAge ? ` (${playerAge} anni)` : ''} è già presente nelle riserve. Vuoi sostituirlo con i nuovi dati?`
+          if (window.confirm(confirmMsg)) {
+            // Elimina vecchio giocatore e riprova
+            const deleteRes = await fetch('/api/supabase/delete-player', {
+              method: 'DELETE',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ player_id: saveData.duplicate_player_id })
+            })
+            if (deleteRes.ok) {
+              // Riprova salvataggio
+              const retryRes = await fetch('/api/supabase/save-player', {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  player: {
+                    ...playerData,
+                    slot_index: null,
+                    photo_slots: photoSlots
+                  }
+                })
+              })
+              const retryData = await retryRes.json()
+              if (!retryRes.ok) {
+                throw new Error(retryData.error || 'Errore salvataggio giocatore dopo sostituzione')
+              }
+            } else {
+              throw new Error('Errore eliminazione giocatore duplicato')
+            }
+          } else {
+            return // Utente ha annullato
+          }
+        } else {
+          throw new Error(saveData.error || 'Errore salvataggio giocatore')
+        }
       }
 
       setShowUploadReserveModal(false)
@@ -1735,7 +1984,7 @@ function ReserveCard({ player, onClick, disabled, onDelete }) {
 }
 
 // Assign Modal Component
-function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUploadPhoto, onRemove, onClose, assigning }) {
+function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUploadPhoto, onRemove, onDelete, onClose, assigning }) {
   const { t } = useTranslation()
   const router = useRouter()
   const [expandedSections, setExpandedSections] = React.useState({
@@ -2327,6 +2576,26 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
                 >
                   <X size={16} />
                   {t('removeFromSlot')}
+                </button>
+              )}
+              {onDelete && (
+                <button
+                  onClick={onDelete}
+                  className="btn"
+                  style={{ 
+                    width: '100%', 
+                    background: 'rgba(220, 38, 38, 0.3)',
+                    borderColor: '#dc2626',
+                    color: '#dc2626',
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '8px', 
+                    justifyContent: 'center',
+                    marginTop: '8px'
+                  }}
+                >
+                  <X size={16} />
+                  {t('deletePermanently')}
                 </button>
               )}
             </div>

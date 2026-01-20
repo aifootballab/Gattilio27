@@ -55,12 +55,45 @@ export async function PATCH(req) {
     // Se slot già occupato, libera vecchio giocatore
     const { data: existingPlayerInSlot } = await admin
       .from('players')
-      .select('id, player_name')
+      .select('id, player_name, age')
       .eq('user_id', userId)
       .eq('slot_index', slot_index)
       .maybeSingle()
 
     if (existingPlayerInSlot) {
+      // Validazione duplicati riserve: verifica se stesso giocatore già presente nelle riserve
+      const existingPlayerName = existingPlayerInSlot.player_name?.trim().toLowerCase()
+      const existingPlayerAge = existingPlayerInSlot.age != null ? Number(existingPlayerInSlot.age) : null
+      
+      if (existingPlayerName) {
+        // Cerca duplicati riserve (escludendo questo giocatore)
+        let duplicateQuery = admin
+          .from('players')
+          .select('id, player_name, age')
+          .eq('user_id', userId)
+          .is('slot_index', null)
+          .neq('id', existingPlayerInSlot.id)
+          .ilike('player_name', existingPlayerName)
+        
+        const { data: duplicates, error: dupError } = await duplicateQuery
+        
+        if (!dupError && duplicates && duplicates.length > 0) {
+          // Filtra per età se disponibile
+          const exactDuplicates = existingPlayerAge != null
+            ? duplicates.filter(p => p.age != null && Number(p.age) === existingPlayerAge)
+            : duplicates
+          
+          if (exactDuplicates.length > 0) {
+            // Elimina duplicato riserva prima di liberare slot
+            await admin
+              .from('players')
+              .delete()
+              .eq('id', exactDuplicates[0].id)
+              .eq('user_id', userId)
+          }
+        }
+      }
+      
       // Libera vecchio slot (torna riserva)
       await admin
         .from('players')

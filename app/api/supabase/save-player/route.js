@@ -113,13 +113,13 @@ export async function POST(req) {
         : {}
     }
 
-    // Validazione duplicati: se slot_index non null (titolare), verifica duplicati usando nome+età
-    if (playerData.slot_index !== null) {
-      const playerName = playerData.player_name?.trim().toLowerCase()
-      const playerAge = playerData.age
-      
-      if (playerName) {
-        // Cerca giocatori con stesso nome+età nei titolari
+    // Validazione duplicati: verifica duplicati usando nome+età
+    const playerName = playerData.player_name?.trim().toLowerCase()
+    const playerAge = playerData.age
+    
+    if (playerName) {
+      if (playerData.slot_index !== null) {
+        // Validazione duplicati TITOLARI
         let duplicateQuery = admin
           .from('players')
           .select('id, player_name, age, slot_index')
@@ -142,6 +142,35 @@ export async function POST(req) {
                 error: `Player "${playerData.player_name}"${playerAge ? ` (${playerAge} anni)` : ''} already in starting lineup at slot ${dup.slot_index}`,
                 duplicate_slot: dup.slot_index,
                 duplicate_player_id: dup.id
+              },
+              { status: 400 }
+            )
+          }
+        }
+      } else {
+        // Validazione duplicati RISERVE
+        let duplicateQuery = admin
+          .from('players')
+          .select('id, player_name, age, slot_index')
+          .eq('user_id', userId)
+          .is('slot_index', null)
+          .ilike('player_name', playerName)
+        
+        const { data: duplicates, error: dupError } = await duplicateQuery
+        
+        if (!dupError && duplicates && duplicates.length > 0) {
+          // Filtra per età se disponibile
+          const exactDuplicates = playerAge != null
+            ? duplicates.filter(p => p.age != null && Number(p.age) === Number(playerAge))
+            : duplicates
+          
+          if (exactDuplicates.length > 0) {
+            const dup = exactDuplicates[0]
+            return NextResponse.json(
+              { 
+                error: `Player "${playerData.player_name}"${playerAge ? ` (${playerAge} anni)` : ''} already exists in reserves`,
+                duplicate_player_id: dup.id,
+                is_reserve: true
               },
               { status: 400 }
             )
