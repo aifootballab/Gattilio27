@@ -38,25 +38,33 @@ CREATE TABLE IF NOT EXISTS team_tactical_settings (
 CREATE INDEX IF NOT EXISTS idx_team_tactical_settings_user_id 
 ON team_tactical_settings(user_id);
 
--- RLS (stesso pattern di formation_layout)
+-- RLS (stesso pattern di formation_layout e coaches)
 ALTER TABLE team_tactical_settings ENABLE ROW LEVEL SECURITY;
 
+-- SELECT Policy
+DROP POLICY IF EXISTS "Users can view own settings" ON team_tactical_settings;
 CREATE POLICY "Users can view own settings"
   ON team_tactical_settings FOR SELECT
-  USING (auth.uid() = user_id);
+  USING ((select auth.uid()) = user_id);
 
+-- INSERT Policy
+DROP POLICY IF EXISTS "Users can insert own settings" ON team_tactical_settings;
 CREATE POLICY "Users can insert own settings"
   ON team_tactical_settings FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+  WITH CHECK ((select auth.uid()) = user_id);
 
+-- UPDATE Policy
+DROP POLICY IF EXISTS "Users can update own settings" ON team_tactical_settings;
 CREATE POLICY "Users can update own settings"
   ON team_tactical_settings FOR UPDATE
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
+  USING ((select auth.uid()) = user_id)
+  WITH CHECK ((select auth.uid()) = user_id);
 
+-- DELETE Policy
+DROP POLICY IF EXISTS "Users can delete own settings" ON team_tactical_settings;
 CREATE POLICY "Users can delete own settings"
   ON team_tactical_settings FOR DELETE
-  USING (auth.uid() = user_id);
+  USING ((select auth.uid()) = user_id);
 
 -- Trigger updated_at (stesso pattern di formation_layout)
 CREATE OR REPLACE FUNCTION update_team_tactical_settings_updated_at()
