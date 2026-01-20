@@ -186,61 +186,75 @@ export default function GestioneFormazionePage() {
     setError(null)
 
     try {
-      // Validazione duplicati: verifica se stesso giocatore (nome+età) già presente nei titolari
+      // CONTROLLI INCROCIATI: verifica duplicati sia in campo che in riserve
       const playerToAssign = riserve.find(p => p.id === playerId)
-      if (playerToAssign) {
-        const playerName = String(playerToAssign.player_name || '').trim().toLowerCase()
-        const playerAge = playerToAssign.age != null ? Number(playerToAssign.age) : null
+      if (!playerToAssign) {
+        throw new Error('Giocatore non trovato nelle riserve')
+      }
+      
+      const playerName = String(playerToAssign.player_name || '').trim().toLowerCase()
+      const playerAge = playerToAssign.age != null ? Number(playerToAssign.age) : null
+      
+      // 1. Verifica duplicati in CAMPO (titolari)
+      const duplicateInField = titolari.find(p => {
+        const pName = String(p.player_name || '').trim().toLowerCase()
+        const pAge = p.age != null ? Number(p.age) : null
         
-        const duplicatePlayer = titolari.find(p => {
-          const pName = String(p.player_name || '').trim().toLowerCase()
-          const pAge = p.age != null ? Number(p.age) : null
-          
-          // Match esatto se nome+età corrispondono
-          if (playerName && pName && playerAge && pAge) {
-            return pName === playerName && pAge === playerAge && p.slot_index !== selectedSlot.slot_index
-          }
-          // Fallback: solo nome se età non disponibile
-          if (playerName && pName) {
-            return pName === playerName && p.slot_index !== selectedSlot.slot_index
-          }
-          return false
-        })
+        // Match esatto se nome+età corrispondono
+        if (playerName && pName && playerAge && pAge) {
+          return pName === playerName && pAge === playerAge && p.slot_index !== selectedSlot.slot_index
+        }
+        // Fallback: solo nome se età non disponibile
+        if (playerName && pName) {
+          return pName === playerName && p.slot_index !== selectedSlot.slot_index
+        }
+        return false
+      })
 
-        if (duplicatePlayer) {
-          const confirmMsg = `Il giocatore "${playerToAssign.player_name}"${playerAge ? ` (${playerAge} anni)` : ''} è già presente in formazione nello slot ${duplicatePlayer.slot_index}. Vuoi sostituirlo?`
-          if (!window.confirm(confirmMsg)) {
-            return
+      // 2. Verifica duplicati in RISERVE (oltre a quello che stiamo assegnando)
+      const duplicateInReserves = riserve.filter(p => {
+        const pName = String(p.player_name || '').trim().toLowerCase()
+        const pAge = p.age != null ? Number(p.age) : null
+        return p.id !== playerId && // Escludi riserva che stiamo assegnando
+               pName === playerName && 
+               (playerAge ? pAge === playerAge : (playerAge === null && pAge === null))
+      })
+
+      // Se ci sono duplicati, gestisci
+      if (duplicateInField || duplicateInReserves.length > 0) {
+        let errorMsg = `Il giocatore "${playerToAssign.player_name}"${playerAge ? ` (${playerAge} anni)` : ''} è già presente:`
+        if (duplicateInField) {
+          errorMsg += `\n- In campo nello slot ${duplicateInField.slot_index}`
+        }
+        if (duplicateInReserves.length > 0) {
+          errorMsg += `\n- Nelle riserve (${duplicateInReserves.length} duplicato/i)`
+        }
+        errorMsg += `\n\nVuoi eliminare i duplicati e procedere?`
+        
+        if (!window.confirm(errorMsg)) {
+          setAssigning(false)
+          return
+        }
+        
+        // Elimina duplicati in riserve
+        if (duplicateInReserves.length > 0) {
+          const { data: session } = await supabase.auth.getSession()
+          if (!session?.session?.access_token) {
+            throw new Error('Sessione scaduta')
           }
           
-          // Verifica duplicati riserve prima di rimuovere vecchio titolare
-          const duplicateReserve = riserve.find(p => {
-            const pName = String(p.player_name || '').trim().toLowerCase()
-            const pAge = p.age != null ? Number(p.age) : null
-            return pName === playerName && 
-                   (playerAge ? pAge === playerAge : true) &&
-                   p.id !== duplicatePlayer.id &&
-                   p.id !== playerId // Escludi riserva che stiamo assegnando
-          })
-          
-          if (duplicateReserve) {
-            // Elimina duplicato riserva prima di rimuovere titolare
-            const { data: session } = await supabase.auth.getSession()
-            if (!session?.session?.access_token) {
-              throw new Error('Sessione scaduta')
-            }
-            
+          for (const dup of duplicateInReserves) {
             const deleteRes = await fetch('/api/supabase/delete-player', {
               method: 'DELETE',
               headers: {
                 'Authorization': `Bearer ${session.session.access_token}`,
                 'Content-Type': 'application/json'
               },
-              body: JSON.stringify({ player_id: duplicateReserve.id })
+              body: JSON.stringify({ player_id: dup.id })
             })
             if (!deleteRes.ok) {
               const deleteData = await deleteRes.json()
-              throw new Error(deleteData.error || 'Errore eliminazione giocatore duplicato riserva')
+              throw new Error(deleteData.error || `Errore eliminazione duplicato riserva: ${dup.player_name}`)
             }
           }
         }
@@ -567,6 +581,7 @@ export default function GestioneFormazionePage() {
       if (duplicatePlayer) {
         const confirmMsg = `Il giocatore "${playerData.player_name}"${playerAge ? ` (${playerAge} anni)` : ''} è già presente in formazione nello slot ${duplicatePlayer.slot_index}. Vuoi sostituirlo?`
         if (!window.confirm(confirmMsg)) {
+          setUploadingPlayer(false)
           return
         }
         
@@ -941,6 +956,7 @@ export default function GestioneFormazionePage() {
       if (duplicateReserve) {
         const confirmMsg = `Il giocatore "${playerData.player_name}"${playerAge ? ` (${playerAge} anni)` : ''} è già presente nelle riserve. Vuoi sostituirlo con i nuovi dati?`
         if (!window.confirm(confirmMsg)) {
+          setUploadingReserve(false)
           return
         }
         // Elimina vecchio giocatore riserva

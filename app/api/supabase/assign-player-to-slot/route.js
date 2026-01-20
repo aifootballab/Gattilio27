@@ -121,13 +121,13 @@ export async function PATCH(req) {
         )
       }
 
-      // Validazione duplicati: verifica se stesso giocatore (nome+età) già presente nei titolari
+      // CONTROLLI INCROCIATI: verifica duplicati sia in campo che in riserve
       const playerName = player.player_name?.trim().toLowerCase()
       const playerAge = player.age != null ? Number(player.age) : null
       
       if (playerName) {
-        // Cerca giocatori con stesso nome+età nei titolari (escludendo questo giocatore e lo slot corrente)
-        let duplicateQuery = admin
+        // 1. Verifica duplicati in CAMPO (titolari)
+        let duplicateInFieldQuery = admin
           .from('players')
           .select('id, player_name, age, slot_index')
           .eq('user_id', userId)
@@ -136,16 +136,16 @@ export async function PATCH(req) {
           .neq('slot_index', slot_index)
           .ilike('player_name', playerName)
         
-        const { data: duplicates, error: dupError } = await duplicateQuery
+        const { data: duplicatesInField, error: dupFieldError } = await duplicateInFieldQuery
         
-        if (!dupError && duplicates && duplicates.length > 0) {
+        if (!dupFieldError && duplicatesInField && duplicatesInField.length > 0) {
           // Filtra per età se disponibile
-          const exactDuplicates = playerAge != null
-            ? duplicates.filter(p => p.age != null && Number(p.age) === playerAge)
-            : duplicates
+          const exactDuplicatesInField = playerAge != null
+            ? duplicatesInField.filter(p => p.age != null && Number(p.age) === playerAge)
+            : duplicatesInField
           
-          if (exactDuplicates.length > 0) {
-            const dup = exactDuplicates[0]
+          if (exactDuplicatesInField.length > 0) {
+            const dup = exactDuplicatesInField[0]
             return NextResponse.json(
               { 
                 error: `Player "${player.player_name}"${playerAge ? ` (${playerAge} anni)` : ''} already in starting lineup at slot ${dup.slot_index}`,
@@ -154,6 +154,35 @@ export async function PATCH(req) {
               },
               { status: 400 }
             )
+          }
+        }
+        
+        // 2. Verifica duplicati in RISERVE (oltre a quello che stiamo assegnando)
+        let duplicateInReservesQuery = admin
+          .from('players')
+          .select('id, player_name, age')
+          .eq('user_id', userId)
+          .is('slot_index', null)
+          .neq('id', player_id) // Escludi giocatore che stiamo assegnando
+          .ilike('player_name', playerName)
+        
+        const { data: duplicatesInReserves, error: dupReservesError } = await duplicateInReservesQuery
+        
+        if (!dupReservesError && duplicatesInReserves && duplicatesInReserves.length > 0) {
+          // Filtra per età se disponibile
+          const exactDuplicatesInReserves = playerAge != null
+            ? duplicatesInReserves.filter(p => p.age != null && Number(p.age) === playerAge)
+            : duplicatesInReserves
+          
+          if (exactDuplicatesInReserves.length > 0) {
+            // Elimina duplicati in riserve automaticamente
+            for (const dup of exactDuplicatesInReserves) {
+              await admin
+                .from('players')
+                .delete()
+                .eq('id', dup.id)
+                .eq('user_id', userId)
+            }
           }
         }
       }

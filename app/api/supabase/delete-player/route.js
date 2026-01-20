@@ -27,10 +27,19 @@ export async function DELETE(req) {
     }
 
     const userId = userData.user.id
-    const { player_id } = await req.json()
+    const body = await req.json()
+    const player_id = body?.player_id
 
-    if (!player_id || typeof player_id !== 'string') {
+    if (!player_id) {
       return NextResponse.json({ error: 'player_id is required' }, { status: 400 })
+    }
+
+    // Normalizza player_id (può essere stringa o già UUID)
+    const playerIdStr = String(player_id).trim()
+    
+    // Validazione UUID base (36 caratteri con formato UUID)
+    if (playerIdStr.length !== 36 || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(playerIdStr)) {
+      return NextResponse.json({ error: 'Invalid player_id format' }, { status: 400 })
     }
 
     const admin = createClient(supabaseUrl, serviceKey, {
@@ -41,7 +50,7 @@ export async function DELETE(req) {
     const { data: player, error: fetchError } = await admin
       .from('players')
       .select('id, user_id, player_name')
-      .eq('id', player_id)
+      .eq('id', playerIdStr)
       .eq('user_id', userId)
       .single()
 
@@ -53,7 +62,7 @@ export async function DELETE(req) {
     const { error: deleteError } = await admin
       .from('players')
       .delete()
-      .eq('id', player_id)
+      .eq('id', playerIdStr)
       .eq('user_id', userId)
 
     if (deleteError) {
@@ -66,7 +75,7 @@ export async function DELETE(req) {
 
     return NextResponse.json({
       success: true,
-      player_id: player_id,
+      player_id: playerIdStr,
       player_name: player.player_name
     })
   } catch (err) {
