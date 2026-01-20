@@ -76,7 +76,7 @@ export async function PATCH(req) {
       // Caso 1: Assegna giocatore esistente (da riserve o altro slot)
       const { data: player, error: playerError } = await admin
         .from('players')
-        .select('id, user_id')
+        .select('id, user_id, player_name, age')
         .eq('id', player_id)
         .eq('user_id', userId)
         .single()
@@ -86,6 +86,43 @@ export async function PATCH(req) {
           { error: 'Player not found or unauthorized' },
           { status: 404 }
         )
+      }
+
+      // Validazione duplicati: verifica se stesso giocatore (nome+età) già presente nei titolari
+      const playerName = player.player_name?.trim().toLowerCase()
+      const playerAge = player.age != null ? Number(player.age) : null
+      
+      if (playerName) {
+        // Cerca giocatori con stesso nome+età nei titolari (escludendo questo giocatore e lo slot corrente)
+        let duplicateQuery = admin
+          .from('players')
+          .select('id, player_name, age, slot_index')
+          .eq('user_id', userId)
+          .not('slot_index', 'is', null)
+          .neq('id', player_id)
+          .neq('slot_index', slot_index)
+          .ilike('player_name', playerName)
+        
+        const { data: duplicates, error: dupError } = await duplicateQuery
+        
+        if (!dupError && duplicates && duplicates.length > 0) {
+          // Filtra per età se disponibile
+          const exactDuplicates = playerAge != null
+            ? duplicates.filter(p => p.age != null && Number(p.age) === playerAge)
+            : duplicates
+          
+          if (exactDuplicates.length > 0) {
+            const dup = exactDuplicates[0]
+            return NextResponse.json(
+              { 
+                error: `Player "${player.player_name}"${playerAge ? ` (${playerAge} anni)` : ''} already in starting lineup at slot ${dup.slot_index}`,
+                duplicate_slot: dup.slot_index,
+                duplicate_player_id: dup.id
+              },
+              { status: 400 }
+            )
+          }
+        }
       }
 
       // UPDATE: Assegna slot

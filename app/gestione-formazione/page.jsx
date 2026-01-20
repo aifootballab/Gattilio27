@@ -26,6 +26,7 @@ export default function GestioneFormazionePage() {
   const [uploadingReserve, setUploadingReserve] = React.useState(false)
   const [showUploadPlayerModal, setShowUploadPlayerModal] = React.useState(false)
   const [uploadImages, setUploadImages] = React.useState([])
+  const [uploadReserveImages, setUploadReserveImages] = React.useState([])
   const [uploadingPlayer, setUploadingPlayer] = React.useState(false)
   const [activeCoach, setActiveCoach] = React.useState(null)
   const [tacticalSettings, setTacticalSettings] = React.useState(null)
@@ -338,6 +339,19 @@ export default function GestioneFormazionePage() {
           if (!playerData) {
             playerData = extractData.player
           } else {
+            // Validazione: verifica che nome+età corrispondano (se presenti)
+            const currentName = String(extractData.player.player_name || '').trim().toLowerCase()
+            const currentAge = extractData.player.age != null ? Number(extractData.player.age) : null
+            const existingName = String(playerData.player_name || '').trim().toLowerCase()
+            const existingAge = playerData.age != null ? Number(playerData.age) : null
+            
+            // Se entrambi hanno nome+età, devono corrispondere
+            if (currentName && existingName && currentAge && existingAge) {
+              if (currentName !== existingName || currentAge !== existingAge) {
+                throw new Error(`Le immagini appartengono a giocatori diversi: "${playerData.player_name}" (${existingAge}) vs "${extractData.player.player_name}" (${currentAge}). Verifica le immagini.`)
+              }
+            }
+            
             // Merge dati aggiuntivi
             playerData = {
               ...playerData,
@@ -381,6 +395,40 @@ export default function GestioneFormazionePage() {
           throw new Error(`Errore estrazione dati: ${errors[0]}`)
         }
         throw new Error('Errore: dati giocatore non estratti. Verifica le immagini e riprova.')
+      }
+
+      // Validazione duplicati: verifica se stesso giocatore (nome+età) già presente nei titolari
+      const playerName = String(playerData.player_name || '').trim().toLowerCase()
+      const playerAge = playerData.age != null ? Number(playerData.age) : null
+      
+      const duplicatePlayer = titolari.find(p => {
+        const pName = String(p.player_name || '').trim().toLowerCase()
+        const pAge = p.age != null ? Number(p.age) : null
+        
+        // Match esatto se nome+età corrispondono
+        if (playerName && pName && playerAge && pAge) {
+          return pName === playerName && pAge === pAge && p.slot_index !== selectedSlot.slot_index
+        }
+        // Fallback: solo nome se età non disponibile
+        if (playerName && pName) {
+          return pName === playerName && p.slot_index !== selectedSlot.slot_index
+        }
+        return false
+      })
+
+      if (duplicatePlayer) {
+        const confirmMsg = `Il giocatore "${playerData.player_name}"${playerAge ? ` (${playerAge} anni)` : ''} è già presente in formazione nello slot ${duplicatePlayer.slot_index}. Vuoi sostituirlo?`
+        if (!window.confirm(confirmMsg)) {
+          return
+        }
+        // Rimuovi vecchio giocatore (torna riserva)
+        await supabase
+          .from('players')
+          .update({ 
+            slot_index: null,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', duplicatePlayer.id)
       }
 
       // Salva giocatore e assegna allo slot
@@ -599,7 +647,9 @@ export default function GestioneFormazionePage() {
     }
   }
 
-  const handleUploadReserve = async (imageDataUrl) => {
+  const handleUploadReserve = async () => {
+    if (uploadReserveImages.length === 0) return
+
     setUploadingReserve(true)
     setError(null)
 
@@ -611,31 +661,91 @@ export default function GestioneFormazionePage() {
 
       const token = session.session.access_token
 
-      // 1. Estrai giocatore
-      const extractRes = await fetch('/api/extract-player', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageDataUrl })
-      })
+      // Carica tutte le immagini e estrai dati (stessa logica di handleUploadPlayerToSlot)
+      let playerData = null
+      let allExtractedData = {}
+      const photoSlots = {} // Traccia quali foto sono state caricate
+      const errors = [] // Raccogli errori per mostrare messaggio specifico
 
-      const extractData = await extractRes.json()
-      if (!extractRes.ok) {
-        const errorMsg = extractData.error || 'Errore estrazione dati'
-        // Se c'è un errore di quota OpenAI, mostralo chiaramente
-        if (errorMsg.includes('quota') || errorMsg.includes('billing')) {
-          throw new Error('Quota OpenAI esaurita. Controlla il tuo piano e i dettagli di fatturazione su https://platform.openai.com/account/billing')
+      for (const img of uploadReserveImages) {
+        const extractRes = await fetch('/api/extract-player', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageDataUrl: img.dataUrl })
+        })
+
+        const extractData = await extractRes.json()
+        if (!extractRes.ok) {
+          const errorMsg = extractData.error || 'Errore sconosciuto'
+          console.warn('[UploadReserve] Errore estrazione:', errorMsg)
+          errors.push(errorMsg)
+          continue
         }
-        throw new Error(errorMsg)
+
+        if (extractData.player) {
+          // Merge dati (prima immagine = dati base)
+          if (!playerData) {
+            playerData = extractData.player
+          } else {
+            // Validazione: verifica che nome+età corrispondano (se presenti)
+            const currentName = String(extractData.player.player_name || '').trim().toLowerCase()
+            const currentAge = extractData.player.age != null ? Number(extractData.player.age) : null
+            const existingName = String(playerData.player_name || '').trim().toLowerCase()
+            const existingAge = playerData.age != null ? Number(playerData.age) : null
+            
+            // Se entrambi hanno nome+età, devono corrispondere
+            if (currentName && existingName && currentAge && existingAge) {
+              if (currentName !== existingName || currentAge !== existingAge) {
+                throw new Error(`Le immagini appartengono a giocatori diversi: "${playerData.player_name}" (${existingAge}) vs "${extractData.player.player_name}" (${currentAge}). Verifica le immagini.`)
+              }
+            }
+            
+            // Merge dati aggiuntivi
+            playerData = {
+              ...playerData,
+              ...extractData.player,
+              // Mantieni dati migliori
+              overall_rating: extractData.player.overall_rating || playerData.overall_rating,
+              base_stats: extractData.player.base_stats || playerData.base_stats,
+              skills: extractData.player.skills || playerData.skills,
+              com_skills: extractData.player.com_skills || playerData.com_skills,
+              boosters: extractData.player.boosters || playerData.boosters
+            }
+          }
+          allExtractedData[img.type] = extractData.player
+          
+          // Traccia foto caricate basandosi sul tipo
+          if (img.type === 'card') {
+            photoSlots.card = true
+          } else if (img.type === 'stats') {
+            photoSlots.statistiche = true
+          } else if (img.type === 'skills') {
+            photoSlots.abilita = true
+            // Se ci sono booster estratti dalla stessa foto, traccia anche booster
+            if (extractData.player?.boosters && Array.isArray(extractData.player.boosters) && extractData.player.boosters.length > 0) {
+              photoSlots.booster = true
+            }
+          } else if (img.type === 'booster') {
+            photoSlots.booster = true
+          }
+        }
       }
 
-      if (!extractData.player || !extractData.player.player_name) {
-        throw new Error('Impossibile estrarre dati giocatore')
+      // Se tutte le immagini sono fallite, mostra errore specifico
+      if (!playerData || !playerData.player_name) {
+        if (errors.length > 0) {
+          // Se c'è un errore di quota OpenAI, mostralo chiaramente
+          const quotaError = errors.find(e => e.includes('quota') || e.includes('billing'))
+          if (quotaError) {
+            throw new Error('Quota OpenAI esaurita. Controlla il tuo piano e i dettagli di fatturazione su https://platform.openai.com/account/billing')
+          }
+          // Altrimenti mostra il primo errore specifico
+          throw new Error(`Errore estrazione dati: ${errors[0]}`)
+        }
+        throw new Error('Errore: dati giocatore non estratti. Verifica le immagini e riprova.')
       }
 
-      // 2. Salva come riserva (slot_index = null)
-      // Traccia foto card caricata
-      const photoSlots = { card: true }
-      
+      // Salva come riserva (slot_index = null)
       const saveRes = await fetch('/api/supabase/save-player', {
         method: 'POST',
         headers: {
@@ -644,9 +754,9 @@ export default function GestioneFormazionePage() {
         },
         body: JSON.stringify({
           player: {
-            ...extractData.player,
+            ...playerData,
             slot_index: null, // Riserva
-            photo_slots: photoSlots // Traccia foto card caricata
+            photo_slots: photoSlots // Includi photo_slots tracciati
           }
         })
       })
@@ -657,6 +767,7 @@ export default function GestioneFormazionePage() {
       }
 
       setShowUploadReserveModal(false)
+      setUploadReserveImages([])
       // Ricarica dati
       window.location.reload()
     } catch (err) {
@@ -1213,11 +1324,15 @@ export default function GestioneFormazionePage() {
 
       {/* Modal Upload Riserva */}
       {showUploadReserveModal && (
-        <UploadModal
-          title={t('loadReserve')}
-          description="Carica uno screenshot della card del giocatore"
+        <UploadPlayerModal
+          slot={{ slot_index: null, position: { x: 50, y: 50, position: 'RESERVE' } }}
+          images={uploadReserveImages}
+          onImagesChange={setUploadReserveImages}
           onUpload={handleUploadReserve}
-          onClose={() => setShowUploadReserveModal(false)}
+          onClose={() => {
+            setShowUploadReserveModal(false)
+            setUploadReserveImages([])
+          }}
           uploading={uploadingReserve}
         />
       )}
@@ -2336,7 +2451,7 @@ function UploadPlayerModal({ slot, images, onImagesChange, onUpload, onClose, up
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <h2 style={{ fontSize: '20px', fontWeight: 700, margin: 0 }}>
-            {t('uploadPlayer')} - {t('slot')} {slot.slot_index}
+            {slot.slot_index !== null ? `${t('uploadPlayer')} - ${t('slot')} ${slot.slot_index}` : t('loadReserve')}
           </h2>
           <button
             onClick={onClose}
