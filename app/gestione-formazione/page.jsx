@@ -173,6 +173,19 @@ export default function GestioneFormazionePage() {
     }
   }, [router])
 
+  // Funzione helper per mostrare toast (definita prima delle funzioni che la usano)
+  const showToast = React.useCallback((message, type = 'success') => {
+    setToast({ message, type })
+  }, [])
+
+  // Auto-dismiss toast
+  React.useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 4000)
+      return () => clearTimeout(timer)
+    }
+  }, [toast])
+
   const handleSlotClick = (slotIndex) => {
     const slotPos = layout?.slot_positions?.[slotIndex]
     if (!slotPos) return
@@ -1139,20 +1152,6 @@ export default function GestioneFormazionePage() {
 
   const slotsWithOffsets = layout?.slot_positions ? calculateCardOffsets(slots) : []
 
-  // Funzione helper per mostrare toast
-  const showToast = (message, type = 'success') => {
-    setToast({ message, type })
-    setTimeout(() => setToast(null), 4000) // Auto-dismiss dopo 4 secondi
-  }
-
-  // Auto-dismiss toast
-  React.useEffect(() => {
-    if (toast) {
-      const timer = setTimeout(() => setToast(null), 4000)
-      return () => clearTimeout(timer)
-    }
-  }, [toast])
-
   return (
     <main style={{ padding: '16px', minHeight: '100vh', maxWidth: '1400px', margin: '0 auto' }}>
       {/* Toast Notification */}
@@ -1657,6 +1656,7 @@ export default function GestioneFormazionePage() {
           riserve={riserve}
           onAssignFromReserve={handleAssignFromReserve}
           onUploadPhoto={handleUploadPhoto}
+          onRemove={selectedSlot ? (player => handleRemoveFromSlot(player.id)) : null}
           onDelete={currentPlayer => handleDeletePlayer(currentPlayer.id)}
           onClose={() => {
             setShowAssignModal(false)
