@@ -37,6 +37,23 @@ export async function POST(req) {
       )
     }
 
+    // Validazione lunghezza formazione (max 50 caratteri)
+    if (formation && String(formation).trim().length > 50) {
+      return NextResponse.json(
+        { error: 'formation exceeds maximum length (50 characters)' },
+        { status: 400 }
+      )
+    }
+
+    // Validazione dimensione slot_positions JSONB (max 500KB)
+    const MAX_JSONB_SIZE = 500 * 1024 // 500KB
+    if (slot_positions && JSON.stringify(slot_positions).length > MAX_JSONB_SIZE) {
+      return NextResponse.json(
+        { error: `slot_positions exceeds maximum size (${MAX_JSONB_SIZE / 1024}KB)` },
+        { status: 400 }
+      )
+    }
+
     // Completa slot mancanti se necessario (0-10)
     const completeSlotPositions = (slots) => {
       const complete = { ...(slots || {}) }

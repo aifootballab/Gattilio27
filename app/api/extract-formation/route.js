@@ -1,7 +1,30 @@
 import { NextResponse } from 'next/server'
+import { validateToken, extractBearerToken } from '../../../lib/authHelper'
+
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
 
 export async function POST(req) {
   try {
+    // Autenticazione
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    
+    if (!supabaseUrl || !anonKey) {
+      return NextResponse.json({ error: 'Supabase server env missing' }, { status: 500 })
+    }
+
+    const token = extractBearerToken(req)
+    if (!token) {
+      return NextResponse.json({ error: 'Missing Authorization bearer token' }, { status: 401 })
+    }
+    
+    const { userData, error: authError } = await validateToken(token, supabaseUrl, anonKey)
+    
+    if (authError || !userData?.user?.id) {
+      return NextResponse.json({ error: 'Invalid auth' }, { status: 401 })
+    }
+
     const apiKey = process.env.OPENAI_API_KEY
 
     if (!apiKey) {
@@ -20,10 +43,22 @@ export async function POST(req) {
       )
     }
 
-    // Estrai base64 da dataUrl se necessario
-    let base64Image = imageDataUrl
+    // Validazione dimensione immagine (max 10MB)
+    // Solo per immagini base64 (data:image/), non per URL esterni
     if (imageDataUrl.startsWith('data:image/')) {
-      base64Image = imageDataUrl.split(',')[1]
+      const base64Image = imageDataUrl.split(',')[1]
+      if (base64Image) {
+        // Calcola dimensione approssimativa (base64 è ~33% più grande del binario)
+        const imageSizeBytes = (base64Image.length * 3) / 4
+        const maxSizeBytes = 10 * 1024 * 1024 // 10MB
+        
+        if (imageSizeBytes > maxSizeBytes) {
+          return NextResponse.json(
+            { error: 'Image size exceeds maximum allowed size (10MB)' },
+            { status: 400 }
+          )
+        }
+      }
     }
 
     // Prompt per estrazione formazione completa (11 giocatori)

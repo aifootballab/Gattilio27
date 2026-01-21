@@ -49,6 +49,27 @@ export async function POST(req) {
       return NextResponse.json({ error: 'Coach data is required' }, { status: 400 })
     }
 
+    // Validazione lunghezza campi testo (max 255 caratteri)
+    const MAX_TEXT_LENGTH = 255
+    if (coach.coach_name && toText(coach.coach_name) && toText(coach.coach_name).length > MAX_TEXT_LENGTH) {
+      return NextResponse.json(
+        { error: `coach_name exceeds maximum length (${MAX_TEXT_LENGTH} characters)` },
+        { status: 400 }
+      )
+    }
+    if (coach.team && toText(coach.team) && toText(coach.team).length > MAX_TEXT_LENGTH) {
+      return NextResponse.json(
+        { error: `team exceeds maximum length (${MAX_TEXT_LENGTH} characters)` },
+        { status: 400 }
+      )
+    }
+    if (coach.nationality && toText(coach.nationality) && toText(coach.nationality).length > MAX_TEXT_LENGTH) {
+      return NextResponse.json(
+        { error: `nationality exceeds maximum length (${MAX_TEXT_LENGTH} characters)` },
+        { status: 400 }
+      )
+    }
+
     // Prepara dati allenatore
     const coachData = {
       user_id: userId,

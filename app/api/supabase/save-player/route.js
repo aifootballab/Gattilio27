@@ -64,6 +64,51 @@ export async function POST(req) {
       }
     }
 
+    // Validazione lunghezza campi testo (max 255 caratteri)
+    const MAX_TEXT_LENGTH = 255
+    if (player.player_name && toText(player.player_name) && toText(player.player_name).length > MAX_TEXT_LENGTH) {
+      return NextResponse.json(
+        { error: `player_name exceeds maximum length (${MAX_TEXT_LENGTH} characters)` },
+        { status: 400 }
+      )
+    }
+    if (player.team && toText(player.team) && toText(player.team).length > MAX_TEXT_LENGTH) {
+      return NextResponse.json(
+        { error: `team exceeds maximum length (${MAX_TEXT_LENGTH} characters)` },
+        { status: 400 }
+      )
+    }
+    if (player.nationality && toText(player.nationality) && toText(player.nationality).length > MAX_TEXT_LENGTH) {
+      return NextResponse.json(
+        { error: `nationality exceeds maximum length (${MAX_TEXT_LENGTH} characters)` },
+        { status: 400 }
+      )
+    }
+    if (player.club_name && toText(player.club_name) && toText(player.club_name).length > MAX_TEXT_LENGTH) {
+      return NextResponse.json(
+        { error: `club_name exceeds maximum length (${MAX_TEXT_LENGTH} characters)` },
+        { status: 400 }
+      )
+    }
+
+    // Validazione dimensione JSONB (max 500KB)
+    const MAX_JSONB_SIZE = 500 * 1024 // 500KB
+    const baseStatsSize = player.base_stats ? JSON.stringify(player.base_stats).length : 0
+    const metadataSize = player.metadata ? JSON.stringify(player.metadata).length : 0
+    
+    if (baseStatsSize > MAX_JSONB_SIZE) {
+      return NextResponse.json(
+        { error: `base_stats exceeds maximum size (${MAX_JSONB_SIZE / 1024}KB)` },
+        { status: 400 }
+      )
+    }
+    if (metadataSize > MAX_JSONB_SIZE) {
+      return NextResponse.json(
+        { error: `metadata exceeds maximum size (${MAX_JSONB_SIZE / 1024}KB)` },
+        { status: 400 }
+      )
+    }
+
     // Prepara dati giocatore (tutto in una struttura)
     const playerData = {
       user_id: userId,

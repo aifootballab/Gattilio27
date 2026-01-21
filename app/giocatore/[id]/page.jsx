@@ -203,12 +203,16 @@ export default function PlayerDetailPage() {
         throw new Error('Sessione scaduta')
       }
 
+      const token = session.session.access_token
       const img = images[0]
 
       // 1. Estrai dati dall'immagine
       const extractRes = await fetch('/api/extract-player', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ imageDataUrl: img.dataUrl })
       })
 

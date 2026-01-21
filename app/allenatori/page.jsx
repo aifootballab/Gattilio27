@@ -136,7 +136,10 @@ export default function AllenatoriPage() {
       for (const img of uploadImages) {
         const extractRes = await fetch('/api/extract-coach', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
           body: JSON.stringify({ imageDataUrl: img.dataUrl })
         })
 

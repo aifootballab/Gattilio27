@@ -511,7 +511,10 @@ export default function GestioneFormazionePage() {
       for (const img of uploadImages) {
         const extractRes = await fetch('/api/extract-player', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
           body: JSON.stringify({ imageDataUrl: img.dataUrl })
         })
 
@@ -745,7 +748,10 @@ export default function GestioneFormazionePage() {
       // 1. Estrai formazione
       const extractRes = await fetch('/api/extract-formation', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ imageDataUrl })
       })
 
@@ -892,7 +898,10 @@ export default function GestioneFormazionePage() {
       for (const img of uploadReserveImages) {
         const extractRes = await fetch('/api/extract-player', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
           body: JSON.stringify({ imageDataUrl: img.dataUrl })
         })
 
