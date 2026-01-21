@@ -100,13 +100,19 @@
 
 #### `/api/extract-coach/route.js`
 **Metodo**: POST  
-**Autenticazione**: ❌ **NON RICHIESTA**  
-**Validazione Input**: ✅ Parziale
+**Autenticazione**: ✅ **RICHIESTA** (Bearer token) - **AGGIUNTA v1.4.0**  
+**Validazione Input**: ✅ Completa
+
+**Sicurezza Input**:
+- ✅ Valida presenza `imageDataUrl`
+- ✅ Valida tipo stringa
+- ✅ **Valida dimensione immagine** (max 10MB) - **AGGIUNTA v1.4.0**
+- ⚠️ **NON ha rate limiting** (raccomandato)
 
 **Vulnerabilità**:
-1. **CRITICA**: Nessuna autenticazione
-2. **ALTA**: Nessun rate limiting
-3. **MEDIA**: Nessuna validazione dimensione immagine
+1. ✅ **RISOLTA v1.4.0**: Autenticazione aggiunta
+2. ⚠️ **ALTA**: Nessun rate limiting (raccomandato)
+3. ✅ **RISOLTA v1.4.0**: Validazione dimensione immagine aggiunta
 
 ---
 
