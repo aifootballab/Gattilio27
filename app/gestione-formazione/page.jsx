@@ -17,6 +17,7 @@ export default function GestioneFormazionePage() {
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState(null)
   const [selectedSlot, setSelectedSlot] = React.useState(null) // { slot_index, position }
+  const [selectedReserve, setSelectedReserve] = React.useState(null) // Player ID per visualizzare statistiche riserva
   const [showAssignModal, setShowAssignModal] = React.useState(false)
   const [assigning, setAssigning] = React.useState(false)
   const [showFormationSelectorModal, setShowFormationSelectorModal] = React.useState(false)
@@ -1519,10 +1520,15 @@ export default function GestioneFormazionePage() {
                 player={player}
                 onClick={() => {
                   if (selectedSlot && showAssignModal) {
+                    // Se il modal di assegnazione è aperto, assegna il giocatore
                     handleAssignFromReserve(player.id)
+                  } else {
+                    // Altrimenti, apri il modal con le statistiche
+                    setSelectedReserve(player.id)
+                    setShowAssignModal(true)
                   }
                 }}
-                disabled={!showAssignModal}
+                disabled={false}
                 onDelete={() => handleDeleteReserve(player.id)}
               />
             ))}
@@ -1555,19 +1561,23 @@ export default function GestioneFormazionePage() {
         )}
       </div>
 
-      {/* Modal Assegnazione */}
-      {showAssignModal && selectedSlot && (
+      {/* Modal Assegnazione / Visualizzazione Statistiche */}
+      {showAssignModal && (selectedSlot || selectedReserve) && (
         <AssignModal
           slot={selectedSlot}
-          currentPlayer={slots.find(s => s.slot_index === selectedSlot.slot_index)?.player}
+          currentPlayer={
+            selectedReserve 
+              ? riserve.find(p => p.id === selectedReserve)
+              : slots.find(s => s.slot_index === selectedSlot.slot_index)?.player
+          }
           riserve={riserve}
           onAssignFromReserve={handleAssignFromReserve}
           onUploadPhoto={handleUploadPhoto}
-          onRemove={currentPlayer => handleRemoveFromSlot(currentPlayer.id)}
           onDelete={currentPlayer => handleDeletePlayer(currentPlayer.id)}
           onClose={() => {
             setShowAssignModal(false)
             setSelectedSlot(null)
+            setSelectedReserve(null)
           }}
           assigning={assigning}
         />
@@ -2001,7 +2011,7 @@ function ReserveCard({ player, onClick, disabled, onDelete }) {
 }
 
 // Assign Modal Component
-function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUploadPhoto, onRemove, onDelete, onClose, assigning }) {
+function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUploadPhoto, onDelete, onClose, assigning }) {
   const { t } = useTranslation()
   const router = useRouter()
   const [expandedSections, setExpandedSections] = React.useState({
@@ -2086,9 +2096,16 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
         </div>
 
         <div style={{ marginBottom: '20px', padding: '16px', background: 'rgba(0, 212, 255, 0.1)', borderRadius: '10px', border: '1px solid rgba(0, 212, 255, 0.2)' }}>
-          <div style={{ fontSize: '13px', marginBottom: '8px', opacity: 0.8 }}>
-            <strong>{t('slot')} {slot.slot_index}</strong> • {slot.position?.position || '?'}
-          </div>
+          {slot && (
+            <div style={{ fontSize: '13px', marginBottom: '8px', opacity: 0.8 }}>
+              <strong>{t('slot')} {slot.slot_index}</strong> • {slot.position?.position || '?'}
+            </div>
+          )}
+          {!slot && currentPlayer && (
+            <div style={{ fontSize: '13px', marginBottom: '8px', opacity: 0.8 }}>
+              <strong>{t('riserve')}</strong> • {currentPlayer.position || '?'}
+            </div>
+          )}
           {currentPlayer && (
             <>
               <div style={{ fontSize: '18px', fontWeight: 700, marginBottom: '12px', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
@@ -2576,25 +2593,6 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
                 <Upload size={18} />
                 {isProfileComplete ? t('updatePhoto') : t('uploadModifyPhoto')}
               </button>
-              {onRemove && (
-                <button
-                  onClick={onRemove}
-                  className="btn"
-                  style={{ 
-                    width: '100%', 
-                    background: 'rgba(239, 68, 68, 0.2)',
-                    borderColor: '#ef4444',
-                    color: '#ef4444',
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '8px', 
-                    justifyContent: 'center' 
-                  }}
-                >
-                  <X size={16} />
-                  {t('removeFromSlot')}
-                </button>
-              )}
               {onDelete && currentPlayer && (
                 <button
                   onClick={() => onDelete(currentPlayer)}
