@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { useTranslation } from '@/lib/i18n'
 import LanguageSwitch from '@/components/LanguageSwitch'
-import { ArrowLeft, Upload, AlertCircle, CheckCircle2, RefreshCw, Info, X, Plus, User, Settings, BarChart3, Zap, Gift, ChevronDown, ChevronUp, Users, Star } from 'lucide-react'
+import { ArrowLeft, Upload, AlertCircle, CheckCircle2, RefreshCw, Info, X, Plus, User, Settings, BarChart3, Zap, Gift, ChevronDown, ChevronUp, Users, Star, Move } from 'lucide-react'
 import TacticalSettingsPanel from '@/components/TacticalSettingsPanel'
 
 export default function GestioneFormazionePage() {
@@ -16,6 +16,7 @@ export default function GestioneFormazionePage() {
   const [riserve, setRiserve] = React.useState([]) // Giocatori con slot_index NULL
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState(null)
+  const [toast, setToast] = React.useState(null) // { message, type: 'success' | 'error' }
   const [selectedSlot, setSelectedSlot] = React.useState(null) // { slot_index, position }
   const [selectedReserve, setSelectedReserve] = React.useState(null) // Player ID per visualizzare statistiche riserva
   const [showAssignModal, setShowAssignModal] = React.useState(false)
@@ -283,11 +284,15 @@ export default function GestioneFormazionePage() {
         throw new Error(data.error || 'Errore assegnazione')
       }
 
+      // Messaggio di successo
+      showToast(t('playerAssignedSuccessfully'), 'success')
+      
       // Ricarica dati
-      window.location.reload()
+      setTimeout(() => window.location.reload(), 500)
     } catch (err) {
       console.error('[GestioneFormazione] Assign error:', err)
       setError(err.message || 'Errore assegnazione giocatore')
+      showToast(err.message || t('errorAssigningPlayer'), 'error')
     } finally {
       setAssigning(false)
       setShowAssignModal(false)
@@ -357,11 +362,15 @@ export default function GestioneFormazionePage() {
         }
       }
 
+      // Messaggio di successo
+      showToast(t('playerMovedToReserves'), 'success')
+      
       // Ricarica dati
-      window.location.reload()
+      setTimeout(() => window.location.reload(), 500)
     } catch (err) {
       console.error('[GestioneFormazione] Remove error:', err)
       setError(err.message || 'Errore rimozione giocatore')
+      showToast(err.message || t('errorMovingPlayer'), 'error')
     } finally {
       setAssigning(false)
     }
@@ -403,11 +412,15 @@ export default function GestioneFormazionePage() {
       setShowAssignModal(false)
       setSelectedSlot(null)
 
+      // Messaggio di successo
+      showToast(t('playerDeletedSuccessfully'), 'success')
+
       // Ricarica dati
-      window.location.reload()
+      setTimeout(() => window.location.reload(), 500)
     } catch (err) {
       console.error('[GestioneFormazione] Delete player error:', err)
       setError(err.message || 'Errore eliminazione giocatore')
+      showToast(err.message || t('errorDeletingPlayer'), 'error')
     } finally {
       setAssigning(false)
     }
@@ -645,11 +658,16 @@ export default function GestioneFormazionePage() {
       setShowUploadPlayerModal(false)
       setUploadImages([])
       setSelectedSlot(null)
+      
+      // Messaggio di successo
+      showToast(t('photoUploadedSuccessfully'), 'success')
+      
       // Ricarica dati
-      window.location.reload()
+      setTimeout(() => window.location.reload(), 500)
     } catch (err) {
       console.error('[GestioneFormazione] Upload player error:', err)
       setError(err.message || 'Errore caricamento giocatore')
+      showToast(err.message || t('errorUploadingPhoto'), 'error')
     } finally {
       setUploadingPlayer(false)
     }
@@ -685,14 +703,15 @@ export default function GestioneFormazionePage() {
       // Aggiorna state locale
       setTacticalSettings(data.settings)
       
-      // Mostra feedback positivo
-      setError(null)
+      // Messaggio di successo
+      showToast(t('tacticalSettingsSaved'), 'success')
       
       // Ricarica per aggiornare UI (stesso pattern esistente)
-      window.location.reload()
+      setTimeout(() => window.location.reload(), 500)
     } catch (err) {
       console.error('[GestioneFormazione] Save tactical settings error:', err)
       setError(err.message || 'Errore salvataggio impostazioni tattiche')
+      showToast(err.message || t('errorSavingTacticalSettings'), 'error')
     } finally {
       setSavingTacticalSettings(false)
     }
@@ -1120,8 +1139,73 @@ export default function GestioneFormazionePage() {
 
   const slotsWithOffsets = layout?.slot_positions ? calculateCardOffsets(slots) : []
 
+  // Funzione helper per mostrare toast
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type })
+    setTimeout(() => setToast(null), 4000) // Auto-dismiss dopo 4 secondi
+  }
+
+  // Auto-dismiss toast
+  React.useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 4000)
+      return () => clearTimeout(timer)
+    }
+  }, [toast])
+
   return (
     <main style={{ padding: '16px', minHeight: '100vh', maxWidth: '1400px', margin: '0 auto' }}>
+      {/* Toast Notification */}
+      {toast && (
+        <div style={{
+          position: 'fixed',
+          top: '20px',
+          right: '20px',
+          zIndex: 10000,
+          padding: '16px 20px',
+          background: toast.type === 'success' 
+            ? 'rgba(34, 197, 94, 0.95)' 
+            : 'rgba(239, 68, 68, 0.95)',
+          border: `2px solid ${toast.type === 'success' ? '#22c55e' : '#ef4444'}`,
+          borderRadius: '12px',
+          boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          minWidth: '300px',
+          maxWidth: '500px',
+          animation: 'slideInRight 0.3s ease-out',
+          backdropFilter: 'blur(8px)'
+        }}>
+          {toast.type === 'success' ? (
+            <CheckCircle2 size={20} color="#ffffff" />
+          ) : (
+            <AlertCircle size={20} color="#ffffff" />
+          )}
+          <span style={{ 
+            color: '#ffffff', 
+            fontSize: '14px', 
+            fontWeight: 600,
+            flex: 1
+          }}>
+            {toast.message}
+          </span>
+          <button
+            onClick={() => setToast(null)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: '#ffffff',
+              cursor: 'pointer',
+              padding: '4px',
+              display: 'flex',
+              alignItems: 'center'
+            }}
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
       {/* Header */}
       <div style={{ 
         display: 'flex', 
@@ -2011,7 +2095,7 @@ function ReserveCard({ player, onClick, disabled, onDelete }) {
 }
 
 // Assign Modal Component
-function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUploadPhoto, onDelete, onClose, assigning }) {
+function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUploadPhoto, onRemove, onDelete, onClose, assigning }) {
   const { t } = useTranslation()
   const router = useRouter()
   const [expandedSections, setExpandedSections] = React.useState({
@@ -2593,6 +2677,29 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
                 <Upload size={18} />
                 {isProfileComplete ? t('updatePhoto') : t('uploadModifyPhoto')}
               </button>
+              {slot && onRemove && currentPlayer && (
+                <button
+                  onClick={() => {
+                    onRemove(currentPlayer)
+                    onClose()
+                  }}
+                  className="btn"
+                  style={{ 
+                    width: '100%', 
+                    background: 'rgba(251, 191, 36, 0.2)',
+                    borderColor: '#fbbf24',
+                    color: '#fbbf24',
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '8px', 
+                    justifyContent: 'center',
+                    marginTop: '8px'
+                  }}
+                >
+                  <Move size={16} />
+                  {t('moveToReserves')}
+                </button>
+              )}
               {onDelete && currentPlayer && (
                 <button
                   onClick={() => onDelete(currentPlayer)}
