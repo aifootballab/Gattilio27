@@ -22,11 +22,23 @@ function normalizePlayerRatings(data) {
   if (typeof ratingsData === 'object') {
     Object.entries(ratingsData).forEach(([playerName, playerData]) => {
       if (playerName && typeof playerData === 'object' && playerData !== null) {
+        // Funzione helper per convertire valori a number
+        const toNumber = (value) => {
+          if (typeof value === 'number') return value
+          if (typeof value === 'string') {
+            // Rimuovi caratteri non numerici e converti
+            const cleaned = value.replace(/[^\d.,]/g, '').replace(',', '.')
+            const num = parseFloat(cleaned)
+            return !isNaN(num) ? num : null
+          }
+          return null
+        }
+        
         ratings[playerName] = {
-          rating: typeof playerData.rating === 'number' ? playerData.rating : null,
-          goals: typeof playerData.goals === 'number' ? playerData.goals : null,
-          assists: typeof playerData.assists === 'number' ? playerData.assists : null,
-          minutes_played: typeof playerData.minutes_played === 'number' ? playerData.minutes_played : null
+          rating: toNumber(playerData.rating),
+          goals: toNumber(playerData.goals) !== null ? toNumber(playerData.goals) : (playerData.goals === 0 ? 0 : null),
+          assists: toNumber(playerData.assists) !== null ? toNumber(playerData.assists) : (playerData.assists === 0 ? 0 : null),
+          minutes_played: toNumber(playerData.minutes_played)
         }
       }
     })
@@ -146,8 +158,15 @@ function getPromptForSection(section) {
     player_ratings: `Analizza questo screenshot di eFootball e estrai TUTTE le pagelle (ratings) dei giocatori.
 
 IMPORTANTE:
-- Estrai SOLO ciò che vedi nell'immagine (null se non visibile)
-- Per ogni giocatore, estrai: nome, rating (voto), goals (gol), assists (assist), minutes_played (minuti giocati)
+- Estrai SOLO ciò che vedi nell'immagine
+- Per ogni giocatore visibile nella lista delle pagelle, estrai OBBLIGATORIAMENTE:
+  * nome (nome completo del giocatore)
+  * rating (voto numerico, es. 8.5, 7.0, 6.5 - se non visibile usa null)
+  * goals (numero di gol segnati - se non visibile usa 0 o null)
+  * assists (numero di assist - se non visibile usa 0 o null)
+  * minutes_played (minuti giocati, es. 90, 45 - se non visibile usa null)
+- I valori numerici devono essere numeri, non stringhe
+- Se vedi una tabella o lista di giocatori con voti, estrai TUTTI i giocatori visibili
 - Se ci sono due squadre, identifica chiaramente quale giocatore appartiene a quale squadra
 
 Formato JSON richiesto:
