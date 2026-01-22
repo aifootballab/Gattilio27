@@ -51,8 +51,30 @@ export async function GET(req) {
     // Calcola balance dalle transazioni (fonte di verità - Event Sourcing)
     const calculatedData = await calculateBalanceFromTransactions(admin, userId)
     
-    // DEBUG: Log calcolo
+    // DEBUG: Log calcolo con verifica
     console.log(`[hero-points/balance] DEBUG user ${userId}: calculated balance=${calculatedData.balance}, totalPurchased=${calculatedData.totalPurchased}, totalSpent=${calculatedData.totalSpent}`)
+    console.log(`[hero-points/balance] DEBUG calculatedData object:`, JSON.stringify(calculatedData))
+    
+    // CRITICAL: Verifica che il balance calcolato sia valido
+    if (calculatedData.balance > 100000) {
+      console.error(`[hero-points/balance] CRITICAL: Calculated balance is suspiciously high: ${calculatedData.balance}`)
+      // Forza ricalcolo manuale
+      const { data: manualCheck } = await admin
+        .from('hero_points_transactions')
+        .select('transaction_type, hero_points_amount')
+        .eq('user_id', userId)
+      
+      if (manualCheck) {
+        const manualBalance = manualCheck.reduce((acc, tx) => {
+          if (tx.transaction_type === 'purchase') return acc + Math.abs(tx.hero_points_amount)
+          if (tx.transaction_type === 'spent') return acc - Math.abs(tx.hero_points_amount)
+          if (tx.transaction_type === 'refund') return acc + Math.abs(tx.hero_points_amount)
+          return acc
+        }, 0)
+        console.log(`[hero-points/balance] CRITICAL: Manual recalculation gives: ${manualBalance}`)
+        calculatedData.balance = manualBalance
+      }
+    }
 
     // Sincronizza cache (user_hero_points) con balance calcolato
     // IMPORTANTE: Sincronizziamo sempre per garantire coerenza
@@ -98,10 +120,39 @@ export async function GET(req) {
     }
 
     // DEBUG: Verifica finale prima di restituire
-    console.log(`[hero-points/balance] FINAL DEBUG user ${userId}: returning balance=${calculatedData.balance}, totalPurchased=${calculatedData.totalPurchased}`)
+    console.log(`[hero-points/balance] FINAL DEBUG user ${userId}: calculatedData.balance=${calculatedData.balance}, totalPurchased=${calculatedData.totalPurchased}`)
     
-    // Verifica che calculatedData.balance sia un numero valido
-    const finalBalance = typeof calculatedData.balance === 'number' ? calculatedData.balance : 0
+    // CRITICAL FIX: Se il balance calcolato è sospettosamente alto, usa il valore dalla cache sincronizzata
+    // Questo è un fallback di sicurezza
+    let finalBalance = typeof calculatedData.balance === 'number' ? calculatedData.balance : 0
+    
+    // Se il balance calcolato è > 100000, c'è un problema - usa la cache sincronizzata
+    if (finalBalance > 100000) {
+      console.error(`[hero-points/balance] CRITICAL: Calculated balance ${finalBalance} is too high, using cache value`)
+      const safeCache = cacheData || await getBalanceFromCache(admin, userId)
+      if (safeCache && safeCache.hero_points_balance <= 100000) {
+        finalBalance = safeCache.hero_points_balance
+        console.log(`[hero-points/balance] Using safe cache value: ${finalBalance}`)
+      } else {
+        // Ultimo fallback: calcola manualmente
+        const { data: manualTx } = await admin
+          .from('hero_points_transactions')
+          .select('transaction_type, hero_points_amount')
+          .eq('user_id', userId)
+        
+        if (manualTx) {
+          finalBalance = manualTx.reduce((acc, tx) => {
+            if (tx.transaction_type === 'purchase') return acc + Math.abs(tx.hero_points_amount)
+            if (tx.transaction_type === 'spent') return acc - Math.abs(tx.hero_points_amount)
+            if (tx.transaction_type === 'refund') return acc + Math.abs(tx.hero_points_amount)
+            return acc
+          }, 0)
+          console.log(`[hero-points/balance] Manual recalculation: ${finalBalance}`)
+        }
+      }
+    }
+    
+    console.log(`[hero-points/balance] FINAL balance to return: ${finalBalance}`)
     
     // Ritorna balance calcolato dalle transazioni (fonte di verità)
     const response = {
