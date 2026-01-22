@@ -62,16 +62,39 @@ export async function GET(req) {
     if (cacheData) {
       console.log(`[hero-points/balance] DEBUG user ${userId}: cache synced to balance=${cacheData.hero_points_balance}`)
     } else {
-      console.warn(`[hero-points/balance] DEBUG user ${userId}: syncBalanceCache returned null`)
+      console.warn(`[hero-points/balance] DEBUG user ${userId}: syncBalanceCache returned null - retrying...`)
+      
+      // Se syncBalanceCache fallisce, riprova una volta
+      const retryCacheData = await syncBalanceCache(admin, userId, calculatedData)
+      if (retryCacheData) {
+        console.log(`[hero-points/balance] DEBUG user ${userId}: retry successful, cache synced to balance=${retryCacheData.hero_points_balance}`)
+      } else {
+        console.error(`[hero-points/balance] CRITICAL: syncBalanceCache failed twice for user ${userId}`)
+      }
     }
 
-    // Se syncBalanceCache ritorna null, leggiamo dalla cache esistente
-    // Ma usiamo sempre calculatedData come fonte di verità
+    // Leggi cache per euros_equivalent (computed column)
+    // IMPORTANTE: Usiamo sempre calculatedData come fonte di verità per balance
     const cacheRecord = cacheData || await getBalanceFromCache(admin, userId)
 
     // Log per debug (solo se c'è discrepanza)
     if (cacheRecord && cacheRecord.hero_points_balance !== calculatedData.balance) {
-      console.warn(`[hero-points/balance] Cache discrepancy detected for user ${userId}: cache=${cacheRecord.hero_points_balance}, calculated=${calculatedData.balance}`)
+      console.error(`[hero-points/balance] CRITICAL Cache discrepancy for user ${userId}: cache=${cacheRecord.hero_points_balance}, calculated=${calculatedData.balance}`)
+      // Forza aggiornamento diretto se c'è discrepanza
+      try {
+        await admin
+          .from('user_hero_points')
+          .update({
+            hero_points_balance: calculatedData.balance,
+            total_purchased: calculatedData.totalPurchased,
+            total_spent: calculatedData.totalSpent,
+            updated_at: new Date().toISOString()
+          })
+          .eq('user_id', userId)
+        console.log(`[hero-points/balance] Forced cache update for user ${userId} to balance=${calculatedData.balance}`)
+      } catch (forceError) {
+        console.error(`[hero-points/balance] Failed to force cache update:`, forceError)
+      }
     }
 
     // Ritorna balance calcolato dalle transazioni (fonte di verità)
