@@ -159,6 +159,51 @@ Restituisci SOLO JSON valido, senza altro testo. Assicurati che ci siano ESATTAM
           slot_index: player.slot_index !== undefined ? Math.max(0, Math.min(10, player.slot_index)) : index
         }))
       }
+      
+      // Validazione semantica formazione
+      const validFormations = [
+        '4-3-3', '4-4-2', '4-2-1-3', '4-1-2-3', '4-3-1-2', '4-2-3-1', '4-1-4-1',
+        '3-4-3', '3-5-2', '3-4-1-2', '3-1-4-2',
+        '5-3-2', '5-4-1',
+        '4-5-1', '4-1-3-2',
+        '3-3-2-2', '4-2-2-2'
+      ]
+      
+      if (formationData.formation && typeof formationData.formation === 'string') {
+        const formation = formationData.formation.trim()
+        // Valida formato formazione (es. "4-3-3", non "5-5-5" o "999-999")
+        const formationPattern = /^\d+-\d+(-\d+)?(-\d+)?$/
+        if (!formationPattern.test(formation)) {
+          console.warn(`[extract-formation] Invalid formation format: ${formation}`)
+          formationData.formation = null // Rimuovi formazione non valida
+        } else if (!validFormations.includes(formation)) {
+          // Formazione non nella lista valida, ma formato corretto - avvisa ma non blocca
+          console.warn(`[extract-formation] Formation "${formation}" not in valid list, but format is correct`)
+        }
+      }
+      
+      // Validazione giocatori nella formazione
+      if (formationData.players && Array.isArray(formationData.players)) {
+        formationData.players.forEach((player, index) => {
+          // Validazione overall_rating per ogni giocatore
+          if (player.overall_rating !== null && player.overall_rating !== undefined) {
+            const rating = Number(player.overall_rating)
+            if (isNaN(rating) || rating < 40 || rating > 100) {
+              console.warn(`[extract-formation] Invalid rating for player ${index}: ${player.overall_rating}`)
+              player.overall_rating = null // Rimuovi rating non valido
+            }
+          }
+          
+          // Validazione nome giocatore
+          if (player.player_name && typeof player.player_name === 'string') {
+            const name = player.player_name.trim()
+            if (name.length < 2 || name.length > 100 || /[\x00-\x1F\x7F]/.test(name)) {
+              console.warn(`[extract-formation] Invalid name for player ${index}: ${player.player_name}`)
+              player.player_name = null // Rimuovi nome non valido
+            }
+          }
+        })
+      }
     } catch (parseErr) {
       console.error('[extract-formation] JSON parse error:', parseErr)
       return NextResponse.json(

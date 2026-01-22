@@ -256,6 +256,65 @@ Restituisci SOLO JSON valido, senza altro testo.`
     // Normalizza dati
     const normalizedPlayer = normalizePlayer(playerData)
 
+    // Validazione semantica dei dati estratti
+    const validationErrors = []
+    
+    // Validazione overall_rating: 40-100 (range eFootball)
+    if (normalizedPlayer.overall_rating !== null && normalizedPlayer.overall_rating !== undefined) {
+      const rating = Number(normalizedPlayer.overall_rating)
+      if (isNaN(rating) || rating < 40 || rating > 100) {
+        validationErrors.push('Overall rating must be between 40 and 100')
+      }
+    }
+    
+    // Validazione età: 16-50 (range realistico)
+    if (normalizedPlayer.age !== null && normalizedPlayer.age !== undefined) {
+      const age = Number(normalizedPlayer.age)
+      if (isNaN(age) || age < 16 || age > 50) {
+        validationErrors.push('Age must be between 16 and 50')
+      }
+    }
+    
+    // Validazione nome: formato valido (no caratteri estremi)
+    if (normalizedPlayer.player_name && typeof normalizedPlayer.player_name === 'string') {
+      const name = normalizedPlayer.player_name.trim()
+      // Nome deve avere almeno 2 caratteri, max 100, no caratteri di controllo
+      if (name.length < 2 || name.length > 100) {
+        validationErrors.push('Player name must be between 2 and 100 characters')
+      } else if (/[\x00-\x1F\x7F]/.test(name)) {
+        // Caratteri di controllo non permessi
+        validationErrors.push('Player name contains invalid characters')
+      }
+    }
+    
+    // Validazione base_stats: range 0-99 per ogni stat
+    if (normalizedPlayer.base_stats && typeof normalizedPlayer.base_stats === 'object') {
+      const stats = normalizedPlayer.base_stats
+      const statCategories = ['attacking', 'defending', 'athleticism']
+      
+      statCategories.forEach(category => {
+        if (stats[category] && typeof stats[category] === 'object') {
+          Object.entries(stats[category]).forEach(([key, value]) => {
+            if (value !== null && value !== undefined) {
+              const statValue = Number(value)
+              if (!isNaN(statValue) && (statValue < 0 || statValue > 99)) {
+                validationErrors.push(`Stat ${key} in ${category} must be between 0 and 99`)
+              }
+            }
+          })
+        }
+      })
+    }
+    
+    // Se ci sono errori di validazione, restituisci errore generico
+    if (validationErrors.length > 0) {
+      console.error('[extract-player] Validation errors:', validationErrors)
+      return NextResponse.json(
+        { error: 'Extracted data contains invalid values. Please try with a different image.' },
+        { status: 400 }
+      )
+    }
+
     return NextResponse.json({
       player: normalizedPlayer
     })
