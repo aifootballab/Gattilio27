@@ -115,7 +115,7 @@ export default function MatchDetailPage() {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          image: uploadImage,
+          imageDataUrl: uploadImage,
           section: uploadSection
         })
       })
