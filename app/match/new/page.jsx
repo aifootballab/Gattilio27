@@ -15,6 +15,15 @@ const STORAGE_KEY = 'match_wizard_progress'
 export default function NewMatchPage() {
   const { t } = useTranslation()
   const router = useRouter()
+  
+  const STEPS = React.useMemo(() => [
+    { id: 'player_ratings', label: t('stepPlayerRatings'), icon: '⭐' },
+    { id: 'team_stats', label: t('stepTeamStats'), icon: '📊' },
+    { id: 'attack_areas', label: t('stepAttackAreas'), icon: '⚽' },
+    { id: 'ball_recovery_zones', label: t('stepBallRecoveryZones'), icon: '🔄' },
+    { id: 'formation_style', label: t('stepFormationStyle'), icon: '🎯' }
+  ], [t])
+  
   const [currentStep, setCurrentStep] = React.useState(0)
   const [stepData, setStepData] = React.useState({}) // { section: { data, image } }
   const [stepImages, setStepImages] = React.useState({}) // { section: dataUrl }
@@ -42,7 +51,7 @@ export default function NewMatchPage() {
     } catch (err) {
       console.warn('[NewMatch] Error loading saved progress:', err)
     }
-  }, [])
+  }, [STEPS])
 
   // Salva progresso in localStorage
   const saveProgress = React.useCallback(() => {
@@ -109,7 +118,7 @@ export default function NewMatchPage() {
     try {
       const { data: session } = await supabase.auth.getSession()
       if (!session?.session?.access_token) {
-        throw new Error('Sessione scaduta. Reindirizzamento al login...')
+        throw new Error(t('sessionExpiredRedirect'))
       }
 
       const token = session.session.access_token
@@ -129,7 +138,7 @@ export default function NewMatchPage() {
       const extractData = await extractRes.json()
 
       if (!extractRes.ok) {
-        throw new Error(extractData.error || 'Errore estrazione dati')
+        throw new Error(extractData.error || t('extractDataError'))
       }
 
       // Salva dati estratti
@@ -155,7 +164,7 @@ export default function NewMatchPage() {
       }
     } catch (err) {
       console.error('[NewMatch] Extract error:', err)
-      setError(err.message || 'Errore estrazione dati')
+      setError(err.message || t('extractDataError'))
     } finally {
       setExtracting(false)
     }
@@ -184,7 +193,7 @@ export default function NewMatchPage() {
     // Verifica che almeno una sezione abbia dati
     const hasData = Object.values(stepData).some(data => data !== null && data !== undefined)
     if (!hasData) {
-      setError('Carica almeno una sezione prima di salvare')
+      setError(t('loadAtLeastOneSection'))
       return
     }
 
@@ -194,7 +203,7 @@ export default function NewMatchPage() {
     try {
       const { data: session } = await supabase.auth.getSession()
       if (!session?.session?.access_token) {
-        throw new Error('Sessione scaduta')
+        throw new Error(t('sessionExpired'))
       }
 
       const token = session.session.access_token
@@ -237,7 +246,7 @@ export default function NewMatchPage() {
       const saveData = await saveRes.json()
 
       if (!saveRes.ok) {
-        throw new Error(saveData.error || 'Errore salvataggio partita')
+        throw new Error(saveData.error || t('saveMatchError'))
       }
 
       setSuccess(true)
@@ -249,7 +258,7 @@ export default function NewMatchPage() {
       }, 2000)
     } catch (err) {
       console.error('[NewMatch] Save error:', err)
-      setError(err.message || 'Errore salvataggio partita')
+      setError(err.message || t('saveMatchError'))
     } finally {
       setSaving(false)
     }
@@ -414,7 +423,7 @@ export default function NewMatchPage() {
           color: '#86efac'
         }}>
           <CheckCircle2 size={20} />
-          <span>Partita salvata con successo! Reindirizzamento...</span>
+          <span>{t('matchSavedSuccess')}</span>
         </div>
       )}
 
@@ -439,11 +448,11 @@ export default function NewMatchPage() {
             Passaggio {currentStep + 1}: {currentStepInfo.label}
           </h2>
           <p style={{ fontSize: '14px', opacity: 0.7, marginBottom: '24px' }}>
-            {currentStep === 0 && 'Carica uno screenshot delle pagelle dei giocatori (ratings).'}
-            {currentStep === 1 && 'Carica uno screenshot delle statistiche di squadra (possesso, tiri, passaggi, ecc.).'}
-            {currentStep === 2 && 'Carica uno screenshot delle aree di attacco (percentuali per zona).'}
-            {currentStep === 3 && 'Carica uno screenshot delle aree di recupero palla (punti verdi sul campo).'}
-            {currentStep === 4 && 'Carica uno screenshot della formazione e stile di gioco (schema, stile, forza squadra).'}
+            {currentStep === 0 && t('step0Instruction')}
+            {currentStep === 1 && t('step1Instruction')}
+            {currentStep === 2 && t('step2Instruction')}
+            {currentStep === 3 && t('step3Instruction')}
+            {currentStep === 4 && t('step4Instruction')}
           </p>
 
           {/* Image Preview */}
@@ -497,7 +506,7 @@ export default function NewMatchPage() {
               color: '#00d4ff'
             }}>
               <Camera size={20} />
-              <span>{currentImage ? 'Cambia Immagine' : 'Carica Immagine'}</span>
+              <span>{currentImage ? t('changeImage') : t('loadImage')}</span>
             </div>
           </label>
 
@@ -531,12 +540,12 @@ export default function NewMatchPage() {
                 {extracting ? (
                   <>
                     <RefreshCw size={18} style={{ animation: 'spin 1s linear infinite' }} />
-                    Estrazione...
+                    {t('extracting')}
                   </>
                 ) : currentData ? (
                   <>
                     <CheckCircle2 size={18} />
-                    Estratto
+                    {t('extractData')}
                   </>
                 ) : (
                   <>
@@ -582,7 +591,7 @@ export default function NewMatchPage() {
               fontSize: '12px',
               opacity: 0.8
             }}>
-              <strong>✓ Dati estratti con successo</strong>
+              <strong>{t('dataExtractedSuccess')}</strong>
             </div>
           )}
         </div>
@@ -615,7 +624,7 @@ export default function NewMatchPage() {
           {saving ? (
             <>
               <RefreshCw size={20} style={{ animation: 'spin 1s linear infinite' }} />
-              Salvataggio...
+              {t('saving')}
             </>
           ) : (
             <>

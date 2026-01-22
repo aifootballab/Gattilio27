@@ -16,21 +16,13 @@ export default function MatchDetailPage() {
   const params = useParams()
   const matchId = params?.id
   
-  const STEPS = [
+  const STEPS = React.useMemo(() => [
     { id: 'player_ratings', label: t('stepPlayerRatings'), icon: '⭐' },
     { id: 'team_stats', label: t('stepTeamStats'), icon: '📊' },
     { id: 'attack_areas', label: t('stepAttackAreas'), icon: '⚽' },
     { id: 'ball_recovery_zones', label: t('stepBallRecoveryZones'), icon: '🔄' },
     { id: 'formation_style', label: t('stepFormationStyle'), icon: '🎯' }
-  ]
-  
-  const STEPS = [
-    { id: 'player_ratings', label: t('stepPlayerRatings'), icon: '⭐' },
-    { id: 'team_stats', label: t('stepTeamStats'), icon: '📊' },
-    { id: 'attack_areas', label: t('stepAttackAreas'), icon: '⚽' },
-    { id: 'ball_recovery_zones', label: t('stepBallRecoveryZones'), icon: '🔄' },
-    { id: 'formation_style', label: t('stepFormationStyle'), icon: '🎯' }
-  ]
+  ], [t])
 
   const [match, setMatch] = React.useState(null)
   const [loading, setLoading] = React.useState(true)

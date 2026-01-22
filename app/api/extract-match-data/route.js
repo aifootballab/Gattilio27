@@ -513,7 +513,7 @@ export async function POST(req) {
   } catch (err) {
     console.error('[extract-match-data] Error:', err)
     return NextResponse.json(
-      { error: err?.message || 'Errore estrazione dati' },
+      { error: err?.message || 'Error extracting data' },
       { status: 500 }
     )
   }
