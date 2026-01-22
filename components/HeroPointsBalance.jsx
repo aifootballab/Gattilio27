@@ -76,9 +76,19 @@ export default function HeroPointsBalance() {
       }
 
       const data = await response.json()
-      setBalance(data.hero_points_balance || 0)
-      setEurosEquivalent(data.euros_equivalent || 0)
+      
+      // DEBUG: Log risposta API
+      console.log('[HeroPointsBalance] API Response:', data)
+      console.log('[HeroPointsBalance] Balance from API:', data.hero_points_balance)
+      
+      // Verifica che hero_points_balance sia un numero valido
+      const balanceValue = typeof data.hero_points_balance === 'number' ? data.hero_points_balance : (parseInt(data.hero_points_balance) || 0)
+      
+      setBalance(balanceValue)
+      setEurosEquivalent(data.euros_equivalent || (balanceValue / 100))
       lastFetchRef.current = now // Aggiorna timestamp cache
+      
+      console.log('[HeroPointsBalance] Set balance to:', balanceValue)
     } catch (err) {
       console.error('[HeroPointsBalance] Error fetching balance:', err)
       setError(t('errorLoadingBalance'))

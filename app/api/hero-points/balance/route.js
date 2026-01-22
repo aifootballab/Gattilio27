@@ -97,14 +97,24 @@ export async function GET(req) {
       }
     }
 
+    // DEBUG: Verifica finale prima di restituire
+    console.log(`[hero-points/balance] FINAL DEBUG user ${userId}: returning balance=${calculatedData.balance}, totalPurchased=${calculatedData.totalPurchased}`)
+    
+    // Verifica che calculatedData.balance sia un numero valido
+    const finalBalance = typeof calculatedData.balance === 'number' ? calculatedData.balance : 0
+    
     // Ritorna balance calcolato dalle transazioni (fonte di verità)
-    return NextResponse.json({
-      hero_points_balance: calculatedData.balance,
-      euros_equivalent: cacheRecord?.euros_equivalent || (calculatedData.balance / 100),
+    const response = {
+      hero_points_balance: finalBalance,
+      euros_equivalent: cacheRecord?.euros_equivalent || (finalBalance / 100),
       last_purchase_at: calculatedData.lastPurchaseAt,
-      total_purchased: calculatedData.totalPurchased,
-      total_spent: calculatedData.totalSpent
-    })
+      total_purchased: calculatedData.totalPurchased || 0,
+      total_spent: calculatedData.totalSpent || 0
+    }
+    
+    console.log(`[hero-points/balance] RESPONSE user ${userId}:`, JSON.stringify(response))
+    
+    return NextResponse.json(response)
 
   } catch (error) {
     console.error('[hero-points/balance] Unexpected error:', error)
