@@ -5,7 +5,6 @@ import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { useTranslation } from '@/lib/i18n'
 import LanguageSwitch from '@/components/LanguageSwitch'
-import HeroPointsBalance from '@/components/HeroPointsBalance'
 import { ArrowLeft, Upload, AlertCircle, CheckCircle2, RefreshCw, X, Camera, Calendar, Trophy } from 'lucide-react'
 
 // STEPS sarà definito dentro il componente per avere accesso a t()
@@ -261,7 +260,6 @@ export default function MatchDetailPage() {
           </button>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginLeft: 'auto', flexWrap: 'wrap' }}>
-          <HeroPointsBalance />
           <LanguageSwitch />
         </div>
       </div>
