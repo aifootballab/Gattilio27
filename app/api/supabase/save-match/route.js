@@ -7,13 +7,12 @@ export const dynamic = 'force-dynamic'
 
 export async function POST(req) {
   try {
-    // Autenticazione
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
     
-    if (!supabaseUrl || !anonKey || !serviceKey) {
-      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
+    if (!supabaseUrl || !serviceKey || !anonKey) {
+      return NextResponse.json({ error: 'Supabase server env missing' }, { status: 500 })
     }
 
     const token = extractBearerToken(req)
@@ -77,8 +76,15 @@ export async function POST(req) {
       }
     }
 
-    // Crea client Supabase con service role (per bypassare RLS se necessario)
-    const supabase = createClient(supabaseUrl, serviceKey)
+    const admin = createClient(supabaseUrl, serviceKey, {
+      auth: { autoRefreshToken: false, persistSession: false }
+    })
+
+    // Normalizza player_ratings (mantieni come oggetto, schema DB accetta JSONB)
+    const normalizedPlayerRatings = player_ratings || {}
+
+    // Assicura che missing_photos sia sempre un array
+    const normalizedMissingPhotos = Array.isArray(missing_photos) ? missing_photos : (missing_photos ? [missing_photos] : [])
 
     // Prepara dati per inserimento
     const matchData = {
@@ -91,22 +97,22 @@ export async function POST(req) {
       team_strength: null, // Da aggiungere in futuro se estratto
       result: null, // Da aggiungere in futuro se estratto
       is_home: true, // Default
-      players_in_match: players_in_match || [],
-      player_ratings: player_ratings || {},
+      players_in_match: Array.isArray(players_in_match) ? players_in_match : [],
+      player_ratings: normalizedPlayerRatings, // Mantieni come oggetto (schema DB accetta JSONB)
       team_stats: team_stats || {},
       attack_areas: attack_areas || {},
-      ball_recovery_zones: ball_recovery_zones || [],
-      goals_events: goals_events || [],
-      formation_discrepancies: formation_discrepancies || [],
+      ball_recovery_zones: Array.isArray(ball_recovery_zones) ? ball_recovery_zones : [],
+      goals_events: Array.isArray(goals_events) ? goals_events : [],
+      formation_discrepancies: Array.isArray(formation_discrepancies) ? formation_discrepancies : [],
       extracted_data: extracted_data || {},
       data_completeness: data_completeness || 'partial',
-      missing_photos: missing_photos || [],
+      missing_photos: normalizedMissingPhotos, // Sempre array
       analysis_status: 'pending', // Match salvato ma non ancora analizzato
-      credits_used: 0 // Verrà aggiornato dopo analisi AI
+      credits_used: requestData.credits_used || 0 // Usa credits_used dal request se presente
     }
 
     // Inserisci match in database
-    const { data: insertedMatch, error: insertError } = await supabase
+    const { data: insertedMatch, error: insertError } = await admin
       .from('matches')
       .insert(matchData)
       .select('id, user_id, match_date, analysis_status')

@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { useTranslation } from '@/lib/i18n'
 import LanguageSwitch from '@/components/LanguageSwitch'
 import HeroPointsBalance from '@/components/HeroPointsBalance'
-import { ArrowLeft, Upload, AlertCircle, CheckCircle2, RefreshCw, Info, X, Image as ImageIcon, FileImage, TrendingUp, Sparkles } from 'lucide-react'
+import { ArrowLeft, Upload, AlertCircle, CheckCircle2, RefreshCw, Info, X, Image as ImageIcon, Sparkles, FileImage, TrendingUp, Camera } from 'lucide-react'
 
 const PHOTO_TYPES = [
   { key: 'formation_image', label: 'Formazione in Campo', icon: '⚽', description: 'Screenshot formazione giocata', knowledgeBonus: 3 },
@@ -22,7 +22,7 @@ export default function NewMatchPage() {
   const router = useRouter()
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState(null)
-  const [toast, setToast] = React.useState(null)
+  const [success, setSuccess] = React.useState(null)
   const [photos, setPhotos] = React.useState({})
   const [uploading, setUploading] = React.useState(false)
   const [result, setResult] = React.useState(null)
@@ -102,6 +102,7 @@ export default function NewMatchPage() {
   const handleSubmit = async () => {
     setUploading(true)
     setError(null)
+    setSuccess(null)
     setResult(null)
 
     try {
@@ -135,14 +136,14 @@ export default function NewMatchPage() {
       // 2. Prepara dati per salvataggio (aggiungi campi opzionali)
       const matchDataToSave = {
         ...extractResult.match_data,
-        match_date: new Date().toISOString(), // Data corrente se non estratta
-        opponent_name: null, // Da aggiungere in futuro se estratto
-        opponent_formation_id: null, // Da aggiungere in futuro se estratto
-        playing_style_played: null, // Da aggiungere in futuro se estratto
-        team_strength: null, // Da aggiungere in futuro se estratto
-        result: null, // Da aggiungere in futuro se estratto
-        is_home: true, // Default
-        ai_summary: null, // Sarà popolato da analisi AI
+        match_date: new Date().toISOString(),
+        opponent_name: null,
+        opponent_formation_id: null,
+        playing_style_played: null,
+        team_strength: null,
+        result: null,
+        is_home: true,
+        ai_summary: null,
         ai_insights: [],
         ai_recommendations: [],
         credits_used: extractResult.credits_used || 0
@@ -174,17 +175,18 @@ export default function NewMatchPage() {
         analysis_status: saveResult.analysis_status || 'pending'
       })
 
-      setToast({ message: 'Partita salvata con successo!', type: 'success' })
+      setSuccess('Partita salvata con successo!')
       
       // Reset form dopo 3 secondi
       setTimeout(() => {
         setPhotos({})
         setResult(null)
-      }, 3000)
+        setSuccess(null)
+      }, 5000)
 
     } catch (err) {
       setError(err.message || 'Errore durante il salvataggio della partita')
-      setToast({ message: err.message || 'Errore durante il salvataggio', type: 'error' })
+      setTimeout(() => setError(null), 5000)
     } finally {
       setUploading(false)
     }
@@ -196,199 +198,353 @@ export default function NewMatchPage() {
 
   // Evita hydration mismatch
   if (!mounted) {
-    return null
+    return (
+      <main style={{ padding: '32px 24px', minHeight: '100vh', textAlign: 'center' }}>
+        <RefreshCw size={32} style={{ animation: 'spin 1s linear infinite', marginBottom: '16px', color: 'var(--neon-blue)' }} />
+        <div>Caricamento...</div>
+      </main>
+    )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
+    <main style={{ 
+      padding: '16px', 
+      minHeight: '100vh', 
+      backgroundColor: '#0a0a0a',
+      color: '#ffffff',
+      maxWidth: '1200px',
+      margin: '0 auto'
+    }}>
       {/* Header */}
-      <div className="bg-gray-800/50 backdrop-blur-sm border-b border-gray-700 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => router.push('/')}
-                className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </button>
-              <h1 className="text-2xl font-bold">Nuova Partita</h1>
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: '16px', 
+        marginBottom: '24px',
+        position: 'sticky',
+        top: 0,
+        backgroundColor: '#0a0a0a',
+        padding: '16px 0',
+        zIndex: 10
+      }}>
+        <button
+          onClick={() => router.push('/')}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: '#ffffff',
+            cursor: 'pointer',
+            padding: '8px',
+            display: 'flex',
+            alignItems: 'center'
+          }}
+        >
+          <ArrowLeft size={24} />
+        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+          <Camera size={24} color="var(--neon-blue)" />
+          <h1 style={{ margin: 0, fontSize: '20px', fontWeight: '600' }}>Nuova Partita</h1>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <HeroPointsBalance />
+          <LanguageSwitch />
+        </div>
+      </div>
+
+      {/* Info Banner - Pay-Per-Use */}
+      <div className="card" style={{ 
+        marginBottom: '24px',
+        padding: '20px',
+        background: 'rgba(0, 212, 255, 0.05)',
+        border: '2px solid var(--neon-blue)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'start', gap: '12px' }}>
+          <Info size={20} color="var(--neon-blue)" style={{ flexShrink: 0, marginTop: '2px' }} />
+          <div>
+            <div style={{ fontSize: '16px', fontWeight: 600, marginBottom: '8px', color: 'var(--neon-blue)' }}>
+              💡 Pay-Per-Use
             </div>
-            <div className="flex items-center gap-4">
-              <HeroPointsBalance />
-              <LanguageSwitch />
+            <div style={{ fontSize: '14px', opacity: 0.9, lineHeight: '1.6' }}>
+              Credits spesi solo per foto effettivamente processate. 
+              Nessuna foto è obbligatoria - il sistema funziona anche con dati parziali. 
+              <strong style={{ color: 'var(--neon-blue)' }}> Più la IA sa, più ti aiuta!</strong>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Info Banner */}
-        <div className="mb-6 p-4 bg-blue-900/30 border border-blue-700/50 rounded-lg">
-          <div className="flex items-start gap-3">
-            <Info className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" />
-            <div className="flex-1">
-              <p className="text-sm text-blue-200">
-                <strong>💡 Pay-Per-Use:</strong> Credits spesi solo per foto effettivamente processate. 
-                Nessuna foto è obbligatoria - il sistema funziona anche con dati parziali. 
-                <strong> Più la IA sa, più ti aiuta!</strong>
-              </p>
+      {/* Knowledge Bar */}
+      {knowledgeBonus > 0 && (
+        <div className="card" style={{ 
+          marginBottom: '24px',
+          padding: '20px',
+          background: 'rgba(168, 85, 247, 0.05)',
+          border: '2px solid var(--neon-purple)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+            <Sparkles size={20} color="var(--neon-purple)" />
+            <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: 'var(--neon-purple)' }}>
+              Conoscenza IA
+            </h2>
+          </div>
+          <div style={{
+            width: '100%',
+            height: '24px',
+            backgroundColor: '#2a2a2a',
+            borderRadius: '12px',
+            overflow: 'hidden',
+            marginBottom: '8px',
+            position: 'relative'
+          }}>
+            <div style={{
+              width: `${Math.min(knowledgeBonus, 100)}%`,
+              height: '100%',
+              background: 'linear-gradient(90deg, var(--neon-purple), #A855F7)',
+              transition: 'width 0.5s ease',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'flex-end',
+              paddingRight: '8px',
+              fontSize: '12px',
+              fontWeight: '600',
+              color: '#000'
+            }}>
+              {knowledgeBonus > 10 && `${knowledgeBonus}%`}
             </div>
           </div>
-        </div>
-
-        {/* Knowledge Bar */}
-        {knowledgeBonus > 0 && (
-          <div className="mb-6 p-4 bg-purple-900/30 border border-purple-700/50 rounded-lg">
-            <div className="flex items-center gap-3 mb-2">
-              <Sparkles className="w-5 h-5 text-purple-400" />
-              <span className="font-semibold text-purple-200">Conoscenza IA</span>
-            </div>
-            <div className="w-full bg-gray-700 rounded-full h-3 mb-2">
-              <div 
-                className="bg-gradient-to-r from-purple-500 to-purple-600 h-3 rounded-full transition-all duration-500"
-                style={{ width: `${Math.min(knowledgeBonus, 100)}%` }}
-              />
-            </div>
-            <p className="text-xs text-purple-300">
-              Bonus conoscenza: +{knowledgeBonus}% ({Object.keys(photos).length} foto caricate)
-            </p>
+          <div style={{ fontSize: '13px', opacity: 0.8 }}>
+            Bonus conoscenza: +{knowledgeBonus}% ({Object.keys(photos).length} foto caricate)
           </div>
-        )}
-
-        {/* Missing Photos Info */}
-        {missingInfo && (
-          <div className={`mb-6 p-4 rounded-lg border ${
-            missingInfo.type === 'success' 
-              ? 'bg-green-900/30 border-green-700/50' 
-              : 'bg-yellow-900/30 border-yellow-700/50'
-          }`}>
-            <p className="text-sm whitespace-pre-line">{missingInfo.message}</p>
-          </div>
-        )}
-
-        {/* Photo Upload Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-          {PHOTO_TYPES.map(photoType => {
-            const hasPhoto = !!photos[photoType.key]
-            return (
-              <div
-                key={photoType.key}
-                className={`p-4 rounded-lg border-2 border-dashed transition-all ${
-                  hasPhoto
-                    ? 'border-green-500 bg-green-900/20'
-                    : 'border-gray-600 bg-gray-800/50 hover:border-gray-500'
-                }`}
-              >
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl">{photoType.icon}</span>
-                    <div>
-                      <h3 className="font-semibold text-sm">{photoType.label}</h3>
-                      <p className="text-xs text-gray-400">{photoType.description}</p>
-                    </div>
-                  </div>
-                  {hasPhoto && (
-                    <button
-                      onClick={() => removePhoto(photoType.key)}
-                      className="p-1 hover:bg-red-900/50 rounded transition-colors"
-                    >
-                      <X className="w-4 h-4 text-red-400" />
-                    </button>
-                  )}
-                </div>
-
-                {hasPhoto ? (
-                  <div className="mt-3 p-2 bg-green-900/30 rounded flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-green-400" />
-                    <span className="text-xs text-green-300">Foto caricata (+{photoType.knowledgeBonus}%)</span>
-                  </div>
-                ) : (
-                  <label className="mt-3 block">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0]
-                        if (file) handlePhotoUpload(photoType.key, file)
-                      }}
-                      className="hidden"
-                    />
-                    <div className="cursor-pointer p-3 bg-gray-700/50 hover:bg-gray-700 rounded text-center text-sm transition-colors">
-                      <Upload className="w-4 h-4 mx-auto mb-1" />
-                      <span className="text-xs">Carica foto</span>
-                    </div>
-                  </label>
-                )}
-              </div>
-            )
-          })}
-        </div>
-
-        {/* Error Display */}
-        {error && (
-          <div className="mb-6 p-4 bg-red-900/30 border border-red-700/50 rounded-lg flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
-            <p className="text-sm text-red-200">{error}</p>
-          </div>
-        )}
-
-        {/* Result Display */}
-        {result && (
-          <div className="mb-6 p-4 bg-green-900/30 border border-green-700/50 rounded-lg">
-            <div className="flex items-start gap-3 mb-3">
-              <CheckCircle2 className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0" />
-              <div className="flex-1">
-                <h3 className="font-semibold text-green-200 mb-2">Partita salvata con successo!</h3>
-                <div className="text-sm text-green-300 space-y-1">
-                  <p>Match ID: {result.match_id}</p>
-                  <p>Foto processate: {result.photos_processed}</p>
-                  <p>Credits usati: {result.credits_used}</p>
-                  <p>Completezza dati: {result.data_completeness}</p>
-                  <p>Stato analisi: {result.analysis_status}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Submit Button */}
-        <div className="flex justify-end gap-4">
-          <button
-            onClick={() => router.push('/')}
-            className="px-6 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
-          >
-            Annulla
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={uploading || Object.keys(photos).length === 0}
-            className="px-6 py-3 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:cursor-not-allowed rounded-lg transition-colors flex items-center gap-2"
-          >
-            {uploading ? (
-              <>
-                <RefreshCw className="w-4 h-4 animate-spin" />
-                <span>Elaborazione...</span>
-              </>
-            ) : (
-              <>
-                <Upload className="w-4 h-4" />
-                <span>Salva Partita</span>
-              </>
-            )}
-          </button>
-        </div>
-      </div>
-
-      {/* Toast Notification */}
-      {toast && (
-        <div className={`fixed bottom-4 right-4 p-4 rounded-lg shadow-lg z-50 ${
-          toast.type === 'success' ? 'bg-green-600' : 'bg-red-600'
-        }`}>
-          <p className="text-white text-sm">{toast.message}</p>
         </div>
       )}
-    </div>
+
+      {/* Missing Photos Info */}
+      {missingInfo && (
+        <div className="card" style={{ 
+          marginBottom: '24px',
+          padding: '20px',
+          background: missingInfo.type === 'success' 
+            ? 'rgba(0, 255, 136, 0.05)' 
+            : 'rgba(255, 170, 0, 0.05)',
+          border: `2px solid ${missingInfo.type === 'success' ? '#00ff88' : '#ffaa00'}`
+        }}>
+          <div style={{ fontSize: '14px', lineHeight: '1.8', whiteSpace: 'pre-line' }}>
+            {missingInfo.message}
+          </div>
+        </div>
+      )}
+
+      {/* Photo Upload Grid */}
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+        gap: '16px',
+        marginBottom: '24px'
+      }}>
+        {PHOTO_TYPES.map(photoType => {
+          const hasPhoto = !!photos[photoType.key]
+          return (
+            <div
+              key={photoType.key}
+              className="card"
+              style={{
+                padding: '20px',
+                cursor: hasPhoto ? 'default' : 'pointer',
+                transition: 'all 0.3s ease',
+                border: hasPhoto 
+                  ? '2px solid #00ff88' 
+                  : '2px solid #2a2a2a',
+                background: hasPhoto
+                  ? 'rgba(0, 255, 136, 0.05)'
+                  : 'rgba(26, 26, 26, 0.8)',
+                position: 'relative'
+              }}
+              onMouseEnter={(e) => {
+                if (!hasPhoto) {
+                  e.currentTarget.style.borderColor = 'var(--neon-blue)'
+                  e.currentTarget.style.boxShadow = 'var(--glow-blue)'
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!hasPhoto) {
+                  e.currentTarget.style.borderColor = '#2a2a2a'
+                  e.currentTarget.style.boxShadow = 'none'
+                }
+              }}
+            >
+              {/* Header Card */}
+              <div style={{ display: 'flex', alignItems: 'start', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+                  <span style={{ fontSize: '24px' }}>{photoType.icon}</span>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 600, marginBottom: '4px' }}>
+                      {photoType.label}
+                    </h3>
+                    <p style={{ margin: 0, fontSize: '12px', opacity: 0.7 }}>
+                      {photoType.description}
+                    </p>
+                  </div>
+                </div>
+                {hasPhoto && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      removePhoto(photoType.key)
+                    }}
+                    style={{
+                      background: 'rgba(255, 68, 68, 0.1)',
+                      border: '1px solid #ff4444',
+                      borderRadius: '6px',
+                      padding: '6px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      color: '#ff4444'
+                    }}
+                  >
+                    <X size={16} />
+                  </button>
+                )}
+              </div>
+
+              {/* Content */}
+              {hasPhoto ? (
+                <div style={{
+                  padding: '12px',
+                  background: 'rgba(0, 255, 136, 0.1)',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  <CheckCircle2 size={16} color="#00ff88" />
+                  <span style={{ fontSize: '13px', color: '#00ff88' }}>
+                    Foto caricata (+{photoType.knowledgeBonus}%)
+                  </span>
+                </div>
+              ) : (
+                <label style={{ display: 'block', cursor: 'pointer' }}>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) handlePhotoUpload(photoType.key, file)
+                    }}
+                    style={{ display: 'none' }}
+                  />
+                  <div style={{
+                    padding: '16px',
+                    background: 'rgba(0, 212, 255, 0.05)',
+                    border: '2px dashed var(--neon-blue)',
+                    borderRadius: '8px',
+                    textAlign: 'center',
+                    transition: 'all 0.3s ease'
+                  }}>
+                    <Upload size={24} color="var(--neon-blue)" style={{ marginBottom: '8px' }} />
+                    <div style={{ fontSize: '14px', color: 'var(--neon-blue)', fontWeight: 500 }}>
+                      Carica foto
+                    </div>
+                    <div style={{ fontSize: '12px', opacity: 0.7, marginTop: '4px' }}>
+                      +{photoType.knowledgeBonus}% conoscenza
+                    </div>
+                  </div>
+                </label>
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Error Display */}
+      {error && (
+        <div className="card" style={{ 
+          marginBottom: '24px',
+          padding: '20px',
+          background: 'rgba(255, 68, 68, 0.1)',
+          border: '2px solid #ff4444'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'start', gap: '12px' }}>
+            <AlertCircle size={20} color="#ff4444" style={{ flexShrink: 0, marginTop: '2px' }} />
+            <div style={{ fontSize: '14px', color: '#ff4444' }}>{error}</div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Display */}
+      {success && (
+        <div className="card" style={{ 
+          marginBottom: '24px',
+          padding: '20px',
+          background: 'rgba(0, 255, 136, 0.1)',
+          border: '2px solid #00ff88'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'start', gap: '12px' }}>
+            <CheckCircle2 size={20} color="#00ff88" style={{ flexShrink: 0, marginTop: '2px' }} />
+            <div>
+              <div style={{ fontSize: '16px', fontWeight: 600, marginBottom: '8px', color: '#00ff88' }}>
+                {success}
+              </div>
+              {result && (
+                <div style={{ fontSize: '13px', opacity: 0.9, lineHeight: '1.8' }}>
+                  <div>Match ID: {result.match_id}</div>
+                  <div>Foto processate: {result.photos_processed}</div>
+                  <div>Credits usati: {result.credits_used}</div>
+                  <div>Completezza dati: {result.data_completeness}</div>
+                  <div>Stato analisi: {result.analysis_status}</div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Action Buttons */}
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'flex-end', 
+        gap: '12px',
+        marginTop: '32px',
+        flexWrap: 'wrap'
+      }}>
+        <button
+          onClick={() => router.push('/')}
+          className="btn"
+          style={{ 
+            padding: '12px 24px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}
+        >
+          Annulla
+        </button>
+        <button
+          onClick={handleSubmit}
+          disabled={uploading || Object.keys(photos).length === 0}
+          className="btn primary"
+          style={{ 
+            padding: '12px 24px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            opacity: (uploading || Object.keys(photos).length === 0) ? 0.5 : 1,
+            cursor: (uploading || Object.keys(photos).length === 0) ? 'not-allowed' : 'pointer'
+          }}
+        >
+          {uploading ? (
+            <>
+              <RefreshCw size={16} style={{ animation: 'spin 1s linear infinite' }} />
+              <span>Elaborazione...</span>
+            </>
+          ) : (
+            <>
+              <Upload size={16} />
+              <span>Salva Partita</span>
+            </>
+          )}
+        </button>
+      </div>
+    </main>
   )
 }
