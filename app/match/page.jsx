@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { useTranslation } from '@/lib/i18n'
 import LanguageSwitch from '@/components/LanguageSwitch'
 import HeroPointsBalance from '@/components/HeroPointsBalance'
-import { ArrowLeft, Calendar, TrendingUp, FileText, Clock, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { ArrowLeft, Calendar, TrendingUp, FileText, Clock, AlertCircle, CheckCircle2, ArrowRight } from 'lucide-react'
 
 export default function MatchHistoryPage() {
   const { t } = useTranslation()
