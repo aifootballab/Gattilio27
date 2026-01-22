@@ -44,13 +44,30 @@ async function extractImageData(apiKey, imageDataUrl, prompt, operationType) {
       }
     ],
     max_tokens: 4000,
-    temperature: 0.1
+    temperature: 0.1,
+    response_format: { type: 'json_object' } // FORZA JSON object per parsing più affidabile
   }
 
-  const response = await callOpenAIWithRetry(apiKey, requestBody, operationType)
-  const extractedData = await parseOpenAIResponse(response, operationType)
-  
-  return extractedData
+  try {
+    const response = await callOpenAIWithRetry(apiKey, requestBody, operationType)
+    const extractedData = await parseOpenAIResponse(response, operationType)
+    
+    // Log per debug (solo in development)
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[${operationType}] Extraction successful, keys:`, Object.keys(extractedData || {}))
+    }
+    
+    return extractedData
+  } catch (error) {
+    // Log errore dettagliato
+    console.error(`[${operationType}] Extraction failed:`, {
+      type: error?.type,
+      message: error?.message,
+      operation: operationType
+    })
+    // Rilancia errore per gestione nel chiamante
+    throw error
+  }
 }
 
 // Normalizza nome giocatore per matching
@@ -384,8 +401,19 @@ Formato JSON:
 
 Restituisci SOLO JSON valido, senza altro testo.`
           
-          const result = await extractImageData(apiKey, ratingsImage, prompt, 'extract-match-ratings')
-          if (result) ratingsResults.push(result)
+          try {
+            const result = await extractImageData(apiKey, ratingsImage, prompt, 'extract-match-ratings')
+            if (result) {
+              ratingsResults.push(result)
+              const ratingsCount = result?.ratings ? Object.keys(result.ratings).length : (Object.keys(result).length)
+              console.log(`[extract-match-data] Ratings image ${i + 1} extracted successfully, players: ${ratingsCount}`)
+            } else {
+              console.warn(`[extract-match-data] Ratings image ${i + 1} returned null result`)
+            }
+          } catch (imgErr) {
+            console.error(`[extract-match-data] Error extracting ratings image ${i + 1}:`, imgErr?.message || imgErr)
+            // Continua con altre foto anche se una fallisce
+          }
         }
         
         // Unisci tutti i ratings da tutte le foto (merge oggetti)
@@ -394,6 +422,9 @@ Restituisci SOLO JSON valido, senza altro testo.`
             return { ...merged, ...(current?.ratings || current) }
           }, {})
           extractedData.ratings = ratingsData
+          console.log(`[extract-match-data] Ratings data merged: ${Object.keys(ratingsData).length} players`)
+        } else {
+          console.warn('[extract-match-data] No ratings data extracted from any image')
         }
       } catch (err) {
         console.error('[extract-match-data] Error extracting ratings:', err)
@@ -432,8 +463,18 @@ Formato JSON:
 
 Restituisci SOLO JSON valido, senza altro testo.`
           
-          const result = await extractImageData(apiKey, teamStatsImage, prompt, 'extract-match-team-stats')
-          if (result) teamStatsResults.push(result)
+          try {
+            const result = await extractImageData(apiKey, teamStatsImage, prompt, 'extract-match-team-stats')
+            if (result) {
+              teamStatsResults.push(result)
+              console.log(`[extract-match-data] Team stats image ${i + 1} extracted successfully, stats: ${Object.keys(result).length}`)
+            } else {
+              console.warn(`[extract-match-data] Team stats image ${i + 1} returned null result`)
+            }
+          } catch (imgErr) {
+            console.error(`[extract-match-data] Error extracting team stats image ${i + 1}:`, imgErr?.message || imgErr)
+            // Continua con altre foto anche se una fallisce
+          }
         }
         
         // Unisci statistiche (preferisci valori più completi)
@@ -444,6 +485,9 @@ Restituisci SOLO JSON valido, senza altro testo.`
             return currentKeys > bestKeys ? current : best
           }, teamStatsResults[0])
           extractedData.team_stats = teamStatsData
+          console.log(`[extract-match-data] Team stats data merged: ${Object.keys(teamStatsData).length} stats`)
+        } else {
+          console.warn('[extract-match-data] No team stats data extracted from any image')
         }
       } catch (err) {
         console.error('[extract-match-data] Error extracting team stats:', err)
@@ -588,16 +632,29 @@ Restituisci SOLO JSON valido, senza altro testo.`
     const playersInMatch = formationData?.players || []
     // ratingsData è già l'oggetto dei ratings (non ha struttura { ratings: {...} })
     const playerRatings = ratingsData || {}
-    
+
+    console.log(`[extract-match-data] Data summary before processing:`)
+    console.log(`  - Formation: ${formationData ? 'YES' : 'NO'} (${playersInMatch.length} players)`)
+    console.log(`  - Ratings: ${Object.keys(playerRatings).length} players`)
+    console.log(`  - Team stats: ${teamStatsData ? 'YES' : 'NO'}`)
+    console.log(`  - Attack areas: ${attackAreasData ? 'YES' : 'NO'}`)
+    console.log(`  - Recovery zones: ${recoveryZonesData ? 'YES' : 'NO'}`)
+    console.log(`  - Goals events: ${goalsEventsData?.goals?.length || 0} events`)
+    console.log(`  - Extracted data keys: ${Object.keys(extractedData).length}`)
+
     // Matching giocatori con rosa utente (solo se ratings disponibili)
     let matchedPlayers = playersInMatch
     if (ratingsImages.length > 0 && playersInMatch.length > 0) {
+      console.log(`[extract-match-data] Matching ${playersInMatch.length} players to roster`)
       matchedPlayers = await matchPlayersToRoster(playersInMatch, userId, supabaseUrl, anonKey)
+      const matchedCount = matchedPlayers.filter(p => p.match_status === 'matched').length
+      console.log(`[extract-match-data] Matched ${matchedCount}/${playersInMatch.length} players`)
     }
 
     // Confronto formazione (solo se formation disponibile)
     let formationDiscrepancies = []
     if (formationImages.length > 0 && playersInMatch.length > 0) {
+      console.log(`[extract-match-data] Comparing formations`)
       formationDiscrepancies = await compareFormations(
         formationData,
         matchedPlayers,
@@ -605,26 +662,52 @@ Restituisci SOLO JSON valido, senza altro testo.`
         supabaseUrl,
         anonKey
       )
+      console.log(`[extract-match-data] Found ${formationDiscrepancies.length} formation discrepancies`)
     }
 
     // Calcola metriche derivate
     const teamStats = teamStatsData ? calculateDerivedMetrics(teamStatsData) : null
+    if (teamStats) {
+      console.log(`[extract-match-data] Calculated derived metrics for team stats`)
+    }
+
+    // Aggiungi metadata a extracted_data per tracciare quali foto sono state processate
+    // REGOLA DOC: "Salva in extracted_data (raw backup) - solo per foto processate"
+    extractedData._metadata = {
+      photos_processed: photosProcessed,
+      photos_missing: photosMissing,
+      extraction_timestamp: new Date().toISOString(),
+      formation_extracted: !!formationData,
+      ratings_extracted: Object.keys(playerRatings).length > 0,
+      team_stats_extracted: !!teamStatsData,
+      attack_areas_extracted: !!attackAreasData,
+      recovery_zones_extracted: !!recoveryZonesData,
+      goals_events_extracted: !!(goalsEventsData?.goals?.length > 0)
+    }
 
     // Prepara dati per salvataggio
     const matchData = {
       formation_played: formationData?.formation || null,
       players_in_match: matchedPlayers,
       player_ratings: playerRatings,
-      team_stats: teamStats,
+      team_stats: teamStats || null, // Usa null invece di {} se non ci sono dati
       attack_areas: attackAreasData || null,
       ball_recovery_zones: recoveryZonesData || null,
       goals_events: goalsEventsData?.goals || [],
       formation_discrepancies: formationDiscrepancies,
-      extracted_data: extractedData,
+      extracted_data: extractedData, // Sempre popolato con metadata anche se estrazioni falliscono
       data_completeness: dataCompleteness,
       missing_photos: photosMissing,
       analysis_status: 'pending'
     }
+
+    console.log(`[extract-match-data] Final match data prepared:`)
+    console.log(`  - formation_played: ${matchData.formation_played || 'null'}`)
+    console.log(`  - players_in_match: ${matchData.players_in_match.length} players`)
+    console.log(`  - player_ratings: ${Object.keys(matchData.player_ratings).length} players`)
+    console.log(`  - team_stats: ${matchData.team_stats ? Object.keys(matchData.team_stats).length + ' stats' : 'null'}`)
+    console.log(`  - extracted_data keys: ${Object.keys(matchData.extracted_data).length}`)
+    console.log(`  - extracted_data._metadata:`, matchData.extracted_data._metadata)
 
     // Calcola credits usati (1 credit per foto FISICA processata - pay-per-use)
     // Se una sezione ha 2 foto, conta come 2 credits

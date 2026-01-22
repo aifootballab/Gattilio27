@@ -135,12 +135,16 @@ export async function POST(req) {
       is_home: true, // Default
       players_in_match: Array.isArray(players_in_match) ? players_in_match : [],
       player_ratings: normalizedPlayerRatings, // Mantieni come oggetto (schema DB accetta JSONB)
-      team_stats: team_stats || {},
-      attack_areas: attack_areas || {},
-      ball_recovery_zones: Array.isArray(ball_recovery_zones) ? ball_recovery_zones : [],
-      goals_events: Array.isArray(goals_events) ? goals_events : [],
-      formation_discrepancies: Array.isArray(formation_discrepancies) ? formation_discrepancies : [],
-      extracted_data: extracted_data || {},
+      // REGOLA DOC: "Se foto mancante: salva null nel campo corrispondente"
+      // Usa null invece di {} se non ci sono dati (evita oggetti vuoti)
+      team_stats: (team_stats && typeof team_stats === 'object' && Object.keys(team_stats).length > 0) ? team_stats : null,
+      attack_areas: (attack_areas && typeof attack_areas === 'object' && Object.keys(attack_areas).length > 0) ? attack_areas : null,
+      ball_recovery_zones: (Array.isArray(ball_recovery_zones) && ball_recovery_zones.length > 0) ? ball_recovery_zones : null,
+      goals_events: (Array.isArray(goals_events) && goals_events.length > 0) ? goals_events : null,
+      formation_discrepancies: (Array.isArray(formation_discrepancies) && formation_discrepancies.length > 0) ? formation_discrepancies : null,
+      // REGOLA DOC: "Salva in extracted_data (raw backup) - solo per foto processate"
+      // extracted_data deve sempre contenere almeno metadata anche se estrazioni falliscono
+      extracted_data: (extracted_data && typeof extracted_data === 'object' && Object.keys(extracted_data).length > 0) ? extracted_data : { _metadata: { photos_processed: photosUploaded, extraction_timestamp: new Date().toISOString() } },
       photos_uploaded: photosUploaded, // Numero foto fisiche caricate
       missing_photos: normalizedMissingPhotos, // Array foto mancanti
       data_completeness: normalizedDataCompleteness, // 'complete' o 'partial'
