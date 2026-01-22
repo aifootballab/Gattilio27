@@ -129,12 +129,39 @@ Restituisci SOLO JSON valido, senza altro testo. Assicurati che ci siano ESATTAM
         // Non blocco, ma avverto
       }
 
-      // Normalizza slot_index per essere sicuri che siano 0-10
+      // Normalizza slot_index per essere sicuri che siano 0-10 e UNIVOCI
+      // IMPORTANTE: Il constraint UNIQUE (user_id, slot_index) richiede slot_index univoci
       if (formationData.players && Array.isArray(formationData.players)) {
-        formationData.players = formationData.players.map((player, index) => ({
-          ...player,
-          slot_index: player.slot_index !== undefined ? Math.max(0, Math.min(10, player.slot_index)) : index
-        }))
+        const usedSlots = new Set()
+        const maxSlots = 11 // 0-10
+        
+        formationData.players = formationData.players.map((player, index) => {
+          let slotIndex = player.slot_index !== undefined 
+            ? Math.max(0, Math.min(10, Number(player.slot_index))) 
+            : index
+          
+          // Se slot già usato, trova primo slot disponibile
+          if (usedSlots.has(slotIndex)) {
+            // Cerca primo slot disponibile da 0 a 10
+            for (let i = 0; i < maxSlots; i++) {
+              if (!usedSlots.has(i)) {
+                slotIndex = i
+                break
+              }
+            }
+            // Se tutti gli slot sono occupati, usa l'indice dell'array (non dovrebbe mai succedere con 11 giocatori)
+            if (usedSlots.has(slotIndex)) {
+              slotIndex = Math.min(index, 10)
+            }
+          }
+          
+          usedSlots.add(slotIndex)
+          
+          return {
+            ...player,
+            slot_index: slotIndex
+          }
+        })
       }
       
       // Validazione semantica formazione
