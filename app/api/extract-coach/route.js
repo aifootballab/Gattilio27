@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { validateToken, extractBearerToken } from '../../../lib/authHelper'
+import { callOpenAIWithRetry, parseOpenAIResponse } from '../../../lib/openaiHelper'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -99,7 +100,7 @@ export async function POST(req) {
         
         if (imageSizeBytes > maxSizeBytes) {
           return NextResponse.json(
-            { error: 'Image size exceeds maximum allowed size (10MB)' },
+            { error: 'Image size exceeds maximum allowed size (10MB). Please use a smaller image.' },
             { status: 400 }
           )
         }

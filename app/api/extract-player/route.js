@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { validateToken, extractBearerToken } from '../../../lib/authHelper'
+import { callOpenAIWithRetry, parseOpenAIResponse } from '../../../lib/openaiHelper'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -189,14 +190,10 @@ Formato JSON richiesto:
 
 Restituisci SOLO JSON valido, senza altro testo.`
 
-    // Chiama OpenAI Vision API
-    const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
+    // Chiama OpenAI Vision API con retry e timeout
+    let playerData = null
+    try {
+      const requestBody = {
         model: 'gpt-4o',
         messages: [
           {
@@ -216,41 +213,42 @@ Restituisci SOLO JSON valido, senza altro testo.`
         response_format: { type: 'json_object' },
         temperature: 0,
         max_tokens: 2500
-      })
-    })
-
-    if (!openaiRes.ok) {
-      const errorData = await openaiRes.json().catch(() => ({ error: 'OpenAI API error' }))
-      console.error('[extract-player] OpenAI API error:', errorData)
-      // Messaggio generico per sicurezza (non esporre dettagli tecnici)
-      return NextResponse.json(
-        { error: 'Unable to extract data from image. Please try again with a different image.' },
-        { status: 500 }
-      )
-    }
-
-    const openaiData = await openaiRes.json()
-
-    // Estrai contenuto JSON dalla risposta
-    let playerData = null
-    try {
-      const content = openaiData.choices?.[0]?.message?.content
-      if (!content) {
-        throw new Error('No content in OpenAI response')
       }
 
-      // Parse JSON dal contenuto
-      playerData = JSON.parse(content)
+      const openaiRes = await callOpenAIWithRetry(apiKey, requestBody, 'extract-player')
+      const parsedData = await parseOpenAIResponse(openaiRes, 'extract-player')
 
       // Se c'è un campo "player" nel JSON, usalo
-      if (playerData.player && typeof playerData.player === 'object') {
-        playerData = playerData.player
+      playerData = parsedData.player && typeof parsedData.player === 'object' 
+        ? parsedData.player 
+        : parsedData
+    } catch (error) {
+      console.error('[extract-player] OpenAI error:', error)
+      
+      // Messaggi specifici per tipo di errore
+      let errorMessage = 'Unable to extract data from image. Please try again with a different image.'
+      let statusCode = 500
+      
+      if (error.type === 'rate_limit') {
+        errorMessage = 'Rate limit reached. Please try again in a minute.'
+        statusCode = 429
+      } else if (error.type === 'timeout') {
+        errorMessage = 'Request took too long. Please try again with a smaller image or different image.'
+        statusCode = 408
+      } else if (error.type === 'server_error') {
+        errorMessage = 'Service temporarily unavailable. Please try again in a few moments.'
+        statusCode = 503
+      } else if (error.type === 'network_error') {
+        errorMessage = 'Network error. Please check your connection and try again.'
+        statusCode = 503
+      } else if (error.type === 'no_content' || error.type === 'parse_error') {
+        errorMessage = error.message || errorMessage
+        statusCode = 500
       }
-    } catch (parseErr) {
-      console.error('[extract-player] JSON parse error:', parseErr)
+      
       return NextResponse.json(
-        { error: 'Failed to parse OpenAI response as JSON' },
-        { status: 500 }
+        { error: errorMessage },
+        { status: statusCode }
       )
     }
 

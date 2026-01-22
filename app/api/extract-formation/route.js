@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { validateToken, extractBearerToken } from '../../../lib/authHelper'
+import { callOpenAIWithRetry, parseOpenAIResponse } from '../../../lib/openaiHelper'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -54,7 +55,7 @@ export async function POST(req) {
         
         if (imageSizeBytes > maxSizeBytes) {
           return NextResponse.json(
-            { error: 'Image size exceeds maximum allowed size (10MB)' },
+            { error: 'Image size exceeds maximum allowed size (10MB). Please use a smaller image.' },
             { status: 400 }
           )
         }
@@ -94,14 +95,10 @@ Formato JSON richiesto:
 
 Restituisci SOLO JSON valido, senza altro testo. Assicurati che ci siano ESATTAMENTE 11 giocatori nell'array.`
 
-    // Chiama OpenAI Vision API
-    const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
+    // Chiama OpenAI Vision API con retry e timeout
+    let formationData = null
+    try {
+      const requestBody = {
         model: 'gpt-4o',
         messages: [
           {
@@ -121,31 +118,10 @@ Restituisci SOLO JSON valido, senza altro testo. Assicurati che ci siano ESATTAM
         response_format: { type: 'json_object' },
         temperature: 0,
         max_tokens: 4000 // Più token per 11 giocatori
-      })
-    })
-
-    if (!openaiRes.ok) {
-      const errorData = await openaiRes.json().catch(() => ({ error: 'OpenAI API error' }))
-      console.error('[extract-formation] OpenAI API error:', errorData)
-      // Messaggio generico per sicurezza (non esporre dettagli tecnici)
-      return NextResponse.json(
-        { error: 'Unable to extract formation from image. Please try again with a different image.' },
-        { status: 500 }
-      )
-    }
-
-    const openaiData = await openaiRes.json()
-
-    // Estrai contenuto JSON dalla risposta
-    let formationData = null
-    try {
-      const content = openaiData.choices?.[0]?.message?.content
-      if (!content) {
-        throw new Error('No content in OpenAI response')
       }
 
-      // Parse JSON dal contenuto
-      formationData = JSON.parse(content)
+      const openaiRes = await callOpenAIWithRetry(apiKey, requestBody, 'extract-formation')
+      formationData = await parseOpenAIResponse(openaiRes, 'extract-formation')
 
       // Valida che ci siano 11 giocatori
       if (!formationData.players || !Array.isArray(formationData.players) || formationData.players.length !== 11) {
