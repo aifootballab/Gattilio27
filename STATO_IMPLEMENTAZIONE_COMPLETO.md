@@ -136,7 +136,7 @@ Questo documento serve come **punto di riferimento unico** per:
 - ✅ Validazione duplicati giocatori (frontend + backend)
 
 #### Da Implementare:
-- ⏳ Validazione semantica (voto 0-10, formazione valida, ecc.)
+- ✅ Validazione semantica (overall_rating 40-100, età 16-50/16-70, nome valido, formazione valida) - **COMPLETATO**
 - ⏳ Rate limiting base (max 10 estrazioni/minuto per utente)
 - ✅ Error handling migliorato (messaggi specifici, retry, timeout) - **COMPLETATO**
 - ⏳ Monitoring costi OpenAI (dashboard)
