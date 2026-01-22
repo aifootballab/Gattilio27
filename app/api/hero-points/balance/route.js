@@ -52,10 +52,17 @@ export async function GET(req) {
     const calculatedData = await calculateBalanceFromTransactions(admin, userId)
 
     // Sincronizza cache (user_hero_points) con balance calcolato
+    // IMPORTANTE: Sincronizziamo sempre per garantire coerenza
     const cacheData = await syncBalanceCache(admin, userId, calculatedData)
 
-    // Leggi cache per euros_equivalent (computed column nel DB)
+    // Se syncBalanceCache ritorna null, leggiamo dalla cache esistente
+    // Ma usiamo sempre calculatedData come fonte di verità
     const cacheRecord = cacheData || await getBalanceFromCache(admin, userId)
+
+    // Log per debug (solo se c'è discrepanza)
+    if (cacheRecord && cacheRecord.hero_points_balance !== calculatedData.balance) {
+      console.warn(`[hero-points/balance] Cache discrepancy detected for user ${userId}: cache=${cacheRecord.hero_points_balance}, calculated=${calculatedData.balance}`)
+    }
 
     // Ritorna balance calcolato dalle transazioni (fonte di verità)
     return NextResponse.json({
