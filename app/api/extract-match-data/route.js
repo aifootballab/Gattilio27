@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { validateToken, extractBearerToken } from '../../../lib/authHelper'
 import { callOpenAIWithRetry, parseOpenAIResponse } from '../../../lib/openaiHelper'
+import { createClient } from '@supabase/supabase-js'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -67,7 +68,6 @@ async function matchPlayersToRoster(players, userId, supabaseUrl, anonKey) {
   if (!players || !Array.isArray(players)) return []
 
   // Carica rosa utente da Supabase
-  const { createClient } = await import('@supabase/supabase-js')
   const supabase = createClient(supabaseUrl, anonKey)
   
   const { data: roster, error } = await supabase
@@ -131,7 +131,6 @@ async function compareFormations(playedFormation, playersInMatch, userId, supaba
   const discrepancies = []
 
   // Carica formazione salvata
-  const { createClient } = await import('@supabase/supabase-js')
   const supabase = createClient(supabaseUrl, anonKey)
   
   const { data: savedFormation, error } = await supabase
