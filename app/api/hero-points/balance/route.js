@@ -50,10 +50,20 @@ export async function GET(req) {
 
     // Calcola balance dalle transazioni (fonte di verità - Event Sourcing)
     const calculatedData = await calculateBalanceFromTransactions(admin, userId)
+    
+    // DEBUG: Log calcolo
+    console.log(`[hero-points/balance] DEBUG user ${userId}: calculated balance=${calculatedData.balance}, totalPurchased=${calculatedData.totalPurchased}, totalSpent=${calculatedData.totalSpent}`)
 
     // Sincronizza cache (user_hero_points) con balance calcolato
     // IMPORTANTE: Sincronizziamo sempre per garantire coerenza
     const cacheData = await syncBalanceCache(admin, userId, calculatedData)
+    
+    // DEBUG: Log sync
+    if (cacheData) {
+      console.log(`[hero-points/balance] DEBUG user ${userId}: cache synced to balance=${cacheData.hero_points_balance}`)
+    } else {
+      console.warn(`[hero-points/balance] DEBUG user ${userId}: syncBalanceCache returned null`)
+    }
 
     // Se syncBalanceCache ritorna null, leggiamo dalla cache esistente
     // Ma usiamo sempre calculatedData come fonte di verità
