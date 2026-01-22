@@ -51,147 +51,20 @@ export async function GET(req) {
     // Calcola balance dalle transazioni (fonte di verità - Event Sourcing)
     const calculatedData = await calculateBalanceFromTransactions(admin, userId)
     
-    // DEBUG: Log calcolo con verifica
-    console.log(`[hero-points/balance] DEBUG user ${userId}: calculated balance=${calculatedData.balance}, totalPurchased=${calculatedData.totalPurchased}, totalSpent=${calculatedData.totalSpent}`)
-    console.log(`[hero-points/balance] DEBUG calculatedData object:`, JSON.stringify(calculatedData))
-    
-    // CRITICAL: Verifica che il balance calcolato sia valido
-    if (calculatedData.balance > 100000) {
-      console.error(`[hero-points/balance] CRITICAL: Calculated balance is suspiciously high: ${calculatedData.balance}`)
-      // Forza ricalcolo manuale
-      const { data: manualCheck } = await admin
-        .from('hero_points_transactions')
-        .select('transaction_type, hero_points_amount')
-        .eq('user_id', userId)
-      
-      if (manualCheck) {
-        const manualBalance = manualCheck.reduce((acc, tx) => {
-          if (tx.transaction_type === 'purchase') return acc + Math.abs(tx.hero_points_amount)
-          if (tx.transaction_type === 'spent') return acc - Math.abs(tx.hero_points_amount)
-          if (tx.transaction_type === 'refund') return acc + Math.abs(tx.hero_points_amount)
-          return acc
-        }, 0)
-        console.log(`[hero-points/balance] CRITICAL: Manual recalculation gives: ${manualBalance}`)
-        calculatedData.balance = manualBalance
-      }
-    }
-
     // Sincronizza cache (user_hero_points) con balance calcolato
-    // IMPORTANTE: Sincronizziamo sempre per garantire coerenza
     const cacheData = await syncBalanceCache(admin, userId, calculatedData)
     
-    // DEBUG: Log sync
-    if (cacheData) {
-      console.log(`[hero-points/balance] DEBUG user ${userId}: cache synced to balance=${cacheData.hero_points_balance}`)
-    } else {
-      console.warn(`[hero-points/balance] DEBUG user ${userId}: syncBalanceCache returned null - retrying...`)
-      
-      // Se syncBalanceCache fallisce, riprova una volta
-      const retryCacheData = await syncBalanceCache(admin, userId, calculatedData)
-      if (retryCacheData) {
-        console.log(`[hero-points/balance] DEBUG user ${userId}: retry successful, cache synced to balance=${retryCacheData.hero_points_balance}`)
-      } else {
-        console.error(`[hero-points/balance] CRITICAL: syncBalanceCache failed twice for user ${userId}`)
-      }
-    }
-
-    // Leggi cache SOLO per euros_equivalent (computed column)
-    // CRITICAL: NON usare mai la cache per il balance - sempre calcolato dalle transazioni
+    // Leggi cache per euros_equivalent (computed column)
     const cacheRecord = cacheData || await getBalanceFromCache(admin, userId)
-
-    // Log per debug (solo se c'è discrepanza)
-    if (cacheRecord && cacheRecord.hero_points_balance !== calculatedData.balance) {
-      console.error(`[hero-points/balance] CRITICAL Cache discrepancy for user ${userId}: cache=${cacheRecord.hero_points_balance}, calculated=${calculatedData.balance}`)
-      // Forza aggiornamento diretto se c'è discrepanza
-      try {
-        const forceUpdateResult = await admin
-          .from('user_hero_points')
-          .update({
-            hero_points_balance: calculatedData.balance,
-            total_purchased: calculatedData.totalPurchased,
-            total_spent: calculatedData.totalSpent,
-            updated_at: new Date().toISOString()
-          })
-          .eq('user_id', userId)
-          .select()
-          .single()
-        
-        if (forceUpdateResult.data) {
-          console.log(`[hero-points/balance] Forced cache update for user ${userId}: set=${calculatedData.balance}, got back=${forceUpdateResult.data.hero_points_balance}`)
-          // Verifica che l'update sia andato a buon fine
-          if (forceUpdateResult.data.hero_points_balance !== calculatedData.balance) {
-            console.error(`[hero-points/balance] CRITICAL: Force update failed! Expected ${calculatedData.balance}, got ${forceUpdateResult.data.hero_points_balance}`)
-          }
-        }
-      } catch (forceError) {
-        console.error(`[hero-points/balance] Failed to force cache update:`, forceError)
-      }
-    }
-
-    // DEBUG: Verifica finale prima di restituire
-    console.log(`[hero-points/balance] FINAL DEBUG user ${userId}: calculatedData.balance=${calculatedData.balance}, totalPurchased=${calculatedData.totalPurchased}, totalSpent=${calculatedData.totalSpent}`)
-    
-    // CRITICAL: Verifica che calculatedData.balance sia coerente
-    // Se totalPurchased - totalSpent != balance, c'è un problema
-    const expectedBalance = calculatedData.totalPurchased - calculatedData.totalSpent
-    if (Math.abs(calculatedData.balance - expectedBalance) > 1) {
-      console.error(`[hero-points/balance] CRITICAL: Balance inconsistency! balance=${calculatedData.balance}, but totalPurchased=${calculatedData.totalPurchased} - totalSpent=${calculatedData.totalSpent} = ${expectedBalance}`)
-      // Usa il calcolo corretto
-      calculatedData.balance = expectedBalance
-    }
-    
-    // CRITICAL: Il balance deve SEMPRE essere calcolato dalle transazioni, MAI dalla cache
-    // Se il calcolo è sospettosamente alto (> 100000), ricalcola manualmente
-    let finalBalance = typeof calculatedData.balance === 'number' ? calculatedData.balance : 0
-    
-    // Se il balance calcolato è > 100000, c'è un problema - ricalcola manualmente
-    if (finalBalance > 100000) {
-      console.error(`[hero-points/balance] CRITICAL: Calculated balance ${finalBalance} is too high, recalculating manually`)
-      // Ricalcola manualmente dalle transazioni
-      const { data: manualTx, error: manualError } = await admin
-        .from('hero_points_transactions')
-        .select('transaction_type, hero_points_amount')
-        .eq('user_id', userId)
-      
-      if (!manualError && manualTx) {
-        const manualBalance = manualTx.reduce((acc, tx) => {
-          if (tx.transaction_type === 'purchase') return acc + Math.abs(tx.hero_points_amount)
-          if (tx.transaction_type === 'spent') return acc - Math.abs(tx.hero_points_amount)
-          if (tx.transaction_type === 'refund') return acc + Math.abs(tx.hero_points_amount)
-          return acc
-        }, 0)
-        console.log(`[hero-points/balance] Manual recalculation: ${manualBalance}`)
-        finalBalance = manualBalance
-        // Aggiorna anche calculatedData per coerenza
-        calculatedData.balance = manualBalance
-      } else {
-        console.error(`[hero-points/balance] CRITICAL: Manual recalculation failed:`, manualError)
-        // Fallback: usa 0 invece di un valore sbagliato
-        finalBalance = 0
-      }
-    }
-    
-    // CRITICAL: Verifica finale - il balance deve essere coerente
-    if (finalBalance !== calculatedData.balance) {
-      console.error(`[hero-points/balance] CRITICAL: finalBalance (${finalBalance}) != calculatedData.balance (${calculatedData.balance})`)
-      // Usa sempre il valore calcolato
-      finalBalance = calculatedData.balance
-    }
-    
-    console.log(`[hero-points/balance] FINAL balance to return: ${finalBalance}`)
     
     // Ritorna balance calcolato dalle transazioni (fonte di verità)
-    const response = {
-      hero_points_balance: finalBalance,
-      euros_equivalent: cacheRecord?.euros_equivalent || (finalBalance / 100),
+    return NextResponse.json({
+      hero_points_balance: calculatedData.balance,
+      euros_equivalent: cacheRecord?.euros_equivalent || (calculatedData.balance / 100),
       last_purchase_at: calculatedData.lastPurchaseAt,
       total_purchased: calculatedData.totalPurchased || 0,
       total_spent: calculatedData.totalSpent || 0
-    }
-    
-    console.log(`[hero-points/balance] RESPONSE user ${userId}:`, JSON.stringify(response))
-    
-    return NextResponse.json(response)
+    })
 
   } catch (error) {
     console.error('[hero-points/balance] Unexpected error:', error)
