@@ -178,15 +178,17 @@ Questo documento serve come **punto di riferimento unico** per:
    - ✅ Tabella `user_hero_points` (completata - TASK 1.12)
    - ✅ Tabella `hero_points_transactions` (completata - TASK 1.13)
 
-3. **Validazione Semantica**:
-   - ⏳ Validazione voto: 0-10
-   - ⏳ Validazione formazione: lista valide
-   - ⏳ Validazione statistiche: range validi
+3. **Validazione Semantica**: ✅ **COMPLETATO**
+   - ✅ Validazione overall_rating: 40-100 (range eFootball)
+   - ✅ Validazione formazione: lista valide eFootball
+   - ✅ Validazione età: 16-50 per giocatori, 16-70 per allenatori
+   - ✅ Validazione nome: formato valido (2-100 caratteri, no caratteri di controllo)
+   - ✅ Validazione base_stats: 0-99 per ogni statistica
 
-4. **Error Handling**:
-   - ⏳ Messaggi errore specifici
-   - ⏳ Retry automatico con feedback
-   - ⏳ Timeout handling
+4. **Error Handling**: ✅ **COMPLETATO**
+   - ✅ Messaggi errore specifici per tipo (rate limit, timeout, server error, network)
+   - ✅ Retry automatico con feedback (max 2 tentativi)
+   - ✅ Timeout handling (60 secondi, AbortController)
 
 5. **UI/UX Migliorata**:
    - ⏳ Disabilitare bottone durante estrazione
