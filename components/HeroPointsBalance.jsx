@@ -23,10 +23,21 @@ export default function HeroPointsBalance() {
 
   const fetchBalance = async (force = false) => {
     // Cache: controlla se abbiamo dati recenti (meno di 5 minuti fa)
+    // IMPORTANTE: Se force=true, ignora sempre la cache
     const now = Date.now()
     if (!force && lastFetchRef.current && (now - lastFetchRef.current) < CACHE_DURATION && balance !== null) {
       // Usa dati in cache, non fare chiamata
+      console.log('[HeroPointsBalance] Using cached balance:', balance, 'cache age:', Math.round((now - lastFetchRef.current) / 1000), 'seconds')
       return
+    }
+    
+    // DEBUG: Log se stiamo forzando il refresh
+    if (force) {
+      console.log('[HeroPointsBalance] Force refresh: ignoring cache')
+    } else if (!lastFetchRef.current) {
+      console.log('[HeroPointsBalance] First load: fetching balance')
+    } else {
+      console.log('[HeroPointsBalance] Cache expired: fetching balance')
     }
 
     try {
@@ -80,15 +91,21 @@ export default function HeroPointsBalance() {
       // DEBUG: Log risposta API
       console.log('[HeroPointsBalance] API Response:', data)
       console.log('[HeroPointsBalance] Balance from API:', data.hero_points_balance)
+      console.log('[HeroPointsBalance] Previous balance (before update):', balance)
       
       // Verifica che hero_points_balance sia un numero valido
       const balanceValue = typeof data.hero_points_balance === 'number' ? data.hero_points_balance : (parseInt(data.hero_points_balance) || 0)
+      
+      // CRITICAL: Sempre aggiorna il balance con il valore dall'API, anche se diverso dalla cache
+      if (balanceValue !== balance) {
+        console.log(`[HeroPointsBalance] Balance changed: ${balance} -> ${balanceValue}`)
+      }
       
       setBalance(balanceValue)
       setEurosEquivalent(data.euros_equivalent || (balanceValue / 100))
       lastFetchRef.current = now // Aggiorna timestamp cache
       
-      console.log('[HeroPointsBalance] Set balance to:', balanceValue)
+      console.log('[HeroPointsBalance] Set balance to:', balanceValue, '(previous was:', balance, ')')
     } catch (err) {
       console.error('[HeroPointsBalance] Error fetching balance:', err)
       setError(t('errorLoadingBalance'))
