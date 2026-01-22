@@ -313,6 +313,35 @@ export default function DashboardPage() {
               </span>
               <ArrowRight size={18} />
             </button>
+            <button
+              onClick={() => router.push('/match')}
+              className="btn"
+              style={{ 
+                width: '100%', 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                padding: '12px 16px',
+                background: 'rgba(100, 200, 255, 0.05)',
+                borderColor: 'rgba(100, 200, 255, 0.2)',
+                color: 'var(--neon-blue)',
+                marginTop: '10px'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(100, 200, 255, 0.1)'
+                e.currentTarget.style.boxShadow = '0 0 15px rgba(100, 200, 255, 0.3)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(100, 200, 255, 0.05)'
+                e.currentTarget.style.boxShadow = 'none'
+              }}
+            >
+              <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <TrendingUp size={18} />
+                Storico Partite
+              </span>
+              <ArrowRight size={18} />
+            </button>
             {/* Futuro: Analytics, Settings, ecc. */}
           </div>
         </div>

@@ -328,7 +328,8 @@ export async function POST(req) {
       try {
         // Processa tutte le foto di formazione e unisci i risultati
         const formationResults = []
-        for (const formationImage of formationImages) {
+        for (let i = 0; i < formationImages.length; i++) {
+          const formationImage = formationImages[i]
           const prompt = `Analizza questo screenshot di eFootball che mostra la formazione in campo con 11 giocatori.
 
 IMPORTANTE:
@@ -378,12 +379,15 @@ Restituisci SOLO JSON valido, senza altro testo.`
     if (ratingsImages.length > 0) {
       try {
         const ratingsResults = []
-        for (const ratingsImage of ratingsImages) {
+        for (let i = 0; i < ratingsImages.length; i++) {
+          const ratingsImage = ratingsImages[i]
+          console.log(`[extract-match-data] Extracting ratings image ${i + 1}/${ratingsImages.length}`)
           const prompt = `Analizza questo screenshot di eFootball che mostra le pagelle/voti dei giocatori dopo la partita.
 
 IMPORTANTE:
 - Per ogni giocatore: nome, numero maglia, voto (rating), stella (se presente), gol, assist, minuti giocati
 - Il voto può essere un numero decimale (es. 8.5, 6.0, 5.5)
+- Se il formato mostra solo voti senza struttura, estrai comunque tutti i dati disponibili
 
 Formato JSON:
 {
@@ -405,13 +409,20 @@ Restituisci SOLO JSON valido, senza altro testo.`
             const result = await extractImageData(apiKey, ratingsImage, prompt, 'extract-match-ratings')
             if (result) {
               ratingsResults.push(result)
-              const ratingsCount = result?.ratings ? Object.keys(result.ratings).length : (Object.keys(result).length)
+              // Gestisci sia formato { ratings: {...} } che formato diretto {...}
+              const ratingsCount = result?.ratings 
+                ? Object.keys(result.ratings).length 
+                : (result && typeof result === 'object' && !Array.isArray(result) ? Object.keys(result).length : 0)
               console.log(`[extract-match-data] Ratings image ${i + 1} extracted successfully, players: ${ratingsCount}`)
             } else {
               console.warn(`[extract-match-data] Ratings image ${i + 1} returned null result`)
             }
           } catch (imgErr) {
-            console.error(`[extract-match-data] Error extracting ratings image ${i + 1}:`, imgErr?.message || imgErr)
+            console.error(`[extract-match-data] Error extracting ratings image ${i + 1}:`, {
+              error: imgErr?.message || imgErr,
+              type: imgErr?.type,
+              stack: imgErr?.stack
+            })
             // Continua con altre foto anche se una fallisce
           }
         }
@@ -419,12 +430,17 @@ Restituisci SOLO JSON valido, senza altro testo.`
         // Unisci tutti i ratings da tutte le foto (merge oggetti)
         if (ratingsResults.length > 0) {
           ratingsData = ratingsResults.reduce((merged, current) => {
-            return { ...merged, ...(current?.ratings || current) }
+            // Gestisci sia formato { ratings: {...} } che formato diretto {...}
+            const currentRatings = current?.ratings || current
+            if (currentRatings && typeof currentRatings === 'object' && !Array.isArray(currentRatings)) {
+              return { ...merged, ...currentRatings }
+            }
+            return merged
           }, {})
           extractedData.ratings = ratingsData
           console.log(`[extract-match-data] Ratings data merged: ${Object.keys(ratingsData).length} players`)
         } else {
-          console.warn('[extract-match-data] No ratings data extracted from any image')
+          console.warn('[extract-match-data] No ratings data extracted from any image - all extractions failed')
         }
       } catch (err) {
         console.error('[extract-match-data] Error extracting ratings:', err)
@@ -434,8 +450,11 @@ Restituisci SOLO JSON valido, senza altro testo.`
     // 3. Statistiche squadra - processa tutte le foto se array
     if (teamStatsImages.length > 0) {
       try {
+        console.log(`[extract-match-data] Processing ${teamStatsImages.length} team stats image(s)`)
         const teamStatsResults = []
-        for (const teamStatsImage of teamStatsImages) {
+        for (let i = 0; i < teamStatsImages.length; i++) {
+          const teamStatsImage = teamStatsImages[i]
+          console.log(`[extract-match-data] Extracting team stats image ${i + 1}/${teamStatsImages.length}`)
           const prompt = `Analizza questo screenshot di eFootball che mostra le statistiche della squadra dopo la partita.
 
 IMPORTANTE:
@@ -542,8 +561,11 @@ Restituisci SOLO JSON valido, senza altro testo.`
     // 5. Zone di recupero - processa tutte le foto se array (può essere 2 foto per le 2 squadre)
     if (recoveryZonesImages.length > 0) {
       try {
+        console.log(`[extract-match-data] Processing ${recoveryZonesImages.length} recovery zones image(s)`)
         const recoveryZonesResults = []
-        for (const recoveryZonesImage of recoveryZonesImages) {
+        for (let i = 0; i < recoveryZonesImages.length; i++) {
+          const recoveryZonesImage = recoveryZonesImages[i]
+          console.log(`[extract-match-data] Extracting recovery zones image ${i + 1}/${recoveryZonesImages.length}`)
           const prompt = `Analizza questo screenshot di eFootball che mostra la mappa delle zone di recupero palla (punti verdi sul campo).
 
 IMPORTANTE:
@@ -591,8 +613,11 @@ Restituisci SOLO JSON valido, senza altro testo.`
     // 6. Grafico rete (eventi gol) - processa tutte le foto se array
     if (goalsChartImages.length > 0) {
       try {
+        console.log(`[extract-match-data] Processing ${goalsChartImages.length} goals chart image(s)`)
         const goalsEventsResults = []
-        for (const goalsChartImage of goalsChartImages) {
+        for (let i = 0; i < goalsChartImages.length; i++) {
+          const goalsChartImage = goalsChartImages[i]
+          console.log(`[extract-match-data] Extracting goals chart image ${i + 1}/${goalsChartImages.length}`)
           const prompt = `Analizza questo screenshot di eFootball che mostra il grafico rete con eventi gol.
 
 IMPORTANTE:
