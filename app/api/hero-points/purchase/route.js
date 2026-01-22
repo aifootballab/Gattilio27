@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { validateToken, extractBearerToken } from '../../../../lib/authHelper'
+import { calculateBalanceFromTransactions, syncBalanceCache } from '../../../../lib/heroPointsHelper'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -72,43 +73,16 @@ export async function POST(req) {
       auth: { autoRefreshToken: false, persistSession: false }
     })
 
-    // Recupera balance corrente (o crea se non esiste)
-    const { data: existingBalance, error: fetchError } = await admin
-      .from('user_hero_points')
-      .select('*')
-      .eq('user_id', userId)
-      .maybeSingle()
+    // Calcola balance corrente dalle transazioni (fonte di verità - Event Sourcing)
+    const currentData = await calculateBalanceFromTransactions(admin, userId)
+    const currentBalance = currentData.balance
 
-    if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 = not found (ok)
-      console.error('[hero-points/purchase] Error fetching balance:', fetchError)
-      return NextResponse.json({ error: 'Unable to process purchase. Please try again.' }, { status: 500 })
-    }
-
-    const currentBalance = existingBalance?.hero_points_balance || 0
+    // Calcola nuovo balance
     const newBalance = currentBalance + heroPointsToAdd
-    const totalPurchased = (existingBalance?.total_purchased || 0) + heroPointsToAdd
+    const newTotalPurchased = currentData.totalPurchased + heroPointsToAdd
 
-    // Aggiorna o crea record user_hero_points
-    const { data: updatedBalance, error: upsertError } = await admin
-      .from('user_hero_points')
-      .upsert({
-        user_id: userId,
-        hero_points_balance: newBalance,
-        last_purchase_at: new Date().toISOString(),
-        total_purchased: totalPurchased,
-        updated_at: new Date().toISOString()
-      }, {
-        onConflict: 'user_id'
-      })
-      .select()
-      .single()
-
-    if (upsertError) {
-      console.error('[hero-points/purchase] Error upserting balance:', upsertError)
-      return NextResponse.json({ error: 'Unable to complete purchase. Please try again.' }, { status: 500 })
-    }
-
-    // Crea transazione
+    // IMPORTANTE: Crea transazione PRIMA (fonte di verità)
+    // Se la transazione fallisce, non aggiorniamo il balance
     const { data: transaction, error: transactionError } = await admin
       .from('hero_points_transactions')
       .insert({
@@ -126,9 +100,16 @@ export async function POST(req) {
 
     if (transactionError) {
       console.error('[hero-points/purchase] Error creating transaction:', transactionError)
-      // Non fallire se la transazione non viene creata, ma logga l'errore
-      // Il balance è già stato aggiornato
+      return NextResponse.json({ error: 'Unable to complete purchase. Please try again.' }, { status: 500 })
     }
+
+    // Sincronizza cache (user_hero_points) con nuovo balance
+    const cacheData = await syncBalanceCache(admin, userId, {
+      balance: newBalance,
+      totalPurchased: newTotalPurchased,
+      totalSpent: currentData.totalSpent,
+      lastPurchaseAt: new Date().toISOString()
+    })
 
     console.log(`[hero-points/purchase] Purchase completed: ${heroPointsToAdd} HP added, new balance: ${newBalance}`)
 
@@ -136,7 +117,7 @@ export async function POST(req) {
     return NextResponse.json({
       hero_points_added: heroPointsToAdd,
       hero_points_balance: newBalance,
-      euros_equivalent: updatedBalance.euros_equivalent || (newBalance / 100),
+      euros_equivalent: cacheData?.euros_equivalent || (newBalance / 100),
       transaction_id: transaction?.id || null
     })
 

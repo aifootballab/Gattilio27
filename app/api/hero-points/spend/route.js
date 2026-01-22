@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { validateToken, extractBearerToken } from '../../../../lib/authHelper'
+import { calculateBalanceFromTransactions, syncBalanceCache } from '../../../../lib/heroPointsHelper'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -79,38 +80,9 @@ export async function POST(req) {
       auth: { autoRefreshToken: false, persistSession: false }
     })
 
-    // Calcola balance dalle transazioni per garantire coerenza
-    const { data: transactions } = await admin
-      .from('hero_points_transactions')
-      .select('transaction_type, hero_points_amount')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: true })
-
-    let currentBalance = 0
-    let totalSpent = 0
-
-    if (transactions && transactions.length > 0) {
-      currentBalance = transactions.reduce((balance, tx) => {
-        if (tx.transaction_type === 'purchase') {
-          return balance + tx.hero_points_amount
-        } else if (tx.transaction_type === 'spent') {
-          totalSpent += Math.abs(tx.hero_points_amount)
-          return balance - Math.abs(tx.hero_points_amount)
-        }
-        return balance
-      }, 0)
-    }
-
-    // Recupera total_spent esistente o calcolalo
-    const { data: existingBalance } = await admin
-      .from('user_hero_points')
-      .select('total_spent')
-      .eq('user_id', userId)
-      .maybeSingle()
-
-    if (existingBalance) {
-      totalSpent = existingBalance.total_spent || totalSpent
-    }
+    // Calcola balance corrente dalle transazioni (fonte di verità - Event Sourcing)
+    const currentData = await calculateBalanceFromTransactions(admin, userId)
+    const currentBalance = currentData.balance
 
     // Verifica balance sufficiente
     if (currentBalance < heroPointsToSpend) {
@@ -124,39 +96,10 @@ export async function POST(req) {
 
     // Calcola nuovo balance
     const newBalance = currentBalance - heroPointsToSpend
-    const newTotalSpent = totalSpent + heroPointsToSpend
+    const newTotalSpent = currentData.totalSpent + heroPointsToSpend
 
-    // Aggiorna balance (con constraint CHECK per prevenire balance negativo)
-    // Se record non esiste, crealo
-    const { data: updatedBalance, error: updateError } = await admin
-      .from('user_hero_points')
-      .upsert({
-        user_id: userId,
-        hero_points_balance: newBalance,
-        total_spent: newTotalSpent,
-        updated_at: new Date().toISOString()
-      }, {
-        onConflict: 'user_id'
-      })
-      .select()
-      .single()
-
-    if (updateError) {
-      console.error('[hero-points/spend] Error updating balance:', updateError)
-      
-      // Se errore è constraint violation (balance negativo), ritorna errore
-      if (updateError.code === '23514') { // CHECK constraint violation
-        return NextResponse.json({ 
-          error: 'Insufficient Hero Points balance',
-          hero_points_balance: currentBalance,
-          hero_points_required: heroPointsToSpend
-        }, { status: 402 })
-      }
-      
-      return NextResponse.json({ error: 'Unable to process transaction. Please try again.' }, { status: 500 })
-    }
-
-    // Crea transazione
+    // IMPORTANTE: Crea transazione PRIMA (fonte di verità)
+    // Se la transazione fallisce, non aggiorniamo il balance
     const { data: transaction, error: transactionError } = await admin
       .from('hero_points_transactions')
       .insert({
@@ -174,9 +117,16 @@ export async function POST(req) {
 
     if (transactionError) {
       console.error('[hero-points/spend] Error creating transaction:', transactionError)
-      // Non fallire se la transazione non viene creata, ma logga l'errore
-      // Il balance è già stato aggiornato
+      return NextResponse.json({ error: 'Unable to process transaction. Please try again.' }, { status: 500 })
     }
+
+    // Sincronizza cache (user_hero_points) con nuovo balance
+    const cacheData = await syncBalanceCache(admin, userId, {
+      balance: newBalance,
+      totalPurchased: currentData.totalPurchased,
+      totalSpent: newTotalSpent,
+      lastPurchaseAt: currentData.lastPurchaseAt
+    })
 
     console.log(`[hero-points/spend] Spend completed: ${heroPointsToSpend} HP spent, new balance: ${newBalance}`)
 
@@ -184,7 +134,7 @@ export async function POST(req) {
     return NextResponse.json({
       hero_points_spent: heroPointsToSpend,
       hero_points_balance: newBalance,
-      euros_equivalent: updatedBalance.euros_equivalent || (newBalance / 100),
+      euros_equivalent: cacheData?.euros_equivalent || (newBalance / 100),
       transaction_id: transaction?.id || null
     })
 

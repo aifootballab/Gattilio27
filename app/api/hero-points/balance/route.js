@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { validateToken, extractBearerToken } from '../../../../lib/authHelper'
+import { calculateBalanceFromTransactions, syncBalanceCache, getBalanceFromCache } from '../../../../lib/heroPointsHelper'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -9,8 +10,7 @@ export const dynamic = 'force-dynamic'
  * GET /api/hero-points/balance
  * 
  * Ritorna il balance crediti dell'utente.
- * Legge direttamente da user_hero_points (fonte di verità).
- * Se record non esiste, calcola dalle transazioni e crea record.
+ * Calcola sempre dalle transazioni (fonte di verità) e sincronizza cache.
  * 
  * Response:
  * {
@@ -48,89 +48,22 @@ export async function GET(req) {
       auth: { autoRefreshToken: false, persistSession: false }
     })
 
-    // Leggi balance direttamente da user_hero_points (fonte di verità)
-    // Le transazioni sono solo per storico, il balance viene aggiornato direttamente da purchase/spend
-    const { data: existingBalance, error: fetchError } = await admin
-      .from('user_hero_points')
-      .select('*')
-      .eq('user_id', userId)
-      .maybeSingle()
+    // Calcola balance dalle transazioni (fonte di verità - Event Sourcing)
+    const calculatedData = await calculateBalanceFromTransactions(admin, userId)
 
-    if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 = not found (ok)
-      console.error('[hero-points/balance] Error fetching balance:', fetchError)
-      return NextResponse.json({ error: 'Unable to retrieve balance. Please try again.' }, { status: 500 })
-    }
+    // Sincronizza cache (user_hero_points) con balance calcolato
+    const cacheData = await syncBalanceCache(admin, userId, calculatedData)
 
-    // Se record esiste, usa quello (fonte di verità)
-    // Se non esiste, calcola dalle transazioni e crea record
-    let heroPointsData = existingBalance
+    // Leggi cache per euros_equivalent (computed column nel DB)
+    const cacheRecord = cacheData || await getBalanceFromCache(admin, userId)
 
-    if (!heroPointsData) {
-      // Record non esiste: calcola dalle transazioni e crea
-      const { data: transactions } = await admin
-        .from('hero_points_transactions')
-        .select('transaction_type, hero_points_amount, created_at')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: true })
-
-      let calculatedBalance = 0
-      let totalPurchased = 0
-      let totalSpent = 0
-      let lastPurchaseAt = null
-
-      if (transactions && transactions.length > 0) {
-        calculatedBalance = transactions.reduce((balance, tx) => {
-          if (tx.transaction_type === 'purchase') {
-            totalPurchased += Math.abs(tx.hero_points_amount)
-            return balance + tx.hero_points_amount
-          } else if (tx.transaction_type === 'spent') {
-            totalSpent += Math.abs(tx.hero_points_amount)
-            return balance - Math.abs(tx.hero_points_amount)
-          }
-          return balance
-        }, 0)
-
-        // Trova ultimo acquisto
-        const lastPurchase = transactions
-          .filter(tx => tx.transaction_type === 'purchase')
-          .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]
-        
-        if (lastPurchase) {
-          lastPurchaseAt = lastPurchase.created_at
-        }
-      }
-
-      // Crea record user_hero_points con balance calcolato
-      const { data: createdBalance, error: upsertError } = await admin
-        .from('user_hero_points')
-        .upsert({
-          user_id: userId,
-          hero_points_balance: calculatedBalance,
-          total_purchased: totalPurchased,
-          total_spent: totalSpent,
-          last_purchase_at: lastPurchaseAt,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'user_id'
-        })
-        .select()
-        .single()
-
-      if (upsertError) {
-        console.error('[hero-points/balance] Error creating balance record:', upsertError)
-        return NextResponse.json({ error: 'Unable to retrieve balance. Please try again.' }, { status: 500 })
-      }
-
-      heroPointsData = createdBalance
-    }
-
-    // Ritorna balance
+    // Ritorna balance calcolato dalle transazioni (fonte di verità)
     return NextResponse.json({
-      hero_points_balance: heroPointsData.hero_points_balance || 0,
-      euros_equivalent: heroPointsData.euros_equivalent || 0,
-      last_purchase_at: heroPointsData.last_purchase_at || null,
-      total_purchased: heroPointsData.total_purchased || 0,
-      total_spent: heroPointsData.total_spent || 0
+      hero_points_balance: calculatedData.balance,
+      euros_equivalent: cacheRecord?.euros_equivalent || (calculatedData.balance / 100),
+      last_purchase_at: calculatedData.lastPurchaseAt,
+      total_purchased: calculatedData.totalPurchased,
+      total_spent: calculatedData.totalSpent
     })
 
   } catch (error) {

@@ -33,14 +33,37 @@ export default function HeroPointsBalance() {
       setLoading(true)
       setError(null)
 
-      const { data: session, error: sessionError } = await supabase.auth.getSession()
-      if (sessionError || !session?.session) {
-        setBalance(null)
+      // Attendi che sessione sia pronta (max 3 tentativi)
+      let session = null
+      let sessionError = null
+      let attempts = 0
+      const maxAttempts = 3
+
+      while (attempts < maxAttempts && !session) {
+        const result = await supabase.auth.getSession()
+        sessionError = result.error
+        session = result.data?.session
+
+        if (session || sessionError) {
+          break
+        }
+
+        // Attendi 100ms prima di riprovare
+        await new Promise(resolve => setTimeout(resolve, 100))
+        attempts++
+      }
+
+      if (sessionError || !session) {
+        // Non resettare balance se c'è errore sessione (potrebbe essere temporaneo)
+        // Mantieni valore precedente se disponibile
+        if (balance === null) {
+          setBalance(0)
+        }
         setLoading(false)
         return
       }
 
-      const token = session.session.access_token
+      const token = session.access_token
       const response = await fetch('/api/hero-points/balance', {
         method: 'GET',
         headers: {
@@ -59,6 +82,10 @@ export default function HeroPointsBalance() {
     } catch (err) {
       console.error('[HeroPointsBalance] Error fetching balance:', err)
       setError(t('errorLoadingBalance'))
+      // Non resettare balance su errore, mantieni valore precedente se disponibile
+      if (balance === null) {
+        setBalance(0)
+      }
     } finally {
       setLoading(false)
     }
