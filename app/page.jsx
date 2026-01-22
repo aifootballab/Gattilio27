@@ -36,6 +36,8 @@ export default function DashboardPage() {
     formation: null
   })
   const [topPlayers, setTopPlayers] = React.useState([])
+  const [recentMatches, setRecentMatches] = React.useState([])
+  const [matchesExpanded, setMatchesExpanded] = React.useState(false)
 
   React.useEffect(() => {
     if (!supabase) {
