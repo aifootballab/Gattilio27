@@ -29,7 +29,8 @@ export async function POST(req) {
 
     const userId = userData.user.id
 
-    // Estrai dati match dal body
+    // Estrai dati match dal body (una sola volta)
+    const requestData = await req.json()
     const {
       match_date,
       opponent_name,
@@ -45,7 +46,7 @@ export async function POST(req) {
       extracted_data,
       data_completeness,
       missing_photos
-    } = await req.json()
+    } = requestData
 
     // Validazione base
     if (!players_in_match || !Array.isArray(players_in_match)) {
@@ -86,6 +87,10 @@ export async function POST(req) {
       opponent_name: opponent_name || null,
       opponent_formation_id: opponent_formation_id || null,
       formation_played: formation_played || null,
+      playing_style_played: null, // Da aggiungere in futuro se estratto
+      team_strength: null, // Da aggiungere in futuro se estratto
+      result: null, // Da aggiungere in futuro se estratto
+      is_home: true, // Default
       players_in_match: players_in_match || [],
       player_ratings: player_ratings || {},
       team_stats: team_stats || {},
@@ -108,9 +113,18 @@ export async function POST(req) {
       .single()
 
     if (insertError) {
-      console.error('[save-match] Insert error:', insertError.message)
+      console.error('[save-match] Insert error:', insertError)
+      console.error('[save-match] Error details:', {
+        message: insertError.message,
+        code: insertError.code,
+        details: insertError.details,
+        hint: insertError.hint
+      })
       return NextResponse.json(
-        { error: 'Failed to save match data' },
+        { 
+          error: 'Failed to save match data',
+          details: process.env.NODE_ENV === 'development' ? insertError.message : undefined
+        },
         { status: 500 }
       )
     }

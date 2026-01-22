@@ -26,9 +26,12 @@ export default function NewMatchPage() {
   const [photos, setPhotos] = React.useState({})
   const [uploading, setUploading] = React.useState(false)
   const [result, setResult] = React.useState(null)
+  const [mounted, setMounted] = React.useState(false)
 
-  // Verifica autenticazione
+  // Verifica autenticazione (solo client-side)
   React.useEffect(() => {
+    setMounted(true)
+    
     if (!supabase) {
       router.push('/login')
       return
@@ -187,8 +190,14 @@ export default function NewMatchPage() {
     }
   }
 
-  const missingInfo = getMissingPhotosMessages()
-  const knowledgeBonus = calculateKnowledgeBonus()
+  // Memoizza calcoli per evitare errori React durante rendering
+  const missingInfo = React.useMemo(() => getMissingPhotosMessages(), [photos])
+  const knowledgeBonus = React.useMemo(() => calculateKnowledgeBonus(), [photos])
+
+  // Evita hydration mismatch
+  if (!mounted) {
+    return null
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
