@@ -515,6 +515,9 @@ Restituisci SOLO JSON valido, senza altro testo.`
       analysis_status: 'pending'
     }
 
+    // Calcola credits usati (1 credit per foto processata - pay-per-use)
+    const creditsUsed = photosProcessed
+
     return NextResponse.json({
       success: true,
       match_data: matchData,
@@ -523,7 +526,8 @@ Restituisci SOLO JSON valido, senza altro testo.`
       data_completeness: dataCompleteness,
       players_matched: matchedPlayers.filter(p => p.match_status === 'matched').length,
       players_not_found: matchedPlayers.filter(p => p.match_status === 'not_found').length,
-      formation_discrepancies_count: formationDiscrepancies.length
+      formation_discrepancies_count: formationDiscrepancies.length,
+      credits_used: creditsUsed
     })
 
   } catch (error) {
