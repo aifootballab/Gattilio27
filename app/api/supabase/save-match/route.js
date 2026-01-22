@@ -21,7 +21,14 @@ function toText(v) {
 function calculateMissingPhotos(matchData) {
   const missing = []
   
-  if (!matchData.player_ratings || Object.keys(matchData.player_ratings).length === 0) {
+  // Gestisce sia struttura nuova (cliente/avversario) che vecchia (flat)
+  const hasPlayerRatings = matchData.player_ratings && (
+    (matchData.player_ratings.cliente && Object.keys(matchData.player_ratings.cliente).length > 0) ||
+    (matchData.player_ratings.avversario && Object.keys(matchData.player_ratings.avversario).length > 0) ||
+    (typeof matchData.player_ratings === 'object' && !matchData.player_ratings.cliente && !matchData.player_ratings.avversario && Object.keys(matchData.player_ratings).length > 0)
+  )
+  
+  if (!hasPlayerRatings) {
     missing.push('player_ratings')
   }
   if (!matchData.team_stats || Object.keys(matchData.team_stats).length === 0) {
@@ -55,7 +62,14 @@ function calculateDataCompleteness(matchData) {
 function calculatePhotosUploaded(matchData) {
   let count = 0
   
-  if (matchData.player_ratings && Object.keys(matchData.player_ratings).length > 0) count++
+  // Gestisce sia struttura nuova (cliente/avversario) che vecchia (flat)
+  const hasPlayerRatings = matchData.player_ratings && (
+    (matchData.player_ratings.cliente && Object.keys(matchData.player_ratings.cliente).length > 0) ||
+    (matchData.player_ratings.avversario && Object.keys(matchData.player_ratings.avversario).length > 0) ||
+    (typeof matchData.player_ratings === 'object' && !matchData.player_ratings.cliente && !matchData.player_ratings.avversario && Object.keys(matchData.player_ratings).length > 0)
+  )
+  
+  if (hasPlayerRatings) count++
   if (matchData.team_stats && Object.keys(matchData.team_stats).length > 0) count++
   if (matchData.attack_areas && Object.keys(matchData.attack_areas).length > 0) count++
   if (matchData.ball_recovery_zones && Array.isArray(matchData.ball_recovery_zones) && matchData.ball_recovery_zones.length > 0) count++
@@ -150,9 +164,22 @@ export async function POST(req) {
       playing_style_played: toText(matchData.playing_style_played),
       team_strength: toInt(matchData.team_strength),
       opponent_formation_id: matchData.opponent_formation_id || null,
-      player_ratings: (matchData.player_ratings && Object.keys(matchData.player_ratings).length > 0) 
-        ? matchData.player_ratings 
-        : null,
+      player_ratings: (() => {
+        // Gestisce struttura nuova (cliente/avversario) e vecchia (flat)
+        if (!matchData.player_ratings) return null
+        
+        // Se ha struttura cliente/avversario, salva così
+        if (matchData.player_ratings.cliente || matchData.player_ratings.avversario) {
+          return matchData.player_ratings
+        }
+        
+        // Altrimenti struttura flat (compatibilità retroattiva)
+        if (Object.keys(matchData.player_ratings).length > 0) {
+          return matchData.player_ratings
+        }
+        
+        return null
+      })(),
       team_stats: (matchData.team_stats && Object.keys(matchData.team_stats).length > 0) 
         ? matchData.team_stats 
         : null,
