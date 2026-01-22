@@ -1,0 +1,221 @@
+import { NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
+import { validateToken, extractBearerToken } from '../../../../lib/authHelper'
+
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+
+function toInt(v) {
+  if (v === null || v === undefined) return null
+  const n = Number(v)
+  return Number.isFinite(n) ? Math.trunc(n) : null
+}
+
+function toText(v) {
+  return typeof v === 'string' && v.trim().length ? v.trim() : null
+}
+
+/**
+ * Calcola quali sezioni sono mancanti
+ */
+function calculateMissingPhotos(matchData) {
+  const missing = []
+  
+  const hasPlayerRatings = matchData.player_ratings && (
+    (matchData.player_ratings.cliente && Object.keys(matchData.player_ratings.cliente).length > 0) ||
+    (matchData.player_ratings.avversario && Object.keys(matchData.player_ratings.avversario).length > 0) ||
+    (typeof matchData.player_ratings === 'object' && !matchData.player_ratings.cliente && !matchData.player_ratings.avversario && Object.keys(matchData.player_ratings).length > 0)
+  )
+  
+  if (!hasPlayerRatings) {
+    missing.push('player_ratings')
+  }
+  if (!matchData.team_stats || Object.keys(matchData.team_stats).length === 0) {
+    missing.push('team_stats')
+  }
+  if (!matchData.attack_areas || Object.keys(matchData.attack_areas).length === 0) {
+    missing.push('attack_areas')
+  }
+  if (!matchData.ball_recovery_zones || !Array.isArray(matchData.ball_recovery_zones) || matchData.ball_recovery_zones.length === 0) {
+    missing.push('ball_recovery_zones')
+  }
+  if (!matchData.formation_played && !matchData.playing_style_played && !matchData.team_strength) {
+    missing.push('formation_style')
+  }
+  
+  return missing
+}
+
+/**
+ * Calcola data_completeness
+ */
+function calculateDataCompleteness(matchData) {
+  const missing = calculateMissingPhotos(matchData)
+  return missing.length <= 1 ? 'complete' : 'partial'
+}
+
+/**
+ * Calcola photos_uploaded
+ */
+function calculatePhotosUploaded(matchData) {
+  let count = 0
+  
+  const hasPlayerRatings = matchData.player_ratings && (
+    (matchData.player_ratings.cliente && Object.keys(matchData.player_ratings.cliente).length > 0) ||
+    (matchData.player_ratings.avversario && Object.keys(matchData.player_ratings.avversario).length > 0) ||
+    (typeof matchData.player_ratings === 'object' && !matchData.player_ratings.cliente && !matchData.player_ratings.avversario && Object.keys(matchData.player_ratings).length > 0)
+  )
+  
+  if (hasPlayerRatings) count++
+  if (matchData.team_stats && Object.keys(matchData.team_stats).length > 0) count++
+  if (matchData.attack_areas && Object.keys(matchData.attack_areas).length > 0) count++
+  if (matchData.ball_recovery_zones && Array.isArray(matchData.ball_recovery_zones) && matchData.ball_recovery_zones.length > 0) count++
+  if (matchData.formation_played || matchData.playing_style_played || matchData.team_strength) count++
+  
+  return count
+}
+
+/**
+ * Merge dati esistenti con nuovi dati
+ */
+function mergeMatchData(existing, newData, section) {
+  const merged = { ...existing }
+
+  if (section === 'player_ratings') {
+    // Merge player_ratings (gestisce struttura cliente/avversario)
+    if (newData.player_ratings) {
+      if (newData.player_ratings.cliente || newData.player_ratings.avversario) {
+        merged.player_ratings = {
+          cliente: { ...(merged.player_ratings?.cliente || {}), ...(newData.player_ratings.cliente || {}) },
+          avversario: { ...(merged.player_ratings?.avversario || {}), ...(newData.player_ratings.avversario || {}) }
+        }
+      } else {
+        merged.player_ratings = { ...(merged.player_ratings || {}), ...newData.player_ratings }
+      }
+    }
+  } else if (section === 'team_stats') {
+    merged.team_stats = { ...(merged.team_stats || {}), ...(newData.team_stats || {}) }
+  } else if (section === 'attack_areas') {
+    merged.attack_areas = { ...(merged.attack_areas || {}), ...(newData.attack_areas || {}) }
+  } else if (section === 'ball_recovery_zones') {
+    const existingZones = Array.isArray(merged.ball_recovery_zones) ? merged.ball_recovery_zones : []
+    const newZones = Array.isArray(newData.ball_recovery_zones) ? newData.ball_recovery_zones : []
+    merged.ball_recovery_zones = [...existingZones, ...newZones]
+  } else if (section === 'formation_style') {
+    if (newData.formation_played) merged.formation_played = toText(newData.formation_played)
+    if (newData.playing_style_played) merged.playing_style_played = toText(newData.playing_style_played)
+    if (newData.team_strength !== undefined) merged.team_strength = toInt(newData.team_strength)
+  }
+
+  // Merge extracted_data
+  merged.extracted_data = {
+    ...(merged.extracted_data || {}),
+    ...(newData.extracted_data || {}),
+    [section]: newData.extracted_data?.[section] || newData
+  }
+
+  return merged
+}
+
+export async function POST(req) {
+  try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    
+    if (!supabaseUrl || !serviceKey || !anonKey) {
+      return NextResponse.json({ error: 'Supabase server env missing' }, { status: 500 })
+    }
+
+    const token = extractBearerToken(req)
+    if (!token) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    }
+    
+    const { userData, error: authError } = await validateToken(token, supabaseUrl, anonKey)
+    
+    if (authError || !userData?.user?.id) {
+      return NextResponse.json({ error: 'Invalid or expired authentication' }, { status: 401 })
+    }
+
+    const userId = userData.user.id
+    const { match_id, section, data } = await req.json()
+
+    if (!match_id || !section || !data) {
+      return NextResponse.json({ error: 'match_id, section, and data are required' }, { status: 400 })
+    }
+
+    const admin = createClient(supabaseUrl, serviceKey, {
+      auth: { autoRefreshToken: false, persistSession: false }
+    })
+
+    // 1. Recupera match esistente
+    const { data: existingMatch, error: fetchError } = await admin
+      .from('matches')
+      .select('*')
+      .eq('id', match_id)
+      .eq('user_id', userId)
+      .single()
+
+    if (fetchError || !existingMatch) {
+      return NextResponse.json({ error: 'Match not found or access denied' }, { status: 404 })
+    }
+
+    // 2. Merge dati
+    const mergedData = mergeMatchData(existingMatch, data, section)
+
+    // 3. Calcola metadata aggiornati
+    const missingPhotos = calculateMissingPhotos(mergedData)
+    const dataCompleteness = calculateDataCompleteness(mergedData)
+    const photosUploaded = calculatePhotosUploaded(mergedData)
+
+    // 4. Prepara update
+    const updateData = {
+      player_ratings: mergedData.player_ratings || null,
+      team_stats: (mergedData.team_stats && Object.keys(mergedData.team_stats).length > 0) ? mergedData.team_stats : null,
+      attack_areas: (mergedData.attack_areas && Object.keys(mergedData.attack_areas).length > 0) ? mergedData.attack_areas : null,
+      ball_recovery_zones: (mergedData.ball_recovery_zones && Array.isArray(mergedData.ball_recovery_zones) && mergedData.ball_recovery_zones.length > 0) ? mergedData.ball_recovery_zones : null,
+      formation_played: toText(mergedData.formation_played) || existingMatch.formation_played,
+      playing_style_played: toText(mergedData.playing_style_played) || existingMatch.playing_style_played,
+      team_strength: toInt(mergedData.team_strength) ?? existingMatch.team_strength,
+      extracted_data: mergedData.extracted_data || {},
+      photos_uploaded: photosUploaded,
+      missing_photos: missingPhotos.length > 0 ? missingPhotos : null,
+      data_completeness: dataCompleteness,
+      updated_at: new Date().toISOString()
+    }
+
+    // 5. Aggiorna match
+    const { data: updatedMatch, error: updateError } = await admin
+      .from('matches')
+      .update(updateData)
+      .eq('id', match_id)
+      .eq('user_id', userId)
+      .select()
+      .single()
+
+    if (updateError) {
+      console.error('[update-match] Supabase update error:', updateError)
+      return NextResponse.json(
+        { error: updateError.message || 'Error updating match' },
+        { status: 500 }
+      )
+    }
+
+    console.log(`[update-match] Match updated successfully: ${updatedMatch.id}`)
+
+    return NextResponse.json({
+      success: true,
+      match: updatedMatch,
+      photos_uploaded: photosUploaded,
+      missing_photos: missingPhotos,
+      data_completeness: dataCompleteness
+    })
+  } catch (err) {
+    console.error('[update-match] Error:', err)
+    return NextResponse.json(
+      { error: err?.message || 'Errore aggiornamento partita' },
+      { status: 500 }
+    )
+  }
+}

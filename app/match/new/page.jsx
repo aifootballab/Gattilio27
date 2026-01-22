@@ -13,7 +13,7 @@ const STEPS = [
   { id: 'team_stats', label: 'Statistiche Squadra', icon: '📊' },
   { id: 'attack_areas', label: 'Aree di Attacco', icon: '⚽' },
   { id: 'ball_recovery_zones', label: 'Aree di Recupero Palla', icon: '🔄' },
-  { id: 'formation_style', label: 'Formazione e Stile', icon: '🎯' }
+  { id: 'formation_style', label: 'Formazione Avversaria', icon: '🎯' }
 ]
 
 const STORAGE_KEY = 'match_wizard_progress'
