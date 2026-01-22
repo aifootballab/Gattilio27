@@ -91,23 +91,7 @@ export async function POST(req) {
       )
     }
 
-    // Validazione dimensione JSONB (max 500KB)
-    const MAX_JSONB_SIZE = 500 * 1024 // 500KB
-    const baseStatsSize = player.base_stats ? JSON.stringify(player.base_stats).length : 0
-    const metadataSize = player.metadata ? JSON.stringify(player.metadata).length : 0
-    
-    if (baseStatsSize > MAX_JSONB_SIZE) {
-      return NextResponse.json(
-        { error: `base_stats exceeds maximum size (${MAX_JSONB_SIZE / 1024}KB)` },
-        { status: 400 }
-      )
-    }
-    if (metadataSize > MAX_JSONB_SIZE) {
-      return NextResponse.json(
-        { error: `metadata exceeds maximum size (${MAX_JSONB_SIZE / 1024}KB)` },
-        { status: 400 }
-      )
-    }
+    // Validazione dimensione JSONB rimossa - Supabase gestisce automaticamente i limiti
 
     // Prepara dati giocatore (tutto in una struttura)
     const playerData = {
@@ -166,7 +150,7 @@ export async function POST(req) {
     if (playerData.slot_index !== null && playerData.slot_index !== undefined) {
       const { data: existingPlayerInSlot, error: existingErr } = await admin
         .from('players')
-        .select('id, player_name, photo_slots, base_stats, skills, com_skills, available_boosters, extracted_data')
+        .select('id, player_name, photo_slots, base_stats, skills, com_skills, available_boosters, extracted_data, metadata')
         .eq('user_id', userId)
         .eq('slot_index', playerData.slot_index)
         .maybeSingle()
@@ -205,22 +189,42 @@ export async function POST(req) {
           ...playerData.extracted_data
         }
         
-        // Prepara dati aggiornati
+        // Validazione dimensione JSONB rimossa - Supabase gestisce automaticamente i limiti
+        
+        // Prepara dati aggiornati (NON usare spread di playerData per evitare sovrascrivere campi importanti)
         const updateData = {
-          ...playerData,
+          // Campi base (sovrascrivibili solo se presenti nei nuovi dati)
+          ...(playerData.player_name && { player_name: playerData.player_name }),
+          ...(playerData.position && { position: playerData.position }),
+          ...(playerData.card_type && { card_type: playerData.card_type }),
+          ...(playerData.team && { team: playerData.team }),
+          ...(playerData.overall_rating !== null && playerData.overall_rating !== undefined && { overall_rating: playerData.overall_rating }),
+          ...(playerData.age !== null && playerData.age !== undefined && { age: playerData.age }),
+          ...(playerData.nationality && { nationality: playerData.nationality }),
+          ...(playerData.club_name && { club_name: playerData.club_name }),
+          ...(playerData.form && { form: playerData.form }),
+          ...(playerData.role && { role: playerData.role }),
+          ...(playerData.height !== null && playerData.height !== undefined && { height: playerData.height }),
+          ...(playerData.weight !== null && playerData.weight !== undefined && { weight: playerData.weight }),
+          ...(playerData.current_level !== null && playerData.current_level !== undefined && { current_level: playerData.current_level }),
+          ...(playerData.level_cap !== null && playerData.level_cap !== undefined && { level_cap: playerData.level_cap }),
+          ...(playerData.active_booster_name && { active_booster_name: playerData.active_booster_name }),
+          ...(playerData.playing_style_id && { playing_style_id: playerData.playing_style_id }),
+          // Campi merged (sempre aggiornati)
           photo_slots: mergedPhotoSlots,
           base_stats: mergedBaseStats,
           skills: mergedSkills,
           com_skills: mergedComSkills,
           available_boosters: mergedBoosters,
           extracted_data: mergedExtractedData,
+          // Metadata: merge invece di sovrascrivere
+          metadata: {
+            ...(existingPlayerInSlot.metadata || {}),
+            ...(playerData.metadata || {}),
+            saved_at: new Date().toISOString()
+          },
           updated_at: new Date().toISOString()
         }
-        
-        // Rimuovi campi che non devono essere aggiornati
-        delete updateData.id
-        delete updateData.user_id
-        delete updateData.created_at
         
         const { data: updated, error: updateErr } = await admin
           .from('players')
