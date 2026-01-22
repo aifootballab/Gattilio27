@@ -77,6 +77,11 @@ function normalizeTeamStats(data) {
   
   const stats = {}
   
+  // Estrai risultato se presente
+  if (data.result && typeof data.result === 'string') {
+    stats.result = data.result.trim()
+  }
+  
   // Estrai statistiche comuni
   const statFields = [
     'possession', 'shots', 'shots_on_target', 'fouls', 'offsides',
@@ -224,10 +229,12 @@ Restituisci SOLO JSON valido, senza altro testo.`,
 IMPORTANTE:
 - Estrai SOLO ciò che vedi nell'immagine (null se non visibile)
 - Estrai: possesso di palla (possession %), tiri totali (shots), tiri in porta (shots_on_target), falli (fouls), fuorigioco (offsides), calci d'angolo (corner_kicks), punizioni (free_kicks), passaggi (passes), passaggi riusciti (successful_passes), cross, passaggi intercettati (interceptions), contrasti (tackles), parate (saves), gol segnati (goals_scored), gol subiti (goals_conceded)
+- Se vedi il RISULTATO della partita (es. "3-1", "2-2", "4-0"), estrailo nel campo "result" (formato: "X-Y" dove X sono i gol della squadra utente e Y i gol dell'avversario)
 - Se ci sono statistiche per entrambe le squadre, estrai entrambe
 
 Formato JSON richiesto:
 {
+  "result": "6-1",
   "possession": 49,
   "shots": 16,
   "shots_on_target": 10,
@@ -481,9 +488,22 @@ export async function POST(req) {
         )
     }
 
+    // Estrai risultato se presente (può essere in player_ratings, team_stats o nei dati raw)
+    let result = null
+    if (extractedData.result && typeof extractedData.result === 'string') {
+      result = extractedData.result.trim()
+    } else if (normalizedData && normalizedData.result && typeof normalizedData.result === 'string') {
+      result = normalizedData.result.trim()
+      // Rimuovi result da normalizedData se è in team_stats (non fa parte delle statistiche)
+      if (section === 'team_stats' && normalizedData.result) {
+        delete normalizedData.result
+      }
+    }
+
     return NextResponse.json({
       section,
       data: normalizedData,
+      result: result || null, // Includi risultato se estratto
       raw: extractedData // Include dati raw per debug
     })
   } catch (err) {

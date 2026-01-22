@@ -137,7 +137,8 @@ export default function MatchDetailPage() {
         body: JSON.stringify({
           match_id: match.id,
           section: uploadSection,
-          data: extractData.data
+          data: extractData.data,
+          result: extractData.result || null
         })
       })
 
