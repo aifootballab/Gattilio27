@@ -94,9 +94,14 @@ function mergeMatchData(existing, newData, section) {
       }
     }
   } else if (section === 'team_stats') {
-    merged.team_stats = { ...(merged.team_stats || {}), ...(newData.team_stats || {}) }
+    // newData contiene direttamente le statistiche (non wrappate in team_stats)
+    // Rimuovi result se presente (viene gestito separatamente)
+    const statsWithoutResult = { ...newData }
+    delete statsWithoutResult.result
+    merged.team_stats = { ...(merged.team_stats || {}), ...statsWithoutResult }
   } else if (section === 'attack_areas') {
-    merged.attack_areas = { ...(merged.attack_areas || {}), ...(newData.attack_areas || {}) }
+    // newData contiene direttamente le aree (non wrappate in attack_areas)
+    merged.attack_areas = { ...(merged.attack_areas || {}), ...newData }
   } else if (section === 'ball_recovery_zones') {
     const existingZones = Array.isArray(merged.ball_recovery_zones) ? merged.ball_recovery_zones : []
     const newZones = Array.isArray(newData.ball_recovery_zones) ? newData.ball_recovery_zones : []
@@ -181,13 +186,13 @@ export async function POST(req) {
     const dataCompleteness = calculateDataCompleteness(mergedData)
     const photosUploaded = calculatePhotosUploaded(mergedData)
 
-    // 5. Prepara update
+    // 5. Prepara update (usa mergedData, che contiene già i dati esistenti mergiati con i nuovi)
     const updateData = {
       result: finalResult || existingMatch.result,
-      player_ratings: mergedData.player_ratings || existingMatch.player_ratings,
-      team_stats: (mergedData.team_stats && Object.keys(mergedData.team_stats).length > 0) ? mergedData.team_stats : existingMatch.team_stats,
-      attack_areas: (mergedData.attack_areas && Object.keys(mergedData.attack_areas).length > 0) ? mergedData.attack_areas : existingMatch.attack_areas,
-      ball_recovery_zones: (mergedData.ball_recovery_zones && Array.isArray(mergedData.ball_recovery_zones) && mergedData.ball_recovery_zones.length > 0) ? mergedData.ball_recovery_zones : existingMatch.ball_recovery_zones,
+      player_ratings: mergedData.player_ratings,
+      team_stats: (mergedData.team_stats && Object.keys(mergedData.team_stats).length > 0) ? mergedData.team_stats : null,
+      attack_areas: (mergedData.attack_areas && Object.keys(mergedData.attack_areas).length > 0) ? mergedData.attack_areas : null,
+      ball_recovery_zones: (mergedData.ball_recovery_zones && Array.isArray(mergedData.ball_recovery_zones) && mergedData.ball_recovery_zones.length > 0) ? mergedData.ball_recovery_zones : null,
       formation_played: toText(mergedData.formation_played) || existingMatch.formation_played,
       playing_style_played: toText(mergedData.playing_style_played) || existingMatch.playing_style_played,
       team_strength: toInt(mergedData.team_strength) ?? existingMatch.team_strength,
