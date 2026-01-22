@@ -120,7 +120,16 @@ export async function GET(req) {
     }
 
     // DEBUG: Verifica finale prima di restituire
-    console.log(`[hero-points/balance] FINAL DEBUG user ${userId}: calculatedData.balance=${calculatedData.balance}, totalPurchased=${calculatedData.totalPurchased}`)
+    console.log(`[hero-points/balance] FINAL DEBUG user ${userId}: calculatedData.balance=${calculatedData.balance}, totalPurchased=${calculatedData.totalPurchased}, totalSpent=${calculatedData.totalSpent}`)
+    
+    // CRITICAL: Verifica che calculatedData.balance sia coerente
+    // Se totalPurchased - totalSpent != balance, c'è un problema
+    const expectedBalance = calculatedData.totalPurchased - calculatedData.totalSpent
+    if (Math.abs(calculatedData.balance - expectedBalance) > 1) {
+      console.error(`[hero-points/balance] CRITICAL: Balance inconsistency! balance=${calculatedData.balance}, but totalPurchased=${calculatedData.totalPurchased} - totalSpent=${calculatedData.totalSpent} = ${expectedBalance}`)
+      // Usa il calcolo corretto
+      calculatedData.balance = expectedBalance
+    }
     
     // CRITICAL FIX: Se il balance calcolato è sospettosamente alto, usa il valore dalla cache sincronizzata
     // Questo è un fallback di sicurezza
