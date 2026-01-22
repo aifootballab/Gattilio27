@@ -294,6 +294,7 @@ export async function POST(req) {
     
     // photos_processed = numero totale di foto FISICHE processate
     const photosProcessed = totalPhotosUploaded
+    // data_completeness: 'complete' se tutte le 6 sezioni hanno almeno 1 foto, altrimenti 'partial'
     const dataCompleteness = photosMissing.length === 0 ? 'complete' : 'partial'
 
     // Estrai dati da ogni immagine disponibile
@@ -585,7 +586,8 @@ Restituisci SOLO JSON valido, senza altro testo.`
 
     // Prepara dati strutturati
     const playersInMatch = formationData?.players || []
-    const playerRatings = ratingsData?.ratings || {}
+    // ratingsData è già l'oggetto dei ratings (non ha struttura { ratings: {...} })
+    const playerRatings = ratingsData || {}
     
     // Matching giocatori con rosa utente (solo se ratings disponibili)
     let matchedPlayers = playersInMatch
