@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
-import { validateToken, extractBearerToken } from '../../../lib/authHelper'
 import { createClient } from '@supabase/supabase-js'
+import { validateToken, extractBearerToken } from '../../../../lib/authHelper'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
