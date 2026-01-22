@@ -17,13 +17,13 @@ export async function DELETE(req) {
 
     const token = extractBearerToken(req)
     if (!token) {
-      return NextResponse.json({ error: 'Missing Authorization bearer token' }, { status: 401 })
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
     
     const { userData, error: authError } = await validateToken(token, supabaseUrl, anonKey)
     
     if (authError || !userData?.user?.id) {
-      return NextResponse.json({ error: 'Invalid auth' }, { status: 401 })
+      return NextResponse.json({ error: 'Invalid or expired authentication' }, { status: 401 })
     }
 
     const userId = userData.user.id

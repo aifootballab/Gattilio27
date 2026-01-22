@@ -16,13 +16,13 @@ export async function POST(req) {
 
     const token = extractBearerToken(req)
     if (!token) {
-      return NextResponse.json({ error: 'Missing Authorization bearer token' }, { status: 401 })
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
     
     const { userData, error: authError } = await validateToken(token, supabaseUrl, anonKey)
     
     if (authError || !userData?.user?.id) {
-      return NextResponse.json({ error: 'Invalid auth' }, { status: 401 })
+      return NextResponse.json({ error: 'Invalid or expired authentication' }, { status: 401 })
     }
 
     const apiKey = process.env.OPENAI_API_KEY
@@ -127,8 +127,9 @@ Restituisci SOLO JSON valido, senza altro testo. Assicurati che ci siano ESATTAM
     if (!openaiRes.ok) {
       const errorData = await openaiRes.json().catch(() => ({ error: 'OpenAI API error' }))
       console.error('[extract-formation] OpenAI API error:', errorData)
+      // Messaggio generico per sicurezza (non esporre dettagli tecnici)
       return NextResponse.json(
-        { error: `OpenAI API error: ${errorData.error?.message || 'Failed to extract formation'}` },
+        { error: 'Unable to extract formation from image. Please try again with a different image.' },
         { status: 500 }
       )
     }

@@ -61,13 +61,13 @@ export async function POST(req) {
 
     const token = extractBearerToken(req)
     if (!token) {
-      return NextResponse.json({ error: 'Missing Authorization bearer token' }, { status: 401 })
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
     
     const { userData, error: authError } = await validateToken(token, supabaseUrl, anonKey)
     
     if (authError || !userData?.user?.id) {
-      return NextResponse.json({ error: 'Invalid auth' }, { status: 401 })
+      return NextResponse.json({ error: 'Invalid or expired authentication' }, { status: 401 })
     }
 
     const apiKey = process.env.OPENAI_API_KEY
@@ -210,8 +210,9 @@ Restituisci SOLO JSON valido, senza altro testo.`
     if (!openaiRes.ok) {
       const errorData = await openaiRes.json().catch(() => ({ error: 'OpenAI API error' }))
       console.error('[extract-coach] OpenAI API error:', errorData)
+      // Messaggio generico per sicurezza (non esporre dettagli tecnici)
       return NextResponse.json(
-        { error: `OpenAI API error: ${errorData.error?.message || 'Failed to extract data'}` },
+        { error: 'Unable to extract coach data from image. Please try again with a different image.' },
         { status: 500 }
       )
     }
@@ -236,7 +237,7 @@ Restituisci SOLO JSON valido, senza altro testo.`
     } catch (parseErr) {
       console.error('[extract-coach] JSON parse error:', parseErr)
       return NextResponse.json(
-        { error: 'Failed to parse OpenAI response as JSON' },
+        { error: 'Unable to process extracted data. Please try again with a different image.' },
         { status: 500 }
       )
     }
@@ -244,13 +245,45 @@ Restituisci SOLO JSON valido, senza altro testo.`
     // Normalizza dati
     const normalizedCoach = normalizeCoach(coachData)
 
+    // Validazione semantica dei dati estratti
+    const validationErrors = []
+    
+    // Validazione età: 16-70 (range realistico per allenatori)
+    if (normalizedCoach.age !== null && normalizedCoach.age !== undefined) {
+      const age = Number(normalizedCoach.age)
+      if (isNaN(age) || age < 16 || age > 70) {
+        validationErrors.push('Age must be between 16 and 70')
+      }
+    }
+    
+    // Validazione nome: formato valido (no caratteri estremi)
+    if (normalizedCoach.coach_name && typeof normalizedCoach.coach_name === 'string') {
+      const name = normalizedCoach.coach_name.trim()
+      // Nome deve avere almeno 2 caratteri, max 100, no caratteri di controllo
+      if (name.length < 2 || name.length > 100) {
+        validationErrors.push('Coach name must be between 2 and 100 characters')
+      } else if (/[\x00-\x1F\x7F]/.test(name)) {
+        // Caratteri di controllo non permessi
+        validationErrors.push('Coach name contains invalid characters')
+      }
+    }
+    
+    // Se ci sono errori di validazione, restituisci errore generico
+    if (validationErrors.length > 0) {
+      console.error('[extract-coach] Validation errors:', validationErrors)
+      return NextResponse.json(
+        { error: 'Extracted data contains invalid values. Please try with a different image.' },
+        { status: 400 }
+      )
+    }
+
     return NextResponse.json({
       coach: normalizedCoach
     })
   } catch (err) {
     console.error('[extract-coach] Error:', err)
     return NextResponse.json(
-      { error: err?.message || 'Errore estrazione dati' },
+      { error: 'Unable to extract coach data. Please try again.' },
       { status: 500 }
     )
   }
