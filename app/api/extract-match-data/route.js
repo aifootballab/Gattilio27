@@ -15,6 +15,8 @@ function normalizePlayerRatings(data) {
   if (!data || typeof data !== 'object') return {}
   
   const ratings = {}
+  const clienteRatings = {}
+  const avversarioRatings = {}
   
   // Supporta sia { ratings: {...} } che { ... } diretto
   const ratingsData = data.ratings || data
@@ -35,19 +37,35 @@ function normalizePlayerRatings(data) {
         }
         
         // Estrai SOLO il rating (voto) - è l'unico dato disponibile nelle pagelle
-        // goals, assists, minutes_played NON sono visibili in questa schermata
         const rating = toNumber(playerData.rating)
         
         if (rating !== null) {
-          ratings[playerName] = {
-            rating: rating
-            // Non includiamo goals, assists, minutes_played perché non sono visibili nelle pagelle
+          const playerRating = { rating: rating }
+          
+          // Identifica se è cliente o avversario
+          const team = String(playerData.team || '').toLowerCase()
+          if (team.includes('cliente') || team === 'cliente' || team === 'team1') {
+            clienteRatings[playerName] = playerRating
+          } else if (team.includes('avversario') || team === 'avversario' || team === 'opponent' || team === 'team2') {
+            avversarioRatings[playerName] = playerRating
+          } else {
+            // Se non specificato, metti in ratings generale (compatibilità retroattiva)
+            ratings[playerName] = playerRating
           }
         }
       }
     })
   }
   
+  // Restituisci struttura con separazione cliente/avversario se disponibile
+  if (Object.keys(clienteRatings).length > 0 || Object.keys(avversarioRatings).length > 0) {
+    return {
+      cliente: Object.keys(clienteRatings).length > 0 ? clienteRatings : null,
+      avversario: Object.keys(avversarioRatings).length > 0 ? avversarioRatings : null
+    }
+  }
+  
+  // Fallback: restituisci ratings senza distinzione (compatibilità)
   return ratings
 }
 
@@ -157,7 +175,19 @@ function normalizeFormationStyle(data) {
 /**
  * Genera prompt per estrazione dati in base alla sezione
  */
-function getPromptForSection(section) {
+function getPromptForSection(section, userTeamInfo = null) {
+  // Costruisci hint per identificare squadra cliente
+  let teamHint = ''
+  if (userTeamInfo) {
+    const hints = []
+    if (userTeamInfo.team_name) hints.push(`Nome squadra cliente: "${userTeamInfo.team_name}"`)
+    if (userTeamInfo.favorite_team) hints.push(`Squadra preferita: "${userTeamInfo.favorite_team}"`)
+    if (userTeamInfo.name) hints.push(`Nome utente: "${userTeamInfo.name}"`)
+    if (hints.length > 0) {
+      teamHint = `\n\nIDENTIFICAZIONE SQUADRA CLIENTE:\n${hints.join('\n')}\n- La squadra del cliente potrebbe corrispondere a uno di questi nomi o essere simile.\n- L'altra squadra è l'avversario.`
+    }
+  }
+
   const prompts = {
     player_ratings: `Analizza questo screenshot di eFootball e estrai TUTTE le pagelle (ratings) dei giocatori.
 
@@ -167,19 +197,22 @@ IMPORTANTE:
 - Per ogni giocatore visibile nella lista delle pagelle, estrai:
   * nome (nome completo del giocatore come appare nella lista)
   * rating (voto numerico, es. 8.5, 7.0, 6.5, 5.5 - OBBLIGATORIO, è l'unico dato visibile)
+  * team (identifica se appartiene alla squadra del CLIENTE o all'AVVERSARIO)
 - I valori numerici devono essere numeri, non stringhe
 - Se vedi una lista di giocatori con voti, estrai TUTTI i giocatori visibili
-- Se ci sono due squadre (team1 e team2), identifica chiaramente quale giocatore appartiene a quale squadra
-- NON inventare dati che non vedi (goals, assists, minutes_played non sono visibili in questa schermata)
+- DISTINGUI CHIARAMENTE: identifica quale giocatore appartiene alla squadra del CLIENTE e quale all'AVVERSARIO
+- NON inventare dati che non vedi (goals, assists, minutes_played non sono visibili in questa schermata)${teamHint}
 
 Formato JSON richiesto:
 {
   "ratings": {
-    "Nome Giocatore 1": {
-      "rating": 8.5
+    "Nome Giocatore Cliente": {
+      "rating": 8.5,
+      "team": "cliente"
     },
-    "Nome Giocatore 2": {
-      "rating": 6.5
+    "Nome Giocatore Avversario": {
+      "rating": 6.5,
+      "team": "avversario"
     }
   }
 }
@@ -294,6 +327,33 @@ export async function POST(req) {
       return NextResponse.json({ error: 'Invalid or expired authentication' }, { status: 401 })
     }
 
+    const userId = userData.user.id
+
+    // Recupera informazioni utente per identificare squadra cliente
+    const { createClient } = await import('@supabase/supabase-js')
+    const supabaseClient = createClient(supabaseUrl, process.env.SUPABASE_SERVICE_ROLE_KEY, {
+      auth: { autoRefreshToken: false, persistSession: false }
+    })
+
+    let userTeamInfo = null
+    try {
+      const { data: profile } = await supabaseClient
+        .from('user_profiles')
+        .select('team_name, favorite_team, first_name, last_name')
+        .eq('user_id', userId)
+        .maybeSingle()
+      
+      if (profile) {
+        userTeamInfo = {
+          team_name: profile.team_name,
+          favorite_team: profile.favorite_team,
+          name: [profile.first_name, profile.last_name].filter(Boolean).join(' ')
+        }
+      }
+    } catch (err) {
+      console.warn('[extract-match-data] Error fetching user profile:', err)
+    }
+
     const apiKey = process.env.OPENAI_API_KEY
 
     if (!apiKey) {
@@ -335,8 +395,8 @@ export async function POST(req) {
       }
     }
 
-    // Genera prompt per sezione
-    const prompt = getPromptForSection(section)
+    // Genera prompt per sezione (con info utente se disponibili)
+    const prompt = getPromptForSection(section, userTeamInfo)
 
     // Chiama OpenAI Vision API
     let extractedData = null
