@@ -79,64 +79,37 @@ export async function POST(req) {
       auth: { autoRefreshToken: false, persistSession: false }
     })
 
-    // Recupera balance corrente (o crea se non esiste con starter pack)
-    const { data: existingBalance, error: fetchError } = await admin
+    // Calcola balance dalle transazioni per garantire coerenza
+    const { data: transactions } = await admin
+      .from('hero_points_transactions')
+      .select('transaction_type, hero_points_amount')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: true })
+
+    let currentBalance = 0
+    let totalSpent = 0
+
+    if (transactions && transactions.length > 0) {
+      currentBalance = transactions.reduce((balance, tx) => {
+        if (tx.transaction_type === 'purchase') {
+          return balance + tx.hero_points_amount
+        } else if (tx.transaction_type === 'spent') {
+          totalSpent += Math.abs(tx.hero_points_amount)
+          return balance - Math.abs(tx.hero_points_amount)
+        }
+        return balance
+      }, 0)
+    }
+
+    // Recupera total_spent esistente o calcolalo
+    const { data: existingBalance } = await admin
       .from('user_hero_points')
-      .select('*')
+      .select('total_spent')
       .eq('user_id', userId)
       .maybeSingle()
 
-    if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 = not found (ok)
-      console.error('[hero-points/spend] Error fetching balance:', fetchError)
-      return NextResponse.json({ error: 'Unable to process request. Please try again.' }, { status: 500 })
-    }
-
-    // Se non esiste record, assegna starter pack prima
-    let currentBalance = existingBalance?.hero_points_balance || 0
-    let totalSpent = existingBalance?.total_spent || 0
-
-    if (!existingBalance || !existingBalance.starter_pack_claimed) {
-      console.log('[hero-points/spend] Assigning starter pack')
-      
-      const starterPackAmount = 1000
-      currentBalance = starterPackAmount
-      
-      // Crea record con starter pack
-      const { data: newBalance, error: upsertError } = await admin
-        .from('user_hero_points')
-        .upsert({
-          user_id: userId,
-          hero_points_balance: starterPackAmount,
-          starter_pack_claimed: true,
-          starter_pack_amount: starterPackAmount,
-          total_purchased: starterPackAmount,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'user_id'
-        })
-        .select()
-        .single()
-
-      if (upsertError) {
-        console.error('[hero-points/spend] Error creating balance with starter pack:', upsertError)
-        return NextResponse.json({ error: 'Unable to initialize account. Please try again.' }, { status: 500 })
-      }
-
-      // Crea transazione starter pack
-      await admin
-        .from('hero_points_transactions')
-        .insert({
-          user_id: userId,
-          transaction_type: 'purchase',
-          hero_points_amount: starterPackAmount,
-          euros_amount: null,
-          operation_type: 'starter_pack',
-          operation_id: null,
-          balance_after: starterPackAmount,
-          description: 'Starter Pack - Benvenuto! 1000 Hero Points gratuiti'
-        })
-
-      console.log(`[hero-points/spend] Starter pack assigned: ${starterPackAmount} HP`)
+    if (existingBalance) {
+      totalSpent = existingBalance.total_spent || totalSpent
     }
 
     // Verifica balance sufficiente
@@ -151,17 +124,20 @@ export async function POST(req) {
 
     // Calcola nuovo balance
     const newBalance = currentBalance - heroPointsToSpend
-    totalSpent = totalSpent + heroPointsToSpend
+    const newTotalSpent = totalSpent + heroPointsToSpend
 
     // Aggiorna balance (con constraint CHECK per prevenire balance negativo)
+    // Se record non esiste, crealo
     const { data: updatedBalance, error: updateError } = await admin
       .from('user_hero_points')
-      .update({
+      .upsert({
+        user_id: userId,
         hero_points_balance: newBalance,
-        total_spent: totalSpent,
+        total_spent: newTotalSpent,
         updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'user_id'
       })
-      .eq('user_id', userId)
       .select()
       .single()
 

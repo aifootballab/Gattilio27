@@ -89,13 +89,11 @@ export async function POST(req) {
     const totalPurchased = (existingBalance?.total_purchased || 0) + heroPointsToAdd
 
     // Aggiorna o crea record user_hero_points
-    // IMPORTANTE: Se non esiste, imposta starter_pack_claimed = true per evitare che /balance lo riassegni
     const { data: updatedBalance, error: upsertError } = await admin
       .from('user_hero_points')
       .upsert({
         user_id: userId,
         hero_points_balance: newBalance,
-        starter_pack_claimed: existingBalance?.starter_pack_claimed ?? true, // Mantieni valore esistente o true se nuovo
         last_purchase_at: new Date().toISOString(),
         total_purchased: totalPurchased,
         updated_at: new Date().toISOString()
