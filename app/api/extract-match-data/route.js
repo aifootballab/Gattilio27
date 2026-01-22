@@ -34,11 +34,15 @@ function normalizePlayerRatings(data) {
           return null
         }
         
-        ratings[playerName] = {
-          rating: toNumber(playerData.rating),
-          goals: toNumber(playerData.goals) !== null ? toNumber(playerData.goals) : (playerData.goals === 0 ? 0 : null),
-          assists: toNumber(playerData.assists) !== null ? toNumber(playerData.assists) : (playerData.assists === 0 ? 0 : null),
-          minutes_played: toNumber(playerData.minutes_played)
+        // Estrai SOLO il rating (voto) - è l'unico dato disponibile nelle pagelle
+        // goals, assists, minutes_played NON sono visibili in questa schermata
+        const rating = toNumber(playerData.rating)
+        
+        if (rating !== null) {
+          ratings[playerName] = {
+            rating: rating
+            // Non includiamo goals, assists, minutes_played perché non sono visibili nelle pagelle
+          }
         }
       }
     })
@@ -159,30 +163,23 @@ function getPromptForSection(section) {
 
 IMPORTANTE:
 - Estrai SOLO ciò che vedi nell'immagine
-- Per ogni giocatore visibile nella lista delle pagelle, estrai OBBLIGATORIAMENTE:
-  * nome (nome completo del giocatore)
-  * rating (voto numerico, es. 8.5, 7.0, 6.5 - se non visibile usa null)
-  * goals (numero di gol segnati - se non visibile usa 0 o null)
-  * assists (numero di assist - se non visibile usa 0 o null)
-  * minutes_played (minuti giocati, es. 90, 45 - se non visibile usa null)
+- Questa schermata mostra SOLO i VOTI (ratings) dei giocatori, NON ci sono goals, assists o minuti giocati
+- Per ogni giocatore visibile nella lista delle pagelle, estrai:
+  * nome (nome completo del giocatore come appare nella lista)
+  * rating (voto numerico, es. 8.5, 7.0, 6.5, 5.5 - OBBLIGATORIO, è l'unico dato visibile)
 - I valori numerici devono essere numeri, non stringhe
-- Se vedi una tabella o lista di giocatori con voti, estrai TUTTI i giocatori visibili
-- Se ci sono due squadre, identifica chiaramente quale giocatore appartiene a quale squadra
+- Se vedi una lista di giocatori con voti, estrai TUTTI i giocatori visibili
+- Se ci sono due squadre (team1 e team2), identifica chiaramente quale giocatore appartiene a quale squadra
+- NON inventare dati che non vedi (goals, assists, minutes_played non sono visibili in questa schermata)
 
 Formato JSON richiesto:
 {
   "ratings": {
     "Nome Giocatore 1": {
-      "rating": 8.5,
-      "goals": 2,
-      "assists": 1,
-      "minutes_played": 90
+      "rating": 8.5
     },
     "Nome Giocatore 2": {
-      "rating": 6.5,
-      "goals": 0,
-      "assists": 0,
-      "minutes_played": 90
+      "rating": 6.5
     }
   }
 }
