@@ -13,6 +13,7 @@ import {
   RefreshCw, 
   AlertCircle,
   ArrowRight,
+  TrendingUp,
   Settings,
   BarChart3,
   Brain,
