@@ -398,13 +398,22 @@ Questo documento serve come **punto di riferimento unico** per:
 Se inizi a lavorare in una nuova chat:
 
 1. **Leggi questo documento** (`STATO_IMPLEMENTAZIONE_COMPLETO.md`)
-2. **Consulta `PIANO_CRONOLOGICO_IMPLEMENTAZIONE.md`** per prossimi step
-3. **Consulta `TASK_BREAKDOWN_IMPLEMENTAZIONE.md`** per dettagli task
-4. **Consulta `CHECKLIST_PERFEZIONAMENTO_PRE_LANCIO.md`** per perfezionamento
-5. **NON modificare codice esistente** se non necessario
-6. **Se devi cancellare codice**: Aggiungi nota di ripristino
-7. **Testare ogni task** prima di procedere
-8. **Commit frequenti** con messaggi chiari
+2. **Leggi `ARCHITETTURA_MATCH_ANALISI.md`** per contesto completo del sistema
+3. **Consulta `PIANO_CRONOLOGICO_IMPLEMENTAZIONE.md`** per prossimi step
+4. **Consulta `TASK_BREAKDOWN_IMPLEMENTAZIONE.md`** per dettagli task
+5. **Leggi `ANALISI_RISCHI_TASK_UX.md`** PRIMA di ogni task per analisi rischi
+6. **Consulta `CHECKLIST_PERFEZIONAMENTO_PRE_LANCIO.md`** per perfezionamento
+7. **NON modificare codice esistente** se non necessario
+8. **Se devi cancellare codice**: Aggiungi nota di ripristino
+9. **Testare ogni task** prima di procedere
+10. **Commit frequenti** con messaggi chiari
+
+**⚠️ REGOLE D'ORO**:
+- **SEMPRE** leggere i documenti prima di implementare
+- **SEMPRE** leggere `ARCHITETTURA_MATCH_ANALISI.md` per contesto
+- **SEMPRE** leggere `ANALISI_RISCHI_TASK_UX.md` prima di ogni task
+- **SEMPRE** aspettare feedback utente prima di considerare task completato
+- **MAI** modificare codice esistente senza leggere prima i documenti
 
 ---
 

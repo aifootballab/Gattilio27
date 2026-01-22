@@ -120,8 +120,17 @@ export default function HeroPointsBalance() {
       }
 
       setPurchaseSuccess(t('purchaseSuccess').replace('{amount}', data.hero_points_added.toLocaleString('it-IT')))
-      // Aggiorna balance (forza refresh)
-      await fetchBalance(true)
+      
+      // Aggiorna balance direttamente con i dati della risposta (più veloce e sicuro)
+      if (data.hero_points_balance !== undefined) {
+        setBalance(data.hero_points_balance)
+        setEurosEquivalent(data.euros_equivalent || (data.hero_points_balance / 100))
+        // Aggiorna timestamp cache per evitare refresh immediato
+        lastFetchRef.current = Date.now()
+      } else {
+        // Fallback: forza refresh se dati non presenti
+        await fetchBalance(true)
+      }
       
       // Chiudi modal dopo 2 secondi
       setTimeout(() => {

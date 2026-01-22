@@ -4,11 +4,14 @@
 **Versione**: 1.1 (Con Analisi Rischi)  
 **Obiettivo**: Elenco cronologico preciso da dove partire, con riferimenti a documenti
 
-**⚠️ METODOLOGIA**:
+**⚠️ METODOLOGIA - REGOLE D'ORO**:
+- **SEMPRE** leggere `ARCHITETTURA_MATCH_ANALISI.md` per contesto completo prima di iniziare
+- **SEMPRE** leggere `ANALISI_RISCHI_TASK_UX.md` PRIMA di ogni task per analisi rischi
+- **SEMPRE** leggere `TASK_BREAKDOWN_IMPLEMENTAZIONE.md` per dettagli del task specifico
 - Ogni task viene testato dall'utente e marcato "✅ COMPLETATO" solo dopo feedback positivo
-- Prima di iniziare ogni task: leggere `ANALISI_RISCHI_TASK_UX.md` per analisi rischi
 - Test incrementale: testare ogni task dopo implementazione
 - Rollback plan: se qualcosa rompe, rollback immediato
+- **MAI** modificare codice esistente senza leggere prima i documenti
 
 ---
 
