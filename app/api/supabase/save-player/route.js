@@ -162,6 +162,93 @@ export async function POST(req) {
     const playerName = playerData.player_name?.trim().toLowerCase()
     const playerAge = playerData.age != null ? Number(playerData.age) : null
     
+    // VERIFICA 1: Se esiste già un giocatore nello stesso slot_index → UPDATE invece di INSERT
+    if (playerData.slot_index !== null && playerData.slot_index !== undefined) {
+      const { data: existingPlayerInSlot, error: existingErr } = await admin
+        .from('players')
+        .select('id, player_name, photo_slots, base_stats, skills, com_skills, available_boosters, extracted_data')
+        .eq('user_id', userId)
+        .eq('slot_index', playerData.slot_index)
+        .maybeSingle()
+
+      if (!existingErr && existingPlayerInSlot) {
+        // Giocatore già presente nello slot → UPDATE con merge dati
+        console.log(`[save-player] Player already exists in slot ${playerData.slot_index}, updating: id=${existingPlayerInSlot.id}`)
+        
+        // Merge photo_slots
+        const existingPhotoSlots = existingPlayerInSlot.photo_slots || {}
+        const newPhotoSlots = playerData.photo_slots || {}
+        const mergedPhotoSlots = { ...existingPhotoSlots, ...newPhotoSlots }
+        
+        // Merge base_stats (preferisci nuovi se presenti)
+        const mergedBaseStats = playerData.base_stats && Object.keys(playerData.base_stats).length > 0
+          ? { ...(existingPlayerInSlot.base_stats || {}), ...playerData.base_stats }
+          : existingPlayerInSlot.base_stats
+        
+        // Merge skills e com_skills (unisci array, rimuovi duplicati)
+        const existingSkills = Array.isArray(existingPlayerInSlot.skills) ? existingPlayerInSlot.skills : []
+        const newSkills = Array.isArray(playerData.skills) ? playerData.skills : []
+        const mergedSkills = [...existingSkills, ...newSkills].filter((v, i, a) => a.indexOf(v) === i)
+        
+        const existingComSkills = Array.isArray(existingPlayerInSlot.com_skills) ? existingPlayerInSlot.com_skills : []
+        const newComSkills = Array.isArray(playerData.com_skills) ? playerData.com_skills : []
+        const mergedComSkills = [...existingComSkills, ...newComSkills].filter((v, i, a) => a.indexOf(v) === i)
+        
+        // Merge boosters (preferisci nuovi se presenti)
+        const mergedBoosters = playerData.available_boosters && Array.isArray(playerData.available_boosters) && playerData.available_boosters.length > 0
+          ? playerData.available_boosters
+          : existingPlayerInSlot.available_boosters
+        
+        // Merge extracted_data
+        const mergedExtractedData = {
+          ...(existingPlayerInSlot.extracted_data || {}),
+          ...playerData.extracted_data
+        }
+        
+        // Prepara dati aggiornati
+        const updateData = {
+          ...playerData,
+          photo_slots: mergedPhotoSlots,
+          base_stats: mergedBaseStats,
+          skills: mergedSkills,
+          com_skills: mergedComSkills,
+          available_boosters: mergedBoosters,
+          extracted_data: mergedExtractedData,
+          updated_at: new Date().toISOString()
+        }
+        
+        // Rimuovi campi che non devono essere aggiornati
+        delete updateData.id
+        delete updateData.user_id
+        delete updateData.created_at
+        
+        const { data: updated, error: updateErr } = await admin
+          .from('players')
+          .update(updateData)
+          .eq('id', existingPlayerInSlot.id)
+          .eq('user_id', userId)
+          .select('id, user_id, player_name')
+          .single()
+
+        if (updateErr) {
+          console.error('[save-player] Update error:', updateErr.message)
+          return NextResponse.json(
+            { error: `Failed to update player: ${updateErr.message}` },
+            { status: 500 }
+          )
+        }
+
+        console.log(`[save-player] Player updated: id=${updated.id}, user_id=${updated.user_id}, player_name=${updated.player_name}`)
+
+        return NextResponse.json({
+          success: true,
+          player_id: updated.id,
+          is_new: false,
+          action: 'updated'
+        })
+      }
+    }
+    
     if (playerName) {
       // 1. Verifica duplicati in CAMPO (titolari) - sempre, indipendentemente da dove si salva
       let duplicateInFieldQuery = admin
