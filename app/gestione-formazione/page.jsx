@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { useTranslation } from '@/lib/i18n'
 import LanguageSwitch from '@/components/LanguageSwitch'
+import HeroPointsBalance from '@/components/HeroPointsBalance'
 import { ArrowLeft, Upload, AlertCircle, CheckCircle2, RefreshCw, Info, X, Plus, User, Settings, BarChart3, Zap, Gift, ChevronDown, ChevronUp, Users, Star, Move } from 'lucide-react'
 import TacticalSettingsPanel from '@/components/TacticalSettingsPanel'
 
@@ -1233,7 +1234,8 @@ export default function GestioneFormazionePage() {
         <h1 className="neon-text" style={{ fontSize: 'clamp(24px, 5vw, 32px)', fontWeight: 700, margin: 0 }}>
           {t('swapFormation')}
         </h1>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginLeft: 'auto' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginLeft: 'auto', flexWrap: 'wrap' }}>
+          <HeroPointsBalance />
           <LanguageSwitch />
           {layout?.formation && (
             <div style={{ 

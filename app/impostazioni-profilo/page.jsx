@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { useTranslation } from '@/lib/i18n'
 import LanguageSwitch from '@/components/LanguageSwitch'
+import HeroPointsBalance from '@/components/HeroPointsBalance'
 import { ArrowLeft, Save, SkipForward, RefreshCw, User, Gamepad2, Brain, Clock, CheckCircle2, AlertCircle, BarChart3 } from 'lucide-react'
 
 export default function ImpostazioniProfiloPage() {
@@ -220,7 +221,8 @@ export default function ImpostazioniProfiloPage() {
           <ArrowLeft size={24} />
         </button>
         <h1 style={{ margin: 0, fontSize: '20px', fontWeight: '600' }}>Impostazioni Profilo</h1>
-        <div style={{ marginLeft: 'auto' }}>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <HeroPointsBalance />
           <LanguageSwitch />
         </div>
       </div>

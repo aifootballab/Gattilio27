@@ -222,6 +222,8 @@
 
 #### TASK 1.19: Componente HeroPointsBalance - Countdown Numerico
 
+**⚠️ STATO**: ⚠️ **PARZIALE** - Implementato ma mancano alcune funzionalità
+
 **Rischi**:
 - ⚠️ **Breaking**: Modifica `app/layout.tsx` - può rompere layout esistente
 - ⚠️ **Performance**: Se chiamato troppo spesso, può sovraccaricare API
@@ -231,16 +233,23 @@
 - Se componente non visibile, cliente non sa quanti crediti ha
 
 **UX**:
-- Mostrare balance sempre visibile in header
-- Aggiornare balance dopo ogni operazione
-- Mostrare "Crediti insufficienti" se balance < costo operazione
-- Mostrare alert se balance < 50 HP
+- ✅ Mostrare balance sempre visibile in header (implementato)
+- ✅ Aggiornare balance ogni 30 secondi (implementato)
+- ❌ Mostrare "Crediti insufficienti" se balance < costo operazione (manca)
+- ❌ Mostrare alert se balance < 50 HP (manca)
+- ❌ Bottone "Compra Crediti" (manca)
 
 **Mitigazioni**:
-- **ATTENZIONE**: Modificare `app/layout.tsx` con cura - NON cancellare codice esistente
-- Cache balance in frontend (5 minuti)
+- ⚠️ **NOTA**: Componente integrato nelle singole pagine invece di `app/layout.tsx` (diverso da documentazione originale)
+- ⚠️ Cache balance in frontend (5 minuti) - **NON implementato** (attualmente auto-refresh ogni 30s)
 - Aggiornare balance solo dopo operazioni che consumano crediti
 - Test layout su mobile e desktop
+
+**Cosa manca**:
+- [ ] Bottone "Compra Crediti" nel componente
+- [ ] Alert visibile se balance < 50 HP
+- [ ] Cache di 5 minuti invece di auto-refresh ogni 30s
+- [ ] Integrazione in `app/layout.tsx` (opzionale, attualmente funziona nelle pagine)
 
 ---
 

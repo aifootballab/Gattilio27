@@ -921,11 +921,18 @@ Backup: Salvare versione corrente prima di modificare.
 **Criteri completamento**:
 - ✅ Componente creato
 - ✅ Balance mostrato correttamente
-- ✅ Aggiornamento real-time (dopo operazioni)
-- ✅ Cache implementata (5 minuti)
-- ✅ Testato su mobile e desktop
-- ✅ Testato che layout esistente funziona ancora
-- ✅ Utente ha testato e approvato
+- ✅ Aggiornamento ogni 30 secondi (auto-refresh)
+- ❌ Cache implementata (5 minuti) - **NON implementato** (attualmente auto-refresh ogni 30s)
+- ⚠️ Testato su mobile e desktop - **DA VERIFICARE**
+- ⚠️ Testato che layout esistente funziona ancora - **DA VERIFICARE**
+- ❌ Utente ha testato e approvato - **IN ATTESA**
+
+**⚠️ STATO ATTUALE**: ⚠️ **PARZIALE**
+- ✅ Componente funzionante e integrato in 3 pagine principali
+- ❌ **MANCA**: Bottone "Compra Crediti"
+- ❌ **MANCA**: Alert se balance < 50 HP
+- ❌ **MANCA**: Cache di 5 minuti
+- ⚠️ **NOTA**: Integrato nelle singole pagine invece di `app/layout.tsx` (come da documentazione originale)
 
 ---
 

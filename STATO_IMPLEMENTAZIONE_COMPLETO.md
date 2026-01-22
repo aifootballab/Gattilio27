@@ -120,8 +120,8 @@ Questo documento serve come **punto di riferimento unico** per:
 - ⏳ `TacticalSuggestionsPanel` - Suggerimenti tattici
 - ⏳ `CoherenceAnalysisPanel` - Analisi coerenza
 - ⏳ `AIKnowledgeProgress` - Barra conoscenza IA
-- ⏳ `HeroPointsBalance` - Bilancio crediti
-- ⏳ `UserProfileSettings` - Impostazioni profilo
+- ✅ `HeroPointsBalance` - Bilancio crediti (completato - TASK 1.19) - ⚠️ Parziale: manca bottone "Compra Crediti" e alert balance < 50 HP
+- ✅ `UserProfileSettings` - Impostazioni profilo (completato - TASK 1.17)
 
 ---
 
@@ -324,6 +324,16 @@ Questo documento serve come **punto di riferimento unico** per:
 
 13. **STEP 1.17**: ✅ **COMPLETATO** - UI Impostazioni Profilo - Pagina `/app/impostazioni-profilo/page.jsx` creata (mobile-first, salvataggio incrementale, barra profilazione)
 14. **STEP 1.18**: ✅ **COMPLETATO** - Endpoint `/api/supabase/save-profile` (POST) creato (validazione e trigger implementati)
+15. **STEP 1.19**: ⚠️ **PARZIALE** - Componente HeroPointsBalance creato e integrato in pagine principali (dashboard, gestione-formazione, impostazioni-profilo)
+   - ✅ Componente `components/HeroPointsBalance.jsx` creato
+   - ✅ Mostra balance numerico: "X HP" e "~X.XX€"
+   - ✅ Auto-refresh ogni 30 secondi
+   - ✅ Click per refresh manuale
+   - ✅ Integrato in header di 3 pagine principali
+   - ❌ **MANCA**: Bottone "Compra Crediti"
+   - ❌ **MANCA**: Alert se balance < 50 HP
+   - ❌ **MANCA**: Cache di 5 minuti (attualmente auto-refresh ogni 30s)
+   - ⚠️ **NOTA**: Integrato nelle singole pagine invece di `app/layout.tsx` (come da documentazione)
 
 ---
 

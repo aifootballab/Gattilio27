@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { useTranslation } from '@/lib/i18n'
 import LanguageSwitch from '@/components/LanguageSwitch'
+import HeroPointsBalance from '@/components/HeroPointsBalance'
 import { 
   LayoutDashboard, 
   Users, 
@@ -160,7 +161,8 @@ export default function DashboardPage() {
             {t('dashboard')}
           </h1>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginLeft: 'auto' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginLeft: 'auto', flexWrap: 'wrap' }}>
+          <HeroPointsBalance />
           <LanguageSwitch />
           <button
             onClick={handleLogout}

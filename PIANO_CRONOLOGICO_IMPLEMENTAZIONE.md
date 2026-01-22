@@ -559,8 +559,16 @@ Prima di iniziare, verifica:
 
 **🎉 FASE 3 UI PROFILO COMPLETATA**: Pagina profilo utente completa e funzionante!
 
+**⚠️ STEP 1.19 PARZIALE**: Componente HeroPointsBalance - Countdown Numerico
+- ✅ Componente creato e funzionante
+- ✅ Integrato in 3 pagine principali (dashboard, gestione-formazione, impostazioni-profilo)
+- ❌ **MANCA**: Bottone "Compra Crediti"
+- ❌ **MANCA**: Alert se balance < 50 HP
+- ❌ **MANCA**: Cache di 5 minuti (attualmente auto-refresh ogni 30s)
+- ⚠️ **NOTA**: Integrato nelle singole pagine invece di `app/layout.tsx` (come da documentazione originale)
+
 **⚠️ PROSSIMO STEP PRIORITARIO**: 
-- **STEP 1.19**: Componente HeroPointsBalance - Countdown Numerico (per header/navbar)
+- **STEP 1.19 COMPLETAMENTO**: Aggiungere funzionalità mancanti (bottone compra, alert, cache)
 
 **Riferimenti**:
 - `ARCHITETTURA_PROFILO_UTENTE_CREDITI.md`: Sezione "Database Schema" (righe 28-200)
