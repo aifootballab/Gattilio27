@@ -256,25 +256,44 @@ export async function POST(req) {
     }
 
     // Estrai immagini dal body
-    const {
-      formation_image,
-      ratings_image,
-      team_stats_image,
-      attack_areas_image,
-      recovery_zones_image,
-      goals_chart_image
-    } = await req.json()
-
-    // Identifica foto mancanti
+    // REGOLA: Ogni tipo può essere una singola foto (string) o un array di foto
+    // "a volte per ogni sezione sono 2 a volte no" - supportiamo array per gestire più foto per sezione
+    const requestBody = await req.json()
+    
+    // Normalizza: converte stringhe in array per gestire uniformemente
+    const normalizePhotoInput = (photo) => {
+      if (!photo) return []
+      if (Array.isArray(photo)) return photo.filter(p => p) // Filtra valori null/undefined
+      return [photo] // Singola foto diventa array con 1 elemento
+    }
+    
+    const formationImages = normalizePhotoInput(requestBody.formation_image)
+    const ratingsImages = normalizePhotoInput(requestBody.ratings_image)
+    const teamStatsImages = normalizePhotoInput(requestBody.team_stats_image)
+    const attackAreasImages = normalizePhotoInput(requestBody.attack_areas_image)
+    const recoveryZonesImages = normalizePhotoInput(requestBody.recovery_zones_image)
+    const goalsChartImages = normalizePhotoInput(requestBody.goals_chart_image)
+    
+    // Calcola numero totale di foto FISICHE caricate (non solo tipi)
+    const totalPhotosUploaded = 
+      formationImages.length +
+      ratingsImages.length +
+      teamStatsImages.length +
+      attackAreasImages.length +
+      recoveryZonesImages.length +
+      goalsChartImages.length
+    
+    // Identifica sezioni mancanti (almeno 1 foto per tipo)
     const photosMissing = []
-    if (!formation_image) photosMissing.push('formation_image')
-    if (!ratings_image) photosMissing.push('ratings_image')
-    if (!team_stats_image) photosMissing.push('team_stats_image')
-    if (!attack_areas_image) photosMissing.push('attack_areas_image')
-    if (!recovery_zones_image) photosMissing.push('recovery_zones_image')
-    if (!goals_chart_image) photosMissing.push('goals_chart_image')
-
-    const photosProcessed = 6 - photosMissing.length
+    if (formationImages.length === 0) photosMissing.push('formation_image')
+    if (ratingsImages.length === 0) photosMissing.push('ratings_image')
+    if (teamStatsImages.length === 0) photosMissing.push('team_stats_image')
+    if (attackAreasImages.length === 0) photosMissing.push('attack_areas_image')
+    if (recoveryZonesImages.length === 0) photosMissing.push('recovery_zones_image')
+    if (goalsChartImages.length === 0) photosMissing.push('goals_chart_image')
+    
+    // photos_processed = numero totale di foto FISICHE processate
+    const photosProcessed = totalPhotosUploaded
     const dataCompleteness = photosMissing.length === 0 ? 'complete' : 'partial'
 
     // Estrai dati da ogni immagine disponibile
@@ -286,10 +305,13 @@ export async function POST(req) {
     let recoveryZonesData = null
     let goalsEventsData = null
 
-    // 1. Formazione
-    if (formation_image) {
+    // 1. Formazione (processa tutte le foto se array)
+    if (formationImages.length > 0) {
       try {
-        const prompt = `Analizza questo screenshot di eFootball che mostra la formazione in campo con 11 giocatori.
+        // Processa tutte le foto di formazione e unisci i risultati
+        const formationResults = []
+        for (const formationImage of formationImages) {
+          const prompt = `Analizza questo screenshot di eFootball che mostra la formazione in campo con 11 giocatori.
 
 IMPORTANTE:
 - Identifica TUTTI gli 11 giocatori visibili sul campo
@@ -314,19 +336,32 @@ Formato JSON:
 }
 
 Restituisci SOLO JSON valido, senza altro testo.`
+          
+          const result = await extractImageData(apiKey, formationImage, prompt, 'extract-match-formation')
+          if (result) formationResults.push(result)
+        }
         
-        formationData = await extractImageData(apiKey, formation_image, prompt, 'extract-match-formation')
-        extractedData.formation = formationData
+        // Unisci risultati: preferisci dati più completi (più giocatori, formazione presente)
+        if (formationResults.length > 0) {
+          formationData = formationResults.reduce((best, current) => {
+            const bestPlayers = best?.players?.length || 0
+            const currentPlayers = current?.players?.length || 0
+            return currentPlayers > bestPlayers ? current : best
+          }, formationResults[0])
+          extractedData.formation = formationData
+        }
       } catch (err) {
         console.error('[extract-match-data] Error extracting formation:', err)
         // Continua anche se formazione fallisce
       }
     }
 
-    // 2. Pagelle (ratings)
-    if (ratings_image) {
+    // 2. Pagelle (ratings) - processa tutte le foto se array
+    if (ratingsImages.length > 0) {
       try {
-        const prompt = `Analizza questo screenshot di eFootball che mostra le pagelle/voti dei giocatori dopo la partita.
+        const ratingsResults = []
+        for (const ratingsImage of ratingsImages) {
+          const prompt = `Analizza questo screenshot di eFootball che mostra le pagelle/voti dei giocatori dopo la partita.
 
 IMPORTANTE:
 - Per ogni giocatore: nome, numero maglia, voto (rating), stella (se presente), gol, assist, minuti giocati
@@ -347,18 +382,29 @@ Formato JSON:
 }
 
 Restituisci SOLO JSON valido, senza altro testo.`
+          
+          const result = await extractImageData(apiKey, ratingsImage, prompt, 'extract-match-ratings')
+          if (result) ratingsResults.push(result)
+        }
         
-        ratingsData = await extractImageData(apiKey, ratings_image, prompt, 'extract-match-ratings')
-        extractedData.ratings = ratingsData
+        // Unisci tutti i ratings da tutte le foto (merge oggetti)
+        if (ratingsResults.length > 0) {
+          ratingsData = ratingsResults.reduce((merged, current) => {
+            return { ...merged, ...(current?.ratings || current) }
+          }, {})
+          extractedData.ratings = ratingsData
+        }
       } catch (err) {
         console.error('[extract-match-data] Error extracting ratings:', err)
       }
     }
 
-    // 3. Statistiche squadra
-    if (team_stats_image) {
+    // 3. Statistiche squadra - processa tutte le foto se array
+    if (teamStatsImages.length > 0) {
       try {
-        const prompt = `Analizza questo screenshot di eFootball che mostra le statistiche della squadra dopo la partita.
+        const teamStatsResults = []
+        for (const teamStatsImage of teamStatsImages) {
+          const prompt = `Analizza questo screenshot di eFootball che mostra le statistiche della squadra dopo la partita.
 
 IMPORTANTE:
 - Estrai TUTTE le statistiche visibili: possesso (%), tiri totali, tiri in porta, falli, fuorigioco, calci d'angolo, punizioni, passaggi, passaggi riusciti, cross, passaggi intercettati, contrasti, parate
@@ -384,18 +430,31 @@ Formato JSON:
 }
 
 Restituisci SOLO JSON valido, senza altro testo.`
+          
+          const result = await extractImageData(apiKey, teamStatsImage, prompt, 'extract-match-team-stats')
+          if (result) teamStatsResults.push(result)
+        }
         
-        teamStatsData = await extractImageData(apiKey, team_stats_image, prompt, 'extract-match-team-stats')
-        extractedData.team_stats = teamStatsData
+        // Unisci statistiche (preferisci valori più completi)
+        if (teamStatsResults.length > 0) {
+          teamStatsData = teamStatsResults.reduce((best, current) => {
+            const bestKeys = Object.keys(best || {}).length
+            const currentKeys = Object.keys(current || {}).length
+            return currentKeys > bestKeys ? current : best
+          }, teamStatsResults[0])
+          extractedData.team_stats = teamStatsData
+        }
       } catch (err) {
         console.error('[extract-match-data] Error extracting team stats:', err)
       }
     }
 
-    // 4. Aree di attacco
-    if (attack_areas_image) {
+    // 4. Aree di attacco - processa tutte le foto se array (può essere 2 foto per le 2 squadre)
+    if (attackAreasImages.length > 0) {
       try {
-        const prompt = `Analizza questo screenshot di eFootball che mostra le aree di attacco (percentuali sinistra/centro/destra).
+        const attackAreasResults = []
+        for (const attackAreasImage of attackAreasImages) {
+          const prompt = `Analizza questo screenshot di eFootball che mostra le aree di attacco (percentuali sinistra/centro/destra).
 
 IMPORTANTE:
 - Estrai percentuali per zona: sinistra, centro, destra
@@ -409,18 +468,38 @@ Formato JSON:
 }
 
 Restituisci SOLO JSON valido, senza altro testo.`
+          
+          const result = await extractImageData(apiKey, attackAreasImage, prompt, 'extract-match-attack-areas')
+          if (result) attackAreasResults.push(result)
+        }
         
-        attackAreasData = await extractImageData(apiKey, attack_areas_image, prompt, 'extract-match-attack-areas')
-        extractedData.attack_areas = attackAreasData
+        // Unisci aree di attacco (se 2 foto = 2 squadre, altrimenti usa la prima)
+        if (attackAreasResults.length > 0) {
+          if (attackAreasResults.length === 2) {
+            // 2 foto = probabilmente una per squadra, unisci in oggetto con team1/team2
+            attackAreasData = {
+              team1: attackAreasResults[0],
+              team2: attackAreasResults[1],
+              // Mantieni anche formato originale per compatibilità
+              ...attackAreasResults[0]
+            }
+          } else {
+            // 1 foto = dati combinati o solo una squadra
+            attackAreasData = attackAreasResults[0]
+          }
+          extractedData.attack_areas = attackAreasData
+        }
       } catch (err) {
         console.error('[extract-match-data] Error extracting attack areas:', err)
       }
     }
 
-    // 5. Zone di recupero
-    if (recovery_zones_image) {
+    // 5. Zone di recupero - processa tutte le foto se array (può essere 2 foto per le 2 squadre)
+    if (recoveryZonesImages.length > 0) {
       try {
-        const prompt = `Analizza questo screenshot di eFootball che mostra la mappa delle zone di recupero palla (punti verdi sul campo).
+        const recoveryZonesResults = []
+        for (const recoveryZonesImage of recoveryZonesImages) {
+          const prompt = `Analizza questo screenshot di eFootball che mostra la mappa delle zone di recupero palla (punti verdi sul campo).
 
 IMPORTANTE:
 - Identifica distribuzione spaziale dei recuperi
@@ -436,18 +515,40 @@ Formato JSON:
 }
 
 Restituisci SOLO JSON valido, senza altro testo.`
+          
+          const result = await extractImageData(apiKey, recoveryZonesImage, prompt, 'extract-match-recovery-zones')
+          if (result) recoveryZonesResults.push(result)
+        }
         
-        recoveryZonesData = await extractImageData(apiKey, recovery_zones_image, prompt, 'extract-match-recovery-zones')
-        extractedData.recovery_zones = recoveryZonesData
+        // Unisci zone di recupero (se 2 foto = 2 squadre, altrimenti usa la prima)
+        if (recoveryZonesResults.length > 0) {
+          if (recoveryZonesResults.length === 2) {
+            // 2 foto = probabilmente una per squadra, unisci in array di zone
+            recoveryZonesData = {
+              zones: [
+                ...(recoveryZonesResults[0]?.zones || []),
+                ...(recoveryZonesResults[1]?.zones || [])
+              ],
+              // Mantieni direzione dalla prima
+              direction: recoveryZonesResults[0]?.direction || 'up'
+            }
+          } else {
+            // 1 foto = dati combinati o solo una squadra
+            recoveryZonesData = recoveryZonesResults[0]
+          }
+          extractedData.recovery_zones = recoveryZonesData
+        }
       } catch (err) {
         console.error('[extract-match-data] Error extracting recovery zones:', err)
       }
     }
 
-    // 6. Grafico rete (eventi gol)
-    if (goals_chart_image) {
+    // 6. Grafico rete (eventi gol) - processa tutte le foto se array
+    if (goalsChartImages.length > 0) {
       try {
-        const prompt = `Analizza questo screenshot di eFootball che mostra il grafico rete con eventi gol.
+        const goalsEventsResults = []
+        for (const goalsChartImage of goalsChartImages) {
+          const prompt = `Analizza questo screenshot di eFootball che mostra il grafico rete con eventi gol.
 
 IMPORTANTE:
 - Per ogni gol: minuto, marcatore (nome giocatore), assist (se presente), tipo gol (normale, rigore, autogol), squadra (propria o avversaria)
@@ -466,9 +567,17 @@ Formato JSON:
 }
 
 Restituisci SOLO JSON valido, senza altro testo.`
+          
+          const result = await extractImageData(apiKey, goalsChartImage, prompt, 'extract-match-goals')
+          if (result) goalsEventsResults.push(result)
+        }
         
-        goalsEventsData = await extractImageData(apiKey, goals_chart_image, prompt, 'extract-match-goals')
-        extractedData.goals_events = goalsEventsData
+        // Unisci tutti gli eventi gol da tutte le foto
+        if (goalsEventsResults.length > 0) {
+          const allGoals = goalsEventsResults.flatMap(r => r?.goals || [])
+          goalsEventsData = { goals: allGoals }
+          extractedData.goals_events = goalsEventsData
+        }
       } catch (err) {
         console.error('[extract-match-data] Error extracting goals events:', err)
       }
@@ -480,13 +589,13 @@ Restituisci SOLO JSON valido, senza altro testo.`
     
     // Matching giocatori con rosa utente (solo se ratings disponibili)
     let matchedPlayers = playersInMatch
-    if (ratings_image && playersInMatch.length > 0) {
+    if (ratingsImages.length > 0 && playersInMatch.length > 0) {
       matchedPlayers = await matchPlayersToRoster(playersInMatch, userId, supabaseUrl, anonKey)
     }
 
     // Confronto formazione (solo se formation disponibile)
     let formationDiscrepancies = []
-    if (formation_image && playersInMatch.length > 0) {
+    if (formationImages.length > 0 && playersInMatch.length > 0) {
       formationDiscrepancies = await compareFormations(
         formationData,
         matchedPlayers,
@@ -515,7 +624,8 @@ Restituisci SOLO JSON valido, senza altro testo.`
       analysis_status: 'pending'
     }
 
-    // Calcola credits usati (1 credit per foto processata - pay-per-use)
+    // Calcola credits usati (1 credit per foto FISICA processata - pay-per-use)
+    // Se una sezione ha 2 foto, conta come 2 credits
     const creditsUsed = photosProcessed
 
     return NextResponse.json({

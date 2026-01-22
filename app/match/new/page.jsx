@@ -146,7 +146,10 @@ export default function NewMatchPage() {
         ai_summary: null,
         ai_insights: [],
         ai_recommendations: [],
-        credits_used: extractResult.credits_used || 0
+        credits_used: extractResult.credits_used || 0,
+        photos_processed: extractResult.photos_processed || Object.keys(photos).length, // Passa numero foto fisiche caricate
+        data_completeness: extractResult.data_completeness || 'partial',
+        missing_photos: extractResult.photos_missing || []
       }
 
       // 3. Salva match in database

@@ -83,10 +83,46 @@ export async function POST(req) {
     // Normalizza player_ratings (mantieni come oggetto, schema DB accetta JSONB)
     const normalizedPlayerRatings = player_ratings || {}
 
-    // Assicura che missing_photos sia sempre un array
-    const normalizedMissingPhotos = Array.isArray(missing_photos) ? missing_photos : (missing_photos ? [missing_photos] : [])
+    // Calcola photos_uploaded (campo presente nello schema DB)
+    // REGOLA: photos_uploaded = numero di foto FISICHE caricate dal cliente
+    // Il valore viene passato da extract-match-data come photos_processed
+    // Se non presente, calcoliamo da missing_photos o dai dati disponibili
+    let photosUploaded = 0
+    
+    // Priorità 1: Usa photos_processed se presente (conta foto fisiche processate)
+    if (requestData.photos_processed !== undefined && requestData.photos_processed !== null) {
+      photosUploaded = parseInt(requestData.photos_processed) || 0
+    }
+    // Priorità 2: Calcola da missing_photos (se array: 6 - missing_photos.length)
+    else if (Array.isArray(missing_photos)) {
+      photosUploaded = 6 - missing_photos.length
+    }
+    // Priorità 3: Fallback - conta dati presenti (meno accurato ma funziona)
+    else {
+      // Conta foto presenti nei dati estratti
+      if (formation_played) photosUploaded++
+      if (player_ratings && Object.keys(player_ratings).length > 0) photosUploaded++
+      if (team_stats && Object.keys(team_stats).length > 0) photosUploaded++
+      if (attack_areas && Object.keys(attack_areas).length > 0) photosUploaded++
+      if (ball_recovery_zones && (Array.isArray(ball_recovery_zones) ? ball_recovery_zones.length > 0 : Object.keys(ball_recovery_zones).length > 0)) photosUploaded++
+      if (goals_events && Array.isArray(goals_events) && goals_events.length > 0) photosUploaded++
+    }
+    
+    // Assicura che photos_uploaded sia >= 0 e <= 20 (limite aumentato per supportare più foto per sezione)
+    photosUploaded = Math.max(0, Math.min(20, photosUploaded))
+    
+    // Normalizza missing_photos (Supabase usa ARRAY TEXT, non JSONB)
+    // Deve essere array di stringhe, non oggetti
+    const normalizedMissingPhotos = Array.isArray(missing_photos) 
+      ? missing_photos.filter(p => typeof p === 'string') // Filtra solo stringhe
+      : (missing_photos ? [String(missing_photos)] : [])
+    
+    // Normalizza data_completeness (deve essere 'complete' o 'partial')
+    const normalizedDataCompleteness = (data_completeness === 'complete' || data_completeness === 'partial') 
+      ? data_completeness 
+      : 'partial'
 
-    // Prepara dati per inserimento
+    // Prepara dati per inserimento (tutti i campi presenti nello schema DB)
     const matchData = {
       user_id: userId,
       match_date: match_date || new Date().toISOString(),
@@ -105,10 +141,11 @@ export async function POST(req) {
       goals_events: Array.isArray(goals_events) ? goals_events : [],
       formation_discrepancies: Array.isArray(formation_discrepancies) ? formation_discrepancies : [],
       extracted_data: extracted_data || {},
-      data_completeness: data_completeness || 'partial',
-      missing_photos: normalizedMissingPhotos, // Sempre array
-      analysis_status: 'pending', // Match salvato ma non ancora analizzato
-      credits_used: requestData.credits_used || 0 // Usa credits_used dal request se presente
+      photos_uploaded: photosUploaded, // Numero foto fisiche caricate
+      missing_photos: normalizedMissingPhotos, // Array foto mancanti
+      data_completeness: normalizedDataCompleteness, // 'complete' o 'partial'
+      credits_used: requestData.credits_used || 0, // Credits spesi per estrazione
+      analysis_status: 'pending' // Match salvato ma non ancora analizzato
     }
 
     // Inserisci match in database
@@ -140,8 +177,10 @@ export async function POST(req) {
       match_id: insertedMatch.id,
       match_date: insertedMatch.match_date,
       analysis_status: insertedMatch.analysis_status,
-      data_completeness: data_completeness,
-      photos_missing: missing_photos || []
+      data_completeness: normalizedDataCompleteness, // Dato salvato in DB
+      photos_missing: normalizedMissingPhotos, // Dato salvato in DB
+      photos_uploaded: photosUploaded, // Dato salvato in DB
+      credits_used: requestData.credits_used || 0 // Dato salvato in DB
     })
 
   } catch (error) {
