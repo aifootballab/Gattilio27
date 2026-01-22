@@ -138,7 +138,7 @@ Questo documento serve come **punto di riferimento unico** per:
 #### Da Implementare:
 - ⏳ Validazione semantica (voto 0-10, formazione valida, ecc.)
 - ⏳ Rate limiting base (max 10 estrazioni/minuto per utente)
-- ⏳ Error handling migliorato (messaggi specifici, retry)
+- ✅ Error handling migliorato (messaggi specifici, retry, timeout) - **COMPLETATO**
 - ⏳ Monitoring costi OpenAI (dashboard)
 
 ---
@@ -339,9 +339,16 @@ Questo documento serve come **punto di riferimento unico** per:
 
 ### **STEP 4: Validazione e Error Handling** (PRIMA DI LANCIO)
 
-1. Validazione semantica (voto, formazione, statistiche)
-2. Error handling migliorato (messaggi specifici, retry)
-3. UI/UX migliorata (disabilitare bottone, progress bar)
+1. ✅ **COMPLETATO** - Validazione semantica (voto, formazione, statistiche)
+   - ✅ `extract-player`: Validazione overall_rating (40-100), età (16-50), nome, base_stats
+   - ✅ `extract-formation`: Validazione formazione valida eFootball, rating giocatori, nome giocatori
+   - ✅ `extract-coach`: Validazione età (16-70), nome valido
+2. ✅ **COMPLETATO** - Error handling migliorato (messaggi specifici, retry, timeout)
+   - ✅ Helper OpenAI (`lib/openaiHelper.js`) con timeout (60s) e retry automatico (max 2 tentativi)
+   - ✅ Messaggi errore specifici per tipo: rate limit, timeout, server error, network error
+   - ✅ Retry intelligente: rate limit (5s), timeout (10s), server error (5s)
+   - ✅ Applicato a `extract-player`, `extract-formation`, `extract-coach`
+3. ⏳ UI/UX migliorata (disabilitare bottone, progress bar, loading states)
 
 **Riferimenti**:
 - `CHECKLIST_PERFEZIONAMENTO_PRE_LANCIO.md`: Sezione "MUST HAVE"
@@ -382,7 +389,7 @@ Questo documento serve come **punto di riferimento unico** per:
 
 ### **Cosa NON Rompe Codice** ✅:
 - ✅ Validazione semantica (solo aggiunta validazione)
-- ✅ Error handling (solo miglioramento messaggi)
+- ✅ Error handling (timeout, retry, messaggi specifici) - **COMPLETATO**
 - ✅ UI/UX (solo modifiche frontend)
 - ✅ Rate limiting (solo middleware)
 - ✅ Monitoring (solo logging)

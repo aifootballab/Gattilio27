@@ -43,30 +43,32 @@
 
 ---
 
-### 2. **Error Handling Migliorato**
+### 2. **Error Handling Migliorato** ✅ **COMPLETATO**
 
 **Cosa serve**:
-- [ ] Error messages specifici per ogni tipo di errore:
-  - "Immagine troppo grande (max 10MB)"
-  - "Formazione non valida (formazioni valide: 4-3-3, 4-4-2, ecc.)"
-  - "Voto non valido (range 0-10)"
-  - "Rate limit raggiunto, riprova tra 1 minuto"
-  - "Crediti insufficienti (ti servono 12 HP, ne hai 5)"
-- [ ] Retry automatico con feedback (solo per errori temporanei):
-  - Rate limit → Retry dopo 5 secondi
-  - Timeout → Retry dopo 10 secondi
-  - Max 2 tentativi
-- [ ] Timeout handling:
-  - Se estrazione > 60s → Mostra errore "Estrazione troppo lunga, riprova"
-  - Cancella chiamata OpenAI se timeout
+- [x] Error messages specifici per ogni tipo di errore:
+  - ✅ "Image size exceeds maximum allowed size (10MB). Please use a smaller image."
+  - ✅ "Rate limit reached. Please try again in a minute."
+  - ✅ "Request took too long. Please try again with a smaller image or different image."
+  - ✅ "Service temporarily unavailable. Please try again in a few moments."
+  - ✅ "Network error. Please check your connection and try again."
+- [x] Retry automatico con feedback (solo per errori temporanei):
+  - ✅ Rate limit → Retry dopo 5 secondi
+  - ✅ Timeout → Retry dopo 10 secondi
+  - ✅ Max 2 tentativi
+- [x] Timeout handling:
+  - ✅ Se estrazione > 60s → Mostra errore "Request took too long. Please try again..."
+  - ✅ Cancella chiamata OpenAI se timeout (AbortController)
 
-**File da modificare**:
-- `app/api/extract-player/route.js` (error handling)
-- `app/api/extract-formation/route.js` (error handling)
-- `app/api/extract-match-data/route.js` (error handling)
+**File modificati**:
+- ✅ `lib/openaiHelper.js` (nuovo helper con timeout e retry)
+- ✅ `app/api/extract-player/route.js` (error handling)
+- ✅ `app/api/extract-formation/route.js` (error handling)
+- ✅ `app/api/extract-coach/route.js` (error handling)
 
 **Difficoltà**: 🟡 **MEDIA**
 **Rischio Breaking**: ❌ **NESSUNO** (solo miglioramento UX)
+**Status**: ✅ **COMPLETATO** (Commit: 56c3258)
 
 ---
 
