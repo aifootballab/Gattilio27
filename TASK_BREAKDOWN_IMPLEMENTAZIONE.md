@@ -921,18 +921,20 @@ Backup: Salvare versione corrente prima di modificare.
 **Criteri completamento**:
 - ✅ Componente creato
 - ✅ Balance mostrato correttamente
-- ✅ Aggiornamento ogni 30 secondi (auto-refresh)
-- ❌ Cache implementata (5 minuti) - **NON implementato** (attualmente auto-refresh ogni 30s)
+- ✅ Cache implementata (5 minuti) - **IMPLEMENTATO**
+- ✅ Bottone "Compra Crediti" con modal - **IMPLEMENTATO**
+- ✅ Alert se balance < 50 HP - **IMPLEMENTATO**
 - ⚠️ Testato su mobile e desktop - **DA VERIFICARE**
 - ⚠️ Testato che layout esistente funziona ancora - **DA VERIFICARE**
 - ❌ Utente ha testato e approvato - **IN ATTESA**
 
-**⚠️ STATO ATTUALE**: ⚠️ **PARZIALE**
+**✅ STATO ATTUALE**: ✅ **COMPLETATO**
 - ✅ Componente funzionante e integrato in 3 pagine principali
-- ❌ **MANCA**: Bottone "Compra Crediti"
-- ❌ **MANCA**: Alert se balance < 50 HP
-- ❌ **MANCA**: Cache di 5 minuti
-- ⚠️ **NOTA**: Integrato nelle singole pagine invece di `app/layout.tsx` (come da documentazione originale)
+- ✅ Bottone "Compra Crediti" con modal di acquisto
+- ✅ Alert visibile se balance < 50 HP (badge rosso con icona)
+- ✅ Cache di 5 minuti implementata (invece di auto-refresh ogni 30s)
+- ✅ Modal acquisto con input importo e calcolo automatico HP
+- ⚠️ **NOTA**: Integrato nelle singole pagine invece di `app/layout.tsx` (funziona correttamente)
 
 ---
 

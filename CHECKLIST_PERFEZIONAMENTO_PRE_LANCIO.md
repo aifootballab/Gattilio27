@@ -86,12 +86,12 @@
 - [ ] Loading states migliorati:
   - Skeleton loader invece di spinner generico
   - Messaggio specifico per ogni operazione
-- [ ] **Componente HeroPointsBalance** (TASK 1.19 - PARZIALE):
+- [x] **Componente HeroPointsBalance** (TASK 1.19 - COMPLETATO):
   - ✅ Balance numerico visibile in header
-  - ✅ Auto-refresh ogni 30 secondi
-  - [ ] Bottone "Compra Crediti" (manca)
-  - [ ] Alert se balance < 50 HP (manca)
-  - [ ] Cache di 5 minuti invece di auto-refresh ogni 30s (manca)
+  - ✅ Cache di 5 minuti (invece di auto-refresh ogni 30s)
+  - ✅ Bottone "Compra Crediti" con modal di acquisto
+  - ✅ Alert se balance < 50 HP (badge rosso con icona)
+  - ✅ Modal acquisto con input importo e calcolo automatico HP
 
 **File da modificare**:
 - `app/gestione-formazione/page.jsx` (UI upload)
