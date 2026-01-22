@@ -148,6 +148,17 @@ export async function POST(req) {
       )
     }
 
+    // Estrai risultato se presente (può essere in matchData.result o in team_stats)
+    let finalResult = toText(matchData.result)
+    if (!finalResult && matchData.team_stats && matchData.team_stats.result) {
+      finalResult = toText(matchData.team_stats.result)
+      // Rimuovi result da team_stats (non fa parte delle statistiche)
+      if (matchData.team_stats.result) {
+        const { result, ...statsWithoutResult } = matchData.team_stats
+        matchData.team_stats = statsWithoutResult
+      }
+    }
+
     // Calcola metadata
     const missingPhotos = calculateMissingPhotos(matchData)
     const dataCompleteness = calculateDataCompleteness(matchData)
@@ -158,7 +169,7 @@ export async function POST(req) {
       user_id: userId,
       match_date: matchData.match_date ? new Date(matchData.match_date).toISOString() : new Date().toISOString(),
       opponent_name: toText(matchData.opponent_name),
-      result: toText(matchData.result),
+      result: finalResult,
       is_home: typeof matchData.is_home === 'boolean' ? matchData.is_home : true,
       formation_played: toText(matchData.formation_played),
       playing_style_played: toText(matchData.playing_style_played),

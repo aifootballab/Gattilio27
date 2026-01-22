@@ -298,10 +298,12 @@ Restituisci SOLO JSON valido, senza altro testo.`,
 
 IMPORTANTE:
 - Estrai SOLO ciò che vedi nell'immagine (null se non visibile)
+- Se vedi il RISULTATO della partita (es. "3-1", "2-2", "4-0"), estrailo nel campo "result" (formato: "X-Y" dove X sono i gol della squadra utente e Y i gol dell'avversario)
 - Estrai: formazione (es. "4-2-1-3", "4-3-3"), stile di gioco (es. "Contrattacco", "Possesso palla"), forza complessiva (team_strength, numero grande tipo 3245)
 
 Formato JSON richiesto:
 {
+  "result": "3-1",
   "formation": "4-2-1-3",
   "playing_style": "Contrattacco",
   "team_strength": 3245
@@ -488,7 +490,7 @@ export async function POST(req) {
         )
     }
 
-    // Estrai risultato se presente (può essere in player_ratings, team_stats o nei dati raw)
+    // Estrai risultato se presente (può essere in player_ratings, team_stats, formation_style o nei dati raw)
     let result = null
     if (extractedData.result && typeof extractedData.result === 'string') {
       result = extractedData.result.trim()
@@ -498,6 +500,8 @@ export async function POST(req) {
       if (section === 'team_stats' && normalizedData.result) {
         delete normalizedData.result
       }
+    } else if (section === 'formation_style' && extractedData.result) {
+      result = typeof extractedData.result === 'string' ? extractedData.result.trim() : null
     }
 
     return NextResponse.json({

@@ -144,6 +144,14 @@ export default function NewMatchPage() {
         [section]: extractData.data
       }))
 
+      // Salva risultato se presente (può essere estratto da qualsiasi sezione)
+      if (extractData.result && typeof extractData.result === 'string' && extractData.result.trim()) {
+        setStepData(prev => ({
+          ...prev,
+          result: extractData.result.trim()
+        }))
+      }
+
       // Avanza automaticamente allo step successivo se c'è
       const currentIndex = STEPS.findIndex(s => s.id === section)
       if (currentIndex < STEPS.length - 1) {
@@ -197,8 +205,15 @@ export default function NewMatchPage() {
 
       const token = session.session.access_token
 
+      // Estrai risultato se presente (può essere in stepData.result o in team_stats)
+      let matchResult = stepData.result || null
+      if (!matchResult && stepData.team_stats && stepData.team_stats.result) {
+        matchResult = stepData.team_stats.result
+      }
+
       // Prepara dati match
       const matchData = {
+        result: matchResult,
         player_ratings: stepData.player_ratings || null,
         team_stats: stepData.team_stats || null,
         attack_areas: stepData.attack_areas || null,
