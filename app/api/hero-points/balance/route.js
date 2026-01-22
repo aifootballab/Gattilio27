@@ -64,15 +64,65 @@ export async function GET(req) {
     let heroPointsData = existingBalance
     let starterPackJustClaimed = false
 
+    // Verifica coerenza balance: se esiste record, ricalcola balance dalle transazioni per sicurezza
+    if (heroPointsData) {
+      const { data: transactions } = await admin
+        .from('hero_points_transactions')
+        .select('transaction_type, hero_points_amount')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: true })
+
+      if (transactions && transactions.length > 0) {
+        const calculatedBalance = transactions.reduce((balance, tx) => {
+          if (tx.transaction_type === 'purchase') {
+            return balance + tx.hero_points_amount
+          } else if (tx.transaction_type === 'spent') {
+            return balance - tx.hero_points_amount
+          }
+          return balance
+        }, 0)
+
+        // Se balance calcolato è diverso da quello nel database, correggi
+        if (calculatedBalance !== heroPointsData.hero_points_balance) {
+          console.log(`[hero-points/balance] Balance mismatch detected. DB: ${heroPointsData.hero_points_balance}, Calculated: ${calculatedBalance}. Correcting...`)
+          
+          const { data: correctedBalance, error: correctError } = await admin
+            .from('user_hero_points')
+            .update({
+              hero_points_balance: calculatedBalance,
+              updated_at: new Date().toISOString()
+            })
+            .eq('user_id', userId)
+            .select()
+            .single()
+
+          if (!correctError && correctedBalance) {
+            heroPointsData = correctedBalance
+            console.log(`[hero-points/balance] Balance corrected to ${calculatedBalance}`)
+          }
+        }
+      }
+    }
+
     // Se non esiste record o starter_pack_claimed = false, assegna starter pack
-    if (!heroPointsData || !heroPointsData.starter_pack_claimed) {
+    // IMPORTANTE: Se balance >= 1000, significa che l'utente ha già fatto acquisti, NON riassegnare starter pack
+    const currentBalance = heroPointsData?.hero_points_balance || 0
+    const shouldAssignStarterPack = !heroPointsData || (!heroPointsData.starter_pack_claimed && currentBalance < 1000)
+    
+    if (shouldAssignStarterPack) {
       console.log('[hero-points/balance] Assigning starter pack')
       
       const starterPackAmount = 1000
-      const newBalance = (heroPointsData?.hero_points_balance || 0) + starterPackAmount
+      const newBalance = currentBalance + starterPackAmount
       
       // Transazione atomica: crea/aggiorna balance + crea transazione
       // Usa upsert per idempotenza (ON CONFLICT DO UPDATE)
+      // IMPORTANTE: Mantieni total_purchased esistente se presente (non sovrascrivere acquisti)
+      const existingTotalPurchased = heroPointsData?.total_purchased || 0
+      const newTotalPurchased = existingTotalPurchased >= starterPackAmount 
+        ? existingTotalPurchased // Se già maggiore, mantieni (evita di sovrascrivere acquisti)
+        : existingTotalPurchased + starterPackAmount // Altrimenti aggiungi starter pack
+      
       const { data: upsertedBalance, error: upsertError } = await admin
         .from('user_hero_points')
         .upsert({
@@ -80,7 +130,7 @@ export async function GET(req) {
           hero_points_balance: newBalance,
           starter_pack_claimed: true,
           starter_pack_amount: starterPackAmount,
-          total_purchased: (heroPointsData?.total_purchased || 0) + starterPackAmount,
+          total_purchased: newTotalPurchased,
           updated_at: new Date().toISOString()
         }, {
           onConflict: 'user_id'
