@@ -96,7 +96,8 @@
 
 **File da modificare**:
 - `app/gestione-formazione/page.jsx` (UI upload)
-- `app/match/[id]/page.jsx` (UI upload match - quando implementato)
+- `app/match/[id]/page.jsx` (UI upload match - ✅ IMPLEMENTATO)
+- `app/match/new/page.jsx` (UI wizard match - ✅ IMPLEMENTATO)
 - `components/UploadModal.jsx` (progress bar)
 - `components/UploadPlayerModal.jsx` (progress bar)
 
@@ -279,6 +280,76 @@
 - [ ] Monitorare costi durante test
 - [ ] Raccogliere feedback UX
 - [ ] Aggiustare pricing in base ai test
+
+---
+
+---
+
+## ✅ FUNZIONALITÀ MATCH (COMPLETATO)
+
+### **Gestione Partite** ✅ **COMPLETATO**
+
+**Cosa implementato**:
+- [x] ✅ Wizard step-by-step per aggiungere partita (`/match/new`)
+  - 5 sezioni: Pagelle Giocatori, Statistiche Squadra, Aree Attacco, Recuperi Palla, Formazione Avversaria
+  - Upload immagine per sezione con preview
+  - Estrazione dati con `/api/extract-match-data`
+  - Opzione "Skip" per sezioni opzionali
+  - Progress bar e step indicators
+  - Persistenza progresso in localStorage
+  - Auto-advance dopo estrazione riuscita
+- [x] ✅ Lista ultime partite in dashboard (`/`)
+  - Mostra ultime 5 partite (espandibile a 10)
+  - Info: Avversario, Data/Ora, Risultato, Completamento
+  - Click su partita → Dettaglio (`/match/[id]`)
+  - Card sempre visibile (anche se vuota, mostra messaggio informativo)
+  - Mobile-first design
+- [x] ✅ Dettaglio partita (`/match/[id]`)
+  - Visualizza info partita completa
+  - Lista sezioni con stato (completa/mancante)
+  - Upload foto per sezioni mancanti
+  - Estrazione e aggiornamento incrementale
+  - Merge intelligente dati esistenti + nuovi
+- [x] ✅ Endpoint API completi
+  - `POST /api/extract-match-data`: Estrazione dati da screenshot (5 sezioni supportate)
+  - `POST /api/supabase/save-match`: Salvataggio nuova partita
+  - `POST /api/supabase/update-match`: Aggiornamento partita esistente
+- [x] ✅ Database schema `matches`
+  - Tabella completa con RLS policies
+  - Indici per performance
+  - Trigger per `updated_at`
+- [x] ✅ Traduzione bilingue completa (IT/EN)
+  - 50+ chiavi traduzione aggiunte
+  - Tutti i testi hardcoded sostituiti con `t()`
+  - STEPS memoizzati con `useMemo` per performance
+- [x] ✅ Identificazione cliente/avversario
+  - Usa `user_profiles` per identificare squadra cliente
+  - Distingue automaticamente giocatori cliente vs avversario
+  - Estrae risultato partita da qualsiasi screenshot
+
+**File implementati**:
+- ✅ `app/match/new/page.jsx` (Wizard aggiungi partita)
+- ✅ `app/match/[id]/page.jsx` (Dettaglio partita)
+- ✅ `app/page.jsx` (Lista ultime partite in dashboard)
+- ✅ `app/api/extract-match-data/route.js` (Estrazione dati match)
+- ✅ `app/api/supabase/save-match/route.js` (Salvataggio partita)
+- ✅ `app/api/supabase/update-match/route.js` (Aggiornamento partita)
+- ✅ `migrations/create_matches_table.sql` (Schema database)
+- ✅ `lib/i18n.js` (Traduzioni match)
+
+**Difficoltà**: 🟡 **MEDIA**
+**Rischio Breaking**: ❌ **NESSUNO** (nuova funzionalità, non modifica esistente)
+**Status**: ✅ **COMPLETATO** (Commit: 2bfa818)
+
+**Note Enterprise**:
+- ✅ Validazione dimensione immagini (max 10MB)
+- ✅ Autenticazione Bearer token su tutti gli endpoint
+- ✅ RLS policies per sicurezza dati
+- ✅ Merge intelligente per aggiornamenti incrementali
+- ✅ Calcolo automatico metadata (photos_uploaded, missing_photos, data_completeness)
+- ✅ Mobile-first design con touch feedback
+- ✅ Error handling robusto con messaggi specifici
+- ✅ Persistenza progresso wizard in localStorage
 
 ---
 
