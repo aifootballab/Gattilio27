@@ -98,14 +98,19 @@ export default function DashboardPage() {
 
         setTopPlayers(top)
 
-        // 3. Carica ultime partite
+        // 3. Carica ultime partite (RLS filtra automaticamente per user_id tramite auth.uid())
+        const userId = session.session.user.id
         const { data: matches, error: matchesError } = await supabase
           .from('matches')
           .select('id, match_date, opponent_name, result, photos_uploaded, missing_photos, data_completeness')
+          .eq('user_id', userId) // Filtro esplicito per sicurezza
           .order('match_date', { ascending: false })
           .limit(10)
 
-        if (!matchesError && matches) {
+        if (matchesError) {
+          console.warn('[Dashboard] Error loading matches:', matchesError)
+        } else {
+          console.log('[Dashboard] Matches loaded:', matches?.length || 0, 'for user:', userId)
           setRecentMatches(matches || [])
         }
       } catch (err) {
@@ -347,8 +352,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Ultime Partite - Fuori dal grid per essere sempre visibile su mobile */}
-      {recentMatches.length > 0 && (
-        <div className="card" style={{ padding: '24px', marginBottom: '32px' }}>
+      <div className="card" style={{ padding: '24px', marginBottom: '32px' }}>
           <div style={{ 
             display: 'flex', 
             justifyContent: 'space-between', 
@@ -376,78 +380,89 @@ export default function DashboardPage() {
             </button>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {(matchesExpanded ? recentMatches : recentMatches.slice(0, 5)).map((match) => {
-              const matchDate = match.match_date ? new Date(match.match_date) : null
-              const dateStr = matchDate ? matchDate.toLocaleDateString('it-IT', { 
-                day: '2-digit', 
-                month: '2-digit',
-                year: 'numeric'
-              }) : 'Data non disponibile'
-              const timeStr = matchDate ? matchDate.toLocaleTimeString('it-IT', { 
-                hour: '2-digit', 
-                minute: '2-digit' 
-              }) : ''
-              const displayResult = match.result || 'N/A'
-              const displayOpponent = match.opponent_name || 'Avversario sconosciuto'
-              const isComplete = match.data_completeness === 'complete'
-              const missingCount = match.missing_photos?.length || 0
+            {recentMatches.length === 0 ? (
+              <div style={{ 
+                padding: '24px', 
+                textAlign: 'center', 
+                opacity: 0.7,
+                fontSize: '14px'
+              }}>
+                Nessuna partita salvata. Clicca su "Aggiungi Partita" per iniziare.
+              </div>
+            ) : (
+              (matchesExpanded ? recentMatches : recentMatches.slice(0, 5)).map((match) => {
+                const matchDate = match.match_date ? new Date(match.match_date) : null
+                const dateStr = matchDate ? matchDate.toLocaleDateString('it-IT', { 
+                  day: '2-digit', 
+                  month: '2-digit',
+                  year: 'numeric'
+                }) : 'Data non disponibile'
+                const timeStr = matchDate ? matchDate.toLocaleTimeString('it-IT', { 
+                  hour: '2-digit', 
+                  minute: '2-digit' 
+                }) : ''
+                const displayResult = match.result || 'N/A'
+                const displayOpponent = match.opponent_name || 'Avversario sconosciuto'
+                const isComplete = match.data_completeness === 'complete'
+                const missingCount = match.missing_photos?.length || 0
 
-              return (
-                <div
-                  key={match.id}
-                  onClick={() => router.push(`/match/${match.id}`)}
-                  className="clickable-card"
-                  style={{
-                    padding: '16px',
-                    background: 'rgba(255, 165, 0, 0.05)',
-                    border: '1px solid rgba(255, 165, 0, 0.2)',
-                    borderRadius: '12px',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s ease'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgba(255, 165, 0, 0.1)'
-                    e.currentTarget.style.boxShadow = 'var(--glow-orange)'
-                    e.currentTarget.style.transform = 'translateY(-2px)'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'rgba(255, 165, 0, 0.05)'
-                    e.currentTarget.style.boxShadow = 'none'
-                    e.currentTarget.style.transform = 'translateY(0)'
-                  }}
-                  onTouchStart={(e) => {
-                    e.currentTarget.style.background = 'rgba(255, 165, 0, 0.1)'
-                  }}
-                  onTouchEnd={(e) => {
-                    e.currentTarget.style.background = 'rgba(255, 165, 0, 0.05)'
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
-                    <div style={{ flex: 1, minWidth: '200px' }}>
-                      <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--neon-orange)', marginBottom: '4px' }}>
-                        {displayOpponent}
+                return (
+                  <div
+                    key={match.id}
+                    onClick={() => router.push(`/match/${match.id}`)}
+                    className="clickable-card"
+                    style={{
+                      padding: '16px',
+                      background: 'rgba(255, 165, 0, 0.05)',
+                      border: '1px solid rgba(255, 165, 0, 0.2)',
+                      borderRadius: '12px',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'rgba(255, 165, 0, 0.1)'
+                      e.currentTarget.style.boxShadow = 'var(--glow-orange)'
+                      e.currentTarget.style.transform = 'translateY(-2px)'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'rgba(255, 165, 0, 0.05)'
+                      e.currentTarget.style.boxShadow = 'none'
+                      e.currentTarget.style.transform = 'translateY(0)'
+                    }}
+                    onTouchStart={(e) => {
+                      e.currentTarget.style.background = 'rgba(255, 165, 0, 0.1)'
+                    }}
+                    onTouchEnd={(e) => {
+                      e.currentTarget.style.background = 'rgba(255, 165, 0, 0.05)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                      <div style={{ flex: 1, minWidth: '200px' }}>
+                        <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--neon-orange)', marginBottom: '4px' }}>
+                          {displayOpponent}
+                        </div>
+                        <div style={{ fontSize: '14px', opacity: 0.8, marginBottom: '4px' }}>
+                          {dateStr} {timeStr && `• ${timeStr}`}
+                        </div>
+                        <div style={{ fontSize: '14px', fontWeight: 600 }}>
+                          Risultato: <span style={{ color: 'var(--neon-blue)' }}>{displayResult}</span>
+                        </div>
                       </div>
-                      <div style={{ fontSize: '14px', opacity: 0.8, marginBottom: '4px' }}>
-                        {dateStr} {timeStr && `• ${timeStr}`}
-                      </div>
-                      <div style={{ fontSize: '14px', fontWeight: 600 }}>
-                        Risultato: <span style={{ color: 'var(--neon-blue)' }}>{displayResult}</span>
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px', flexShrink: 0 }}>
-                      <span className={`completeness-badge ${isComplete ? 'complete' : 'incomplete'}`}>
-                        {isComplete ? '✓ Completa' : `${match.photos_uploaded || 0}/5`}
-                      </span>
-                      {missingCount > 0 && (
-                        <span style={{ fontSize: '12px', opacity: 0.7, color: 'var(--neon-orange)' }}>
-                          {missingCount} mancanti
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px', flexShrink: 0 }}>
+                        <span className={`completeness-badge ${isComplete ? 'complete' : 'incomplete'}`}>
+                          {isComplete ? '✓ Completa' : `${match.photos_uploaded || 0}/5`}
                         </span>
-                      )}
+                        {missingCount > 0 && (
+                          <span style={{ fontSize: '12px', opacity: 0.7, color: 'var(--neon-orange)' }}>
+                            {missingCount} mancanti
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              )
-            })}
+                )
+              })
+            )}
           </div>
           {recentMatches.length > 5 && !matchesExpanded && (
             <div style={{ 
@@ -464,7 +479,6 @@ export default function DashboardPage() {
             </div>
           )}
         </div>
-      )}
 
       {/* Top Players */}
       {topPlayers.length > 0 && (
