@@ -119,10 +119,15 @@ export default function HeroPointsBalance() {
   }
 
   useEffect(() => {
-    fetchBalance()
-
+    // IMPORTANTE: Forza sempre il refresh al mount per evitare valori cached obsoleti
+    // Questo garantisce che il valore mostrato sia sempre aggiornato dal server
+    console.log('[HeroPointsBalance] Component mounted: forcing initial fetch')
+    fetchBalance(true)
     // Refresh ogni 5 minuti (cache duration)
-    const interval = setInterval(() => fetchBalance(true), CACHE_DURATION)
+    const interval = setInterval(() => {
+      console.log('[HeroPointsBalance] Periodic refresh triggered')
+      fetchBalance(true)
+    }, CACHE_DURATION)
     return () => clearInterval(interval)
   }, [])
 
