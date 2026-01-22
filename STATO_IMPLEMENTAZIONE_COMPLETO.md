@@ -62,7 +62,8 @@ Questo documento serve come **punto di riferimento unico** per:
 - ✅ `/api/supabase/set-active-coach` - Impostazione allenatore attivo
 
 #### Endpoints da Implementare (Pianificati):
-- ⏳ `/api/extract-match-data` - Estrazione dati partita (6 foto)
+- ✅ `/api/extract-match-data` - Estrazione dati partita (6 foto) - **COMPLETATO** (STEP 1.9)
+- ✅ `/api/supabase/save-match` - Salvataggio match - **COMPLETATO** (STEP 1.10)
 - ⏳ `/api/ai/analyze-match` - Analisi AI partita
 - ⏳ `/api/ai/analyze-opponent` - Contromisure pre-partita
 - ⏳ `/api/realtime/start-session` - Inizio sessione real-time (futuro)
@@ -166,12 +167,14 @@ Questo documento serve come **punto di riferimento unico** per:
 ### 🔴 CRITICO (Prima di Lancio)
 
 1. **Database Schema Match Analysis**:
-   - ⏳ Tabella `matches`
-   - ⏳ Tabella `opponent_formations`
-   - ⏳ Tabella `player_performance_aggregates`
-   - ⏳ Tabella `team_tactical_patterns`
-   - ⏳ Tabella `ai_tasks`
-   - ⏳ Tabella `user_ai_knowledge`
+   - ✅ Tabella `matches` (completata - STEP 1.1)
+   - ✅ Tabella `opponent_formations` (completata - STEP 1.2)
+   - ✅ Tabella `player_performance_aggregates` (completata - STEP 1.3)
+   - ✅ Tabella `team_tactical_patterns` (completata - STEP 1.4)
+   - ✅ Tabella `ai_tasks` (completata - STEP 1.5)
+   - ✅ Tabella `user_ai_knowledge` (completata - STEP 1.6)
+   - ✅ Trigger `calculate_ai_knowledge_score()` (completato - STEP 1.7)
+   - ✅ Trigger `update_performance_aggregates()` (completato - STEP 1.8)
 
 2. **Database Schema Profilo e Crediti**:
    - ✅ Tabella `user_profiles` (completata - TASK 1.11)
@@ -302,16 +305,34 @@ Questo documento serve come **punto di riferimento unico** per:
 3. **STEP 1.13**: ✅ **COMPLETATO** - Tabella `hero_points_transactions` creata in Supabase (constraint CHECK e RLS configurati)
 4. **STEP 1.1**: ✅ **COMPLETATO** - Tabella `matches` creata in Supabase
 5. **STEP 1.2**: ✅ **COMPLETATO** - Tabella `opponent_formations` creata in Supabase
-6. **STEP 1.3**: Creare tabella `player_performance_aggregates`
-7. **STEP 1.4**: Creare tabella `team_tactical_patterns`
-8. **STEP 1.5**: Creare tabella `ai_tasks`
-9. **STEP 1.6**: Creare tabella `user_ai_knowledge`
+6. **STEP 1.3**: ✅ **COMPLETATO** - Tabella `player_performance_aggregates` creata in Supabase (RLS configurato)
+7. **STEP 1.4**: ✅ **COMPLETATO** - Tabella `team_tactical_patterns` creata in Supabase (RLS configurato)
+8. **STEP 1.5**: ✅ **COMPLETATO** - Tabella `ai_tasks` creata in Supabase (RLS configurato)
+9. **STEP 1.6**: ✅ **COMPLETATO** - Tabella `user_ai_knowledge` creata in Supabase (RLS configurato)
+10. **STEP 1.7**: ✅ **COMPLETATO** - Trigger `calculate_ai_knowledge_score()` creato (calcola automaticamente knowledge_score e knowledge_level)
+11. **STEP 1.8**: ✅ **COMPLETATO** - Trigger `update_performance_aggregates()` creato (aggiorna aggregati dopo ogni match completato, mantiene solo ultime 50 partite)
 
 ### **STEP 2: API Endpoints Crediti** (PRIORITÀ ASSOLUTA) ✅ COMPLETATO
 
-10. **STEP 1.14**: ✅ **COMPLETATO** - Endpoint `/api/hero-points/balance` (GET) con starter pack automatico
-11. **STEP 1.15**: ✅ **COMPLETATO** - Endpoint `/api/hero-points/purchase` (POST) per acquisto crediti
-12. **STEP 1.16**: ✅ **COMPLETATO** - Endpoint `/api/hero-points/spend` (POST) per consumo crediti
+12. **STEP 1.14**: ✅ **COMPLETATO** - Endpoint `/api/hero-points/balance` (GET) con starter pack automatico
+13. **STEP 1.15**: ✅ **COMPLETATO** - Endpoint `/api/hero-points/purchase` (POST) per acquisto crediti
+14. **STEP 1.16**: ✅ **COMPLETATO** - Endpoint `/api/hero-points/spend` (POST) per consumo crediti
+
+### **STEP 2: API Endpoints Match Analisi** (PRIORITÀ ASSOLUTA) ✅ COMPLETATO
+
+15. **STEP 1.9**: ✅ **COMPLETATO** - Endpoint `/api/extract-match-data` (POST) per estrazione dati partita da 6 screenshot
+    - Estrazione da: formation, ratings, team_stats, attack_areas, recovery_zones, goals_chart
+    - Gestisce foto mancanti (non blocca)
+    - Matching giocatori con rosa utente
+    - Confronto formazione salvata vs giocata
+    - Calcolo metriche derivate
+    - Sicurezza: autenticazione Bearer token, validazione dimensione immagini (max 10MB)
+    - Error handling: messaggi generici, retry automatico, timeout 60s
+16. **STEP 1.10**: ✅ **COMPLETATO** - Endpoint `/api/supabase/save-match` (POST) per salvataggio match
+    - Salvataggio dati estratti in tabella `matches`
+    - Imposta `analysis_status = 'pending'`
+    - Sicurezza: autenticazione Bearer token, validazione dimensione JSONB
+    - Trigger automatico aggiorna aggregati quando `analysis_status = 'completed'`
 
 **Riferimenti**:
 - `ARCHITETTURA_MATCH_ANALISI.md`: Sezione "Database Schema"
