@@ -45,9 +45,11 @@
   - **Raccomandazione**: Standardizzare a "Authentication required" (più generico e sicuro)
 
 ### Validazione Semantica:
-- ✅ `extract-player`: Validazione overall_rating (40-100), età (16-50), nome, base_stats
-- ✅ `extract-formation`: Validazione formazione, rating giocatori, nome giocatori
-- ⏳ `extract-coach`: Validazione non ancora implementata
+- ✅ `extract-player`: Validazione base (nome giocatore obbligatorio) - validazioni rigide rimosse per permettere dati validi (rating > 100 con boosters, stats > 99)
+- ✅ `extract-formation`: Validazione formazione valida eFootball, normalizzazione slot_index univoci (0-10)
+- ✅ `extract-coach`: Validazione base (nome allenatore obbligatorio)
+- ✅ `save-player`: UPSERT logic implementata (aggiorna record esistente quando stesso slot_index, merge dati)
+- ✅ `save-player`: Rimossi limiti JSONB (500KB) che bloccavano dati validi
 
 ### Messaggi di Errore:
 - ⚠️ **PROBLEMA SICUREZZA**: Alcuni endpoint espongono dettagli tecnici:

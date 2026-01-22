@@ -130,13 +130,13 @@ Questo documento serve come **punto di riferimento unico** per:
 #### Implementato:
 - ✅ Autenticazione Bearer token su tutti gli endpoint `extract`
 - ✅ Validazione dimensione immagine (max 10MB)
-- ✅ Validazione lunghezza testo (max 255/50 caratteri)
-- ✅ Validazione dimensione JSONB (max 500KB)
+- ✅ Validazione lunghezza testo (max 255 caratteri per campi testo)
 - ✅ RLS (Row Level Security) su tabelle Supabase
 - ✅ Validazione duplicati giocatori (frontend + backend)
+- ✅ UPSERT logic in `save-player` per gestire upload foto multiple (aggiorna record esistente invece di creare duplicati)
 
 #### Da Implementare:
-- ✅ Validazione semantica (overall_rating 40-100, età 16-50/16-70, nome valido, formazione valida) - **COMPLETATO**
+- ✅ Validazione semantica base (nome giocatore obbligatorio) - **COMPLETATO** (validazioni rigide rimosse per permettere dati validi come rating > 100 con boosters)
 - ⏳ Rate limiting base (max 10 estrazioni/minuto per utente)
 - ✅ Error handling migliorato (messaggi specifici, retry, timeout) - **COMPLETATO**
 - ⏳ Monitoring costi OpenAI (dashboard)
@@ -178,12 +178,11 @@ Questo documento serve come **punto di riferimento unico** per:
    - ✅ Tabella `user_hero_points` (completata - TASK 1.12)
    - ✅ Tabella `hero_points_transactions` (completata - TASK 1.13)
 
-3. **Validazione Semantica**: ✅ **COMPLETATO**
-   - ✅ Validazione overall_rating: 40-100 (range eFootball)
-   - ✅ Validazione formazione: lista valide eFootball
-   - ✅ Validazione età: 16-50 per giocatori, 16-70 per allenatori
-   - ✅ Validazione nome: formato valido (2-100 caratteri, no caratteri di controllo)
-   - ✅ Validazione base_stats: 0-99 per ogni statistica
+3. **Validazione Semantica**: ✅ **COMPLETATO** (minimale - non bloccante)
+   - ✅ Validazione base: nome giocatore obbligatorio
+   - ✅ Validazione formazione: lista valide eFootball (in extract-formation)
+   - ⚠️ **NOTA**: Validazioni rigide (rating 40-100, stats 0-99, età 16-50) rimosse per permettere dati validi come rating > 100 con boosters, stats > 99 con boosters attivi
+   - ✅ Sistema funziona come il 21 gennaio (prima delle validazioni rigide)
 
 4. **Error Handling**: ✅ **COMPLETATO**
    - ✅ Messaggi errore specifici per tipo (rate limit, timeout, server error, network)
@@ -341,10 +340,11 @@ Questo documento serve come **punto di riferimento unico** per:
 
 ### **STEP 4: Validazione e Error Handling** (PRIMA DI LANCIO)
 
-1. ✅ **COMPLETATO** - Validazione semantica (voto, formazione, statistiche)
-   - ✅ `extract-player`: Validazione overall_rating (40-100), età (16-50), nome, base_stats
-   - ✅ `extract-formation`: Validazione formazione valida eFootball, rating giocatori, nome giocatori
-   - ✅ `extract-coach`: Validazione età (16-70), nome valido
+1. ✅ **COMPLETATO** - Validazione semantica base (non bloccante)
+   - ✅ `extract-player`: Validazione base (nome giocatore obbligatorio) - validazioni rigide rimosse per permettere dati validi
+   - ✅ `extract-formation`: Validazione formazione valida eFootball, normalizzazione slot_index univoci
+   - ✅ `extract-coach`: Validazione base (nome allenatore obbligatorio)
+   - ✅ `save-player`: UPSERT logic implementata (aggiorna record esistente quando stesso slot_index)
 2. ✅ **COMPLETATO** - Error handling migliorato (messaggi specifici, retry, timeout)
    - ✅ Helper OpenAI (`lib/openaiHelper.js`) con timeout (60s) e retry automatico (max 2 tentativi)
    - ✅ Messaggi errore specifici per tipo: rate limit, timeout, server error, network error
