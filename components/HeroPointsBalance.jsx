@@ -2,9 +2,11 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabaseClient'
+import { useTranslation } from '@/lib/i18n'
 import { Coins, RefreshCw, AlertCircle, ShoppingCart, X } from 'lucide-react'
 
 export default function HeroPointsBalance() {
+  const { t } = useTranslation()
   const [balance, setBalance] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -56,7 +58,7 @@ export default function HeroPointsBalance() {
       lastFetchRef.current = now // Aggiorna timestamp cache
     } catch (err) {
       console.error('[HeroPointsBalance] Error fetching balance:', err)
-      setError('Unable to load balance')
+      setError(t('errorLoadingBalance'))
     } finally {
       setLoading(false)
     }
@@ -96,7 +98,7 @@ export default function HeroPointsBalance() {
     try {
       const { data: session, error: sessionError } = await supabase.auth.getSession()
       if (sessionError || !session?.session) {
-        setPurchaseError('Sessione scaduta. Effettua il login.')
+        setPurchaseError(t('sessionExpired'))
         setPurchasing(false)
         return
       }
@@ -114,10 +116,10 @@ export default function HeroPointsBalance() {
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Errore durante l\'acquisto')
+        throw new Error(data.error || t('purchaseError'))
       }
 
-      setPurchaseSuccess(`Acquistati ${data.hero_points_added} Hero Points!`)
+      setPurchaseSuccess(t('purchaseSuccess').replace('{amount}', data.hero_points_added.toLocaleString('it-IT')))
       // Aggiorna balance (forza refresh)
       await fetchBalance(true)
       
@@ -128,7 +130,7 @@ export default function HeroPointsBalance() {
       }, 2000)
     } catch (err) {
       console.error('[HeroPointsBalance] Error purchasing:', err)
-      setPurchaseError(err.message || 'Errore durante l\'acquisto')
+      setPurchaseError(err.message || t('purchaseError'))
     } finally {
       setPurchasing(false)
     }
@@ -147,9 +149,9 @@ export default function HeroPointsBalance() {
         cursor: 'pointer'
       }}
       onClick={() => fetchBalance(true)}
-      title="Click to retry">
+      title={t('clickToRefresh')}>
         <AlertCircle size={16} color="var(--red-light)" />
-        <span style={{ fontSize: '14px', color: 'var(--red-light)' }}>Error</span>
+        <span style={{ fontSize: '14px', color: 'var(--red-light)' }}>{t('errorLoadingBalance')}</span>
       </div>
     )
   }
@@ -192,7 +194,7 @@ export default function HeroPointsBalance() {
         }
         e.currentTarget.style.transform = 'scale(1)'
       }}
-      title="Click to refresh balance">
+      title={t('clickToRefresh')}>
         {isLowBalance && (
           <div style={{
             position: 'absolute',
@@ -265,9 +267,9 @@ export default function HeroPointsBalance() {
           e.currentTarget.style.borderColor = 'rgba(34, 197, 94, 0.4)'
           e.currentTarget.style.transform = 'scale(1)'
         }}
-        title="Compra Hero Points">
+        title={t('purchaseCredits')}>
         <ShoppingCart size={16} />
-        <span>Compra</span>
+        <span>{t('buyCredits')}</span>
       </button>
 
       {/* Modal Acquisto */}
@@ -304,7 +306,7 @@ export default function HeroPointsBalance() {
           onClick={(e) => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--white)', margin: 0 }}>
-                Compra Hero Points
+                {t('purchaseCredits')}
               </h2>
               <button
                 onClick={() => {
@@ -342,7 +344,7 @@ export default function HeroPointsBalance() {
               <>
                 <div style={{ marginBottom: '20px' }}>
                   <label style={{ display: 'block', color: 'var(--light-gray)', marginBottom: '8px', fontSize: '14px' }}>
-                    Importo in Euro
+                    {t('purchaseAmount')}
                   </label>
                   <input
                     type="number"
@@ -363,7 +365,7 @@ export default function HeroPointsBalance() {
                     }}
                   />
                   <div style={{ marginTop: '8px', fontSize: '12px', color: 'var(--light-gray)', opacity: 0.8 }}>
-                    Riceverai: <strong style={{ color: 'var(--neon-blue)' }}>{Math.round(purchaseAmount * 100).toLocaleString('it-IT')} HP</strong> ({purchaseAmount.toFixed(2)}€)
+                    {t('youWillReceive')}: <strong style={{ color: 'var(--neon-blue)' }}>{Math.round(purchaseAmount * 100).toLocaleString('it-IT')} {t('heroPoints')}</strong> ({purchaseAmount.toFixed(2)}€)
                   </div>
                 </div>
 
@@ -406,12 +408,12 @@ export default function HeroPointsBalance() {
                     {purchasing ? (
                       <>
                         <RefreshCw size={16} style={{ animation: 'spin 1s linear infinite' }} />
-                        Elaborazione...
+                        {t('processing')}
                       </>
                     ) : (
                       <>
                         <ShoppingCart size={16} />
-                        Acquista
+                        {t('purchase')}
                       </>
                     )}
                   </button>
@@ -431,7 +433,7 @@ export default function HeroPointsBalance() {
                       fontWeight: 600,
                       cursor: 'pointer'
                     }}>
-                    Annulla
+                    {t('cancel')}
                   </button>
                 </div>
               </>

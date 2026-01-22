@@ -31,7 +31,8 @@ export async function POST(req) {
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
     
     if (!supabaseUrl || !serviceKey || !anonKey) {
-      return NextResponse.json({ error: 'Supabase server env missing' }, { status: 500 })
+      console.error('[hero-points/purchase] Supabase server env missing')
+      return NextResponse.json({ error: 'Server configuration error. Please try again later.' }, { status: 500 })
     }
 
     const token = extractBearerToken(req)
@@ -88,11 +89,13 @@ export async function POST(req) {
     const totalPurchased = (existingBalance?.total_purchased || 0) + heroPointsToAdd
 
     // Aggiorna o crea record user_hero_points
+    // IMPORTANTE: Se non esiste, imposta starter_pack_claimed = true per evitare che /balance lo riassegni
     const { data: updatedBalance, error: upsertError } = await admin
       .from('user_hero_points')
       .upsert({
         user_id: userId,
         hero_points_balance: newBalance,
+        starter_pack_claimed: existingBalance?.starter_pack_claimed ?? true, // Mantieni valore esistente o true se nuovo
         last_purchase_at: new Date().toISOString(),
         total_purchased: totalPurchased,
         updated_at: new Date().toISOString()
