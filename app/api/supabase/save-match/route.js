@@ -241,7 +241,7 @@ export async function POST(req) {
   } catch (err) {
     console.error('[save-match] Error:', err)
     return NextResponse.json(
-      { error: err?.message || 'Errore salvataggio partita' },
+      { error: err?.message || 'Error saving match' },
       { status: 500 }
     )
   }

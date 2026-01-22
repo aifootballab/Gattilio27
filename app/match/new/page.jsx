@@ -8,13 +8,7 @@ import LanguageSwitch from '@/components/LanguageSwitch'
 import HeroPointsBalance from '@/components/HeroPointsBalance'
 import { ArrowLeft, Upload, AlertCircle, CheckCircle2, RefreshCw, X, SkipForward, Save, Camera } from 'lucide-react'
 
-const STEPS = [
-  { id: 'player_ratings', label: 'Pagelle Giocatori', icon: '⭐' },
-  { id: 'team_stats', label: 'Statistiche Squadra', icon: '📊' },
-  { id: 'attack_areas', label: 'Aree di Attacco', icon: '⚽' },
-  { id: 'ball_recovery_zones', label: 'Aree di Recupero Palla', icon: '🔄' },
-  { id: 'formation_style', label: 'Formazione Avversaria', icon: '🎯' }
-]
+// STEPS sarà definito dentro il componente per avere accesso a t()
 
 const STORAGE_KEY = 'match_wizard_progress'
 
@@ -105,7 +99,7 @@ export default function NewMatchPage() {
   const handleExtract = async (section) => {
     const imageDataUrl = stepImages[section]
     if (!imageDataUrl) {
-      setError('Carica prima un\'immagine')
+      setError(t('loadImageFirst'))
       return
     }
 
@@ -306,7 +300,7 @@ export default function NewMatchPage() {
             <ArrowLeft size={20} />
           </button>
           <h1 style={{ fontSize: '24px', fontWeight: 700, margin: 0 }}>
-            Aggiungi Partita
+            {t('addMatch')}
           </h1>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -547,7 +541,7 @@ export default function NewMatchPage() {
                 ) : (
                   <>
                     <Upload size={18} />
-                    Estrai Dati
+                    {t('extractData')}
                   </>
                 )}
               </button>
@@ -626,7 +620,7 @@ export default function NewMatchPage() {
           ) : (
             <>
               <Save size={20} />
-              Salva Partita
+              {t('saveMatch')}
             </>
           )}
         </button>

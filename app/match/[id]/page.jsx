@@ -8,19 +8,29 @@ import LanguageSwitch from '@/components/LanguageSwitch'
 import HeroPointsBalance from '@/components/HeroPointsBalance'
 import { ArrowLeft, Upload, AlertCircle, CheckCircle2, RefreshCw, X, Camera, Calendar, Trophy } from 'lucide-react'
 
-const STEPS = [
-  { id: 'player_ratings', label: 'Pagelle Giocatori', icon: '⭐' },
-  { id: 'team_stats', label: 'Statistiche Squadra', icon: '📊' },
-  { id: 'attack_areas', label: 'Aree di Attacco', icon: '⚽' },
-  { id: 'ball_recovery_zones', label: 'Aree di Recupero Palla', icon: '🔄' },
-  { id: 'formation_style', label: 'Formazione Avversaria', icon: '🎯' }
-]
+// STEPS sarà definito dentro il componente per avere accesso a t()
 
 export default function MatchDetailPage() {
   const { t } = useTranslation()
   const router = useRouter()
   const params = useParams()
   const matchId = params?.id
+  
+  const STEPS = [
+    { id: 'player_ratings', label: t('stepPlayerRatings'), icon: '⭐' },
+    { id: 'team_stats', label: t('stepTeamStats'), icon: '📊' },
+    { id: 'attack_areas', label: t('stepAttackAreas'), icon: '⚽' },
+    { id: 'ball_recovery_zones', label: t('stepBallRecoveryZones'), icon: '🔄' },
+    { id: 'formation_style', label: t('stepFormationStyle'), icon: '🎯' }
+  ]
+  
+  const STEPS = [
+    { id: 'player_ratings', label: t('stepPlayerRatings'), icon: '⭐' },
+    { id: 'team_stats', label: t('stepTeamStats'), icon: '📊' },
+    { id: 'attack_areas', label: t('stepAttackAreas'), icon: '⚽' },
+    { id: 'ball_recovery_zones', label: t('stepBallRecoveryZones'), icon: '🔄' },
+    { id: 'formation_style', label: t('stepFormationStyle'), icon: '🎯' }
+  ]
 
   const [match, setMatch] = React.useState(null)
   const [loading, setLoading] = React.useState(true)
@@ -55,17 +65,17 @@ export default function MatchDetailPage() {
           .single()
 
         if (queryError) {
-          throw new Error(queryError.message || 'Partita non trovata')
+          throw new Error(queryError.message || t('matchNotFound'))
         }
 
         if (!data) {
-          throw new Error('Partita non trovata')
+          throw new Error(t('matchNotFound'))
         }
 
         setMatch(data)
       } catch (err) {
         console.error('[MatchDetail] Error:', err)
-        setError(err.message || 'Errore caricamento partita')
+        setError(err.message || t('loadMatchError'))
       } finally {
         setLoading(false)
       }
@@ -77,12 +87,12 @@ export default function MatchDetailPage() {
   const handleImageSelect = (section) => (e) => {
     const file = e.target.files?.[0]
     if (!file || !file.type.startsWith('image/')) {
-      setError('Seleziona un file immagine valido')
+      setError(t('selectValidImage'))
       return
     }
 
     if (file.size > 10 * 1024 * 1024) {
-      setError('L\'immagine è troppo grande (max 10MB)')
+      setError(t('imageTooLarge'))
       return
     }
 
@@ -122,7 +132,7 @@ export default function MatchDetailPage() {
 
       if (!extractRes.ok) {
         const errorData = await extractRes.json()
-        throw new Error(errorData.error || 'Errore estrazione dati')
+        throw new Error(errorData.error || t('extractDataError'))
       }
 
       const extractData = await extractRes.json()
@@ -144,7 +154,7 @@ export default function MatchDetailPage() {
 
       if (!updateRes.ok) {
         const errorData = await updateRes.json()
-        throw new Error(errorData.error || 'Errore aggiornamento partita')
+        throw new Error(errorData.error || t('updateMatchError'))
       }
 
       const updateData = await updateRes.json()
@@ -164,7 +174,7 @@ export default function MatchDetailPage() {
       setUploadSection(null)
     } catch (err) {
       console.error('[MatchDetail] Upload error:', err)
-      setError(err.message || 'Errore caricamento foto')
+      setError(err.message || t('loadPhotoError'))
     } finally {
       setExtracting(false)
     }
@@ -201,7 +211,7 @@ export default function MatchDetailPage() {
   }
 
   const formatDate = (dateStr) => {
-    if (!dateStr) return 'Data non disponibile'
+    if (!dateStr) return t('dateNotAvailable')
     const date = new Date(dateStr)
     return date.toLocaleDateString('it-IT', { 
       day: '2-digit', 
@@ -229,7 +239,7 @@ export default function MatchDetailPage() {
           {error}
         </div>
         <button onClick={() => router.push('/')} className="btn">
-          Torna alla Dashboard
+          {t('backToDashboard')}
         </button>
       </main>
     )
@@ -255,7 +265,7 @@ export default function MatchDetailPage() {
             style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
           >
             <ArrowLeft size={18} />
-            Dashboard
+            {t('dashboard')}
           </button>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginLeft: 'auto', flexWrap: 'wrap' }}>
@@ -277,30 +287,30 @@ export default function MatchDetailPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
           <Calendar size={24} color="var(--neon-orange)" />
           <h1 style={{ fontSize: '24px', fontWeight: 700, margin: 0 }}>
-            Partita
+            {t('match')}
           </h1>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
           <div>
-            <div style={{ fontSize: '14px', opacity: 0.8, marginBottom: '4px' }}>Data e Ora</div>
+            <div style={{ fontSize: '14px', opacity: 0.8, marginBottom: '4px' }}>{t('dateAndTime')}</div>
             <div style={{ fontSize: '18px', fontWeight: 600 }}>{formatDate(match.match_date)}</div>
           </div>
           <div>
-            <div style={{ fontSize: '14px', opacity: 0.8, marginBottom: '4px' }}>Avversario</div>
+            <div style={{ fontSize: '14px', opacity: 0.8, marginBottom: '4px' }}>{t('opponent')}</div>
             <div style={{ fontSize: '18px', fontWeight: 600, color: 'var(--neon-orange)' }}>
-              {match.opponent_name || 'Non specificato'}
+              {match.opponent_name || t('notSpecified')}
             </div>
           </div>
           <div>
-            <div style={{ fontSize: '14px', opacity: 0.8, marginBottom: '4px' }}>Risultato</div>
+            <div style={{ fontSize: '14px', opacity: 0.8, marginBottom: '4px' }}>{t('result')}</div>
             <div style={{ fontSize: '18px', fontWeight: 600, color: 'var(--neon-blue)' }}>
               {match.result || 'N/A'}
             </div>
           </div>
           <div>
-            <div style={{ fontSize: '14px', opacity: 0.8, marginBottom: '4px' }}>Completamento</div>
+            <div style={{ fontSize: '14px', opacity: 0.8, marginBottom: '4px' }}>{t('completion')}</div>
             <span className={`completeness-badge ${match.data_completeness === 'complete' ? 'complete' : 'incomplete'}`}>
-              {match.data_completeness === 'complete' ? '✓ Completa' : `${match.photos_uploaded || 0}/5`}
+              {match.data_completeness === 'complete' ? t('matchComplete') : `${match.photos_uploaded || 0}/5`}
             </span>
           </div>
         </div>
@@ -309,7 +319,7 @@ export default function MatchDetailPage() {
       {/* Sezioni */}
       <div className="card" style={{ padding: '24px' }}>
         <h2 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '20px' }}>
-          Completa con Foto Mancanti
+          {t('completeWithMissingPhotos')}
         </h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {STEPS.map((step) => {
@@ -334,7 +344,7 @@ export default function MatchDetailPage() {
                   {hasData ? (
                     <CheckCircle2 size={20} color="#22C55E" />
                   ) : (
-                    <span style={{ fontSize: '12px', color: 'var(--neon-orange)' }}>Mancante</span>
+                    <span style={{ fontSize: '12px', color: 'var(--neon-orange)' }}>{t('missing')}</span>
                   )}
                 </div>
                 
@@ -361,7 +371,7 @@ export default function MatchDetailPage() {
                           }}
                         >
                           <Camera size={20} style={{ marginBottom: '8px', color: 'var(--neon-orange)' }} />
-                          <div style={{ fontSize: '14px' }}>Carica Foto</div>
+                          <div style={{ fontSize: '14px' }}>{t('uploadPhoto')}</div>
                         </div>
                       </label>
                     ) : (
@@ -383,12 +393,12 @@ export default function MatchDetailPage() {
                             {extracting ? (
                               <>
                                 <RefreshCw size={16} style={{ animation: 'spin 1s linear infinite' }} />
-                                Estrazione...
+                                {t('extracting')}
                               </>
                             ) : (
                               <>
                                 <Upload size={16} />
-                                Estrai e Salva
+                                {t('extractAndSave')}
                               </>
                             )}
                           </button>

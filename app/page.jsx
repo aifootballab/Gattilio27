@@ -331,7 +331,7 @@ export default function DashboardPage() {
             >
               <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <FileImage size={18} />
-                Aggiungi Partita
+                {t('addMatch')}
               </span>
               <ArrowRight size={18} />
             </button>
@@ -387,7 +387,7 @@ export default function DashboardPage() {
                 opacity: 0.7,
                 fontSize: '14px'
               }}>
-                Nessuna partita salvata. Clicca su "Aggiungi Partita" per iniziare.
+                {t('noMatchesSaved')}
               </div>
             ) : (
               (matchesExpanded ? recentMatches : recentMatches.slice(0, 5)).map((match) => {
@@ -402,7 +402,7 @@ export default function DashboardPage() {
                   minute: '2-digit' 
                 }) : ''
                 const displayResult = match.result || 'N/A'
-                const displayOpponent = match.opponent_name || 'Avversario sconosciuto'
+                const displayOpponent = match.opponent_name || t('unknownOpponent')
                 const isComplete = match.data_completeness === 'complete'
                 const missingCount = match.missing_photos?.length || 0
 
@@ -475,7 +475,7 @@ export default function DashboardPage() {
             }}
             onClick={() => setMatchesExpanded(true)}
             >
-              Mostra altre {recentMatches.length - 5} partite...
+              {t('showMoreMatches', { count: recentMatches.length - 5 }).replace('{count}', recentMatches.length - 5)}
             </div>
           )}
         </div>

@@ -232,7 +232,7 @@ export async function POST(req) {
   } catch (err) {
     console.error('[update-match] Error:', err)
     return NextResponse.json(
-      { error: err?.message || 'Errore aggiornamento partita' },
+      { error: err?.message || 'Error updating match' },
       { status: 500 }
     )
   }
