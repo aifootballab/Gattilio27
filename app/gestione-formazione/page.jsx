@@ -651,25 +651,93 @@ export default function GestioneFormazionePage() {
           .eq('id', duplicatePlayer.id)
       }
 
-      // Salva giocatore e assegna allo slot
-      const saveRes = await fetch('/api/supabase/save-player', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          player: {
-            ...playerData,
-            slot_index: selectedSlot.slot_index,
-            photo_slots: photoSlots // Includi photo_slots tracciati
-          }
+      // Se esiste già un giocatore in questo slot, AGGIORNA invece di creare nuovo
+      const existingPlayerInSlot = selectedSlot.player
+      
+      if (existingPlayerInSlot && existingPlayerInSlot.id) {
+        // Giocatore già presente: AGGIORNA con merge dati
+        const existingPhotoSlots = existingPlayerInSlot.photo_slots || {}
+        const mergedPhotoSlots = {
+          ...existingPhotoSlots,
+          ...photoSlots
+        }
+        
+        // Merge base_stats (preferisci nuovi se presenti)
+        const mergedBaseStats = playerData.base_stats && Object.keys(playerData.base_stats).length > 0
+          ? { ...(existingPlayerInSlot.base_stats || {}), ...playerData.base_stats }
+          : existingPlayerInSlot.base_stats
+        
+        // Merge skills e com_skills (unisci array, rimuovi duplicati)
+        const existingSkills = Array.isArray(existingPlayerInSlot.skills) ? existingPlayerInSlot.skills : []
+        const newSkills = Array.isArray(playerData.skills) ? playerData.skills : []
+        const mergedSkills = [...existingSkills, ...newSkills].filter((v, i, a) => a.indexOf(v) === i)
+        
+        const existingComSkills = Array.isArray(existingPlayerInSlot.com_skills) ? existingPlayerInSlot.com_skills : []
+        const newComSkills = Array.isArray(playerData.com_skills) ? playerData.com_skills : []
+        const mergedComSkills = [...existingComSkills, ...newComSkills].filter((v, i, a) => a.indexOf(v) === i)
+        
+        // Prepara dati aggiornati
+        const updateData = {
+          photo_slots: mergedPhotoSlots,
+          updated_at: new Date().toISOString()
+        }
+        
+        // Aggiorna solo se nuovi dati sono presenti
+        if (mergedBaseStats && Object.keys(mergedBaseStats).length > 0) {
+          updateData.base_stats = mergedBaseStats
+        }
+        if (mergedSkills.length > 0) {
+          updateData.skills = mergedSkills
+        }
+        if (mergedComSkills.length > 0) {
+          updateData.com_skills = mergedComSkills
+        }
+        if (playerData.overall_rating) {
+          updateData.overall_rating = playerData.overall_rating
+        }
+        if (playerData.player_name) {
+          updateData.player_name = playerData.player_name
+        }
+        if (playerData.position) {
+          updateData.position = playerData.position
+        }
+        if (playerData.team) {
+          updateData.team = playerData.team
+        }
+        if (playerData.age !== null && playerData.age !== undefined) {
+          updateData.age = playerData.age
+        }
+        
+        // Aggiorna direttamente in Supabase (come fa app/giocatore/[id]/page.jsx)
+        const { error: updateError } = await supabase
+          .from('players')
+          .update(updateData)
+          .eq('id', existingPlayerInSlot.id)
+        
+        if (updateError) {
+          throw new Error(updateError.message || 'Errore aggiornamento giocatore')
+        }
+      } else {
+        // Nessun giocatore esistente: crea nuovo con save-player
+        const saveRes = await fetch('/api/supabase/save-player', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            player: {
+              ...playerData,
+              slot_index: selectedSlot.slot_index,
+              photo_slots: photoSlots // Includi photo_slots tracciati
+            }
+          })
         })
-      })
 
-      const saveData = await saveRes.json()
-      if (!saveRes.ok) {
-        throw new Error(saveData.error || 'Errore salvataggio giocatore')
+        const saveData = await saveRes.json()
+        if (!saveRes.ok) {
+          throw new Error(saveData.error || 'Errore salvataggio giocatore')
+        }
       }
 
       setShowUploadPlayerModal(false)
