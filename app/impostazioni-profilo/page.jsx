@@ -149,7 +149,7 @@ export default function ImpostazioniProfiloPage() {
 
   // Skip sezione
   const handleSkip = (sectionName) => {
-    setSuccess(`Skipped ${sectionName}`)
+    setSuccess(`${t('skipped')} ${sectionName}`)
     setTimeout(() => setSuccess(null), 2000)
   }
 
@@ -219,7 +219,7 @@ export default function ImpostazioniProfiloPage() {
         >
           <ArrowLeft size={24} />
         </button>
-        <h1 style={{ margin: 0, fontSize: '20px', fontWeight: '600' }}>Impostazioni Profilo</h1>
+        <h1 style={{ margin: 0, fontSize: '20px', fontWeight: '600' }}>{t('profileSettings')}</h1>
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '12px' }}>
           <LanguageSwitch />
         </div>
@@ -235,7 +235,7 @@ export default function ImpostazioniProfiloPage() {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
           <BarChart3 size={20} color="#00d4ff" />
-          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>Profilazione</h2>
+          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>{t('profiling')}</h2>
         </div>
         
         {/* Progress Bar */}
@@ -266,11 +266,11 @@ export default function ImpostazioniProfiloPage() {
         </div>
         
         <div style={{ fontSize: '14px', color: '#888', marginBottom: '8px' }}>
-          {getLevelText(completionLevel)} - Completa per 100%
+          {getLevelText(completionLevel)} - {t('completeFor100')}
         </div>
         
         <div style={{ fontSize: '13px', color: '#666', fontStyle: 'italic' }}>
-          💡 Più rispondi, più l'IA ti conosce e ti aiuta meglio!
+          {t('moreYouAnswer')}
         </div>
       </div>
 
@@ -319,7 +319,7 @@ export default function ImpostazioniProfiloPage() {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
           <User size={20} color="#00d4ff" />
-          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>Dati Personali</h2>
+          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>{t('personalData')}</h2>
         </div>
 
         <div style={{ marginBottom: '16px' }}>
@@ -346,13 +346,13 @@ export default function ImpostazioniProfiloPage() {
 
         <div style={{ marginBottom: '20px' }}>
           <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#888' }}>
-            Cognome
+            {t('lastName')}
           </label>
           <input
             type="text"
             value={profile.last_name}
             onChange={(e) => setProfile(prev => ({ ...prev, last_name: e.target.value }))}
-            placeholder="Il tuo cognome"
+            placeholder={t('yourLastName')}
             maxLength={255}
             style={{
               width: '100%',
@@ -368,7 +368,7 @@ export default function ImpostazioniProfiloPage() {
 
         <div style={{ display: 'flex', gap: '12px' }}>
           <button
-            onClick={() => handleSave('Dati Personali')}
+            onClick={() => handleSave(t('personalData'))}
             disabled={saving}
             style={{
               flex: 1,
@@ -420,7 +420,7 @@ export default function ImpostazioniProfiloPage() {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
           <Gamepad2 size={20} color="#00d4ff" />
-          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>Dati Gioco</h2>
+          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>{t('gameData')}</h2>
         </div>
 
         <div style={{ marginBottom: '16px' }}>
@@ -449,13 +449,13 @@ export default function ImpostazioniProfiloPage() {
 
         <div style={{ marginBottom: '16px' }}>
           <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#888' }}>
-            Squadra del cuore
+            {t('favoriteTeam')}
           </label>
           <input
             type="text"
             value={profile.favorite_team}
             onChange={(e) => setProfile(prev => ({ ...prev, favorite_team: e.target.value }))}
-            placeholder="Es: Juventus, Real Madrid..."
+            placeholder={t('favoriteTeamPlaceholder')}
             maxLength={255}
             style={{
               width: '100%',
@@ -470,25 +470,49 @@ export default function ImpostazioniProfiloPage() {
         </div>
 
         <div style={{ marginBottom: '20px' }}>
-          <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#888' }}>
-            Nome squadra nel gioco
-          </label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+            <label style={{ fontSize: '14px', color: '#888', flex: 1 }}>
+              {t('teamNameInGame')}
+            </label>
+            <span style={{
+              fontSize: '11px',
+              padding: '4px 8px',
+              background: 'rgba(0, 212, 255, 0.2)',
+              border: '1px solid rgba(0, 212, 255, 0.4)',
+              borderRadius: '4px',
+              color: 'var(--neon-blue)',
+              fontWeight: 600,
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px'
+            }}>
+              {t('important')}
+            </span>
+          </div>
           <input
             type="text"
             value={profile.team_name}
             onChange={(e) => setProfile(prev => ({ ...prev, team_name: e.target.value }))}
-            placeholder="Nome della tua squadra"
+            placeholder="Es: Naturalborngamers.it, AC Milan..."
             maxLength={255}
             style={{
               width: '100%',
               padding: '12px',
               backgroundColor: '#0a0a0a',
-              border: '1px solid #2a2a2a',
+              border: profile.team_name ? '1px solid rgba(0, 212, 255, 0.3)' : '1px solid #2a2a2a',
               borderRadius: '8px',
               color: '#ffffff',
               fontSize: '16px'
             }}
           />
+          <div style={{
+            fontSize: '12px',
+            color: '#666',
+            marginTop: '6px',
+            fontStyle: 'italic',
+            lineHeight: '1.4'
+          }}>
+            {t('teamNameDescription')}
+          </div>
         </div>
 
         <div style={{ display: 'flex', gap: '12px' }}>
@@ -572,12 +596,12 @@ export default function ImpostazioniProfiloPage() {
 
         <div style={{ marginBottom: '20px' }}>
           <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#888' }}>
-            Come vuoi che ti ricordi?
+            {t('howToRemember')}
           </label>
           <textarea
             value={profile.how_to_remember}
             onChange={(e) => setProfile(prev => ({ ...prev, how_to_remember: e.target.value }))}
-            placeholder='Es: "Sono un giocatore competitivo...", "Gioco per divertimento..."'
+            placeholder={t('howToRememberPlaceholder')}
             maxLength={1000}
             rows={4}
             style={{
@@ -733,7 +757,7 @@ export default function ImpostazioniProfiloPage() {
             {saving ? 'Salvataggio...' : 'Salva'}
           </button>
           <button
-            onClick={() => handleSkip('Esperienza Gioco')}
+            onClick={() => handleSkip(t('gameExperience'))}
             style={{
               padding: '12px 20px',
               backgroundColor: 'transparent',

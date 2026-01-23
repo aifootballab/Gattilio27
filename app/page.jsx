@@ -21,7 +21,8 @@ import {
   Calendar,
   ChevronDown,
   ChevronUp,
-  Trash2
+  Trash2,
+  User
 } from 'lucide-react'
 
 export default function DashboardPage() {
@@ -376,7 +377,35 @@ export default function DashboardPage() {
               </span>
               <ArrowRight size={18} />
             </button>
-            {/* Futuro: Analytics, Settings, ecc. */}
+            <button
+              onClick={() => router.push('/impostazioni-profilo')}
+              className="btn"
+              style={{ 
+                width: '100%', 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                padding: '12px 16px',
+                background: 'rgba(0, 212, 255, 0.05)',
+                borderColor: 'rgba(0, 212, 255, 0.2)',
+                color: 'var(--neon-blue)',
+                marginTop: '10px'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(0, 212, 255, 0.1)'
+                e.currentTarget.style.boxShadow = 'var(--glow-blue)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(0, 212, 255, 0.05)'
+                e.currentTarget.style.boxShadow = 'none'
+              }}
+            >
+              <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <User size={18} />
+                {t('userProfile')}
+              </span>
+              <ArrowRight size={18} />
+            </button>
           </div>
         </div>
 

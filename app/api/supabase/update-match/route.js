@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { validateToken, extractBearerToken } from '../../../../lib/authHelper'
+import { checkRateLimit, RATE_LIMIT_CONFIG } from '../../../../lib/rateLimiter'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -156,6 +157,32 @@ export async function POST(req) {
       return NextResponse.json({ error: 'match_id, section, and data are required' }, { status: 400 })
     }
 
+    // Rate limiting
+    const rateLimitConfig = RATE_LIMIT_CONFIG['/api/supabase/update-match']
+    const rateLimit = await checkRateLimit(
+      userId,
+      '/api/supabase/update-match',
+      rateLimitConfig.maxRequests,
+      rateLimitConfig.windowMs
+    )
+    
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { 
+          error: 'Rate limit exceeded. Please try again later.',
+          resetAt: rateLimit.resetAt
+        },
+        { 
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': rateLimitConfig.maxRequests.toString(),
+            'X-RateLimit-Remaining': rateLimit.remaining.toString(),
+            'X-RateLimit-Reset': rateLimit.resetAt.toString()
+          }
+        }
+      )
+    }
+
     const admin = createClient(supabaseUrl, serviceKey, {
       auth: { autoRefreshToken: false, persistSession: false }
     })
@@ -170,6 +197,34 @@ export async function POST(req) {
 
     if (fetchError || !existingMatch) {
       return NextResponse.json({ error: 'Match not found or access denied' }, { status: 404 })
+    }
+
+    // Se client_team_name non è presente, recuperalo da user_profiles
+    let clientTeamName = existingMatch.client_team_name
+    if (!clientTeamName) {
+      try {
+        const { data: userProfile } = await admin
+          .from('user_profiles')
+          .select('team_name')
+          .eq('user_id', userId)
+          .maybeSingle()
+        
+        clientTeamName = userProfile?.team_name
+        
+        // Fallback: prova a recuperare da coaches.team se non presente
+        if (!clientTeamName) {
+          const { data: activeCoach } = await admin
+            .from('coaches')
+            .select('team')
+            .eq('user_id', userId)
+            .eq('is_active', true)
+            .maybeSingle()
+          clientTeamName = activeCoach?.team
+        }
+      } catch (err) {
+        console.warn('[update-match] Error retrieving team_name:', err)
+        // Non bloccare update se errore recupero team_name
+      }
     }
 
     // 2. Merge dati
@@ -207,6 +262,7 @@ export async function POST(req) {
     // 5. Prepara update (usa mergedData, che contiene già i dati esistenti mergiati con i nuovi)
     const updateData = {
       result: finalResult || existingMatch.result,
+      client_team_name: toText(clientTeamName) || existingMatch.client_team_name || null, // Aggiorna solo se recuperato
       player_ratings: mergedData.player_ratings,
       team_stats: (mergedData.team_stats && Object.keys(mergedData.team_stats).length > 0) ? mergedData.team_stats : null,
       attack_areas: (mergedData.attack_areas && Object.keys(mergedData.attack_areas).length > 0) ? mergedData.attack_areas : null,
