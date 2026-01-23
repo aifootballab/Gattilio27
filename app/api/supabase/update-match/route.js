@@ -230,10 +230,15 @@ export async function POST(req) {
     // 2. Gestione speciale per ai_summary (solo salvataggio, no merge)
     if (section === 'ai_summary') {
       // Salva solo il riassunto senza fare merge
+      // data.ai_summary può essere già una stringa JSON o un oggetto
+      const aiSummaryValue = typeof data.ai_summary === 'string' 
+        ? data.ai_summary 
+        : (data.ai_summary ? JSON.stringify(data.ai_summary) : null)
+      
       const { data: updatedMatch, error: updateError } = await admin
         .from('matches')
         .update({
-          ai_summary: toText(data.ai_summary) || null,
+          ai_summary: aiSummaryValue,
           updated_at: new Date().toISOString()
         })
         .eq('id', match_id)

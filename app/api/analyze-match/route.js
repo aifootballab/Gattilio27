@@ -395,7 +395,7 @@ export async function POST(req) {
       }, { status: 413 })
     }
 
-    // Chiama OpenAI
+    // Chiama OpenAI con formato JSON
     const requestBody = {
       model: 'gpt-4o',
       messages: [
@@ -404,21 +404,65 @@ export async function POST(req) {
           content: prompt
         }
       ],
+      response_format: { type: 'json_object' },
       temperature: confidence < 0.7 ? 0.5 : 0.7, // Più conservativo con dati parziali
-      max_tokens: 500
+      max_tokens: 2000 // Aumentato per output strutturato
     }
 
     const response = await callOpenAIWithRetry(apiKey, requestBody, 'analyze-match')
     const data = await response.json()
     
-    const summary = data.choices?.[0]?.message?.content
+    const content = data.choices?.[0]?.message?.content
 
-    if (!summary) {
+    if (!content) {
       return NextResponse.json({ error: 'Nessun riassunto generato' }, { status: 500 })
     }
 
+    // Parse JSON response
+    let structuredSummary
+    try {
+      structuredSummary = JSON.parse(content)
+    } catch (parseError) {
+      console.error('[analyze-match] JSON parse error:', parseError)
+      // Fallback: se non è JSON valido, crea struttura base con testo
+      structuredSummary = {
+        analysis: {
+          match_overview: content.substring(0, 500),
+          result_analysis: '',
+          key_highlights: [],
+          strengths: [],
+          weaknesses: []
+        },
+        player_performance: {
+          top_performers: [],
+          underperformers: [],
+          suggestions: []
+        },
+        tactical_analysis: {
+          what_worked: '',
+          what_didnt_work: '',
+          formation_effectiveness: '',
+          suggestions: []
+        },
+        recommendations: [],
+        confidence: Math.round(confidence * 100),
+        data_quality: confidence >= 0.8 ? 'high' : confidence >= 0.5 ? 'medium' : 'low',
+        warnings: missingSections.length > 0 ? [`Analisi basata su dati parziali (${Math.round(confidence * 100)}% completezza). Per suggerimenti più precisi, carica anche: ${missingSections.join(', ')}.`] : []
+      }
+    }
+
+    // Valida struttura base
+    if (!structuredSummary.analysis || !structuredSummary.player_performance || !structuredSummary.tactical_analysis) {
+      return NextResponse.json({ error: 'Struttura riassunto non valida' }, { status: 500 })
+    }
+
+    // Assicura che confidence e data_quality siano coerenti
+    structuredSummary.confidence = structuredSummary.confidence || Math.round(confidence * 100)
+    structuredSummary.data_quality = structuredSummary.data_quality || (confidence >= 0.8 ? 'high' : confidence >= 0.5 ? 'medium' : 'low')
+    structuredSummary.warnings = structuredSummary.warnings || (missingSections.length > 0 ? [`Analisi basata su dati parziali (${Math.round(confidence * 100)}% completezza). Per suggerimenti più precisi, carica anche: ${missingSections.join(', ')}.`] : [])
+
     return NextResponse.json({
-      summary,
+      summary: structuredSummary, // Ora è un oggetto strutturato
       confidence: Math.round(confidence * 100), // 0-100
       missing_sections: missingSections,
       data_completeness: confidence === 1.0 ? 'complete' : 'partial'

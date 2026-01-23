@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { useTranslation } from '@/lib/i18n'
 import LanguageSwitch from '@/components/LanguageSwitch'
-import { ArrowLeft, Upload, AlertCircle, CheckCircle2, RefreshCw, X, Camera, Calendar, Trophy, Brain } from 'lucide-react'
+import { ArrowLeft, Upload, AlertCircle, CheckCircle2, RefreshCw, X, Camera, Calendar, Trophy, Brain, ChevronDown, ChevronUp, Users, Target, TrendingUp, TrendingDown, Shield } from 'lucide-react'
 
 // STEPS sarà definito dentro il componente per avere accesso a t()
 
@@ -32,6 +32,12 @@ export default function MatchDetailPage() {
   const [extracting, setExtracting] = React.useState(false)
   const [generatingSummary, setGeneratingSummary] = React.useState(false)
   const [summaryError, setSummaryError] = React.useState(null)
+  const [expandedSections, setExpandedSections] = React.useState({
+    overview: true,
+    performance: false,
+    tactical: false,
+    recommendations: false
+  })
 
   // Carica match
   React.useEffect(() => {
@@ -233,7 +239,7 @@ export default function MatchDetailPage() {
         body: JSON.stringify({
           match_id: match.id,
           section: 'ai_summary', // Sezione speciale per salvare solo riassunto
-          data: { ai_summary: summary }
+          data: { ai_summary: JSON.stringify(summary) } // summary è già un oggetto strutturato
         })
       })
 
@@ -513,59 +519,411 @@ export default function MatchDetailPage() {
           </h2>
         </div>
 
-        {match.ai_summary ? (
-          <div>
-            {/* Riassunto Completo */}
-            <div style={{
-              background: 'rgba(0, 212, 255, 0.1)',
-              border: '1px solid rgba(0, 212, 255, 0.3)',
-              borderRadius: '12px',
-              padding: 'clamp(16px, 4vw, 20px)',
-              marginBottom: '16px',
-              lineHeight: '1.7',
-              fontSize: 'clamp(14px, 3vw, 15px)',
-              color: '#fff',
-              whiteSpace: 'pre-wrap',
-              wordBreak: 'break-word',
-              overflowWrap: 'break-word'
-            }}>
-              {match.ai_summary}
-            </div>
+        {(() => {
+          // Parse ai_summary (può essere JSON string o oggetto)
+          let summaryData = null
+          if (match.ai_summary) {
+            try {
+              summaryData = typeof match.ai_summary === 'string' ? JSON.parse(match.ai_summary) : match.ai_summary
+            } catch (e) {
+              // Fallback: se non è JSON, è testo semplice (retrocompatibilità)
+              summaryData = { analysis: { match_overview: match.ai_summary } }
+            }
+          }
 
-            {/* Pulsante Rigenera */}
-            <button
-              onClick={handleRegenerateSummary}
-              disabled={generatingSummary}
-              style={{
-                width: '100%',
-                padding: '12px',
-                background: generatingSummary ? 'rgba(156, 163, 175, 0.2)' : 'rgba(0, 212, 255, 0.2)',
-                border: `1px solid ${generatingSummary ? 'rgba(156, 163, 175, 0.5)' : 'rgba(0, 212, 255, 0.5)'}`,
-                borderRadius: '8px',
-                color: generatingSummary ? '#d1d5db' : 'var(--neon-blue)',
-                cursor: generatingSummary ? 'not-allowed' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                fontWeight: 600,
-                fontSize: '14px'
-              }}
-            >
-              {generatingSummary ? (
-                <>
-                  <RefreshCw size={18} style={{ animation: 'spin 1s linear infinite' }} />
-                  {t('generatingAnalysis') || 'Generazione in corso...'}
-                </>
-              ) : (
-                <>
-                  <RefreshCw size={18} />
-                  {t('regenerateSummary') || 'Rigenera Riassunto'}
-                </>
+          const getPriorityColor = (priority) => {
+            switch (priority) {
+              case 'high': return 'var(--neon-orange)'
+              case 'medium': return 'var(--neon-blue)'
+              case 'low': return '#888'
+              default: return '#888'
+            }
+          }
+
+          const getPriorityLabel = (priority) => {
+            switch (priority) {
+              case 'high': return `${t('priority') || 'Priorità'}: ${t('priorityHigh') || 'Alta'}`
+              case 'medium': return `${t('priority') || 'Priorità'}: ${t('priorityMedium') || 'Media'}`
+              case 'low': return `${t('priority') || 'Priorità'}: ${t('priorityLow') || 'Bassa'}`
+              default: return t('priority') || 'Priorità'
+            }
+          }
+
+          return summaryData ? (
+            <>
+              {/* Overview Match */}
+              {summaryData.analysis && (
+                <div className="card" style={{ padding: 'clamp(16px, 4vw, 24px)', marginBottom: '24px' }}>
+                  <div 
+                    style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center',
+                      marginBottom: '16px',
+                      cursor: 'pointer'
+                    }}
+                    onClick={() => setExpandedSections(prev => ({ ...prev, overview: !prev.overview }))}
+                  >
+                    <h2 style={{ fontSize: 'clamp(18px, 4vw, 20px)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+                      <Trophy size={24} color="var(--neon-orange)" />
+                      {t('matchOverview') || 'Riepilogo Partita'}
+                    </h2>
+                    {expandedSections.overview ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                  </div>
+
+                  {expandedSections.overview && (
+                    <div>
+                      {summaryData.analysis.match_overview && (
+                        <div style={{ marginBottom: '16px', lineHeight: '1.7', fontSize: 'clamp(14px, 3vw, 15px)' }}>
+                          {summaryData.analysis.match_overview}
+                        </div>
+                      )}
+                      {summaryData.analysis.result_analysis && (
+                        <div style={{ marginBottom: '16px', lineHeight: '1.7', fontSize: 'clamp(14px, 3vw, 15px)' }}>
+                          {summaryData.analysis.result_analysis}
+                        </div>
+                      )}
+                      {summaryData.analysis.key_highlights && summaryData.analysis.key_highlights.length > 0 && (
+                        <div style={{ marginBottom: '16px' }}>
+                          <strong style={{ color: 'var(--neon-blue)' }}>{t('keyHighlights') || 'Punti Chiave'}:</strong>
+                          <ul style={{ marginTop: '8px', paddingLeft: '20px' }}>
+                            {summaryData.analysis.key_highlights.map((highlight, idx) => (
+                              <li key={idx} style={{ marginBottom: '4px' }}>{highlight}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {summaryData.analysis.strengths && summaryData.analysis.strengths.length > 0 && (
+                        <div style={{ marginBottom: '16px' }}>
+                          <strong style={{ color: 'var(--neon-orange)' }}>{t('strengths') || 'Punti di Forza'}:</strong>
+                          <ul style={{ marginTop: '8px', paddingLeft: '20px' }}>
+                            {summaryData.analysis.strengths.map((strength, idx) => (
+                              <li key={idx} style={{ marginBottom: '4px' }}>{strength}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {summaryData.analysis.weaknesses && summaryData.analysis.weaknesses.length > 0 && (
+                        <div>
+                          <strong style={{ color: 'var(--neon-blue)' }}>{t('weaknesses') || 'Punti Deboli'}:</strong>
+                          <ul style={{ marginTop: '8px', paddingLeft: '20px' }}>
+                            {summaryData.analysis.weaknesses.map((weakness, idx) => (
+                              <li key={idx} style={{ marginBottom: '4px' }}>{weakness}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               )}
-            </button>
-          </div>
-        ) : (
+
+              {/* Performance Giocatori */}
+              {summaryData.player_performance && (
+                <div className="card" style={{ padding: 'clamp(16px, 4vw, 24px)', marginBottom: '24px' }}>
+                  <div 
+                    style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center',
+                      marginBottom: '16px',
+                      cursor: 'pointer'
+                    }}
+                    onClick={() => setExpandedSections(prev => ({ ...prev, performance: !prev.performance }))}
+                  >
+                    <h2 style={{ fontSize: 'clamp(18px, 4vw, 20px)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+                      <Users size={24} color="var(--neon-blue)" />
+                      {t('playerPerformance') || 'Performance Giocatori'}
+                    </h2>
+                    {expandedSections.performance ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                  </div>
+
+                  {expandedSections.performance && (
+                    <div>
+                      {summaryData.player_performance.top_performers && summaryData.player_performance.top_performers.length > 0 && (
+                        <div style={{ marginBottom: '16px' }}>
+                          <strong style={{ color: 'var(--neon-orange)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <TrendingUp size={18} />
+                            {t('topPerformers') || 'Migliori Performance'}
+                          </strong>
+                          <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            {summaryData.player_performance.top_performers.map((player, idx) => (
+                              <div key={idx} style={{
+                                padding: '12px',
+                                background: 'rgba(34, 197, 94, 0.1)',
+                                border: '1px solid rgba(34, 197, 94, 0.3)',
+                                borderRadius: '8px'
+                              }}>
+                                <div style={{ fontWeight: 600, marginBottom: '4px' }}>
+                                  {player.player_name} - {t('rating') || 'Voto'}: {player.rating}
+                                </div>
+                                <div style={{ fontSize: 'clamp(13px, 3vw, 14px)', opacity: 0.9 }}>
+                                  {player.reason}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {summaryData.player_performance.underperformers && summaryData.player_performance.underperformers.length > 0 && (
+                        <div style={{ marginBottom: '16px' }}>
+                          <strong style={{ color: 'var(--neon-blue)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <TrendingDown size={18} />
+                            {t('underperformers') || 'Performance Insufficienti'}
+                          </strong>
+                          <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            {summaryData.player_performance.underperformers.map((player, idx) => (
+                              <div key={idx} style={{
+                                padding: '12px',
+                                background: 'rgba(239, 68, 68, 0.1)',
+                                border: '1px solid rgba(239, 68, 68, 0.3)',
+                                borderRadius: '8px'
+                              }}>
+                                <div style={{ fontWeight: 600, marginBottom: '4px' }}>
+                                  {player.player_name} - {t('rating') || 'Voto'}: {player.rating}
+                                </div>
+                                <div style={{ fontSize: 'clamp(13px, 3vw, 14px)', opacity: 0.9, marginBottom: player.suggested_replacement ? '8px' : '0' }}>
+                                  {player.reason}
+                                </div>
+                                {player.suggested_replacement && (
+                                  <div style={{ fontSize: 'clamp(12px, 2.5vw, 13px)', opacity: 0.8, fontStyle: 'italic' }}>
+                                    💡 {t('suggestedReplacement') || 'Suggerimento'}: {player.suggested_replacement}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {summaryData.player_performance.suggestions && summaryData.player_performance.suggestions.length > 0 && (
+                        <div>
+                          <strong style={{ color: 'var(--neon-blue)' }}>{t('suggestions') || 'Suggerimenti'}:</strong>
+                          <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            {summaryData.player_performance.suggestions.map((suggestion, idx) => (
+                              <div key={idx} style={{
+                                padding: '12px',
+                                background: 'rgba(0, 212, 255, 0.1)',
+                                border: `1px solid ${getPriorityColor(suggestion.priority)}`,
+                                borderRadius: '8px'
+                              }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                                  <span style={{ fontSize: 'clamp(11px, 2vw, 12px)', color: getPriorityColor(suggestion.priority), fontWeight: 600 }}>
+                                    {getPriorityLabel(suggestion.priority)}
+                                  </span>
+                                </div>
+                                <div style={{ fontWeight: 600, marginBottom: '4px' }}>
+                                  {suggestion.player_name}
+                                </div>
+                                <div style={{ fontSize: 'clamp(13px, 3vw, 14px)', opacity: 0.9 }}>
+                                  {suggestion.reason}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Analisi Tattica */}
+              {summaryData.tactical_analysis && (
+                <div className="card" style={{ padding: 'clamp(16px, 4vw, 24px)', marginBottom: '24px' }}>
+                  <div 
+                    style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center',
+                      marginBottom: '16px',
+                      cursor: 'pointer'
+                    }}
+                    onClick={() => setExpandedSections(prev => ({ ...prev, tactical: !prev.tactical }))}
+                  >
+                    <h2 style={{ fontSize: 'clamp(18px, 4vw, 20px)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+                      <Shield size={24} color="var(--neon-orange)" />
+                      {t('tacticalAnalysis') || 'Analisi Tattica'}
+                    </h2>
+                    {expandedSections.tactical ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                  </div>
+
+                  {expandedSections.tactical && (
+                    <div>
+                      {summaryData.tactical_analysis.what_worked && (
+                        <div style={{ marginBottom: '16px', padding: '12px', background: 'rgba(34, 197, 94, 0.1)', borderRadius: '8px' }}>
+                          <strong style={{ color: 'var(--neon-orange)' }}>{t('whatWorked') || 'Cosa ha Funzionato'}:</strong>
+                          <div style={{ marginTop: '8px', lineHeight: '1.6' }}>{summaryData.tactical_analysis.what_worked}</div>
+                        </div>
+                      )}
+                      {summaryData.tactical_analysis.what_didnt_work && (
+                        <div style={{ marginBottom: '16px', padding: '12px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '8px' }}>
+                          <strong style={{ color: 'var(--neon-blue)' }}>{t('whatDidntWork') || 'Cosa non ha Funzionato'}:</strong>
+                          <div style={{ marginTop: '8px', lineHeight: '1.6' }}>{summaryData.tactical_analysis.what_didnt_work}</div>
+                        </div>
+                      )}
+                      {summaryData.tactical_analysis.formation_effectiveness && (
+                        <div style={{ marginBottom: '16px', lineHeight: '1.6' }}>
+                          {summaryData.tactical_analysis.formation_effectiveness}
+                        </div>
+                      )}
+                      {summaryData.tactical_analysis.suggestions && summaryData.tactical_analysis.suggestions.length > 0 && (
+                        <div>
+                          <strong style={{ color: 'var(--neon-blue)' }}>{t('tacticalSuggestions') || 'Suggerimenti Tattici'}:</strong>
+                          <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            {summaryData.tactical_analysis.suggestions.map((suggestion, idx) => (
+                              <div key={idx} style={{
+                                padding: '12px',
+                                background: 'rgba(0, 212, 255, 0.1)',
+                                border: `1px solid ${getPriorityColor(suggestion.priority)}`,
+                                borderRadius: '8px'
+                              }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                                  <span style={{ fontSize: 'clamp(11px, 2vw, 12px)', color: getPriorityColor(suggestion.priority), fontWeight: 600 }}>
+                                    {getPriorityLabel(suggestion.priority)}
+                                  </span>
+                                </div>
+                                <div style={{ fontWeight: 600, marginBottom: '4px' }}>
+                                  {suggestion.suggestion}
+                                </div>
+                                <div style={{ fontSize: 'clamp(13px, 3vw, 14px)', opacity: 0.9 }}>
+                                  {suggestion.reason}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Raccomandazioni */}
+              {summaryData.recommendations && summaryData.recommendations.length > 0 && (
+                <div className="card" style={{ padding: 'clamp(16px, 4vw, 24px)', marginBottom: '24px' }}>
+                  <div 
+                    style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center',
+                      marginBottom: '16px',
+                      cursor: 'pointer'
+                    }}
+                    onClick={() => setExpandedSections(prev => ({ ...prev, recommendations: !prev.recommendations }))}
+                  >
+                    <h2 style={{ fontSize: 'clamp(18px, 4vw, 20px)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+                      <Target size={24} color="var(--neon-blue)" />
+                      {t('recommendations') || 'Raccomandazioni'}
+                    </h2>
+                    {expandedSections.recommendations ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                  </div>
+
+                  {expandedSections.recommendations && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      {summaryData.recommendations.map((rec, idx) => (
+                        <div key={idx} style={{
+                          padding: 'clamp(12px, 3vw, 16px)',
+                          background: 'rgba(0, 212, 255, 0.1)',
+                          border: `1px solid ${getPriorityColor(rec.priority)}`,
+                          borderRadius: '8px'
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                            <span style={{ fontSize: 'clamp(11px, 2vw, 12px)', color: getPriorityColor(rec.priority), fontWeight: 600 }}>
+                              {getPriorityLabel(rec.priority)}
+                            </span>
+                          </div>
+                          <div style={{ fontWeight: 600, marginBottom: '8px', fontSize: 'clamp(14px, 3vw, 16px)' }}>
+                            {rec.title}
+                          </div>
+                          <div style={{ fontSize: 'clamp(13px, 3vw, 14px)', lineHeight: '1.6', opacity: 0.9, marginBottom: '8px' }}>
+                            {rec.description}
+                          </div>
+                          <div style={{ fontSize: 'clamp(12px, 2.5vw, 13px)', opacity: 0.8, fontStyle: 'italic' }}>
+                            💡 {rec.reason}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Warnings */}
+              {summaryData.warnings && summaryData.warnings.length > 0 && (
+                <div style={{
+                  padding: 'clamp(12px, 3vw, 16px)',
+                  background: 'rgba(255, 165, 0, 0.1)',
+                  border: '1px solid rgba(255, 165, 0, 0.3)',
+                  borderRadius: '8px',
+                  marginBottom: '24px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontWeight: 600 }}>
+                    <AlertCircle size={18} color="var(--neon-orange)" />
+                    {t('warnings') || 'Avvertimenti'}
+                  </div>
+                  <ul style={{ marginLeft: '24px' }}>
+                    {summaryData.warnings.map((warning, idx) => (
+                      <li key={idx} style={{ marginBottom: '4px', fontSize: 'clamp(13px, 3vw, 14px)' }}>{warning}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Info Confidence */}
+              <div style={{
+                padding: 'clamp(10px, 2.5vw, 12px)',
+                background: 'rgba(0, 212, 255, 0.1)',
+                border: '1px solid rgba(0, 212, 255, 0.3)',
+                borderRadius: '8px',
+                marginBottom: '24px',
+                fontSize: 'clamp(12px, 2.5vw, 13px)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '8px'
+              }}>
+                <span>
+                  <strong>{t('confidence') || 'Affidabilità'}:</strong> {summaryData.confidence || 0}%
+                </span>
+                <span>
+                  <strong>{t('dataQuality') || 'Qualità Dati'}:</strong> {summaryData.data_quality || 'N/A'}
+                </span>
+              </div>
+
+              {/* Pulsante Rigenera */}
+              <button
+                onClick={handleRegenerateSummary}
+                disabled={generatingSummary}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  background: generatingSummary ? 'rgba(156, 163, 175, 0.2)' : 'rgba(0, 212, 255, 0.2)',
+                  border: `1px solid ${generatingSummary ? 'rgba(156, 163, 175, 0.5)' : 'rgba(0, 212, 255, 0.5)'}`,
+                  borderRadius: '8px',
+                  color: generatingSummary ? '#d1d5db' : 'var(--neon-blue)',
+                  cursor: generatingSummary ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  fontWeight: 600,
+                  fontSize: '14px'
+                }}
+              >
+                {generatingSummary ? (
+                  <>
+                    <RefreshCw size={18} style={{ animation: 'spin 1s linear infinite' }} />
+                    {t('generatingAnalysis') || 'Generazione in corso...'}
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw size={18} />
+                    {t('regenerateSummary') || 'Rigenera Riassunto'}
+                  </>
+                )}
+              </button>
+            </>
+          ) : (
           <div style={{
             padding: 'clamp(16px, 4vw, 24px)',
             textAlign: 'center',
@@ -608,7 +966,9 @@ export default function MatchDetailPage() {
               )}
             </button>
           </div>
-        )}
+          )
+        }
+        })()}
 
         {summaryError && (
           <div style={{
