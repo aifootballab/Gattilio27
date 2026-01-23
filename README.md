@@ -73,9 +73,12 @@ lib/
 - `POST /api/supabase/save-player` - Salva/aggiorna giocatore
 - `PATCH /api/supabase/assign-player-to-slot` - Assegna giocatore a slot
 
-**Documentazione Completa**: Vedi `DOCUMENTAZIONE_COMPLETA.md`
+**📚 Documentazione Master**: Vedi `DOCUMENTAZIONE_MASTER_COMPLETA.md` - Documentazione completa e aggiornata (Gennaio 2026)
 
-**Stato Implementazione**: Vedi `STATO_IMPLEMENTAZIONE_COMPLETO.md` per dettagli su cosa è implementato e cosa è pianificato
+**Documenti Specializzati**:
+- `DOCUMENTAZIONE_GUIDA_INTERATTIVA.md` - Assistant Chat AI
+- `DOCUMENTAZIONE_SEZIONE_PARTITE.md` - Gestione partite
+- `DOCUMENTAZIONE_SEZIONE_ALLENATORE.md` - Gestione allenatori
 
 ## ⚙️ Environment Variables
 

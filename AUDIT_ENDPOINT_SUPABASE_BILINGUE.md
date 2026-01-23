@@ -1,4 +1,4 @@
-# ✅ Audit Endpoint Supabase - Allineamento e Bilingue
+\# ✅ Audit Endpoint Supabase - Allineamento e Bilingue
 
 **Data:** 23 Gennaio 2026  
 **Obiettivo:** Verificare allineamento endpoint Supabase e supporto bilingue completo
