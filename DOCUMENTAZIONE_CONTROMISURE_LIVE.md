@@ -318,12 +318,33 @@ Nessun issue noto al momento.
 
 ---
 
+## 🔗 INTEGRAZIONE CON RIASSUNTO ANALISI MATCH
+
+Il **Riassunto Analisi Match** (`/api/analyze-match`) è **allineato** con le contromisure live per garantire coerenza tattica:
+
+### Dati Condivisi
+- ✅ **Rosa Cliente** (`players`): Stessa rosa usata per suggerimenti giocatori
+- ✅ **Formazione Avversaria** (`opponent_formations`): Stessa formazione analizzata
+- ✅ **Formazione Cliente**: Stessa formazione di riferimento
+- ✅ **Profilo Utente**: Stesso contesto personalizzato
+
+### Coerenza Tattica
+- ✅ **Analisi Post-Partita**: Il riassunto analisi match include analisi di cosa ha funzionato contro la formazione avversaria
+- ✅ **Suggerimenti Contestuali**: Suggerimenti basati su formazione avversaria, rosa e statistiche match
+- ✅ **Prompt Allineato**: Stessa logica di incrocio dati per analisi coerente
+
+**Esempio**: Se in contromisure live suggerisci "Usa 3-5-2 contro 4-3-3", il riassunto analisi match analizzerà se quella formazione ha funzionato nella partita effettiva.
+
+---
+
 ## 📚 RIFERIMENTI
 
 - `PROPOSTA_CONTROMISURE_LIVE.md`: Proposta iniziale feature
 - `PIANO_IMPLEMENTAZIONE_CONTROMISURE_LIVE.md`: Piano implementazione dettagliato
+- `ARCHITETTURA_MATCH_ANALISI.md`: Architettura match e analisi (allineata)
 - `lib/countermeasuresHelper.js`: Helper functions
 - `app/api/generate-countermeasures/route.js`: Endpoint principale
+- `app/api/analyze-match/route.js`: Endpoint riassunto analisi match (allineato)
 - `app/contromisure-live/page.jsx`: Frontend page
 
 ---
