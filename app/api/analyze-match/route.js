@@ -356,8 +356,8 @@ Suggerisci di caricare le foto mancanti per un'analisi più precisa.`
       
       // Istruzioni personalizzazione
       personalizationInstructions = `\nISTRUZIONI PERSONALIZZAZIONE:
-1. Rivolgiti direttamente a ${userName || 'l\'utente'} (usa "tu", "la tua squadra", "tuo")
-2. ${teamName ? `Riferisciti alla squadra "${teamName}" quando parli della squadra del cliente. Identifica quale squadra è quella del cliente confrontando "${teamName}" con i nomi squadra nei dati.` : 'Identifica quale squadra è quella del cliente confrontando i nomi squadra nei dati.'}
+1. Rivolgiti direttamente a ${userName || `l'utente`} (usa "tu", "la tua squadra", "tuo")
+2. ${teamName ? `Riferisciti alla squadra "${teamName}" quando parli della squadra del cliente. Identifica quale squadra è quella del cliente confrontando "${teamName}" con i nomi squadra nei dati.` : `Identifica quale squadra è quella del cliente confrontando i nomi squadra nei dati.`}
 3. ${howToRemember ? `Considera che ${howToRemember}. Adatta il tono e i suggerimenti di conseguenza.` : ''}
 4. Sii incoraggiante ma costruttivo, focalizzato sul miglioramento
 5. Usa un tono ${howToRemember?.includes('divertimento') ? 'amichevole e positivo' : 'professionale ma accessibile'}\n`
@@ -504,7 +504,7 @@ ISTRUZIONI PER L'ANALISI (COACH MOTIVAZIONALE - ENTERPRISE):
 
 6. Incrocia i dati: usa rosa disponibile, formazione avversaria, disposizione reale, statistiche, storico per analisi coerente e contestuale
 
-7. ${confidence < 0.5 ? '⚠️ ATTENZIONE: Dati molto limitati. Sottolinea chiaramente che l\'analisi è basata su informazioni parziali e che per suggerimenti più precisi servono più dati.' : ''}
+7. ${confidence < 0.5 ? `⚠️ ATTENZIONE: Dati molto limitati. Sottolinea chiaramente che l'analisi è basata su informazioni parziali e che per suggerimenti più precisi servono più dati.` : ''}
 8. ${missingSections.length > 0 ? `Alla fine, aggiungi una nota: "⚠️ Nota: Analisi basata su dati parziali (${Math.round(confidence * 100)}% completezza). Per suggerimenti più precisi, carica anche: ${missingSections.join(', ')}."` : ''}
 
 9. Genera un riassunto in DOPPIA LINGUA (italiano e inglese) - max 300 parole per lingua, breve ma completo
@@ -538,7 +538,7 @@ ISTRUZIONI PER L'ANALISI (COACH MOTIVAZIONALE - ENTERPRISE):
   "warnings": { "it": ["..."], "en": ["..."] }
 }
 
-12. Formato: Testo continuo, naturale, in DOPPIA LINGUA, motivazionale ma costruttivo, rivolto direttamente${userName ? ` a ${userName}` : ' all\'utente'} (usa "tu", "la tua squadra", "tuo" in italiano, "you", "your team", "your" in inglese)
+12. Formato: Testo continuo, naturale, in DOPPIA LINGUA, motivazionale ma costruttivo, rivolto direttamente${userName ? ` a ${userName}` : ` all'utente`} (usa "tu", "la tua squadra", "tuo" in italiano, "you", "your team", "your" in inglese)
 
 13. ${conservativeMode ? 'SII CONSERVATIVO: Evita conclusioni categoriche con dati limitati. Indica quando le analisi sono basate su dati parziali.' : 'Puoi essere più specifico, hai dati completi.'}`
 }
