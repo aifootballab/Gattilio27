@@ -64,6 +64,12 @@ export default function MatchDetailPage() {
           .single()
 
         if (queryError) {
+          // Se errore RLS o permessi, mostra errore specifico
+          if (queryError.code === 'PGRST116' || queryError.message?.includes('permission') || queryError.message?.includes('row-level')) {
+            throw new Error(t('matchNotFound') || 'Partita non trovata o accesso negato')
+          }
+          // Altri errori: mostra errore ma permette comunque di provare a caricare
+          console.error('[MatchDetail] Query error:', queryError)
           throw new Error(queryError.message || t('matchNotFound'))
         }
 
@@ -71,6 +77,7 @@ export default function MatchDetailPage() {
           throw new Error(t('matchNotFound'))
         }
 
+        // Match trovato: imposta anche se incompleto (permette completamento)
         setMatch(data)
       } catch (err) {
         console.error('[MatchDetail] Error:', err)
@@ -320,7 +327,9 @@ export default function MatchDetailPage() {
     )
   }
 
-  if (error && !match) {
+  // Se c'è errore ma non abbiamo match, mostra errore
+  // Ma se abbiamo match (anche incompleto), permette l'accesso per completarlo
+  if (error && !match && !loading) {
     return (
       <main style={{ padding: '32px 24px', minHeight: '100vh' }}>
         <div className="error" style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -334,7 +343,17 @@ export default function MatchDetailPage() {
     )
   }
 
-  if (!match) return null
+  // Se ancora in caricamento, mostra loading
+  if (loading || !match) {
+    return (
+      <main style={{ padding: '32px 24px', minHeight: '100vh' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <RefreshCw size={20} className="spinning" />
+          <span>{t('loading') || 'Caricamento...'}</span>
+        </div>
+      </main>
+    )
+  }
 
   return (
     <main style={{ padding: '24px', minHeight: '100vh', maxWidth: '1200px', margin: '0 auto' }}>
