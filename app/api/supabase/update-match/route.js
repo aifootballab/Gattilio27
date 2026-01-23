@@ -83,15 +83,18 @@ function mergeMatchData(existing, newData, section) {
   const merged = { ...existing }
 
   if (section === 'player_ratings') {
-    // Merge player_ratings (gestisce struttura cliente/avversario)
-    if (newData.player_ratings) {
-      if (newData.player_ratings.cliente || newData.player_ratings.avversario) {
+    // newData è già normalizzato: { cliente: {...}, avversario: {...} } o { ...ratings... }
+    // NON è wrappato in player_ratings
+    if (newData && typeof newData === 'object') {
+      if (newData.cliente || newData.avversario) {
+        // Struttura nuova con cliente/avversario
         merged.player_ratings = {
-          cliente: { ...(merged.player_ratings?.cliente || {}), ...(newData.player_ratings.cliente || {}) },
-          avversario: { ...(merged.player_ratings?.avversario || {}), ...(newData.player_ratings.avversario || {}) }
+          cliente: { ...(merged.player_ratings?.cliente || {}), ...(newData.cliente || {}) },
+          avversario: { ...(merged.player_ratings?.avversario || {}), ...(newData.avversario || {}) }
         }
       } else {
-        merged.player_ratings = { ...(merged.player_ratings || {}), ...newData.player_ratings }
+        // Struttura vecchia (compatibilità retroattiva)
+        merged.player_ratings = { ...(merged.player_ratings || {}), ...newData }
       }
     }
   } else if (section === 'team_stats') {
@@ -104,8 +107,10 @@ function mergeMatchData(existing, newData, section) {
     // newData contiene direttamente le aree (non wrappate in attack_areas)
     merged.attack_areas = { ...(merged.attack_areas || {}), ...newData }
   } else if (section === 'ball_recovery_zones') {
+    // newData è già normalizzato: array diretto [...zones...]
+    // NON è wrappato in ball_recovery_zones
     const existingZones = Array.isArray(merged.ball_recovery_zones) ? merged.ball_recovery_zones : []
-    const newZones = Array.isArray(newData.ball_recovery_zones) ? newData.ball_recovery_zones : []
+    const newZones = Array.isArray(newData) ? newData : (Array.isArray(newData.ball_recovery_zones) ? newData.ball_recovery_zones : [])
     merged.ball_recovery_zones = [...existingZones, ...newZones]
   } else if (section === 'formation_style') {
     if (newData.formation_played) merged.formation_played = toText(newData.formation_played)
@@ -186,6 +191,13 @@ export async function POST(req) {
     const missingPhotos = calculateMissingPhotos(mergedData)
     const dataCompleteness = calculateDataCompleteness(mergedData)
     const photosUploaded = calculatePhotosUploaded(mergedData)
+    
+    // Log per debug
+    console.log(`[update-match] Section: ${section}`)
+    console.log(`[update-match] Missing photos before: ${existingMatch.missing_photos?.length || 0}`)
+    console.log(`[update-match] Missing photos after: ${missingPhotos.length}`)
+    console.log(`[update-match] Photos uploaded: ${photosUploaded}`)
+    console.log(`[update-match] Data completeness: ${dataCompleteness}`)
 
     // 5. Prepara update (usa mergedData, che contiene già i dati esistenti mergiati con i nuovi)
     const updateData = {
@@ -222,6 +234,9 @@ export async function POST(req) {
     }
 
     console.log(`[update-match] Match updated successfully: ${updatedMatch.id}`)
+    console.log(`[update-match] Final missing_photos: ${updatedMatch.missing_photos?.length || 0}`)
+    console.log(`[update-match] Final data_completeness: ${updatedMatch.data_completeness}`)
+    console.log(`[update-match] Final photos_uploaded: ${updatedMatch.photos_uploaded}`)
 
     return NextResponse.json({
       success: true,
