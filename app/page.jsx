@@ -659,25 +659,53 @@ export default function DashboardPage() {
                           Risultato: <span style={{ color: 'var(--neon-blue)' }}>{displayResult}</span>
                         </div>
                         {/* Preview Riassunto AI */}
-                        {match.ai_summary && (
-                          <div style={{
-                            marginTop: '12px',
-                            padding: 'clamp(8px, 2vw, 10px)',
-                            background: 'rgba(0, 212, 255, 0.1)',
-                            border: '1px solid rgba(0, 212, 255, 0.3)',
-                            borderRadius: '8px',
-                            fontSize: 'clamp(12px, 2.5vw, 13px)',
-                            lineHeight: '1.5',
-                            color: '#fff',
-                            opacity: 0.9
-                          }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
-                              <Brain size={14} color="var(--neon-blue)" />
-                              <span style={{ fontWeight: 600, color: 'var(--neon-blue)' }}>{t('aiSummaryLabel')}</span>
-                            </div>
-                            <div style={{ marginBottom: '8px' }}>
-                              {match.ai_summary.substring(0, 120)}...
-                            </div>
+                        {match.ai_summary && (() => {
+                          // Parse ai_summary (può essere JSON string o oggetto)
+                          let summaryText = ''
+                          try {
+                            const parsed = typeof match.ai_summary === 'string' 
+                              ? JSON.parse(match.ai_summary) 
+                              : match.ai_summary
+                            
+                            // Estrai testo dal riassunto strutturato
+                            if (parsed.analysis?.match_overview) {
+                              summaryText = parsed.analysis.match_overview
+                            } else if (parsed.analysis?.result_analysis) {
+                              summaryText = parsed.analysis.result_analysis
+                            } else if (typeof parsed === 'string') {
+                              summaryText = parsed
+                            } else {
+                              // Fallback: prova a estrarre qualsiasi campo testo
+                              summaryText = JSON.stringify(parsed).substring(0, 200)
+                            }
+                          } catch (e) {
+                            // Se non è JSON, è testo semplice
+                            summaryText = match.ai_summary
+                          }
+                          
+                          const previewText = summaryText.length > 120 
+                            ? summaryText.substring(0, 120) + '...' 
+                            : summaryText
+                          
+                          return (
+                            <div style={{
+                              marginTop: '12px',
+                              padding: 'clamp(8px, 2vw, 10px)',
+                              background: 'rgba(0, 212, 255, 0.1)',
+                              border: '1px solid rgba(0, 212, 255, 0.3)',
+                              borderRadius: '8px',
+                              fontSize: 'clamp(12px, 2.5vw, 13px)',
+                              lineHeight: '1.5',
+                              color: '#fff',
+                              opacity: 0.9
+                            }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                                <Brain size={14} color="var(--neon-blue)" />
+                                <span style={{ fontWeight: 600, color: 'var(--neon-blue)' }}>{t('aiSummaryLabel')}</span>
+                              </div>
+                              <div style={{ marginBottom: '8px' }}>
+                                {previewText}
+                              </div>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation()
@@ -704,8 +732,9 @@ export default function DashboardPage() {
                             >
                               {t('readMore')}
                             </button>
-                          </div>
-                        )}
+                            </div>
+                          )
+                        })()}
                         {!match.ai_summary && (
                           <div style={{
                             marginTop: '12px',

@@ -297,7 +297,15 @@ export async function POST(req) {
       return NextResponse.json({ error: 'OPENAI_API_KEY not configured' }, { status: 500 })
     }
 
-    const { matchData } = await req.json()
+    // Parse request body con try-catch
+    let matchData
+    try {
+      const body = await req.json()
+      matchData = body.matchData
+    } catch (parseError) {
+      console.error('[analyze-match] Error parsing request body:', parseError)
+      return NextResponse.json({ error: 'Invalid request body. Please check your input.' }, { status: 400 })
+    }
     
     if (!matchData || typeof matchData !== 'object') {
       return NextResponse.json({ error: 'matchData is required' }, { status: 400 })
@@ -409,8 +417,57 @@ export async function POST(req) {
       max_tokens: 2000 // Aumentato per output strutturato
     }
 
-    const response = await callOpenAIWithRetry(apiKey, requestBody, 'analyze-match')
-    const data = await response.json()
+    // Chiama OpenAI con gestione errori corretta
+    let response
+    try {
+      response = await callOpenAIWithRetry(apiKey, requestBody, 'analyze-match')
+    } catch (openAIError) {
+      console.error('[analyze-match] OpenAI error:', openAIError)
+      
+      // Gestisci errori specifici da callOpenAIWithRetry
+      if (openAIError.type === 'rate_limit') {
+        return NextResponse.json({ 
+          error: 'Quota OpenAI esaurita. Riprova tra qualche minuto.' 
+        }, { status: 429 })
+      } else if (openAIError.type === 'timeout') {
+        return NextResponse.json({ 
+          error: 'Timeout durante la generazione. Riprova.' 
+        }, { status: 408 })
+      } else if (openAIError.type === 'network_error') {
+        return NextResponse.json({ 
+          error: 'Errore di connessione. Verifica la tua connessione e riprova.' 
+        }, { status: 503 })
+      }
+      
+      // Errore generico
+      return NextResponse.json({ 
+        error: openAIError.message || 'Errore durante la generazione dell\'analisi' 
+      }, { status: 500 })
+    }
+
+    // Verifica che response sia valido e ok
+    if (!response || !response.ok) {
+      console.error('[analyze-match] Invalid or error response from OpenAI')
+      try {
+        const errorData = await response.json()
+        return NextResponse.json({ 
+          error: errorData.error?.message || 'Errore durante la generazione dell\'analisi' 
+        }, { status: response?.status || 500 })
+      } catch (e) {
+        return NextResponse.json({ 
+          error: 'Errore durante la generazione dell\'analisi' 
+        }, { status: 500 })
+      }
+    }
+
+    // Parse risposta JSON
+    let data
+    try {
+      data = await response.json()
+    } catch (jsonError) {
+      console.error('[analyze-match] Error parsing OpenAI response:', jsonError)
+      return NextResponse.json({ error: 'Errore nel parsing della risposta' }, { status: 500 })
+    }
     
     const content = data.choices?.[0]?.message?.content
 

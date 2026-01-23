@@ -224,6 +224,11 @@ export default function NewMatchPage() {
         matchResult = stepData.team_stats.result
       }
 
+      // Recupera opponent_formation_id e client_team_name se disponibili
+      // (possono essere null se non ancora salvati)
+      const opponentFormationId = stepData.opponent_formation_id || null
+      const clientTeamName = stepData.client_team_name || null
+
       const matchData = {
         result: matchResult,
         player_ratings: stepData.player_ratings || null,
@@ -232,7 +237,9 @@ export default function NewMatchPage() {
         ball_recovery_zones: stepData.ball_recovery_zones || null,
         formation_played: stepData.formation_style?.formation_played || null,
         playing_style_played: stepData.formation_style?.playing_style_played || null,
-        team_strength: stepData.formation_style?.team_strength || null
+        team_strength: stepData.formation_style?.team_strength || null,
+        opponent_formation_id: opponentFormationId,
+        client_team_name: clientTeamName
       }
 
       const res = await fetch('/api/analyze-match', {
@@ -324,7 +331,11 @@ export default function NewMatchPage() {
         formation_played: stepData.formation_style?.formation_played || null,
         playing_style_played: stepData.formation_style?.playing_style_played || null,
         team_strength: stepData.formation_style?.team_strength || null,
-        ai_summary: analysisSummary || null, // ✅ Salva riassunto AI se generato
+        ai_summary: analysisSummary 
+          ? (typeof analysisSummary === 'string' 
+              ? analysisSummary 
+              : JSON.stringify(analysisSummary)) 
+          : null, // ✅ Salva riassunto AI come JSON string se generato
         extracted_data: {
           stepData,
           stepImages: Object.keys(stepImages).reduce((acc, key) => {
@@ -972,7 +983,21 @@ export default function NewMatchPage() {
                     color: '#fff',
                     whiteSpace: 'pre-wrap'
                   }}>
-                    {analysisSummary}
+                    {(() => {
+                      // analysisSummary è un oggetto strutturato, estrai il testo
+                      if (!analysisSummary) return ''
+                      if (typeof analysisSummary === 'string') return analysisSummary
+                      
+                      // Estrai testo dal riassunto strutturato
+                      if (analysisSummary.analysis?.match_overview) {
+                        return analysisSummary.analysis.match_overview
+                      } else if (analysisSummary.analysis?.result_analysis) {
+                        return analysisSummary.analysis.result_analysis
+                      } else {
+                        // Fallback: mostra struttura JSON formattata
+                        return JSON.stringify(analysisSummary, null, 2)
+                      }
+                    })()}
                   </div>
                 </div>
               )}

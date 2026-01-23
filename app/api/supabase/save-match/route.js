@@ -261,7 +261,20 @@ export async function POST(req) {
         ? matchData.formation_discrepancies 
         : null,
       extracted_data: matchData.extracted_data || {},
-      ai_summary: toText(matchData.ai_summary) || null, // Riassunto AI generato (se presente)
+      ai_summary: (() => {
+        // ai_summary può essere stringa JSON, oggetto, o null
+        if (!matchData.ai_summary) return null
+        if (typeof matchData.ai_summary === 'string') {
+          return matchData.ai_summary.trim() || null
+        }
+        // Se è un oggetto, convertilo in JSON string
+        try {
+          return JSON.stringify(matchData.ai_summary)
+        } catch (e) {
+          console.warn('[save-match] Error stringifying ai_summary:', e)
+          return null
+        }
+      })(),
       photos_uploaded: photosUploaded,
       missing_photos: missingPhotos.length > 0 ? missingPhotos : null,
       data_completeness: dataCompleteness,
