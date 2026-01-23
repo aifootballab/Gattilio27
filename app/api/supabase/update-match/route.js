@@ -228,9 +228,12 @@ export async function POST(req) {
     }
 
     // 2. Gestione speciale per ai_summary (solo salvataggio, no merge)
+    // NOTA: ai_summary è bilingue (IT/EN) - struttura { it: "...", en: "..." }
+    // Generato da /api/analyze-match con normalizeBilingualStructure()
     if (section === 'ai_summary') {
       // Salva solo il riassunto senza fare merge
       // data.ai_summary può essere già una stringa JSON o un oggetto
+      // Struttura attesa: { analysis: { match_overview: { it: "...", en: "..." }, ... }, ... }
       let aiSummaryValue = null
       
       if (data.ai_summary) {
