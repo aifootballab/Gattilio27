@@ -967,7 +967,6 @@ export default function MatchDetailPage() {
             </button>
           </div>
           )
-        }
         })()}
 
         {summaryError && (
