@@ -245,21 +245,50 @@ export async function POST(req) {
       .eq('user_id', userId)
       .maybeSingle()
 
-    // 9. Genera prompt contestuale con analisi approfondita
-    const prompt = generateCountermeasuresPrompt(
-      opponentFormation,
-      roster,
-      clientFormation,
-      tacticalSettings,
-      activeCoach,
-      matchHistory || [],
-      tacticalPatterns,
-      {
-        similarFormationMatches,
-        playerPerformanceAgainstSimilar,
-        tacticalHabits
-      }
-    )
+    // 9. Valida dati prima di generare prompt
+    if (!opponentFormation || !opponentFormation.formation_name) {
+      return NextResponse.json(
+        { error: 'Opponent formation data is incomplete' },
+        { status: 400 }
+      )
+    }
+
+    // 9.1 Log dati per debug
+    console.log('[generate-countermeasures] Data summary:', {
+      opponentFormation: opponentFormation.formation_name,
+      rosterSize: roster.length,
+      hasClientFormation: !!clientFormation,
+      hasTacticalSettings: !!tacticalSettings,
+      hasActiveCoach: !!activeCoach,
+      matchHistorySize: matchHistory?.length || 0,
+      similarFormationMatches: similarFormationMatches.length,
+      playerPerformanceCount: Object.keys(playerPerformanceAgainstSimilar).length
+    })
+
+    // 9.2 Genera prompt contestuale con analisi approfondita
+    let prompt
+    try {
+      prompt = generateCountermeasuresPrompt(
+        opponentFormation,
+        roster || [],
+        clientFormation || null,
+        tacticalSettings || null,
+        activeCoach || null,
+        matchHistory || [],
+        tacticalPatterns || null,
+        {
+          similarFormationMatches: similarFormationMatches || [],
+          playerPerformanceAgainstSimilar: playerPerformanceAgainstSimilar || {},
+          tacticalHabits: tacticalHabits || {}
+        }
+      )
+    } catch (promptErr) {
+      console.error('[generate-countermeasures] Error generating prompt:', promptErr)
+      return NextResponse.json(
+        { error: 'Error generating prompt. Please try again.' },
+        { status: 500 }
+      )
+    }
 
     // Validazione dimensione prompt (max 50KB)
     const promptSize = prompt.length
@@ -271,11 +300,12 @@ export async function POST(req) {
       )
     }
 
-    // 10. Chiama GPT-5.2 (o fallback)
-    // Prova prima gpt-5.2, poi gpt-5, poi gpt-4o
-    const models = ['gpt-5.2', 'gpt-5', 'gpt-4o']
+    // 10. Chiama GPT-4o (modelli disponibili)
+    // Usa gpt-4o che è disponibile e supporta JSON mode
+    const models = ['gpt-4o', 'gpt-4-turbo', 'gpt-4']
     let lastError = null
     let response = null
+    let lastErrorDetails = null
 
     for (const model of models) {
       try {
@@ -292,33 +322,70 @@ export async function POST(req) {
           max_tokens: 2000
         }
 
+        console.log(`[generate-countermeasures] Trying model: ${model}, prompt size: ${prompt.length} chars`)
         response = await callOpenAIWithRetry(apiKey, requestBody, 'generate-countermeasures')
         
         if (response.ok) {
+          console.log(`[generate-countermeasures] Success with model: ${model}`)
           break // Successo, esci dal loop
         }
         
         const errorData = await response.json().catch(() => ({}))
+        lastErrorDetails = errorData
+        
+        console.error(`[generate-countermeasures] Model ${model} failed:`, errorData)
+        
         if (errorData.error?.code === 'model_not_found' || errorData.error?.message?.includes('not found')) {
           // Modello non disponibile, prova il prossimo
           lastError = errorData
           continue
         }
         
+        // Se è un errore di formato o input, non provare altri modelli
+        if (errorData.error?.code === 'invalid_request_error' || 
+            errorData.error?.type === 'invalid_request_error' ||
+            response.status === 400) {
+          console.error(`[generate-countermeasures] Invalid request error:`, errorData)
+          return NextResponse.json(
+            { error: errorData.error?.message || 'Invalid request. Please check your input and try again.' },
+            { status: 400 }
+          )
+        }
+        
         // Altro errore, non retry
-        throw new Error(errorData.error?.message || 'OpenAI API error')
+        lastError = errorData
+        break // Non provare altri modelli se è un errore diverso da model_not_found
       } catch (err) {
+        console.error(`[generate-countermeasures] Exception with model ${model}:`, err)
+        
+        // Se è un errore di tipo "client_error" da openaiHelper, non provare altri modelli
+        if (err.type === 'client_error' || err.message?.includes('Unable to process')) {
+          lastError = err
+          lastErrorDetails = { error: { message: err.message, type: err.type } }
+          break
+        }
+        
         if (err.message?.includes('model') || err.message?.includes('not found')) {
           lastError = err
           continue // Prova modello successivo
         }
-        throw err // Altro errore, propaga
+        
+        // Altro errore, propaga
+        lastError = err
+        break
       }
     }
 
     if (!response || !response.ok) {
+      const errorMessage = lastErrorDetails?.error?.message || 
+                          lastError?.message || 
+                          lastError?.error?.message ||
+                          'Unable to generate countermeasures. Please try again.'
+      
+      console.error('[generate-countermeasures] All models failed. Last error:', lastErrorDetails || lastError)
+      
       return NextResponse.json(
-        { error: lastError?.message || 'Unable to generate countermeasures. Please try again.' },
+        { error: errorMessage },
         { status: 500 }
       )
     }
