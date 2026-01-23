@@ -1,5 +1,11 @@
 # Audit flussi, endpoint e coerenza – 24 gen 2026
 
+**Ultimo aggiornamento**: 24 Gennaio 2026  
+**Commit di riferimento**: `652e146` (fix audit flussi/endpoint, update-match, dashboard, wizard, analyze-match)  
+**Stato**: ✅ Fix applicati e verificati; doc allineata al codice.
+
+---
+
 ## Flussi match (nome avversario, CRUD)
 
 ### 1. Wizard "Aggiungi partita" (`/match/new`)
@@ -78,5 +84,7 @@
 
 ## Riferimenti
 
-- `ROLLBACK_PLAN_INPUT_MANUALE.md`: rollback input manuale `opponent_name`.
-- `AUDIT_SICUREZZA_INPUT_MANUALE.md`: audit sicurezza input nome avversario.
+- **`ROLLBACK_PLAN_INPUT_MANUALE.md`** – Procedura rollback input manuale `opponent_name`.
+- **`AUDIT_SICUREZZA_INPUT_MANUALE.md`** – Audit sicurezza input nome avversario.
+- **`DOCUMENTAZIONE_MASTER_COMPLETA.md`** – Schema DB, API, flussi generali.
+- **`README.md`** – Panoramica progetto e link a tutta la documentazione.

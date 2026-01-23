@@ -67,18 +67,26 @@ lib/
 
 ## 🔌 Endpoint API
 
+**Formazione e giocatori**:
 - `POST /api/extract-formation` - Estrae formazione da screenshot
 - `POST /api/extract-player` - Estrae dati giocatore da screenshot
 - `POST /api/supabase/save-formation-layout` - Salva layout formazione
 - `POST /api/supabase/save-player` - Salva/aggiorna giocatore
 - `PATCH /api/supabase/assign-player-to-slot` - Assegna giocatore a slot
 
-**📚 Documentazione Master**: Vedi `DOCUMENTAZIONE_MASTER_COMPLETA.md` - Documentazione completa e aggiornata (Gennaio 2026)
+**Partite (match)**:
+- `POST /api/extract-match-data` - Estrae dati partita da screenshot (wizard + dettaglio)
+- `POST /api/supabase/save-match` - Salva partita (wizard; include `opponent_name`, sezioni)
+- `POST /api/supabase/update-match` - Aggiorna partita (sezioni, `ai_summary`, opp. `opponent_name`)
+- `DELETE /api/supabase/delete-match` - Elimina partita
+- `POST /api/analyze-match` - Genera riassunto AI bilingue (dettaglio partita)
 
-**Documenti Specializzati**:
-- `DOCUMENTAZIONE_GUIDA_INTERATTIVA.md` - Assistant Chat AI
-- `DOCUMENTAZIONE_SEZIONE_PARTITE.md` - Gestione partite
-- `DOCUMENTAZIONE_SEZIONE_ALLENATORE.md` - Gestione allenatori
+**📚 Documentazione Master**: `DOCUMENTAZIONE_MASTER_COMPLETA.md` – Documentazione completa (Gennaio 2026)
+
+**Documenti specializzati**:
+- `AUDIT_FLUSSI_ENDPOINT_2026.md` – Audit flussi match, endpoint, fix opponent_name (24 gen 2026)
+- `DOCUMENTAZIONE_GUIDA_INTERATTIVA.md` – Assistant Chat AI
+- `ROLLBACK_PLAN_INPUT_MANUALE.md` – Rollback input manuale nome avversario
 
 ## ⚙️ Environment Variables
 
@@ -109,20 +117,14 @@ Crea `.env.local` con le variabili d'ambiente (vedi `.env.example`).
 
 ### Documentazione Principale
 
-- **`DOCUMENTAZIONE_MASTER_COMPLETA.md`** - Documentazione completa e aggiornata (Gennaio 2026)
-  - Panoramica generale e architettura
-  - Struttura progetto cartella per cartella
-  - Database schema completo
-  - API endpoints dettagliati
-  - Pagine frontend e componenti
-  - Librerie e utilities
-  - Sicurezza, i18n, configurazione
-  - Flussi principali
+- **`DOCUMENTAZIONE_MASTER_COMPLETA.md`** – Documentazione completa (Gennaio 2026)
+  - Panoramica, architettura, struttura progetto, DB schema, API, pagine, librerie, sicurezza, i18n, flussi
 
-- **`DOCUMENTAZIONE_GUIDA_INTERATTIVA.md`** - Documentazione Assistant Chat AI
-  - Architettura e funzionalità
-  - Prompt engineering
-  - Flussi e integrazione
+- **`AUDIT_FLUSSI_ENDPOINT_2026.md`** – Audit flussi e endpoint (24 gen 2026)
+  - Flussi wizard/dashboard/dettaglio partita, endpoint match, fix applicati, coerenza auth/i18n
+
+- **`DOCUMENTAZIONE_GUIDA_INTERATTIVA.md`** – Assistant Chat AI
+  - Architettura, prompt engineering, flussi e integrazione
 
 ## 🔒 Sicurezza
 

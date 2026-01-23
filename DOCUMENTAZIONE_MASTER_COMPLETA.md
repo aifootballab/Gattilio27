@@ -1,8 +1,14 @@
 # 📚 Documentazione Master Completa - eFootball AI Coach
 
-**Data Aggiornamento**: 23 Gennaio 2026  
-**Versione**: 2.0.0  
-**Status**: ✅ **PRODUZIONE** - Sistema Completo e Funzionante
+**Data Aggiornamento**: 24 Gennaio 2026  
+**Versione**: 2.0.1  
+**Status**: ✅ **PRODUZIONE** – Sistema completo e funzionante
+
+**Aggiornamenti 24 gen 2026**:
+- Input manuale **nome avversario**: wizard (`/match/new`), modifica in dashboard, update via `POST /api/supabase/update-match` con `opponent_name`.
+- Fix `update-match`: `admin` prima del branch, rate limit per tutti i POST, validazione UUID `match_id`, uso `opponent_name` da body.
+- `opponent_name` in `matchData` per analyze-match e nel prompt AI (dettaglio partita).
+- **Audit**: vedi `AUDIT_FLUSSI_ENDPOINT_2026.md` per flussi, endpoint, fix e coerenza.
 
 ---
 
@@ -469,7 +475,7 @@ Tutte le API routes sono in `/app/api`. Ogni cartella rappresenta un endpoint.
 
 **Flusso Completo**:
 1. **Autenticazione**: Valida Bearer token
-2. **Rate Limiting**: Verifica limite richieste (30/minuto)
+2. **Rate Limiting**: Verifica limite richieste (20/minuto, cfr. `rateLimiter.js`)
 3. **Recupero Dati**:
    - Dati partita (`matchData` da `matches`)
    - Profilo utente (`user_profiles`)
@@ -494,6 +500,9 @@ Tutte le API routes sono in `/app/api`. Ogni cartella rappresenta un endpoint.
 - **Disposizione Reale**: Se `players_in_match` presente, usa posizioni reali per suggerimenti precisi
 - **Retrocompatibilità**: Supporta output vecchio (solo IT) normalizzandolo a bilingue
 - **Dati Parziali**: Funziona anche con dati parziali (warnings chiari, confidence score)
+- **Nome avversario**: Se `matchData.opponent_name` presente, incluso nel prompt per contesto (agg. 24 gen 2026)
+
+**Vedi anche**: `AUDIT_FLUSSI_ENDPOINT_2026.md` per flussi match, endpoint save/update/delete, validazione e fix.
 
 ---
 
@@ -736,12 +745,15 @@ const [currentPage, setCurrentPage] = useState('')
 
 **Scopo**: Sistema rate limiting in-memory per protezione API.
 
-**Configurazione**:
+**Configurazione** (da `lib/rateLimiter.js`):
 ```javascript
 const RATE_LIMIT_CONFIG = {
-  '/api/analyze-match': { maxRequests: 10, windowMs: 60000 },
-  '/api/assistant-chat': { maxRequests: 30, windowMs: 60000 },
-  // ... altri endpoint
+  '/api/analyze-match': { maxRequests: 20, windowMs: 60000 },
+  '/api/supabase/save-match': { maxRequests: 20, windowMs: 60000 },
+  '/api/supabase/update-match': { maxRequests: 30, windowMs: 60000 },
+  '/api/supabase/delete-match': { maxRequests: 5, windowMs: 60000 },
+  '/api/generate-countermeasures': { maxRequests: 5, windowMs: 60000 }
+  // assistant-chat: fallback se configurato
 }
 ```
 
@@ -1000,10 +1012,13 @@ USING (auth.uid() = user_id);
 
 ### **Rate Limiting**
 
-**Configurazione**:
-- `/api/analyze-match`: 10 richieste/minuto
-- `/api/assistant-chat`: 30 richieste/minuto
-- Altri endpoint: Configurabili in `rateLimiter.js`
+**Configurazione** (da `lib/rateLimiter.js`):
+- `/api/analyze-match`: 20 richieste/minuto
+- `/api/supabase/save-match`: 20 richieste/minuto
+- `/api/supabase/update-match`: 30 richieste/minuto
+- `/api/supabase/delete-match`: 5 richieste/minuto
+- `/api/generate-countermeasures`: 5 richieste/minuto
+- `/api/assistant-chat`: fallback se configurato (es. 30/min)
 
 **Implementazione**:
 - In-memory (per produzione, usare Redis)
