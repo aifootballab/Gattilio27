@@ -10,7 +10,7 @@ import { ArrowLeft, Upload, AlertCircle, CheckCircle2, RefreshCw, X, Camera, Cal
 // STEPS sarà definito dentro il componente per avere accesso a t()
 
 export default function MatchDetailPage() {
-  const { t } = useTranslation()
+  const { t, lang } = useTranslation()
   const router = useRouter()
   const params = useParams()
   const matchId = params?.id
@@ -549,6 +549,28 @@ export default function MatchDetailPage() {
             }
           }
 
+          // Helper per estrarre testo bilingue (supporta formato {it, en} e retrocompatibilità)
+          const getBilingualText = (text) => {
+            if (!text) return ''
+            if (typeof text === 'string') return text // Retrocompatibilità: testo semplice
+            if (typeof text === 'object' && text.it && text.en) {
+              // Formato bilingue: estrai lingua corrente
+              return text[lang] || text.it || text.en || ''
+            }
+            return String(text) // Fallback
+          }
+
+          // Helper per estrarre array bilingue
+          const getBilingualArray = (arr) => {
+            if (!arr) return []
+            if (Array.isArray(arr)) return arr // Retrocompatibilità: array semplice
+            if (typeof arr === 'object' && arr.it && arr.en) {
+              // Formato bilingue: estrai lingua corrente
+              return Array.isArray(arr[lang]) ? arr[lang] : (Array.isArray(arr.it) ? arr.it : [])
+            }
+            return []
+          }
+
           const getPriorityColor = (priority) => {
             switch (priority) {
               case 'high': return 'var(--neon-orange)'
@@ -593,39 +615,39 @@ export default function MatchDetailPage() {
                     <div>
                       {summaryData.analysis.match_overview && (
                         <div style={{ marginBottom: '16px', lineHeight: '1.7', fontSize: 'clamp(14px, 3vw, 15px)' }}>
-                          {summaryData.analysis.match_overview}
+                          {getBilingualText(summaryData.analysis.match_overview)}
                         </div>
                       )}
                       {summaryData.analysis.result_analysis && (
                         <div style={{ marginBottom: '16px', lineHeight: '1.7', fontSize: 'clamp(14px, 3vw, 15px)' }}>
-                          {summaryData.analysis.result_analysis}
+                          {getBilingualText(summaryData.analysis.result_analysis)}
                         </div>
                       )}
-                      {summaryData.analysis.key_highlights && summaryData.analysis.key_highlights.length > 0 && (
+                      {getBilingualArray(summaryData.analysis.key_highlights).length > 0 && (
                         <div style={{ marginBottom: '16px' }}>
                           <strong style={{ color: 'var(--neon-blue)' }}>{t('keyHighlights') || 'Punti Chiave'}:</strong>
                           <ul style={{ marginTop: '8px', paddingLeft: '20px' }}>
-                            {summaryData.analysis.key_highlights.map((highlight, idx) => (
+                            {getBilingualArray(summaryData.analysis.key_highlights).map((highlight, idx) => (
                               <li key={idx} style={{ marginBottom: '4px' }}>{highlight}</li>
                             ))}
                           </ul>
                         </div>
                       )}
-                      {summaryData.analysis.strengths && summaryData.analysis.strengths.length > 0 && (
+                      {getBilingualArray(summaryData.analysis.strengths).length > 0 && (
                         <div style={{ marginBottom: '16px' }}>
                           <strong style={{ color: 'var(--neon-orange)' }}>{t('strengths') || 'Punti di Forza'}:</strong>
                           <ul style={{ marginTop: '8px', paddingLeft: '20px' }}>
-                            {summaryData.analysis.strengths.map((strength, idx) => (
+                            {getBilingualArray(summaryData.analysis.strengths).map((strength, idx) => (
                               <li key={idx} style={{ marginBottom: '4px' }}>{strength}</li>
                             ))}
                           </ul>
                         </div>
                       )}
-                      {summaryData.analysis.weaknesses && summaryData.analysis.weaknesses.length > 0 && (
+                      {getBilingualArray(summaryData.analysis.weaknesses).length > 0 && (
                         <div>
                           <strong style={{ color: 'var(--neon-blue)' }}>{t('weaknesses') || 'Punti Deboli'}:</strong>
                           <ul style={{ marginTop: '8px', paddingLeft: '20px' }}>
-                            {summaryData.analysis.weaknesses.map((weakness, idx) => (
+                            {getBilingualArray(summaryData.analysis.weaknesses).map((weakness, idx) => (
                               <li key={idx} style={{ marginBottom: '4px' }}>{weakness}</li>
                             ))}
                           </ul>
@@ -676,7 +698,7 @@ export default function MatchDetailPage() {
                                   {player.player_name} - {t('rating') || 'Voto'}: {player.rating}
                                 </div>
                                 <div style={{ fontSize: 'clamp(13px, 3vw, 14px)', opacity: 0.9 }}>
-                                  {player.reason}
+                                  {getBilingualText(player.reason)}
                                 </div>
                               </div>
                             ))}
@@ -701,11 +723,11 @@ export default function MatchDetailPage() {
                                   {player.player_name} - {t('rating') || 'Voto'}: {player.rating}
                                 </div>
                                 <div style={{ fontSize: 'clamp(13px, 3vw, 14px)', opacity: 0.9, marginBottom: player.suggested_replacement ? '8px' : '0' }}>
-                                  {player.reason}
+                                  {getBilingualText(player.reason)}
                                 </div>
                                 {player.suggested_replacement && (
                                   <div style={{ fontSize: 'clamp(12px, 2.5vw, 13px)', opacity: 0.8, fontStyle: 'italic' }}>
-                                    💡 {t('suggestedReplacement') || 'Suggerimento'}: {player.suggested_replacement}
+                                    💡 {t('suggestedReplacement') || 'Suggerimento'}: {getBilingualText(player.suggested_replacement)}
                                   </div>
                                 )}
                               </div>
@@ -733,7 +755,7 @@ export default function MatchDetailPage() {
                                   {suggestion.player_name}
                                 </div>
                                 <div style={{ fontSize: 'clamp(13px, 3vw, 14px)', opacity: 0.9 }}>
-                                  {suggestion.reason}
+                                  {getBilingualText(suggestion.reason)}
                                 </div>
                               </div>
                             ))}
@@ -770,18 +792,18 @@ export default function MatchDetailPage() {
                       {summaryData.tactical_analysis.what_worked && (
                         <div style={{ marginBottom: '16px', padding: '12px', background: 'rgba(34, 197, 94, 0.1)', borderRadius: '8px' }}>
                           <strong style={{ color: 'var(--neon-orange)' }}>{t('whatWorked') || 'Cosa ha Funzionato'}:</strong>
-                          <div style={{ marginTop: '8px', lineHeight: '1.6' }}>{summaryData.tactical_analysis.what_worked}</div>
+                          <div style={{ marginTop: '8px', lineHeight: '1.6' }}>{getBilingualText(summaryData.tactical_analysis.what_worked)}</div>
                         </div>
                       )}
                       {summaryData.tactical_analysis.what_didnt_work && (
                         <div style={{ marginBottom: '16px', padding: '12px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '8px' }}>
                           <strong style={{ color: 'var(--neon-blue)' }}>{t('whatDidntWork') || 'Cosa non ha Funzionato'}:</strong>
-                          <div style={{ marginTop: '8px', lineHeight: '1.6' }}>{summaryData.tactical_analysis.what_didnt_work}</div>
+                          <div style={{ marginTop: '8px', lineHeight: '1.6' }}>{getBilingualText(summaryData.tactical_analysis.what_didnt_work)}</div>
                         </div>
                       )}
                       {summaryData.tactical_analysis.formation_effectiveness && (
                         <div style={{ marginBottom: '16px', lineHeight: '1.6' }}>
-                          {summaryData.tactical_analysis.formation_effectiveness}
+                          {getBilingualText(summaryData.tactical_analysis.formation_effectiveness)}
                         </div>
                       )}
                       {summaryData.tactical_analysis.suggestions && summaryData.tactical_analysis.suggestions.length > 0 && (
@@ -801,10 +823,10 @@ export default function MatchDetailPage() {
                                   </span>
                                 </div>
                                 <div style={{ fontWeight: 600, marginBottom: '4px' }}>
-                                  {suggestion.suggestion}
+                                  {getBilingualText(suggestion.suggestion)}
                                 </div>
                                 <div style={{ fontSize: 'clamp(13px, 3vw, 14px)', opacity: 0.9 }}>
-                                  {suggestion.reason}
+                                  {getBilingualText(suggestion.reason)}
                                 </div>
                               </div>
                             ))}
@@ -851,13 +873,13 @@ export default function MatchDetailPage() {
                             </span>
                           </div>
                           <div style={{ fontWeight: 600, marginBottom: '8px', fontSize: 'clamp(14px, 3vw, 16px)' }}>
-                            {rec.title}
+                            {getBilingualText(rec.title)}
                           </div>
                           <div style={{ fontSize: 'clamp(13px, 3vw, 14px)', lineHeight: '1.6', opacity: 0.9, marginBottom: '8px' }}>
-                            {rec.description}
+                            {getBilingualText(rec.description)}
                           </div>
                           <div style={{ fontSize: 'clamp(12px, 2.5vw, 13px)', opacity: 0.8, fontStyle: 'italic' }}>
-                            💡 {rec.reason}
+                            💡 {getBilingualText(rec.reason)}
                           </div>
                         </div>
                       ))}
@@ -867,23 +889,53 @@ export default function MatchDetailPage() {
               )}
 
               {/* Warnings */}
-              {summaryData.warnings && summaryData.warnings.length > 0 && (
+              {(() => {
+                // Gestisci warnings bilingue (può essere {it: [], en: []} o array semplice)
+                const warningsArray = Array.isArray(summaryData.warnings) 
+                  ? summaryData.warnings 
+                  : (summaryData.warnings && typeof summaryData.warnings === 'object' && summaryData.warnings[lang])
+                    ? summaryData.warnings[lang]
+                    : (summaryData.warnings && typeof summaryData.warnings === 'object' && summaryData.warnings.it)
+                      ? summaryData.warnings.it
+                      : []
+                
+                return warningsArray.length > 0 ? (
+                  <div style={{
+                    padding: 'clamp(12px, 3vw, 16px)',
+                    background: 'rgba(255, 165, 0, 0.1)',
+                    border: '1px solid rgba(255, 165, 0, 0.3)',
+                    borderRadius: '8px',
+                    marginBottom: '24px'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontWeight: 600 }}>
+                      <AlertCircle size={18} color="var(--neon-orange)" />
+                      {t('warnings') || 'Avvertimenti'}
+                    </div>
+                    <ul style={{ marginLeft: '24px' }}>
+                      {warningsArray.map((warning, idx) => (
+                        <li key={idx} style={{ marginBottom: '4px', fontSize: 'clamp(13px, 3vw, 14px)' }}>{warning}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null
+              })()}
+
+              {/* Historical Insights */}
+              {summaryData.historical_insights && getBilingualText(summaryData.historical_insights) && (
                 <div style={{
                   padding: 'clamp(12px, 3vw, 16px)',
-                  background: 'rgba(255, 165, 0, 0.1)',
-                  border: '1px solid rgba(255, 165, 0, 0.3)',
+                  background: 'rgba(0, 212, 255, 0.1)',
+                  border: '1px solid rgba(0, 212, 255, 0.3)',
                   borderRadius: '8px',
                   marginBottom: '24px'
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontWeight: 600 }}>
-                    <AlertCircle size={18} color="var(--neon-orange)" />
-                    {t('warnings') || 'Avvertimenti'}
+                    <Trophy size={18} color="var(--neon-blue)" />
+                    {t('historicalInsights') || 'Insight Storico'}
                   </div>
-                  <ul style={{ marginLeft: '24px' }}>
-                    {summaryData.warnings.map((warning, idx) => (
-                      <li key={idx} style={{ marginBottom: '4px', fontSize: 'clamp(13px, 3vw, 14px)' }}>{warning}</li>
-                    ))}
-                  </ul>
+                  <div style={{ fontSize: 'clamp(13px, 3vw, 14px)', lineHeight: '1.6' }}>
+                    {getBilingualText(summaryData.historical_insights)}
+                  </div>
                 </div>
               )}
 
