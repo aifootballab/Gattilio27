@@ -313,9 +313,16 @@ Usa il nome del cliente quando possibile.
     let response
     try {
       response = await callOpenAIWithRetry(apiKey, requestBody, 'assistant-chat')
+      
+      // callOpenAIWithRetry può lanciare errore invece di restituire Response
+      if (!response || typeof response.ok === 'undefined') {
+        throw new Error('Invalid response from OpenAI API')
+      }
     } catch (retryError) {
       console.error('[assistant-chat] callOpenAIWithRetry error:', retryError)
-      throw new Error(retryError.message || 'Error calling OpenAI API')
+      // Se è un oggetto errore con message, usa quello
+      const errorMsg = retryError?.message || retryError?.type || 'Error calling OpenAI API'
+      throw new Error(errorMsg)
     }
     
     // Verifica che response sia valida
