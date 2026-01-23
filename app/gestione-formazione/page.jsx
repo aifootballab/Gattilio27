@@ -34,130 +34,131 @@ export default function GestioneFormazionePage() {
   const [tacticalSettings, setTacticalSettings] = React.useState(null)
   const [savingTacticalSettings, setSavingTacticalSettings] = React.useState(false)
 
-  // Carica layout e giocatori
-  React.useEffect(() => {
+  // Funzione fetchData riutilizzabile (estratta da useEffect per essere chiamabile)
+  const fetchData = React.useCallback(async () => {
     if (!supabase) {
       router.push('/login')
       return
     }
 
-    const fetchData = async () => {
-      setLoading(true)
-      setError(null)
+    setLoading(true)
+    setError(null)
 
-      try {
-        const { data: session, error: sessionError } = await supabase.auth.getSession()
-        
-        if (sessionError || !session?.session) {
-          setError('Sessione scaduta. Reindirizzamento al login...')
-          setTimeout(() => router.push('/login'), 1000)
-          return
-        }
-
-        // 1. Carica layout formazione
-        const { data: layoutData, error: layoutError } = await supabase
-          .from('formation_layout')
-          .select('formation, slot_positions')
-          .maybeSingle()
-
-        if (layoutError && layoutError.code !== 'PGRST116') { // PGRST116 = no rows
-          throw new Error(layoutError.message || 'Errore caricamento layout')
-        }
-
-        if (layoutData) {
-          setLayout({
-            formation: layoutData.formation,
-            slot_positions: layoutData.slot_positions || {}
-          })
-        }
-
-        // 2. Carica stili di gioco (per lookup)
-        const { data: playingStyles, error: stylesError } = await supabase
-          .from('playing_styles')
-          .select('id, name')
-        
-        const stylesLookup = {}
-        if (playingStyles && !stylesError) {
-          playingStyles.forEach(style => {
-            stylesLookup[style.id] = style.name
-          })
-        }
-
-        // 3. Carica giocatori
-        const { data: players, error: playersError } = await supabase
-          .from('players')
-          .select('*')
-          .order('created_at', { ascending: false })
-
-        if (playersError) {
-          throw new Error(playersError.message || 'Errore caricamento giocatori')
-        }
-
-        const playersArray = (players || [])
-          .filter(p => p && p.id && p.player_name)
-          .map(p => ({
-            id: p.id,
-            player_name: String(p.player_name || 'Unknown').trim(),
-            position: p.position ? String(p.position).trim() : null,
-            overall_rating: p.overall_rating != null ? Number(p.overall_rating) : null,
-            team: p.team ? String(p.team).trim() : null,
-            slot_index: p.slot_index != null ? Number(p.slot_index) : null,
-            // Dati aggiuntivi per visualizzazione
-            age: p.age != null ? Number(p.age) : null,
-            club_name: p.club_name ? String(p.club_name).trim() : null,
-            nationality: p.nationality ? String(p.nationality).trim() : null,
-            role: p.role ? String(p.role).trim() : null,
-            playing_style_id: p.playing_style_id || null,
-            playing_style_name: p.playing_style_id && stylesLookup[p.playing_style_id] 
-              ? stylesLookup[p.playing_style_id] 
-              : null,
-            // Includi tutti i dati estratti per visualizzazione nel modal
-            base_stats: p.base_stats || null,
-            skills: p.skills || null,
-            com_skills: p.com_skills || null,
-            available_boosters: p.available_boosters || null,
-            photo_slots: p.photo_slots || null
-          }))
-
-        const titolariArray = playersArray
-          .filter(p => p.slot_index !== null && p.slot_index >= 0 && p.slot_index <= 10)
-          .sort((a, b) => (a.slot_index || 0) - (b.slot_index || 0))
-        
-        const riserveArray = playersArray
-          .filter(p => p.slot_index === null)
-          .sort((a, b) => (a.player_name || '').localeCompare(b.player_name || ''))
-
-        setTitolari(titolariArray)
-        setRiserve(riserveArray)
-
-        // 4. Carica allenatore attivo
-        const { data: coachData, error: coachError } = await supabase
-          .from('coaches')
-          .select('*')
-          .eq('is_active', true)
-          .maybeSingle()
-
-        if (!coachError && coachData) {
-          setActiveCoach(coachData)
-        }
-
-        // 5. Carica impostazioni tattiche
-        const { data: tacticalSettingsData, error: tacticalError } = await supabase
-          .from('team_tactical_settings')
-          .select('*')
-          .maybeSingle()
-
-        if (!tacticalError && tacticalSettingsData) {
-          setTacticalSettings(tacticalSettingsData)
-        }
-      } catch (err) {
-        console.error('[GestioneFormazione] Error:', err)
-        setError(err.message || 'Errore caricamento dati')
-      } finally {
-        setLoading(false)
+    try {
+      const { data: session, error: sessionError } = await supabase.auth.getSession()
+      
+      if (sessionError || !session?.session) {
+        setError('Sessione scaduta. Reindirizzamento al login...')
+        setTimeout(() => router.push('/login'), 1000)
+        return
       }
-    }
 
+      // 1. Carica layout formazione
+      const { data: layoutData, error: layoutError } = await supabase
+        .from('formation_layout')
+        .select('formation, slot_positions')
+        .maybeSingle()
+
+      if (layoutError && layoutError.code !== 'PGRST116') { // PGRST116 = no rows
+        throw new Error(layoutError.message || 'Errore caricamento layout')
+      }
+
+      if (layoutData) {
+        setLayout({
+          formation: layoutData.formation,
+          slot_positions: layoutData.slot_positions || {}
+        })
+      }
+
+      // 2. Carica stili di gioco (per lookup)
+      const { data: playingStyles, error: stylesError } = await supabase
+        .from('playing_styles')
+        .select('id, name')
+      
+      const stylesLookup = {}
+      if (playingStyles && !stylesError) {
+        playingStyles.forEach(style => {
+          stylesLookup[style.id] = style.name
+        })
+      }
+
+      // 3. Carica giocatori
+      const { data: players, error: playersError } = await supabase
+        .from('players')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+      if (playersError) {
+        throw new Error(playersError.message || 'Errore caricamento giocatori')
+      }
+
+      const playersArray = (players || [])
+        .filter(p => p && p.id && p.player_name)
+        .map(p => ({
+          id: p.id,
+          player_name: String(p.player_name || 'Unknown').trim(),
+          position: p.position ? String(p.position).trim() : null,
+          overall_rating: p.overall_rating != null ? Number(p.overall_rating) : null,
+          team: p.team ? String(p.team).trim() : null,
+          slot_index: p.slot_index != null ? Number(p.slot_index) : null,
+          // Dati aggiuntivi per visualizzazione
+          age: p.age != null ? Number(p.age) : null,
+          club_name: p.club_name ? String(p.club_name).trim() : null,
+          nationality: p.nationality ? String(p.nationality).trim() : null,
+          role: p.role ? String(p.role).trim() : null,
+          playing_style_id: p.playing_style_id || null,
+          playing_style_name: p.playing_style_id && stylesLookup[p.playing_style_id] 
+            ? stylesLookup[p.playing_style_id] 
+            : null,
+          // Includi tutti i dati estratti per visualizzazione nel modal
+          base_stats: p.base_stats || null,
+          skills: p.skills || null,
+          com_skills: p.com_skills || null,
+          available_boosters: p.available_boosters || null,
+          photo_slots: p.photo_slots || null
+        }))
+
+      const titolariArray = playersArray
+        .filter(p => p.slot_index !== null && p.slot_index >= 0 && p.slot_index <= 10)
+        .sort((a, b) => (a.slot_index || 0) - (b.slot_index || 0))
+      
+      const riserveArray = playersArray
+        .filter(p => p.slot_index === null)
+        .sort((a, b) => (a.player_name || '').localeCompare(b.player_name || ''))
+
+      setTitolari(titolariArray)
+      setRiserve(riserveArray)
+
+      // 4. Carica allenatore attivo
+      const { data: coachData, error: coachError } = await supabase
+        .from('coaches')
+        .select('*')
+        .eq('is_active', true)
+        .maybeSingle()
+
+      if (!coachError && coachData) {
+        setActiveCoach(coachData)
+      }
+
+      // 5. Carica impostazioni tattiche
+      const { data: tacticalSettingsData, error: tacticalError } = await supabase
+        .from('team_tactical_settings')
+        .select('*')
+        .maybeSingle()
+
+      if (!tacticalError && tacticalSettingsData) {
+        setTacticalSettings(tacticalSettingsData)
+      }
+    } catch (err) {
+      console.error('[GestioneFormazione] Error:', err)
+      setError(err.message || 'Errore caricamento dati')
+    } finally {
+      setLoading(false)
+    }
+  }, [supabase, router])
+
+  // Carica layout e giocatori al mount
+  React.useEffect(() => {
     fetchData()
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -171,7 +172,7 @@ export default function GestioneFormazionePage() {
     return () => {
       subscription?.unsubscribe()
     }
-  }, [router])
+  }, [router, fetchData])
 
   // Funzione helper per mostrare toast (definita prima delle funzioni che la usano)
   const showToast = React.useCallback((message, type = 'success') => {
@@ -300,8 +301,12 @@ export default function GestioneFormazionePage() {
       // Messaggio di successo
       showToast(t('playerAssignedSuccessfully'), 'success')
       
-      // Ricarica dati
-      setTimeout(() => window.location.reload(), 500)
+      // Reset stati UI
+      setShowAssignModal(false)
+      setSelectedSlot(null)
+      
+      // Ricarica dati senza reload pagina
+      await fetchData()
     } catch (err) {
       console.error('[GestioneFormazione] Assign error:', err)
       setError(err.message || 'Errore assegnazione giocatore')
@@ -378,8 +383,11 @@ export default function GestioneFormazionePage() {
       // Messaggio di successo
       showToast(t('playerMovedToReserves'), 'success')
       
-      // Ricarica dati
-      setTimeout(() => window.location.reload(), 500)
+      // Reset stati UI
+      setSelectedSlot(null)
+      
+      // Ricarica dati senza reload pagina
+      await fetchData()
     } catch (err) {
       console.error('[GestioneFormazione] Remove error:', err)
       setError(err.message || 'Errore rimozione giocatore')
@@ -428,8 +436,11 @@ export default function GestioneFormazionePage() {
       // Messaggio di successo
       showToast(t('playerDeletedSuccessfully'), 'success')
 
-      // Ricarica dati
-      setTimeout(() => window.location.reload(), 500)
+      // Reset stati UI
+      setSelectedReserve(null)
+      
+      // Ricarica dati senza reload pagina
+      await fetchData()
     } catch (err) {
       console.error('[GestioneFormazione] Delete player error:', err)
       setError(err.message || 'Errore eliminazione giocatore')
@@ -471,8 +482,11 @@ export default function GestioneFormazionePage() {
         throw new Error(data.error || 'Errore eliminazione')
       }
 
-      // Ricarica dati
-      window.location.reload()
+      // Reset stati UI
+      setSelectedReserve(null)
+      
+      // Ricarica dati senza reload pagina
+      await fetchData()
     } catch (err) {
       console.error('[GestioneFormazione] Delete reserve error:', err)
       setError(err.message || 'Errore eliminazione giocatore')
@@ -722,8 +736,8 @@ export default function GestioneFormazionePage() {
       // Messaggio di successo
       showToast(t('tacticalSettingsSaved'), 'success')
       
-      // Ricarica per aggiornare UI (stesso pattern esistente)
-      setTimeout(() => window.location.reload(), 500)
+      // Ricarica dati senza reload pagina (solo per aggiornare eventuali dipendenze)
+      await fetchData()
     } catch (err) {
       console.error('[GestioneFormazione] Save tactical settings error:', err)
       setError(err.message || 'Errore salvataggio impostazioni tattiche')
@@ -865,8 +879,9 @@ export default function GestioneFormazionePage() {
       }
 
       setShowFormationSelectorModal(false)
-      // Ricarica dati
-      window.location.reload()
+      
+      // Ricarica dati senza reload pagina
+      await fetchData()
     } catch (err) {
       console.error('[GestioneFormazione] Manual formation error:', err)
       setError(err.message || 'Errore salvataggio formazione')
@@ -1080,8 +1095,9 @@ export default function GestioneFormazionePage() {
 
       setShowUploadReserveModal(false)
       setUploadReserveImages([])
-      // Ricarica dati
-      window.location.reload()
+      
+      // Ricarica dati senza reload pagina
+      await fetchData()
     } catch (err) {
       console.error('[GestioneFormazione] Upload reserve error:', err)
       setError(err.message || 'Errore caricamento riserva')
