@@ -23,7 +23,8 @@ import {
   ChevronUp,
   Trash2,
   User,
-  Shield
+  Shield,
+  BookOpen
 } from 'lucide-react'
 
 export default function DashboardPage() {
@@ -403,6 +404,35 @@ export default function DashboardPage() {
               <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <FileImage size={18} />
                 {t('addMatch')}
+              </span>
+              <ArrowRight size={18} />
+            </button>
+            <button
+              onClick={() => router.push('/guida')}
+              className="btn"
+              style={{ 
+                width: '100%', 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                padding: '12px 16px',
+                background: 'rgba(168, 85, 247, 0.1)',
+                borderColor: 'rgba(168, 85, 247, 0.3)',
+                color: 'var(--neon-purple)',
+                marginTop: '10px'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(168, 85, 247, 0.15)'
+                e.currentTarget.style.boxShadow = 'var(--glow-purple)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(168, 85, 247, 0.1)'
+                e.currentTarget.style.boxShadow = 'none'
+              }}
+            >
+              <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <BookOpen size={18} />
+                {t('guideLink') || 'Guida Completa'}
               </span>
               <ArrowRight size={18} />
             </button>
