@@ -85,7 +85,7 @@ Supabase Admin (Service Role) → Scrittura database
 - **Frontend**: Next.js 14 (App Router), React 18
 - **Backend**: Next.js API Routes (Node.js)
 - **Database**: Supabase (PostgreSQL + Auth)
-- **AI**: OpenAI GPT-4 Vision (estrazione dati)
+- **AI**: OpenAI GPT-4o (estrazione dati da screenshot)
 - **Deploy**: Vercel
 - **Icons**: Lucide React
 - **Styling**: CSS-in-JS (inline styles)

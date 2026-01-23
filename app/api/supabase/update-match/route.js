@@ -51,7 +51,8 @@ function calculateMissingPhotos(matchData) {
  */
 function calculateDataCompleteness(matchData) {
   const missing = calculateMissingPhotos(matchData)
-  return missing.length <= 1 ? 'complete' : 'partial'
+  // Considera "complete" solo se tutte le 5 sezioni hanno dati (0 mancanti)
+  return missing.length === 0 ? 'complete' : 'partial'
 }
 
 /**

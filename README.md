@@ -20,7 +20,7 @@ Web app per coaching eFootball con estrazione dati da screenshot e gestione rosa
 - **Frontend**: Next.js 14 (App Router), React 18
 - **Backend**: Next.js API Routes
 - **Database**: Supabase (PostgreSQL + Auth)
-- **AI**: OpenAI GPT-4 Vision (estrazione dati da screenshot)
+- **AI**: OpenAI GPT-4o (estrazione dati da screenshot)
 - **Deploy**: Vercel
 - **Icons**: Lucide React
 
@@ -74,6 +74,8 @@ lib/
 - `PATCH /api/supabase/assign-player-to-slot` - Assegna giocatore a slot
 
 **Documentazione Completa**: Vedi `DOCUMENTAZIONE_COMPLETA.md`
+
+**Stato Implementazione**: Vedi `STATO_IMPLEMENTAZIONE_COMPLETO.md` per dettagli su cosa è implementato e cosa è pianificato
 
 ## ⚙️ Environment Variables
 
