@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { validateToken, extractBearerToken } from '../../../lib/authHelper'
 import { callOpenAIWithRetry } from '../../../lib/openaiHelper'
+import { checkRateLimit, RATE_LIMIT_CONFIG } from '../../../lib/rateLimiter'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
