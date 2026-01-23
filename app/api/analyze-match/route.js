@@ -463,10 +463,12 @@ Suggerisci di caricare le foto mancanti per un'analisi più precisa.`
     opponentFormationText = `\nFORMAZIONE AVVERSARIA: Non disponibile\n`
   }
   
-  // Identifica squadra cliente
+  // Identifica squadra cliente e avversario
   const clientTeamName = userProfile?.team_name || matchData.client_team_name || null
   const clientTeamText = clientTeamName ? `\nSQUADRA CLIENTE: ${clientTeamName}\n` : `\nSQUADRA CLIENTE: Identifica quale squadra è quella del cliente confrontando i nomi squadra nei dati match.\n`
-  
+  const opponentName = matchData.opponent_name && typeof matchData.opponent_name === 'string' ? String(matchData.opponent_name).trim() : null
+  const opponentNameText = opponentName ? `\nAVVERSARIO: ${opponentName}\n` : ''
+
   const userName = userProfile?.first_name || null
   const greeting = userName ? ` per ${userName}` : ''
   
@@ -474,7 +476,7 @@ Suggerisci di caricare le foto mancanti per un'analisi più precisa.`
 
 ${hasResult ? `RISULTATO: ${matchData.result}` : 'RISULTATO: Non disponibile'}
 
-${userContext}${clientTeamText}${rosterText}${playersInMatchText}${opponentFormationText}${historyAnalysisText}DATI MATCH DISPONIBILI:
+${userContext}${clientTeamText}${opponentNameText}${rosterText}${playersInMatchText}${opponentFormationText}${historyAnalysisText}DATI MATCH DISPONIBILI:
 ${availableDataText}
 ${missingText}
 ${conservativeMode}${personalizationInstructions}
@@ -707,18 +709,24 @@ export async function POST(req) {
     
     // Sanitizzazione prompt: limita lunghezza campi stringa
     const sanitizedMatchData = {
-      result: matchData.result && typeof matchData.result === 'string' 
-        ? matchData.result.substring(0, 50) // Max 50 caratteri per risultato
+      result: matchData.result && typeof matchData.result === 'string'
+        ? matchData.result.substring(0, 50)
         : matchData.result,
+      opponent_name: matchData.opponent_name && typeof matchData.opponent_name === 'string'
+        ? matchData.opponent_name.substring(0, 255).trim()
+        : null,
+      client_team_name: matchData.client_team_name && typeof matchData.client_team_name === 'string'
+        ? matchData.client_team_name.substring(0, 255).trim()
+        : null,
       player_ratings: matchData.player_ratings,
       team_stats: matchData.team_stats,
       attack_areas: matchData.attack_areas,
       ball_recovery_zones: matchData.ball_recovery_zones,
       formation_played: matchData.formation_played && typeof matchData.formation_played === 'string'
-        ? matchData.formation_played.substring(0, 100) // Max 100 caratteri
+        ? matchData.formation_played.substring(0, 100)
         : matchData.formation_played,
       playing_style_played: matchData.playing_style_played && typeof matchData.playing_style_played === 'string'
-        ? matchData.playing_style_played.substring(0, 100) // Max 100 caratteri
+        ? matchData.playing_style_played.substring(0, 100)
         : matchData.playing_style_played,
       team_strength: matchData.team_strength
     }

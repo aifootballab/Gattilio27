@@ -42,6 +42,9 @@ export default function DashboardPage() {
   const [recentMatches, setRecentMatches] = React.useState([])
   const [matchesExpanded, setMatchesExpanded] = React.useState(false)
   const [deletingMatchId, setDeletingMatchId] = React.useState(null)
+  const [editingOpponentId, setEditingOpponentId] = React.useState(null)
+  const [editingOpponentName, setEditingOpponentName] = React.useState('')
+  const [savingOpponentName, setSavingOpponentName] = React.useState(false)
 
   React.useEffect(() => {
     if (!supabase) {
@@ -185,6 +188,56 @@ export default function DashboardPage() {
       setError(err.message || t('deleteMatchError'))
     } finally {
       setDeletingMatchId(null)
+    }
+  }
+
+  const handleSaveOpponentName = async (matchId, e) => {
+    e.stopPropagation() // Evita click sulla card
+
+    if (!editingOpponentName.trim()) {
+      setEditingOpponentId(null)
+      return
+    }
+
+    setSavingOpponentName(true)
+    setError(null)
+    try {
+      const { data: session } = await supabase.auth.getSession()
+      if (!session?.session?.access_token) {
+        throw new Error(t('sessionExpired'))
+      }
+
+      const token = session.session.access_token
+
+      const updateRes = await fetch(`/api/supabase/update-match`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          match_id: matchId,
+          opponent_name: editingOpponentName.trim()
+        })
+      })
+
+      const errorData = await updateRes.json().catch(() => ({}))
+      if (!updateRes.ok) {
+        throw new Error(errorData.error || t('updateMatchError'))
+      }
+
+      setRecentMatches(prev => prev.map(m =>
+        m.id === matchId
+          ? { ...m, opponent_name: editingOpponentName.trim() }
+          : m
+      ))
+      setEditingOpponentId(null)
+      setEditingOpponentName('')
+    } catch (err) {
+      console.error('[Dashboard] Error saving opponent name:', err)
+      setError(err.message || t('updateMatchError'))
+    } finally {
+      setSavingOpponentName(false)
     }
   }
 
@@ -568,7 +621,93 @@ export default function DashboardPage() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
                       <div style={{ flex: 1, minWidth: '200px' }}>
                         <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--neon-orange)', marginBottom: '4px' }}>
-                          {displayOpponent}
+                          {editingOpponentId === match.id ? (
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                              <input
+                                type="text"
+                                value={editingOpponentName}
+                                onChange={(e) => setEditingOpponentName(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    handleSaveOpponentName(match.id, e)
+                                  } else if (e.key === 'Escape') {
+                                    setEditingOpponentId(null)
+                                    setEditingOpponentName('')
+                                  }
+                                }}
+                                autoFocus
+                                maxLength={255}
+                                style={{
+                                  flex: 1,
+                                  padding: '6px 10px',
+                                  background: 'rgba(255, 165, 0, 0.2)',
+                                  border: '1px solid rgba(255, 165, 0, 0.5)',
+                                  borderRadius: '6px',
+                                  color: '#ffa500',
+                                  fontSize: '14px',
+                                  outline: 'none'
+                                }}
+                                disabled={savingOpponentName}
+                              />
+                              <button
+                                onClick={(e) => handleSaveOpponentName(match.id, e)}
+                                disabled={savingOpponentName}
+                                style={{
+                                  padding: '6px 10px',
+                                  background: 'rgba(34, 197, 94, 0.2)',
+                                  border: '1px solid rgba(34, 197, 94, 0.5)',
+                                  borderRadius: '6px',
+                                  color: '#86efac',
+                                  cursor: savingOpponentName ? 'not-allowed' : 'pointer',
+                                  fontSize: '12px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center'
+                                }}
+                              >
+                                {savingOpponentName ? '...' : '✓'}
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setEditingOpponentId(null)
+                                  setEditingOpponentName('')
+                                }}
+                                style={{
+                                  padding: '6px 10px',
+                                  background: 'rgba(239, 68, 68, 0.2)',
+                                  border: '1px solid rgba(239, 68, 68, 0.5)',
+                                  borderRadius: '6px',
+                                  color: '#fca5a5',
+                                  cursor: 'pointer',
+                                  fontSize: '12px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center'
+                                }}
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ) : (
+                            <div 
+                              style={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: '8px',
+                                cursor: 'pointer'
+                              }}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setEditingOpponentId(match.id)
+                                setEditingOpponentName(match.opponent_name || '')
+                              }}
+                              title={t('clickToEditOpponentName')}
+                            >
+                              <span>{displayOpponent}</span>
+                              <span style={{ fontSize: '12px', opacity: 0.6 }}>✏️</span>
+                            </div>
+                          )}
                         </div>
                         <div style={{ fontSize: '14px', opacity: 0.8, marginBottom: '4px' }}>
                           {dateStr} {timeStr && `• ${timeStr}`}

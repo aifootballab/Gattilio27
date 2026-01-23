@@ -151,13 +151,10 @@ export async function POST(req) {
     }
 
     const userId = userData.user.id
-    const { match_id, section, data, result } = await req.json()
+    const body = await req.json()
+    const { match_id, section, data, result, opponent_name } = body
 
-    if (!match_id || !section || !data) {
-      return NextResponse.json({ error: 'match_id, section, and data are required' }, { status: 400 })
-    }
-
-    // Rate limiting
+    // Rate limiting (tutti i POST a update-match, inclusi opponent_name)
     const rateLimitConfig = RATE_LIMIT_CONFIG['/api/supabase/update-match']
     const rateLimit = await checkRateLimit(
       userId,
@@ -165,14 +162,10 @@ export async function POST(req) {
       rateLimitConfig.maxRequests,
       rateLimitConfig.windowMs
     )
-    
     if (!rateLimit.allowed) {
       return NextResponse.json(
-        { 
-          error: 'Rate limit exceeded. Please try again later.',
-          resetAt: rateLimit.resetAt
-        },
-        { 
+        { error: 'Rate limit exceeded. Please try again later.', resetAt: rateLimit.resetAt },
+        {
           status: 429,
           headers: {
             'X-RateLimit-Limit': rateLimitConfig.maxRequests.toString(),
@@ -186,6 +179,52 @@ export async function POST(req) {
     const admin = createClient(supabaseUrl, serviceKey, {
       auth: { autoRefreshToken: false, persistSession: false }
     })
+
+    const MAX_TEXT_LENGTH = 255
+    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+    // Gestione speciale per opponent_name diretto (update senza sezione)
+    if (opponent_name !== undefined) {
+      if (!match_id) {
+        return NextResponse.json({ error: 'match_id is required for opponent_name update' }, { status: 400 })
+      }
+      if (!UUID_REGEX.test(match_id)) {
+        return NextResponse.json({ error: 'Invalid match_id format' }, { status: 400 })
+      }
+      const opponentName = toText(opponent_name)
+      if (opponentName && opponentName.length > MAX_TEXT_LENGTH) {
+        return NextResponse.json(
+          { error: `opponent_name exceeds maximum length (${MAX_TEXT_LENGTH} characters)` },
+          { status: 400 }
+        )
+      }
+      const { data: updatedMatch, error: updateError } = await admin
+        .from('matches')
+        .update({
+          opponent_name: opponentName || null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', match_id)
+        .eq('user_id', userId)
+        .select()
+        .single()
+      if (updateError) {
+        console.error('[update-match] Supabase update error for opponent_name:', updateError)
+        return NextResponse.json(
+          { error: updateError.message || 'Error updating opponent name' },
+          { status: 500 }
+        )
+      }
+      return NextResponse.json({ success: true, match: updatedMatch })
+    }
+
+    // Validazione per update normale (con section)
+    if (!match_id || !section || !data) {
+      return NextResponse.json({ error: 'match_id, section, and data are required' }, { status: 400 })
+    }
+    if (!UUID_REGEX.test(match_id)) {
+      return NextResponse.json({ error: 'Invalid match_id format' }, { status: 400 })
+    }
 
     // 1. Recupera match esistente
     const { data: existingMatch, error: fetchError } = await admin

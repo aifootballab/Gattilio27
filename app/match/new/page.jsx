@@ -32,6 +32,7 @@ export default function NewMatchPage() {
   const [success, setSuccess] = React.useState(false)
   const [mounted, setMounted] = React.useState(false)
   const [showSummary, setShowSummary] = React.useState(false)
+  const [opponentName, setOpponentName] = React.useState('')
 
   // Carica progresso salvato al mount
   React.useEffect(() => {
@@ -42,6 +43,9 @@ export default function NewMatchPage() {
         const parsed = JSON.parse(saved)
         setStepData(parsed.stepData || {})
         setStepImages(parsed.stepImages || {})
+        if (parsed.opponentName) {
+          setOpponentName(parsed.opponentName)
+        }
         // Trova primo step senza dati
         const firstEmptyStep = STEPS.findIndex(step => !parsed.stepData?.[step.id])
         if (firstEmptyStep >= 0) {
@@ -53,24 +57,25 @@ export default function NewMatchPage() {
     }
   }, [STEPS])
 
-  // Salva progresso in localStorage
+  // Salva progresso in localStorage (include opponentName per persistenza)
   const saveProgress = React.useCallback(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
         stepData,
         stepImages,
+        opponentName: opponentName || undefined,
         timestamp: Date.now()
       }))
     } catch (err) {
       console.warn('[NewMatch] Error saving progress:', err)
     }
-  }, [stepData, stepImages])
+  }, [stepData, stepImages, opponentName])
 
   React.useEffect(() => {
     if (mounted) {
       saveProgress()
     }
-  }, [stepData, stepImages, mounted, saveProgress])
+  }, [stepData, stepImages, opponentName, mounted, saveProgress])
 
   // Pulisci localStorage dopo salvataggio riuscito
   const clearProgress = () => {
@@ -258,6 +263,7 @@ export default function NewMatchPage() {
       // Prepara dati match
       const matchData = {
         result: matchResult,
+        opponent_name: opponentName.trim() || null,
         player_ratings: stepData.player_ratings || null,
         team_stats: stepData.team_stats || null,
         attack_areas: stepData.attack_areas || null,
@@ -797,6 +803,53 @@ export default function NewMatchPage() {
                 <span><strong>{t('resultExtracted')}:</strong> {extractedResult}</span>
               </div>
             )}
+
+            {/* Campo Nome Avversario - Opzionale */}
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: 600,
+                color: 'var(--neon-blue)',
+                marginBottom: '8px'
+              }}>
+                {t('opponentNameLabel')} <span style={{ opacity: 0.6, fontWeight: 400 }}>({t('optional')})</span>
+              </label>
+              <input
+                type="text"
+                value={opponentName}
+                onChange={(e) => setOpponentName(e.target.value)}
+                placeholder={t('opponentNamePlaceholder')}
+                maxLength={255}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  background: 'rgba(0, 212, 255, 0.1)',
+                  border: '1px solid rgba(0, 212, 255, 0.3)',
+                  borderRadius: '8px',
+                  color: '#00d4ff',
+                  fontSize: '14px',
+                  outline: 'none',
+                  transition: 'all 0.2s ease'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = 'rgba(0, 212, 255, 0.6)'
+                  e.target.style.boxShadow = '0 0 10px rgba(0, 212, 255, 0.3)'
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = 'rgba(0, 212, 255, 0.3)'
+                  e.target.style.boxShadow = 'none'
+                }}
+              />
+              <div style={{
+                fontSize: '12px',
+                opacity: 0.7,
+                marginTop: '4px',
+                color: '#00d4ff'
+              }}>
+                {t('opponentNameHint')}
+              </div>
+            </div>
 
             {/* Sezioni Complete/Mancanti */}
             <div style={{
