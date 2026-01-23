@@ -660,27 +660,36 @@ export default function DashboardPage() {
                         </div>
                         {/* Preview Riassunto AI */}
                         {match.ai_summary && (() => {
-                          // Parse ai_summary (può essere JSON string o oggetto)
+                          // Parse ai_summary (può essere JSON string, oggetto, o testo semplice)
                           let summaryText = ''
-                          try {
-                            const parsed = typeof match.ai_summary === 'string' 
-                              ? JSON.parse(match.ai_summary) 
-                              : match.ai_summary
-                            
-                            // Estrai testo dal riassunto strutturato
-                            if (parsed.analysis?.match_overview) {
-                              summaryText = parsed.analysis.match_overview
-                            } else if (parsed.analysis?.result_analysis) {
-                              summaryText = parsed.analysis.result_analysis
-                            } else if (typeof parsed === 'string') {
-                              summaryText = parsed
-                            } else {
-                              // Fallback: prova a estrarre qualsiasi campo testo
-                              summaryText = JSON.stringify(parsed).substring(0, 200)
+                          
+                          if (typeof match.ai_summary === 'string') {
+                            try {
+                              // Prova a parsare come JSON
+                              const parsed = JSON.parse(match.ai_summary)
+                              
+                              // Estrai testo dal riassunto strutturato
+                              if (parsed.analysis?.match_overview) {
+                                summaryText = parsed.analysis.match_overview
+                              } else if (parsed.analysis?.result_analysis) {
+                                summaryText = parsed.analysis.result_analysis
+                              } else {
+                                // Fallback: prova a estrarre qualsiasi campo testo
+                                summaryText = JSON.stringify(parsed).substring(0, 200)
+                              }
+                            } catch (e) {
+                              // Se non è JSON valido, è testo semplice (retrocompatibilità)
+                              summaryText = match.ai_summary
                             }
-                          } catch (e) {
-                            // Se non è JSON, è testo semplice
-                            summaryText = match.ai_summary
+                          } else if (typeof match.ai_summary === 'object') {
+                            // Se è già un oggetto, estrai testo
+                            if (match.ai_summary.analysis?.match_overview) {
+                              summaryText = match.ai_summary.analysis.match_overview
+                            } else if (match.ai_summary.analysis?.result_analysis) {
+                              summaryText = match.ai_summary.analysis.result_analysis
+                            } else {
+                              summaryText = JSON.stringify(match.ai_summary).substring(0, 200)
+                            }
                           }
                           
                           const previewText = summaryText.length > 120 

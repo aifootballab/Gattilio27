@@ -231,9 +231,37 @@ export async function POST(req) {
     if (section === 'ai_summary') {
       // Salva solo il riassunto senza fare merge
       // data.ai_summary può essere già una stringa JSON o un oggetto
-      const aiSummaryValue = typeof data.ai_summary === 'string' 
-        ? data.ai_summary 
-        : (data.ai_summary ? JSON.stringify(data.ai_summary) : null)
+      let aiSummaryValue = null
+      
+      if (data.ai_summary) {
+        if (typeof data.ai_summary === 'string') {
+          // Se è già una stringa, verifica se è JSON valido
+          try {
+            // Prova a parsare per verificare che sia JSON valido
+            const parsed = JSON.parse(data.ai_summary)
+            // Se è JSON valido, usa direttamente (già stringificato)
+            aiSummaryValue = data.ai_summary
+            console.log('[update-match] ai_summary è già JSON string valido')
+          } catch (e) {
+            // Se non è JSON valido, è testo semplice - convertilo in struttura JSON
+            console.log('[update-match] ai_summary è testo semplice, convertendo in JSON')
+            aiSummaryValue = JSON.stringify({
+              analysis: {
+                match_overview: data.ai_summary
+              },
+              confidence: 0,
+              data_quality: 'low',
+              warnings: ['Riassunto convertito da formato testo semplice']
+            })
+          }
+        } else {
+          // Se è un oggetto, convertilo in JSON string
+          console.log('[update-match] ai_summary è oggetto, stringificando')
+          aiSummaryValue = JSON.stringify(data.ai_summary)
+        }
+      }
+      
+      console.log('[update-match] ai_summary value type:', typeof aiSummaryValue, 'length:', aiSummaryValue?.length)
       
       const { data: updatedMatch, error: updateError } = await admin
         .from('matches')

@@ -520,14 +520,31 @@ export default function MatchDetailPage() {
         </div>
 
         {(() => {
-          // Parse ai_summary (può essere JSON string o oggetto)
+          // Parse ai_summary (può essere JSON string, oggetto, o testo semplice)
           let summaryData = null
           if (match.ai_summary) {
-            try {
-              summaryData = typeof match.ai_summary === 'string' ? JSON.parse(match.ai_summary) : match.ai_summary
-            } catch (e) {
-              // Fallback: se non è JSON, è testo semplice (retrocompatibilità)
-              summaryData = { analysis: { match_overview: match.ai_summary } }
+            if (typeof match.ai_summary === 'string') {
+              try {
+                // Prova a parsare come JSON
+                summaryData = JSON.parse(match.ai_summary)
+                // Verifica che sia un oggetto valido con struttura corretta
+                if (!summaryData || typeof summaryData !== 'object') {
+                  throw new Error('Invalid JSON structure')
+                }
+              } catch (e) {
+                // Se non è JSON valido, è testo semplice (retrocompatibilità)
+                summaryData = { 
+                  analysis: { 
+                    match_overview: match.ai_summary 
+                  },
+                  confidence: 0,
+                  data_quality: 'low',
+                  warnings: ['Riassunto in formato testo semplice (formato legacy)']
+                }
+              }
+            } else if (typeof match.ai_summary === 'object') {
+              // Se è già un oggetto, usa direttamente
+              summaryData = match.ai_summary
             }
           }
 
