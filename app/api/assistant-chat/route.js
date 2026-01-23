@@ -263,10 +263,30 @@ export async function POST(req) {
     }
     
     // Costruisci contesto personale
-    const context = await buildAssistantContext(userId, currentPage, appState)
+    let context
+    try {
+      context = await buildAssistantContext(userId, currentPage, appState)
+      if (!context) {
+        console.warn('[assistant-chat] Context building returned null, using empty context')
+        context = { profile: {}, currentPage: currentPage || '', appState: appState || {} }
+      }
+    } catch (contextError) {
+      console.error('[assistant-chat] Error building context:', contextError)
+      // Usa contesto vuoto se fallisce
+      context = { profile: {}, currentPage: currentPage || '', appState: appState || {} }
+    }
     
     // Costruisci prompt personalizzato
-    const prompt = buildPersonalizedPrompt(message, context, language)
+    let prompt
+    try {
+      prompt = buildPersonalizedPrompt(message, context, language)
+      if (!prompt || prompt.trim().length === 0) {
+        throw new Error('Empty prompt generated')
+      }
+    } catch (promptError) {
+      console.error('[assistant-chat] Error building prompt:', promptError)
+      throw new Error('Error building AI prompt')
+    }
     
     // Chiama OpenAI
     const apiKey = process.env.OPENAI_API_KEY
@@ -275,12 +295,9 @@ export async function POST(req) {
     }
     
     // Usa il modello migliore disponibile
-    // GPT-5 disponibile (Agosto 2025) - modello più avanzato per qualità superiore
-    // Per chat testuale: GPT-5 (migliore ragionamento, contesto più ampio)
-    // Per Realtime vocale: gpt-realtime (Agosto 2025)
-    // Fallback a GPT-4o se GPT-5 non disponibile
-    let model = 'gpt-5' // Prova GPT-5 (modello migliore)
-    // Se GPT-5 non disponibile, fallback automatico a GPT-4o gestito da OpenAI
+    // GPT-4o è stabile e disponibile per chat testuale
+    // TODO: Quando GPT-5 sarà disponibile e testato, aggiornare qui
+    const model = 'gpt-4o' // Modello stabile e disponibile
     
     const requestBody = {
       model: model,
