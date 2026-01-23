@@ -1,18 +1,19 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
+import { usePathname } from 'next/navigation'
 import { useTranslation } from '@/lib/i18n'
 import { supabase } from '@/lib/supabaseClient'
 import { Brain, X, Send, Sparkles } from 'lucide-react'
 
 export default function AssistantChat() {
   const { t, lang } = useTranslation()
+  const pathname = usePathname() // Usa Next.js router per tracciare route
   const [isOpen, setIsOpen] = useState(false)
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [userProfile, setUserProfile] = useState(null)
-  const [currentPage, setCurrentPage] = useState('')
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
   
@@ -95,6 +96,7 @@ export default function AssistantChat() {
       }
       
       // Determina stato app (cosa sta facendo il cliente)
+      const currentPage = pathname || ''
       const appState = {
         completingMatch: currentPage.includes('/match/new'),
         viewingMatch: currentPage.includes('/match/') && !currentPage.includes('/match/new'),
