@@ -305,6 +305,34 @@ export default function DashboardPage() {
           </h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <button
+              onClick={() => router.push('/contromisure-live')}
+              className="btn primary"
+              style={{ 
+                width: '100%', 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                padding: '12px 16px',
+                background: 'rgba(255, 165, 0, 0.1)',
+                borderColor: 'rgba(255, 165, 0, 0.3)',
+                color: 'var(--neon-orange)'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(255, 165, 0, 0.15)'
+                e.currentTarget.style.boxShadow = 'var(--glow-orange)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(255, 165, 0, 0.1)'
+                e.currentTarget.style.boxShadow = 'none'
+              }}
+            >
+              <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Shield size={18} />
+                {t('countermeasuresLive')}
+              </span>
+              <ArrowRight size={18} />
+            </button>
+            <button
               onClick={() => router.push('/gestione-formazione')}
               className="btn primary"
               style={{ 

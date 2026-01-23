@@ -164,7 +164,12 @@ export default function CountermeasuresLivePage() {
       }
 
       const generateData = await generateRes.json()
-      setCountermeasures(generateData.countermeasures)
+      // La risposta API ha struttura: { success: true, countermeasures: {...}, model_used: '...' }
+      if (generateData.success && generateData.countermeasures) {
+        setCountermeasures(generateData.countermeasures)
+      } else {
+        throw new Error(t('errorGeneratingCountermeasures') || 'Errore generazione contromisure')
+      }
     } catch (err) {
       console.error('[CountermeasuresLive] Generate error:', err)
       setError(err.message || t('errorGeneratingCountermeasures'))
