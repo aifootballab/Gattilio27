@@ -107,7 +107,7 @@ export default function MatchDetailPage() {
     try {
       const token = (await supabase.auth.getSession()).data?.session?.access_token
       if (!token) {
-        throw new Error('Token non disponibile')
+        throw new Error(t('tokenNotAvailable'))
       }
 
       // 1. Estrai dati
@@ -213,14 +213,14 @@ export default function MatchDetailPage() {
 
       if (!analyzeRes.ok) {
         const errorData = await analyzeRes.json()
-        throw new Error(errorData.error || 'Errore generazione riassunto')
+        throw new Error(errorData.error || t('errorGeneratingSummary'))
       }
 
       const analyzeData = await analyzeRes.json()
       const summary = analyzeData.summary
 
       if (!summary) {
-        throw new Error('Nessun riassunto generato')
+        throw new Error(t('noSummaryGenerated'))
       }
 
       // Salva riassunto nel match

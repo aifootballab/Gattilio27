@@ -22,8 +22,7 @@ import {
   ChevronDown,
   ChevronUp,
   Trash2,
-  User,
-  Brain
+  User
 } from 'lucide-react'
 
 export default function DashboardPage() {
@@ -105,7 +104,7 @@ export default function DashboardPage() {
         const userId = session.session.user.id
         const { data: matches, error: matchesError } = await supabase
           .from('matches')
-          .select('id, match_date, opponent_name, result, photos_uploaded, missing_photos, data_completeness')
+          .select('id, match_date, opponent_name, result, photos_uploaded, missing_photos, data_completeness, ai_summary')
           .eq('user_id', userId) // Filtro esplicito per sicurezza
           .order('match_date', { ascending: false })
           .limit(10)
@@ -533,7 +532,7 @@ export default function DashboardPage() {
                           }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
                               <Brain size={14} color="var(--neon-blue)" />
-                              <span style={{ fontWeight: 600, color: 'var(--neon-blue)' }}>Riassunto AI:</span>
+                              <span style={{ fontWeight: 600, color: 'var(--neon-blue)' }}>{t('aiSummaryLabel')}</span>
                             </div>
                             <div style={{ marginBottom: '8px' }}>
                               {match.ai_summary.substring(0, 120)}...
@@ -562,7 +561,7 @@ export default function DashboardPage() {
                                 e.currentTarget.style.background = 'transparent'
                               }}
                             >
-                              Leggi tutto →
+                              {t('readMore')}
                             </button>
                           </div>
                         )}
