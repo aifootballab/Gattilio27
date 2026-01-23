@@ -41,6 +41,8 @@ export default function DashboardPage() {
   const [recentMatches, setRecentMatches] = React.useState([])
   const [matchesExpanded, setMatchesExpanded] = React.useState(false)
   const [deletingMatchId, setDeletingMatchId] = React.useState(null)
+  const [generatingSummaryId, setGeneratingSummaryId] = React.useState(null)
+  const [summaryError, setSummaryError] = React.useState(null)
 
   React.useEffect(() => {
     if (!supabase) {
@@ -187,6 +189,108 @@ export default function DashboardPage() {
     }
   }
 
+  const handleGenerateSummary = async (matchId, e) => {
+    if (e) {
+      e.stopPropagation() // Previeni click sul card
+    }
+
+    setGeneratingSummaryId(matchId)
+    setSummaryError(null)
+    setError(null)
+
+    try {
+      const { data: session } = await supabase.auth.getSession()
+      if (!session?.session?.access_token) {
+        throw new Error(t('tokenNotAvailable'))
+      }
+
+      const token = session.session.access_token
+
+      // Carica match completo dal database (con tutti i campi necessari)
+      const { data: fullMatch, error: matchError } = await supabase
+        .from('matches')
+        .select('*')
+        .eq('id', matchId)
+        .single()
+
+      if (matchError || !fullMatch) {
+        throw new Error(matchError?.message || t('matchNotFound'))
+      }
+
+      // Prepara matchData per analisi (stesso formato della pagina dettaglio)
+      const matchData = {
+        result: fullMatch.result,
+        player_ratings: fullMatch.player_ratings,
+        team_stats: fullMatch.team_stats,
+        attack_areas: fullMatch.attack_areas,
+        ball_recovery_zones: fullMatch.ball_recovery_zones,
+        formation_played: fullMatch.formation_played,
+        playing_style_played: fullMatch.playing_style_played,
+        team_strength: fullMatch.team_strength,
+        opponent_formation_id: fullMatch.opponent_formation_id,
+        client_team_name: fullMatch.client_team_name
+      }
+
+      // Genera riassunto
+      const analyzeRes = await fetch('/api/analyze-match', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ matchData })
+      })
+
+      if (!analyzeRes.ok) {
+        const errorData = await analyzeRes.json()
+        throw new Error(errorData.error || t('errorGeneratingSummary'))
+      }
+
+      const analyzeData = await analyzeRes.json()
+      const summary = analyzeData.summary
+
+      if (!summary) {
+        throw new Error(t('noSummaryGenerated'))
+      }
+
+      // Salva riassunto nel match
+      const updateRes = await fetch('/api/supabase/update-match', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          match_id: matchId,
+          section: 'ai_summary',
+          data: { ai_summary: JSON.stringify(summary) }
+        })
+      })
+
+      if (!updateRes.ok) {
+        const errorData = await updateRes.json()
+        throw new Error(errorData.error || t('errorSavingSummary'))
+      }
+
+      // Aggiorna match nella lista con il nuovo ai_summary
+      const { data: updatedMatch } = await supabase
+        .from('matches')
+        .select('id, match_date, opponent_name, result, photos_uploaded, missing_photos, data_completeness, ai_summary')
+        .eq('id', matchId)
+        .single()
+
+      if (updatedMatch) {
+        setRecentMatches(prev => prev.map(m => m.id === matchId ? updatedMatch : m))
+      }
+    } catch (err) {
+      console.error('[Dashboard] Summary generation error:', err)
+      setSummaryError(err.message || t('errorGeneratingSummary'))
+      setError(err.message || t('errorGeneratingSummary'))
+    } finally {
+      setGeneratingSummaryId(null)
+    }
+  }
+
   if (loading) {
     return (
       <main style={{ padding: '32px 24px', minHeight: '100vh', textAlign: 'center' }}>
@@ -245,6 +349,14 @@ export default function DashboardPage() {
         <div className="error" style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <AlertCircle size={18} />
           {error}
+        </div>
+      )}
+
+      {/* Summary Error */}
+      {summaryError && (
+        <div className="error" style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <AlertCircle size={18} />
+          {summaryError}
         </div>
       )}
 
@@ -604,25 +716,33 @@ export default function DashboardPage() {
                             textAlign: 'center'
                           }}>
                             <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                router.push(`/match/${match.id}`)
-                              }}
+                              onClick={(e) => handleGenerateSummary(match.id, e)}
+                              disabled={generatingSummaryId === match.id}
                               style={{
                                 background: 'transparent',
                                 border: 'none',
-                                color: 'var(--neon-orange)',
+                                color: generatingSummaryId === match.id ? 'rgba(255, 165, 0, 0.5)' : 'var(--neon-orange)',
                                 fontSize: '12px',
-                                cursor: 'pointer',
+                                cursor: generatingSummaryId === match.id ? 'not-allowed' : 'pointer',
                                 fontWeight: 600,
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: '6px',
-                                margin: '0 auto'
+                                margin: '0 auto',
+                                opacity: generatingSummaryId === match.id ? 0.6 : 1
                               }}
                             >
-                              <Brain size={14} />
-                              {t('generateAiSummary')}
+                              {generatingSummaryId === match.id ? (
+                                <>
+                                  <RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                                  {t('generatingAnalysis') || 'Generazione...'}
+                                </>
+                              ) : (
+                                <>
+                                  <Brain size={14} />
+                                  {t('generateAiSummary')}
+                                </>
+                              )}
                             </button>
                           </div>
                         )}
