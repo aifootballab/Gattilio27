@@ -193,7 +193,7 @@ export default function MatchDetailPage() {
 
       const token = session.session.access_token
 
-      // Prepara matchData per analisi
+      // Prepara matchData per analisi (include players_in_match per disposizione reale)
       const matchData = {
         result: match.result,
         player_ratings: match.player_ratings,
@@ -204,7 +204,8 @@ export default function MatchDetailPage() {
         playing_style_played: match.playing_style_played,
         team_strength: match.team_strength,
         opponent_formation_id: match.opponent_formation_id,
-        client_team_name: match.client_team_name
+        client_team_name: match.client_team_name,
+        players_in_match: match.players_in_match || null // Disposizione reale giocatori in campo
       }
 
       // Genera riassunto

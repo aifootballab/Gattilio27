@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { useTranslation } from '@/lib/i18n'
 import LanguageSwitch from '@/components/LanguageSwitch'
-import { ArrowLeft, Upload, AlertCircle, CheckCircle2, RefreshCw, X, SkipForward, Save, Camera, Brain, Trophy } from 'lucide-react'
+import { ArrowLeft, Upload, AlertCircle, CheckCircle2, RefreshCw, X, SkipForward, Save, Camera, Trophy } from 'lucide-react'
 
 // STEPS sarà definito dentro il componente per avere accesso a t()
 
@@ -32,10 +32,6 @@ export default function NewMatchPage() {
   const [success, setSuccess] = React.useState(false)
   const [mounted, setMounted] = React.useState(false)
   const [showSummary, setShowSummary] = React.useState(false)
-  const [generatingAnalysis, setGeneratingAnalysis] = React.useState(false)
-  const [analysisSummary, setAnalysisSummary] = React.useState(null)
-  const [analysisConfidence, setAnalysisConfidence] = React.useState(null)
-  const [missingSections, setMissingSections] = React.useState([])
 
   // Carica progresso salvato al mount
   React.useEffect(() => {
@@ -206,68 +202,6 @@ export default function NewMatchPage() {
     }
   }
 
-  const handleGenerateAnalysis = async () => {
-    setGeneratingAnalysis(true)
-    setError(null)
-    
-    try {
-      const { data: session } = await supabase.auth.getSession()
-      if (!session?.session?.access_token) {
-        throw new Error(t('sessionExpired'))
-      }
-
-      const token = session.session.access_token
-      
-      // Prepara dati match (stessa logica di handleSave)
-      let matchResult = stepData.result || null
-      if (!matchResult && stepData.team_stats && stepData.team_stats.result) {
-        matchResult = stepData.team_stats.result
-      }
-
-      // Recupera opponent_formation_id e client_team_name se disponibili
-      // (possono essere null se non ancora salvati)
-      const opponentFormationId = stepData.opponent_formation_id || null
-      const clientTeamName = stepData.client_team_name || null
-
-      const matchData = {
-        result: matchResult,
-        player_ratings: stepData.player_ratings || null,
-        team_stats: stepData.team_stats || null,
-        attack_areas: stepData.attack_areas || null,
-        ball_recovery_zones: stepData.ball_recovery_zones || null,
-        formation_played: stepData.formation_style?.formation_played || null,
-        playing_style_played: stepData.formation_style?.playing_style_played || null,
-        team_strength: stepData.formation_style?.team_strength || null,
-        opponent_formation_id: opponentFormationId,
-        client_team_name: clientTeamName
-      }
-
-      const res = await fetch('/api/analyze-match', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ matchData })
-      })
-
-      const data = await res.json()
-
-      if (!res.ok) {
-        throw new Error(data.error || t('errorAnalysisGeneration'))
-      }
-
-      setAnalysisSummary(data.summary)
-      setAnalysisConfidence(data.confidence)
-      setMissingSections(data.missing_sections || [])
-    } catch (err) {
-      console.error('[NewMatch] Analysis error:', err)
-      setError(err.message || t('errorAnalysisGeneration'))
-    } finally {
-      setGeneratingAnalysis(false)
-    }
-  }
-
   // Calcola progresso foto (solo sezioni, non result)
   const photosUploaded = React.useMemo(() => {
     return STEPS.filter(step => stepData[step.id] && stepData[step.id] !== null).length
@@ -331,11 +265,6 @@ export default function NewMatchPage() {
         formation_played: stepData.formation_style?.formation_played || null,
         playing_style_played: stepData.formation_style?.playing_style_played || null,
         team_strength: stepData.formation_style?.team_strength || null,
-        ai_summary: analysisSummary 
-          ? (typeof analysisSummary === 'string' 
-              ? analysisSummary 
-              : JSON.stringify(analysisSummary)) 
-          : null, // ✅ Salva riassunto AI come JSON string se generato
         extracted_data: {
           stepData,
           stepImages: Object.keys(stepImages).reduce((acc, key) => {
@@ -903,101 +832,6 @@ export default function NewMatchPage() {
                   </div>
                   <div style={{ fontSize: '14px', color: '#ffa500' }}>
                     {photosMissing.join(', ')}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* AI Analysis Section */}
-            <div style={{ marginTop: '24px' }}>
-              {!analysisSummary ? (
-                <button
-                  onClick={handleGenerateAnalysis}
-                  disabled={generatingAnalysis || saving}
-                  style={{
-                    width: '100%',
-                    background: 'rgba(0, 212, 255, 0.2)',
-                    border: '1px solid rgba(0, 212, 255, 0.5)',
-                    borderRadius: '8px',
-                    padding: '12px',
-                    color: '#00d4ff',
-                    cursor: generatingAnalysis || saving ? 'not-allowed' : 'pointer',
-                    opacity: generatingAnalysis || saving ? 0.5 : 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    fontWeight: 600
-                  }}
-                >
-                  {generatingAnalysis ? (
-                    <>
-                      <RefreshCw size={18} style={{ animation: 'spin 1s linear infinite' }} />
-                      {t('generatingAnalysis')}
-                    </>
-                  ) : (
-                    <>
-                      <Brain size={18} />
-                      {t('generateAnalysis')}
-                    </>
-                  )}
-                </button>
-              ) : (
-                <div style={{
-                  background: 'rgba(0, 212, 255, 0.1)',
-                  border: '1px solid rgba(0, 212, 255, 0.3)',
-                  borderRadius: '8px',
-                  padding: '16px',
-                  marginTop: '16px'
-                }}>
-                  {/* Confidence Badge */}
-                  {analysisConfidence < 100 && (
-                    <div style={{
-                      background: 'rgba(255, 165, 0, 0.2)',
-                      border: '1px solid rgba(255, 165, 0, 0.5)',
-                      borderRadius: '6px',
-                      padding: '8px 12px',
-                      marginBottom: '12px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      fontSize: '14px',
-                      color: '#ffa500'
-                    }}>
-                      <AlertCircle size={16} />
-                      <span>
-                        <strong>{t('analysisBasedOnPartialData')} ({analysisConfidence}% {t('completeness')})</strong>
-                        {missingSections.length > 0 && (
-                          <span style={{ display: 'block', marginTop: '4px', fontSize: '12px', opacity: 0.9 }}>
-                            {t('missingData')}: {missingSections.join(', ')}. {t('loadMorePhotos')}
-                          </span>
-                        )}
-                      </span>
-                    </div>
-                  )}
-                  
-                  {/* Riassunto */}
-                  <div style={{
-                    fontSize: '14px',
-                    lineHeight: '1.6',
-                    color: '#fff',
-                    whiteSpace: 'pre-wrap'
-                  }}>
-                    {(() => {
-                      // analysisSummary è un oggetto strutturato, estrai il testo
-                      if (!analysisSummary) return ''
-                      if (typeof analysisSummary === 'string') return analysisSummary
-                      
-                      // Estrai testo dal riassunto strutturato
-                      if (analysisSummary.analysis?.match_overview) {
-                        return analysisSummary.analysis.match_overview
-                      } else if (analysisSummary.analysis?.result_analysis) {
-                        return analysisSummary.analysis.result_analysis
-                      } else {
-                        // Fallback: mostra struttura JSON formattata
-                        return JSON.stringify(analysisSummary, null, 2)
-                      }
-                    })()}
                   </div>
                 </div>
               )}

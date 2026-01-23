@@ -41,8 +41,6 @@ export default function DashboardPage() {
   const [recentMatches, setRecentMatches] = React.useState([])
   const [matchesExpanded, setMatchesExpanded] = React.useState(false)
   const [deletingMatchId, setDeletingMatchId] = React.useState(null)
-  const [generatingSummaryId, setGeneratingSummaryId] = React.useState(null)
-  const [summaryError, setSummaryError] = React.useState(null)
 
   React.useEffect(() => {
     if (!supabase) {
@@ -107,7 +105,7 @@ export default function DashboardPage() {
         const userId = session.session.user.id
         const { data: matches, error: matchesError } = await supabase
           .from('matches')
-          .select('id, match_date, opponent_name, result, photos_uploaded, missing_photos, data_completeness, ai_summary')
+          .select('id, match_date, opponent_name, result, photos_uploaded, missing_photos, data_completeness')
           .eq('user_id', userId) // Filtro esplicito per sicurezza
           .order('match_date', { ascending: false })
           .limit(10)
@@ -189,108 +187,6 @@ export default function DashboardPage() {
     }
   }
 
-  const handleGenerateSummary = async (matchId, e) => {
-    if (e) {
-      e.stopPropagation() // Previeni click sul card
-    }
-
-    setGeneratingSummaryId(matchId)
-    setSummaryError(null)
-    setError(null)
-
-    try {
-      const { data: session } = await supabase.auth.getSession()
-      if (!session?.session?.access_token) {
-        throw new Error(t('tokenNotAvailable'))
-      }
-
-      const token = session.session.access_token
-
-      // Carica match completo dal database (con tutti i campi necessari)
-      const { data: fullMatch, error: matchError } = await supabase
-        .from('matches')
-        .select('*')
-        .eq('id', matchId)
-        .single()
-
-      if (matchError || !fullMatch) {
-        throw new Error(matchError?.message || t('matchNotFound'))
-      }
-
-      // Prepara matchData per analisi (stesso formato della pagina dettaglio)
-      const matchData = {
-        result: fullMatch.result,
-        player_ratings: fullMatch.player_ratings,
-        team_stats: fullMatch.team_stats,
-        attack_areas: fullMatch.attack_areas,
-        ball_recovery_zones: fullMatch.ball_recovery_zones,
-        formation_played: fullMatch.formation_played,
-        playing_style_played: fullMatch.playing_style_played,
-        team_strength: fullMatch.team_strength,
-        opponent_formation_id: fullMatch.opponent_formation_id,
-        client_team_name: fullMatch.client_team_name
-      }
-
-      // Genera riassunto
-      const analyzeRes = await fetch('/api/analyze-match', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ matchData })
-      })
-
-      if (!analyzeRes.ok) {
-        const errorData = await analyzeRes.json()
-        throw new Error(errorData.error || t('errorGeneratingSummary'))
-      }
-
-      const analyzeData = await analyzeRes.json()
-      const summary = analyzeData.summary
-
-      if (!summary) {
-        throw new Error(t('noSummaryGenerated'))
-      }
-
-      // Salva riassunto nel match
-      const updateRes = await fetch('/api/supabase/update-match', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          match_id: matchId,
-          section: 'ai_summary',
-          data: { ai_summary: JSON.stringify(summary) }
-        })
-      })
-
-      if (!updateRes.ok) {
-        const errorData = await updateRes.json()
-        throw new Error(errorData.error || t('errorSavingSummary'))
-      }
-
-      // Aggiorna match nella lista con il nuovo ai_summary
-      const { data: updatedMatch } = await supabase
-        .from('matches')
-        .select('id, match_date, opponent_name, result, photos_uploaded, missing_photos, data_completeness, ai_summary')
-        .eq('id', matchId)
-        .single()
-
-      if (updatedMatch) {
-        setRecentMatches(prev => prev.map(m => m.id === matchId ? updatedMatch : m))
-      }
-    } catch (err) {
-      console.error('[Dashboard] Summary generation error:', err)
-      setSummaryError(err.message || t('errorGeneratingSummary'))
-      setError(err.message || t('errorGeneratingSummary'))
-    } finally {
-      setGeneratingSummaryId(null)
-    }
-  }
-
   if (loading) {
     return (
       <main style={{ padding: '32px 24px', minHeight: '100vh', textAlign: 'center' }}>
@@ -349,14 +245,6 @@ export default function DashboardPage() {
         <div className="error" style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <AlertCircle size={18} />
           {error}
-        </div>
-      )}
-
-      {/* Summary Error */}
-      {summaryError && (
-        <div className="error" style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <AlertCircle size={18} />
-          {summaryError}
         </div>
       )}
 
@@ -658,132 +546,6 @@ export default function DashboardPage() {
                         <div style={{ fontSize: '14px', fontWeight: 600 }}>
                           Risultato: <span style={{ color: 'var(--neon-blue)' }}>{displayResult}</span>
                         </div>
-                        {/* Preview Riassunto AI */}
-                        {match.ai_summary && (() => {
-                          // Parse ai_summary (può essere JSON string, oggetto, o testo semplice)
-                          let summaryText = ''
-                          
-                          if (typeof match.ai_summary === 'string') {
-                            try {
-                              // Prova a parsare come JSON
-                              const parsed = JSON.parse(match.ai_summary)
-                              
-                              // Estrai testo dal riassunto strutturato
-                              if (parsed.analysis?.match_overview) {
-                                summaryText = parsed.analysis.match_overview
-                              } else if (parsed.analysis?.result_analysis) {
-                                summaryText = parsed.analysis.result_analysis
-                              } else {
-                                // Fallback: prova a estrarre qualsiasi campo testo
-                                summaryText = JSON.stringify(parsed).substring(0, 200)
-                              }
-                            } catch (e) {
-                              // Se non è JSON valido, è testo semplice (retrocompatibilità)
-                              summaryText = match.ai_summary
-                            }
-                          } else if (typeof match.ai_summary === 'object') {
-                            // Se è già un oggetto, estrai testo
-                            if (match.ai_summary.analysis?.match_overview) {
-                              summaryText = match.ai_summary.analysis.match_overview
-                            } else if (match.ai_summary.analysis?.result_analysis) {
-                              summaryText = match.ai_summary.analysis.result_analysis
-                            } else {
-                              summaryText = JSON.stringify(match.ai_summary).substring(0, 200)
-                            }
-                          }
-                          
-                          const previewText = summaryText.length > 120 
-                            ? summaryText.substring(0, 120) + '...' 
-                            : summaryText
-                          
-                          return (
-                            <div style={{
-                              marginTop: '12px',
-                              padding: 'clamp(8px, 2vw, 10px)',
-                              background: 'rgba(0, 212, 255, 0.1)',
-                              border: '1px solid rgba(0, 212, 255, 0.3)',
-                              borderRadius: '8px',
-                              fontSize: 'clamp(12px, 2.5vw, 13px)',
-                              lineHeight: '1.5',
-                              color: '#fff',
-                              opacity: 0.9
-                            }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
-                                <Brain size={14} color="var(--neon-blue)" />
-                                <span style={{ fontWeight: 600, color: 'var(--neon-blue)' }}>{t('aiSummaryLabel')}</span>
-                              </div>
-                              <div style={{ marginBottom: '8px' }}>
-                                {previewText}
-                              </div>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                router.push(`/match/${match.id}`)
-                              }}
-                              style={{
-                                background: 'transparent',
-                                border: '1px solid rgba(0, 212, 255, 0.5)',
-                                borderRadius: '6px',
-                                padding: 'clamp(4px, 1.5vw, 6px) clamp(8px, 2vw, 12px)',
-                                color: 'var(--neon-blue)',
-                                fontSize: 'clamp(11px, 2vw, 12px)',
-                                cursor: 'pointer',
-                                fontWeight: 600,
-                                transition: 'all 0.2s ease',
-                                whiteSpace: 'nowrap'
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.background = 'rgba(0, 212, 255, 0.2)'
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.background = 'transparent'
-                              }}
-                            >
-                              {t('readMore')}
-                            </button>
-                            </div>
-                          )
-                        })()}
-                        {!match.ai_summary && (
-                          <div style={{
-                            marginTop: '12px',
-                            padding: '10px',
-                            background: 'rgba(255, 165, 0, 0.1)',
-                            border: '1px dashed rgba(255, 165, 0, 0.3)',
-                            borderRadius: '8px',
-                            textAlign: 'center'
-                          }}>
-                            <button
-                              onClick={(e) => handleGenerateSummary(match.id, e)}
-                              disabled={generatingSummaryId === match.id}
-                              style={{
-                                background: 'transparent',
-                                border: 'none',
-                                color: generatingSummaryId === match.id ? 'rgba(255, 165, 0, 0.5)' : 'var(--neon-orange)',
-                                fontSize: '12px',
-                                cursor: generatingSummaryId === match.id ? 'not-allowed' : 'pointer',
-                                fontWeight: 600,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '6px',
-                                margin: '0 auto',
-                                opacity: generatingSummaryId === match.id ? 0.6 : 1
-                              }}
-                            >
-                              {generatingSummaryId === match.id ? (
-                                <>
-                                  <RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} />
-                                  {t('generatingAnalysis') || 'Generazione...'}
-                                </>
-                              ) : (
-                                <>
-                                  <Brain size={14} />
-                                  {t('generateAiSummary')}
-                                </>
-                              )}
-                            </button>
-                          </div>
-                        )}
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px', flexShrink: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

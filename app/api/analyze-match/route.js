@@ -57,6 +57,113 @@ function calculateConfidence(matchData) {
 }
 
 /**
+ * Normalizza struttura output per supportare formato bilingue e retrocompatibilità
+ */
+function normalizeBilingualStructure(summary, confidence, missingSections) {
+  // Normalizza analysis
+  if (summary.analysis) {
+    if (typeof summary.analysis.match_overview === 'string') {
+      summary.analysis.match_overview = { it: summary.analysis.match_overview, en: summary.analysis.match_overview }
+    }
+    if (typeof summary.analysis.result_analysis === 'string') {
+      summary.analysis.result_analysis = { it: summary.analysis.result_analysis, en: summary.analysis.result_analysis }
+    }
+    if (Array.isArray(summary.analysis.key_highlights)) {
+      summary.analysis.key_highlights = { it: summary.analysis.key_highlights, en: summary.analysis.key_highlights }
+    }
+    if (Array.isArray(summary.analysis.strengths)) {
+      summary.analysis.strengths = { it: summary.analysis.strengths, en: summary.analysis.strengths }
+    }
+    if (Array.isArray(summary.analysis.weaknesses)) {
+      summary.analysis.weaknesses = { it: summary.analysis.weaknesses, en: summary.analysis.weaknesses }
+    }
+  }
+  
+  // Normalizza tactical_analysis
+  if (summary.tactical_analysis) {
+    if (typeof summary.tactical_analysis.what_worked === 'string') {
+      summary.tactical_analysis.what_worked = { it: summary.tactical_analysis.what_worked, en: summary.tactical_analysis.what_worked }
+    }
+    if (typeof summary.tactical_analysis.what_didnt_work === 'string') {
+      summary.tactical_analysis.what_didnt_work = { it: summary.tactical_analysis.what_didnt_work, en: summary.tactical_analysis.what_didnt_work }
+    }
+    if (typeof summary.tactical_analysis.formation_effectiveness === 'string') {
+      summary.tactical_analysis.formation_effectiveness = { it: summary.tactical_analysis.formation_effectiveness, en: summary.tactical_analysis.formation_effectiveness }
+    }
+    if (Array.isArray(summary.tactical_analysis.suggestions)) {
+      summary.tactical_analysis.suggestions = summary.tactical_analysis.suggestions.map(s => {
+        if (typeof s.suggestion === 'string') {
+          s.suggestion = { it: s.suggestion, en: s.suggestion }
+        }
+        if (typeof s.reason === 'string') {
+          s.reason = { it: s.reason, en: s.reason }
+        }
+        return s
+      })
+    }
+  }
+  
+  // Normalizza player_performance
+  if (summary.player_performance) {
+    if (Array.isArray(summary.player_performance.top_performers)) {
+      summary.player_performance.top_performers = summary.player_performance.top_performers.map(p => {
+        if (typeof p.reason === 'string') {
+          p.reason = { it: p.reason, en: p.reason }
+        }
+        return p
+      })
+    }
+    if (Array.isArray(summary.player_performance.underperformers)) {
+      summary.player_performance.underperformers = summary.player_performance.underperformers.map(p => {
+        if (typeof p.reason === 'string') {
+          p.reason = { it: p.reason, en: p.reason }
+        }
+        if (typeof p.suggested_replacement === 'string') {
+          p.suggested_replacement = { it: p.suggested_replacement, en: p.suggested_replacement }
+        }
+        return p
+      })
+    }
+    if (Array.isArray(summary.player_performance.suggestions)) {
+      summary.player_performance.suggestions = summary.player_performance.suggestions.map(s => {
+        if (typeof s.suggestion === 'string') {
+          s.suggestion = { it: s.suggestion, en: s.suggestion }
+        }
+        if (typeof s.reason === 'string') {
+          s.reason = { it: s.reason, en: s.reason }
+        }
+        return s
+      })
+    }
+  }
+  
+  // Normalizza recommendations
+  if (Array.isArray(summary.recommendations)) {
+    summary.recommendations = summary.recommendations.map(r => {
+      if (typeof r.title === 'string') {
+        r.title = { it: r.title, en: r.title }
+      }
+      if (typeof r.description === 'string') {
+        r.description = { it: r.description, en: r.description }
+      }
+      if (typeof r.reason === 'string') {
+        r.reason = { it: r.reason, en: r.reason }
+      }
+      return r
+    })
+  }
+  
+  // Aggiungi historical_insights se mancante
+  if (!summary.historical_insights) {
+    summary.historical_insights = { it: '', en: '' }
+  } else if (typeof summary.historical_insights === 'string') {
+    summary.historical_insights = { it: summary.historical_insights, en: summary.historical_insights }
+  }
+  
+  return summary
+}
+
+/**
  * Identifica sezioni mancanti
  */
 function getMissingSections(matchData) {
@@ -79,9 +186,94 @@ function getMissingSections(matchData) {
 }
 
 /**
- * Genera prompt per analisi AI con conservative mode, personalizzazione e contesto completo
+ * Analizza storico match per identificare pattern e formazioni che soffre
  */
-function generateAnalysisPrompt(matchData, confidence, missingSections, userProfile = null, players = [], opponentFormation = null) {
+function analyzeMatchHistory(matchHistory, currentOpponentFormationId) {
+  const analysis = {
+    totalMatches: matchHistory.length,
+    formationsStruggled: {}, // Formazioni avversarie contro cui ha perso più spesso
+    winRateByOpponentFormation: {},
+    recurringIssues: [],
+    recentTrend: 'stable' // 'improving' | 'declining' | 'stable'
+  }
+  
+  if (matchHistory.length === 0) {
+    return analysis
+  }
+  
+  // Analizza formazioni avversarie
+  const opponentFormationStats = {}
+  matchHistory.forEach(match => {
+    if (match.opponent_formation_id) {
+      const formationId = match.opponent_formation_id
+      if (!opponentFormationStats[formationId]) {
+        opponentFormationStats[formationId] = { wins: 0, losses: 0, draws: 0, total: 0 }
+      }
+      opponentFormationStats[formationId].total++
+      
+      const result = match.result || ''
+      if (result.includes('W') || result.includes('Vittoria') || result.includes('Win')) {
+        opponentFormationStats[formationId].wins++
+      } else if (result.includes('L') || result.includes('Sconfitta') || result.includes('Loss')) {
+        opponentFormationStats[formationId].losses++
+      } else {
+        opponentFormationStats[formationId].draws++
+      }
+    }
+  })
+  
+  // Identifica formazioni che soffre (loss rate > 50%)
+  Object.entries(opponentFormationStats).forEach(([formationId, stats]) => {
+    const lossRate = stats.total > 0 ? (stats.losses / stats.total) * 100 : 0
+    if (lossRate > 50 && stats.total >= 2) {
+      analysis.formationsStruggled[formationId] = {
+        lossRate: lossRate.toFixed(0),
+        matches: stats.total,
+        wins: stats.wins,
+        losses: stats.losses
+      }
+    }
+    
+    // Win rate per formazione
+    const winRate = stats.total > 0 ? ((stats.wins / stats.total) * 100).toFixed(0) : 0
+    analysis.winRateByOpponentFormation[formationId] = {
+      winRate: parseInt(winRate),
+      matches: stats.total
+    }
+  })
+  
+  // Analizza trend recente (ultimi 10 match)
+  const recentMatches = matchHistory.slice(0, 10)
+  if (recentMatches.length > 0) {
+    const recentWins = recentMatches.filter(m => {
+      const result = m.result || ''
+      return result.includes('W') || result.includes('Vittoria') || result.includes('Win')
+    }).length
+    const recentWinRate = (recentWins / recentMatches.length) * 100
+    
+    const olderMatches = matchHistory.slice(10, 20)
+    if (olderMatches.length > 0) {
+      const olderWins = olderMatches.filter(m => {
+        const result = m.result || ''
+        return result.includes('W') || result.includes('Vittoria') || result.includes('Win')
+      }).length
+      const olderWinRate = (olderWins / olderMatches.length) * 100
+      
+      if (recentWinRate > olderWinRate + 10) {
+        analysis.recentTrend = 'improving'
+      } else if (recentWinRate < olderWinRate - 10) {
+        analysis.recentTrend = 'declining'
+      }
+    }
+  }
+  
+  return analysis
+}
+
+/**
+ * Genera prompt per analisi AI con conservative mode, personalizzazione e contesto completo (Enterprise)
+ */
+function generateAnalysisPrompt(matchData, confidence, missingSections, userProfile = null, players = [], opponentFormation = null, playersInMatch = [], matchHistory = [], tacticalPatterns = null) {
   const hasResult = matchData.result && matchData.result !== 'N/A' && matchData.result !== null
   const missingText = missingSections.length > 0 
     ? `\n\n⚠️ DATI PARZIALI: Le seguenti sezioni non sono disponibili: ${missingSections.join(', ')}.`
@@ -189,11 +381,75 @@ Suggerisci di caricare le foto mancanti per un'analisi più precisa.`
     rosterText = `\nROSA DISPONIBILE: Non disponibile (nessun giocatore salvato nella rosa)\n`
   }
   
+  // Costruisci sezione DISPOSIZIONE REALE GIOCATORI
+  let playersInMatchText = ''
+  if (playersInMatch && playersInMatch.length > 0) {
+    playersInMatchText = `\nDISPOSIZIONE REALE GIOCATORI IN CAMPO (${playersInMatch.length} giocatori):\n`
+    playersInMatch.forEach((player, idx) => {
+      const slotInfo = player.slot_index !== undefined ? `Slot ${player.slot_index}` : ''
+      const matchStatus = player.match_status === 'matched' ? '✓' : player.match_status === 'not_found' ? '⚠️' : '⚠️'
+      playersInMatchText += `${idx + 1}. ${matchStatus} ${player.name || 'N/A'} - ${player.position || 'N/A'} ${slotInfo} - Overall: ${player.overall_rating || 'N/A'}\n`
+    })
+    playersInMatchText += `\n⚠️ IMPORTANTE: I suggerimenti devono essere basati sulla DISPOSIZIONE REALE in campo, non sulla formazione salvata.\n`
+    playersInMatchText += `- Analizza performance dei giocatori nella loro posizione reale\n`
+    playersInMatchText += `- Suggerisci cambiamenti basati su posizioni reali (slot_index)\n`
+    playersInMatchText += `- Considera se giocatori sono stati usati fuori posizione\n`
+  } else {
+    playersInMatchText = `\nDISPOSIZIONE REALE GIOCATORI: Non disponibile (formazione non caricata)\n`
+    playersInMatchText += `⚠️ I suggerimenti saranno basati solo su pagelle e statistiche, non su disposizione reale.\n`
+  }
+  
+  // Analizza storico match
+  const historyAnalysis = analyzeMatchHistory(matchHistory, matchData.opponent_formation_id)
+  
+  // Costruisci sezione STORICO ANDAMENTO
+  let historyAnalysisText = ''
+  if (historyAnalysis && historyAnalysis.totalMatches > 0) {
+    historyAnalysisText = `\nSTORICO ANDAMENTO CLIENTE (${historyAnalysis.totalMatches} partite analizzate):\n`
+    
+    // Formazioni che soffre
+    const strugglingFormations = Object.keys(historyAnalysis.formationsStruggled)
+    if (strugglingFormations.length > 0) {
+      historyAnalysisText += `\n🚨 FORMAZIONI CHE SOFFRE DI PIÙ:\n`
+      strugglingFormations.forEach(formationId => {
+        const stats = historyAnalysis.formationsStruggled[formationId]
+        historyAnalysisText += `- Formazione ID ${formationId}: Loss rate ${stats.lossRate}% (${stats.losses} sconfitte su ${stats.matches} match)\n`
+      })
+      historyAnalysisText += `\n⚠️ IMPORTANTE: Se la formazione avversaria di questa partita è simile a quelle che soffre, suggerisci contromisure specifiche.\n`
+    }
+    
+    // Trend recente
+    if (historyAnalysis.recentTrend === 'declining') {
+      historyAnalysisText += `\n📉 TREND RECENTE: In calo (ultimi 10 match peggiori dei precedenti)\n`
+      historyAnalysisText += `- Identifica problemi ricorrenti e suggerisci cambiamenti significativi\n`
+    } else if (historyAnalysis.recentTrend === 'improving') {
+      historyAnalysisText += `\n📈 TREND RECENTE: In miglioramento (ultimi 10 match migliori dei precedenti)\n`
+      historyAnalysisText += `- Mantieni focus su cosa ha funzionato recentemente\n`
+    }
+    
+    // Pattern ricorrenti (da tactical_patterns se disponibile)
+    if (tacticalPatterns && tacticalPatterns.recurring_issues && Array.isArray(tacticalPatterns.recurring_issues)) {
+      if (tacticalPatterns.recurring_issues.length > 0) {
+        historyAnalysisText += `\n⚠️ PROBLEMI RICORRENTI IDENTIFICATI:\n`
+        tacticalPatterns.recurring_issues.slice(0, 5).forEach(issue => {
+          historyAnalysisText += `- ${issue.issue || issue}: Frequenza ${issue.frequency || 'alta'}, Severità ${issue.severity || 'media'}\n`
+        })
+        historyAnalysisText += `\n⚠️ IMPORTANTE: Considera questi problemi ricorrenti nei suggerimenti.\n`
+      }
+    }
+  } else {
+    historyAnalysisText = `\nSTORICO ANDAMENTO: Non disponibile (meno di 2 partite caricate)\n`
+    historyAnalysisText += `⚠️ Più partite carichi, migliore sarà l'analisi del tuo andamento.\n`
+  }
+  
   // Costruisci sezione FORMAZIONE AVVERSARIA
   let opponentFormationText = ''
   if (opponentFormation) {
     opponentFormationText = `\nFORMAZIONE AVVERSARIA:\n`
     opponentFormationText += `- Nome: ${opponentFormation.formation_name || 'N/A'}\n`
+    if (opponentFormation.playing_style) {
+      opponentFormationText += `- Stile: ${opponentFormation.playing_style}\n`
+    }
     if (opponentFormation.overall_strength) {
       opponentFormationText += `- Forza Complessiva: ${opponentFormation.overall_strength}\n`
     }
@@ -218,29 +474,73 @@ Suggerisci di caricare le foto mancanti per un'analisi più precisa.`
 
 ${hasResult ? `RISULTATO: ${matchData.result}` : 'RISULTATO: Non disponibile'}
 
-${userContext}${clientTeamText}${rosterText}${opponentFormationText}DATI MATCH DISPONIBILI:
+${userContext}${clientTeamText}${rosterText}${playersInMatchText}${opponentFormationText}${historyAnalysisText}DATI MATCH DISPONIBILI:
 ${availableDataText}
 ${missingText}
 ${conservativeMode}${personalizationInstructions}
-ISTRUZIONI PER L'ANALISI (COACH MOTIVAZIONALE):
+ISTRUZIONI PER L'ANALISI (COACH MOTIVAZIONALE - ENTERPRISE):
 1. Identifica chiaramente quale squadra è quella del cliente${clientTeamName ? ` (${clientTeamName})` : ''} e analizza le sue performance (non quelle dell'avversario)
-2. Rispondi a queste domande intrinseche:
+
+2. DISPOSIZIONE REALE GIOCATORI:
+   a) Usa la DISPOSIZIONE REALE in campo (players_in_match) per analisi precisa
+   b) Analizza performance dei giocatori nella loro posizione reale (slot_index)
+   c) Identifica se giocatori sono stati usati fuori posizione e impatto sulle performance
+   d) Suggerisci cambiamenti basati su posizioni reali, non su formazione salvata
+
+3. STORICO ANDAMENTO:
+   a) Se il cliente soffre contro formazioni simili a quella avversaria, evidenzia il problema
+   b) Suggerisci contromisure specifiche basate su storico (se disponibile)
+   c) Considera trend recente (miglioramento/declino) per suggerimenti contestuali
+   d) Se ci sono problemi ricorrenti, suggerisci soluzioni concrete
+
+4. Rispondi a queste domande intrinseche:
    a) Come è andato il match? (risultato, performance generale della squadra cliente)
-   b) Quali giocatori hanno performato bene/male? (confronta pagelle con rosa disponibile, suggerisci alternative dalla rosa se necessario)
-   c) Cosa ha funzionato contro questa formazione avversaria? (analisi tattica basata su formazione avversaria se disponibile)
-   d) Cosa cambiare per migliorare? (suggerimenti concreti basati su dati, rosa e formazione avversaria)
-   e) Quali giocatori della rosa potrebbero essere utili? (suggerimenti specifici basati su skills e overall dei giocatori disponibili)
-3. Sii un coach motivazionale: incoraggiante ma costruttivo, focalizzato sul supporto decisionale
-4. Incrocia i dati: usa rosa disponibile, formazione avversaria, statistiche per analisi coerente e contestuale
-5. ${confidence < 0.5 ? '⚠️ ATTENZIONE: Dati molto limitati. Sottolinea chiaramente che l\'analisi è basata su informazioni parziali e che per suggerimenti più precisi servono più dati.' : ''}
-6. ${missingSections.length > 0 ? `Alla fine, aggiungi una nota: "⚠️ Nota: Analisi basata su dati parziali (${Math.round(confidence * 100)}% completezza). Per suggerimenti più precisi, carica anche: ${missingSections.join(', ')}."` : ''}
+   b) Quali giocatori hanno performato bene/male nella loro posizione reale? (confronta pagelle con disposizione reale e rosa disponibile)
+   c) Cosa ha funzionato contro questa formazione avversaria? (analisi tattica basata su formazione avversaria e storico)
+   d) Cosa cambiare per migliorare? (suggerimenti concreti basati su dati, rosa, disposizione reale, storico)
+   e) Quali giocatori della rosa potrebbero essere utili? (suggerimenti specifici basati su skills, overall, e posizioni reali)
 
-7. Genera un riassunto in italiano (max 300 parole, breve ma completo)
-8. Focus su: Decision Support System - cosa cambiare, non archivio dati
-9. Formato: Testo continuo, naturale, in italiano, rivolto direttamente${userName ? ` a ${userName}` : ' all\'utente'} (usa "tu", "la tua squadra", "tuo")
-10. ${conservativeMode ? 'SII CONSERVATIVO: Evita conclusioni categoriche con dati limitati. Indica quando le analisi sono basate su dati parziali.' : 'Puoi essere più specifico, hai dati completi.'}
+5. Sii un coach motivazionale: incoraggiante ma costruttivo, focalizzato sul supporto decisionale
 
-Formato: Testo continuo, naturale, in italiano, motivazionale ma costruttivo.`
+6. Incrocia i dati: usa rosa disponibile, formazione avversaria, disposizione reale, statistiche, storico per analisi coerente e contestuale
+
+7. ${confidence < 0.5 ? '⚠️ ATTENZIONE: Dati molto limitati. Sottolinea chiaramente che l\'analisi è basata su informazioni parziali e che per suggerimenti più precisi servono più dati.' : ''}
+8. ${missingSections.length > 0 ? `Alla fine, aggiungi una nota: "⚠️ Nota: Analisi basata su dati parziali (${Math.round(confidence * 100)}% completezza). Per suggerimenti più precisi, carica anche: ${missingSections.join(', ')}."` : ''}
+
+9. Genera un riassunto in DOPPIA LINGUA (italiano e inglese) - max 300 parole per lingua, breve ma completo
+
+10. Focus su: Decision Support System - cosa cambiare, non archivio dati
+
+11. Formato OUTPUT JSON (bilingue):
+{
+  "analysis": {
+    "match_overview": { "it": "...", "en": "..." },
+    "result_analysis": { "it": "...", "en": "..." },
+    "key_highlights": { "it": ["..."], "en": ["..."] },
+    "strengths": { "it": ["..."], "en": ["..."] },
+    "weaknesses": { "it": ["..."], "en": ["..."] }
+  },
+  "player_performance": {
+    "top_performers": [{ "player_name": "...", "rating": 8.5, "reason": { "it": "...", "en": "..." }, "real_position": "SP", "slot_index": 8 }],
+    "underperformers": [{ "player_name": "...", "rating": 5.5, "reason": { "it": "...", "en": "..." }, "real_position": "CMF", "slot_index": 5, "suggested_replacement": { "it": "...", "en": "..." } }],
+    "suggestions": [{ "player_name": "...", "suggestion": { "it": "...", "en": "..." }, "reason": { "it": "...", "en": "..." }, "priority": "high", "real_position": "AMF", "slot_index": 6 }]
+  },
+  "tactical_analysis": {
+    "what_worked": { "it": "...", "en": "..." },
+    "what_didnt_work": { "it": "...", "en": "..." },
+    "formation_effectiveness": { "it": "...", "en": "..." },
+    "suggestions": [{ "suggestion": { "it": "...", "en": "..." }, "reason": { "it": "...", "en": "..." }, "priority": "high" }]
+  },
+  "recommendations": [{ "title": { "it": "...", "en": "..." }, "description": { "it": "...", "en": "..." }, "reason": { "it": "...", "en": "..." }, "priority": "high" }],
+  "historical_insights": { "it": "...", "en": "..." },
+  "confidence": 85,
+  "data_quality": "high",
+  "warnings": { "it": ["..."], "en": ["..."] }
+}
+
+12. Formato: Testo continuo, naturale, in DOPPIA LINGUA, motivazionale ma costruttivo, rivolto direttamente${userName ? ` a ${userName}` : ' all\'utente'} (usa "tu", "la tua squadra", "tuo" in italiano, "you", "your team", "your" in inglese)
+
+13. ${conservativeMode ? 'SII CONSERVATIVO: Evita conclusioni categoriche con dati limitati. Indica quando le analisi sono basate su dati parziali.' : 'Puoi essere più specifico, hai dati completi.'}`
 }
 
 export async function POST(req) {
@@ -311,11 +611,19 @@ export async function POST(req) {
       return NextResponse.json({ error: 'matchData is required' }, { status: 400 })
     }
 
-    // Recupera dati contestuali per analisi completa (profilo, rosa, formazione avversaria)
+    // Recupera dati contestuali per analisi completa (profilo, rosa, formazione avversaria, storico)
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
     let userProfile = null
     let players = []
     let opponentFormation = null
+    let playersInMatch = []
+    let matchHistory = []
+    let tacticalPatterns = null
+    
+    // Recupera players_in_match da matchData (disposizione reale giocatori)
+    if (matchData.players_in_match && Array.isArray(matchData.players_in_match)) {
+      playersInMatch = matchData.players_in_match
+    }
     
     if (serviceKey) {
       try {
@@ -350,13 +658,36 @@ export async function POST(req) {
         if (matchData.opponent_formation_id) {
           const { data: formation, error: formationError } = await admin
             .from('opponent_formations')
-            .select('formation_name, players, overall_strength, tactical_style')
+            .select('formation_name, players, overall_strength, tactical_style, playing_style')
             .eq('id', matchData.opponent_formation_id)
             .single()
           
           if (!formationError && formation) {
             opponentFormation = formation
           }
+        }
+        
+        // 4. Recupera storico match (ultimi 30 per analisi andamento)
+        const { data: history, error: historyError } = await admin
+          .from('matches')
+          .select('id, opponent_name, result, formation_played, playing_style_played, opponent_formation_id, match_date')
+          .eq('user_id', userId)
+          .order('match_date', { ascending: false })
+          .limit(30)
+        
+        if (!historyError && history) {
+          matchHistory = history
+        }
+        
+        // 5. Recupera pattern tattici (se disponibili)
+        const { data: patterns, error: patternsError } = await admin
+          .from('team_tactical_patterns')
+          .select('formation_usage, playing_style_usage, recurring_issues')
+          .eq('user_id', userId)
+          .maybeSingle()
+        
+        if (!patternsError && patterns) {
+          tacticalPatterns = patterns
         }
       } catch (err) {
         console.warn('[analyze-match] Error retrieving contextual data:', err)
@@ -392,7 +723,7 @@ export async function POST(req) {
       team_strength: matchData.team_strength
     }
     
-    const prompt = generateAnalysisPrompt(sanitizedMatchData, confidence, missingSections, userProfile, players, opponentFormation)
+    const prompt = generateAnalysisPrompt(sanitizedMatchData, confidence, missingSections, userProfile, players, opponentFormation, playersInMatch, matchHistory, tacticalPatterns)
     
     // Validazione dimensione prompt (max 50KB per sicurezza)
     const promptSize = prompt.length
@@ -414,7 +745,7 @@ export async function POST(req) {
       ],
       response_format: { type: 'json_object' },
       temperature: confidence < 0.7 ? 0.5 : 0.7, // Più conservativo con dati parziali
-      max_tokens: 2000 // Aumentato per output strutturato
+      max_tokens: 3000 // Aumentato per output bilingue completo (IT/EN)
     }
 
     // Chiama OpenAI con gestione errori corretta
@@ -484,11 +815,11 @@ export async function POST(req) {
       // Fallback: se non è JSON valido, crea struttura base con testo
       structuredSummary = {
         analysis: {
-          match_overview: content.substring(0, 500),
-          result_analysis: '',
-          key_highlights: [],
-          strengths: [],
-          weaknesses: []
+          match_overview: { it: content.substring(0, 500), en: content.substring(0, 500) },
+          result_analysis: { it: '', en: '' },
+          key_highlights: { it: [], en: [] },
+          strengths: { it: [], en: [] },
+          weaknesses: { it: [], en: [] }
         },
         player_performance: {
           top_performers: [],
@@ -496,17 +827,24 @@ export async function POST(req) {
           suggestions: []
         },
         tactical_analysis: {
-          what_worked: '',
-          what_didnt_work: '',
-          formation_effectiveness: '',
+          what_worked: { it: '', en: '' },
+          what_didnt_work: { it: '', en: '' },
+          formation_effectiveness: { it: '', en: '' },
           suggestions: []
         },
         recommendations: [],
+        historical_insights: { it: '', en: '' },
         confidence: Math.round(confidence * 100),
         data_quality: confidence >= 0.8 ? 'high' : confidence >= 0.5 ? 'medium' : 'low',
-        warnings: missingSections.length > 0 ? [`Analisi basata su dati parziali (${Math.round(confidence * 100)}% completezza). Per suggerimenti più precisi, carica anche: ${missingSections.join(', ')}.`] : []
+        warnings: { 
+          it: missingSections.length > 0 ? [`Analisi basata su dati parziali (${Math.round(confidence * 100)}% completezza). Per suggerimenti più precisi, carica anche: ${missingSections.join(', ')}.`] : [],
+          en: missingSections.length > 0 ? [`Analysis based on partial data (${Math.round(confidence * 100)}% completeness). For more precise suggestions, also upload: ${missingSections.join(', ')}.`] : []
+        }
       }
     }
+
+    // Normalizza struttura per supportare formato bilingue e retrocompatibilità
+    structuredSummary = normalizeBilingualStructure(structuredSummary, confidence, missingSections)
 
     // Valida struttura base
     if (!structuredSummary.analysis || !structuredSummary.player_performance || !structuredSummary.tactical_analysis) {
@@ -516,7 +854,19 @@ export async function POST(req) {
     // Assicura che confidence e data_quality siano coerenti
     structuredSummary.confidence = structuredSummary.confidence || Math.round(confidence * 100)
     structuredSummary.data_quality = structuredSummary.data_quality || (confidence >= 0.8 ? 'high' : confidence >= 0.5 ? 'medium' : 'low')
-    structuredSummary.warnings = structuredSummary.warnings || (missingSections.length > 0 ? [`Analisi basata su dati parziali (${Math.round(confidence * 100)}% completezza). Per suggerimenti più precisi, carica anche: ${missingSections.join(', ')}.`] : [])
+    
+    // Normalizza warnings (bilingue)
+    if (!structuredSummary.warnings || typeof structuredSummary.warnings === 'string' || Array.isArray(structuredSummary.warnings)) {
+      const warningsIt = Array.isArray(structuredSummary.warnings) 
+        ? structuredSummary.warnings 
+        : (typeof structuredSummary.warnings === 'string' ? [structuredSummary.warnings] : [])
+      const warningsEn = warningsIt.map(w => {
+        // Traduzione base (può essere migliorata)
+        if (w.includes('dati parziali')) return w.replace('dati parziali', 'partial data').replace('completezza', 'completeness')
+        return w
+      })
+      structuredSummary.warnings = { it: warningsIt, en: warningsEn }
+    }
 
     return NextResponse.json({
       summary: structuredSummary, // Ora è un oggetto strutturato

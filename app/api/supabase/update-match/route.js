@@ -332,7 +332,7 @@ export async function POST(req) {
       playing_style_played: toText(mergedData.playing_style_played) || existingMatch.playing_style_played,
       team_strength: toInt(mergedData.team_strength) ?? existingMatch.team_strength,
       extracted_data: mergedData.extracted_data || existingMatch.extracted_data || {},
-      ai_summary: toText(data.ai_summary) || existingMatch.ai_summary || null, // Aggiorna riassunto se rigenerato
+      ai_summary: existingMatch.ai_summary || null, // ai_summary gestito solo dalla sezione speciale (pagina dettaglio)
       photos_uploaded: photosUploaded,
       missing_photos: missingPhotos.length > 0 ? missingPhotos : null,
       data_completeness: dataCompleteness,
