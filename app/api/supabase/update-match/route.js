@@ -227,7 +227,35 @@ export async function POST(req) {
       }
     }
 
-    // 2. Merge dati
+    // 2. Gestione speciale per ai_summary (solo salvataggio, no merge)
+    if (section === 'ai_summary') {
+      // Salva solo il riassunto senza fare merge
+      const { data: updatedMatch, error: updateError } = await admin
+        .from('matches')
+        .update({
+          ai_summary: toText(data.ai_summary) || null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', match_id)
+        .eq('user_id', userId)
+        .select()
+        .single()
+
+      if (updateError) {
+        console.error('[update-match] Supabase update error:', updateError)
+        return NextResponse.json(
+          { error: updateError.message || 'Error updating match' },
+          { status: 500 }
+        )
+      }
+
+      return NextResponse.json({
+        success: true,
+        match: updatedMatch
+      })
+    }
+
+    // 2. Merge dati (per sezioni normali)
     const mergedData = mergeMatchData(existingMatch, data, section)
 
     // 3. Estrai risultato se presente (può essere nel data o come parametro separato, da qualsiasi sezione)
@@ -271,6 +299,7 @@ export async function POST(req) {
       playing_style_played: toText(mergedData.playing_style_played) || existingMatch.playing_style_played,
       team_strength: toInt(mergedData.team_strength) ?? existingMatch.team_strength,
       extracted_data: mergedData.extracted_data || existingMatch.extracted_data || {},
+      ai_summary: toText(data.ai_summary) || existingMatch.ai_summary || null, // Aggiorna riassunto se rigenerato
       photos_uploaded: photosUploaded,
       missing_photos: missingPhotos.length > 0 ? missingPhotos : null,
       data_completeness: dataCompleteness,

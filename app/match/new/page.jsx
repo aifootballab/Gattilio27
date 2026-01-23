@@ -324,6 +324,7 @@ export default function NewMatchPage() {
         formation_played: stepData.formation_style?.formation_played || null,
         playing_style_played: stepData.formation_style?.playing_style_played || null,
         team_strength: stepData.formation_style?.team_strength || null,
+        ai_summary: analysisSummary || null, // ✅ Salva riassunto AI se generato
         extracted_data: {
           stepData,
           stepImages: Object.keys(stepImages).reduce((acc, key) => {

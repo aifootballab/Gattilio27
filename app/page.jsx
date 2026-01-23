@@ -22,7 +22,8 @@ import {
   ChevronDown,
   ChevronUp,
   Trash2,
-  User
+  User,
+  Brain
 } from 'lucide-react'
 
 export default function DashboardPage() {
@@ -517,6 +518,86 @@ export default function DashboardPage() {
                         <div style={{ fontSize: '14px', fontWeight: 600 }}>
                           Risultato: <span style={{ color: 'var(--neon-blue)' }}>{displayResult}</span>
                         </div>
+                        {/* Preview Riassunto AI */}
+                        {match.ai_summary && (
+                          <div style={{
+                            marginTop: '12px',
+                            padding: 'clamp(8px, 2vw, 10px)',
+                            background: 'rgba(0, 212, 255, 0.1)',
+                            border: '1px solid rgba(0, 212, 255, 0.3)',
+                            borderRadius: '8px',
+                            fontSize: 'clamp(12px, 2.5vw, 13px)',
+                            lineHeight: '1.5',
+                            color: '#fff',
+                            opacity: 0.9
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                              <Brain size={14} color="var(--neon-blue)" />
+                              <span style={{ fontWeight: 600, color: 'var(--neon-blue)' }}>Riassunto AI:</span>
+                            </div>
+                            <div style={{ marginBottom: '8px' }}>
+                              {match.ai_summary.substring(0, 120)}...
+                            </div>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                router.push(`/match/${match.id}`)
+                              }}
+                              style={{
+                                background: 'transparent',
+                                border: '1px solid rgba(0, 212, 255, 0.5)',
+                                borderRadius: '6px',
+                                padding: 'clamp(4px, 1.5vw, 6px) clamp(8px, 2vw, 12px)',
+                                color: 'var(--neon-blue)',
+                                fontSize: 'clamp(11px, 2vw, 12px)',
+                                cursor: 'pointer',
+                                fontWeight: 600,
+                                transition: 'all 0.2s ease',
+                                whiteSpace: 'nowrap'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.background = 'rgba(0, 212, 255, 0.2)'
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.background = 'transparent'
+                              }}
+                            >
+                              Leggi tutto →
+                            </button>
+                          </div>
+                        )}
+                        {!match.ai_summary && (
+                          <div style={{
+                            marginTop: '12px',
+                            padding: '10px',
+                            background: 'rgba(255, 165, 0, 0.1)',
+                            border: '1px dashed rgba(255, 165, 0, 0.3)',
+                            borderRadius: '8px',
+                            textAlign: 'center'
+                          }}>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                router.push(`/match/${match.id}`)
+                              }}
+                              style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: 'var(--neon-orange)',
+                                fontSize: '12px',
+                                cursor: 'pointer',
+                                fontWeight: 600,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                margin: '0 auto'
+                              }}
+                            >
+                              <Brain size={14} />
+                              {t('generateAiSummary')}
+                            </button>
+                          </div>
+                        )}
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px', flexShrink: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

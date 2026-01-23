@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { useTranslation } from '@/lib/i18n'
 import LanguageSwitch from '@/components/LanguageSwitch'
-import { ArrowLeft, Upload, AlertCircle, CheckCircle2, RefreshCw, X, Camera, Calendar, Trophy } from 'lucide-react'
+import { ArrowLeft, Upload, AlertCircle, CheckCircle2, RefreshCw, X, Camera, Calendar, Trophy, Brain } from 'lucide-react'
 
 // STEPS sarà definito dentro il componente per avere accesso a t()
 
@@ -30,6 +30,8 @@ export default function MatchDetailPage() {
   const [uploadSection, setUploadSection] = React.useState(null)
   const [uploadImage, setUploadImage] = React.useState(null)
   const [extracting, setExtracting] = React.useState(false)
+  const [generatingSummary, setGeneratingSummary] = React.useState(false)
+  const [summaryError, setSummaryError] = React.useState(null)
 
   // Carica match
   React.useEffect(() => {
@@ -170,6 +172,95 @@ export default function MatchDetailPage() {
       setExtracting(false)
     }
   }
+
+  const handleGenerateSummary = async () => {
+    if (!match) return
+
+    setGeneratingSummary(true)
+    setSummaryError(null)
+
+    try {
+      const { data: session } = await supabase.auth.getSession()
+      if (!session?.session?.access_token) {
+        throw new Error(t('tokenNotAvailable'))
+      }
+
+      const token = session.session.access_token
+
+      // Prepara matchData per analisi
+      const matchData = {
+        result: match.result,
+        player_ratings: match.player_ratings,
+        team_stats: match.team_stats,
+        attack_areas: match.attack_areas,
+        ball_recovery_zones: match.ball_recovery_zones,
+        formation_played: match.formation_played,
+        playing_style_played: match.playing_style_played,
+        team_strength: match.team_strength,
+        opponent_formation_id: match.opponent_formation_id,
+        client_team_name: match.client_team_name
+      }
+
+      // Genera riassunto
+      const analyzeRes = await fetch('/api/analyze-match', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ matchData })
+      })
+
+      if (!analyzeRes.ok) {
+        const errorData = await analyzeRes.json()
+        throw new Error(errorData.error || 'Errore generazione riassunto')
+      }
+
+      const analyzeData = await analyzeRes.json()
+      const summary = analyzeData.summary
+
+      if (!summary) {
+        throw new Error('Nessun riassunto generato')
+      }
+
+      // Salva riassunto nel match
+      const updateRes = await fetch('/api/supabase/update-match', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          match_id: match.id,
+          section: 'ai_summary', // Sezione speciale per salvare solo riassunto
+          data: { ai_summary: summary }
+        })
+      })
+
+      if (!updateRes.ok) {
+        const errorData = await updateRes.json()
+        throw new Error(errorData.error || t('errorSavingSummary'))
+      }
+
+      // Ricarica match con riassunto
+      const { data: updatedMatch } = await supabase
+        .from('matches')
+        .select('*')
+        .eq('id', match.id)
+        .single()
+
+      if (updatedMatch) {
+        setMatch(updatedMatch)
+      }
+    } catch (err) {
+      console.error('[MatchDetail] Summary generation error:', err)
+      setSummaryError(err.message || t('errorGeneratingSummary'))
+    } finally {
+      setGeneratingSummary(false)
+    }
+  }
+
+  const handleRegenerateSummary = handleGenerateSummary // Stessa funzione
 
   const hasSection = (section) => {
     if (!match) return false
@@ -411,6 +502,131 @@ export default function MatchDetailPage() {
             )
           })}
         </div>
+      </div>
+
+      {/* Sezione Analisi AI */}
+      <div className="card" style={{ padding: 'clamp(16px, 4vw, 24px)', marginTop: '24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'clamp(8px, 2vw, 12px)', marginBottom: '20px', flexWrap: 'wrap' }}>
+          <Brain size={24} color="var(--neon-blue)" style={{ flexShrink: 0 }} />
+          <h2 style={{ fontSize: 'clamp(18px, 4vw, 20px)', fontWeight: 700, margin: 0 }}>
+            {t('aiAnalysis') || 'Analisi AI'}
+          </h2>
+        </div>
+
+        {match.ai_summary ? (
+          <div>
+            {/* Riassunto Completo */}
+            <div style={{
+              background: 'rgba(0, 212, 255, 0.1)',
+              border: '1px solid rgba(0, 212, 255, 0.3)',
+              borderRadius: '12px',
+              padding: 'clamp(16px, 4vw, 20px)',
+              marginBottom: '16px',
+              lineHeight: '1.7',
+              fontSize: 'clamp(14px, 3vw, 15px)',
+              color: '#fff',
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+              overflowWrap: 'break-word'
+            }}>
+              {match.ai_summary}
+            </div>
+
+            {/* Pulsante Rigenera */}
+            <button
+              onClick={handleRegenerateSummary}
+              disabled={generatingSummary}
+              style={{
+                width: '100%',
+                padding: '12px',
+                background: generatingSummary ? 'rgba(156, 163, 175, 0.2)' : 'rgba(0, 212, 255, 0.2)',
+                border: `1px solid ${generatingSummary ? 'rgba(156, 163, 175, 0.5)' : 'rgba(0, 212, 255, 0.5)'}`,
+                borderRadius: '8px',
+                color: generatingSummary ? '#d1d5db' : 'var(--neon-blue)',
+                cursor: generatingSummary ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                fontWeight: 600,
+                fontSize: '14px'
+              }}
+            >
+              {generatingSummary ? (
+                <>
+                  <RefreshCw size={18} style={{ animation: 'spin 1s linear infinite' }} />
+                  {t('generatingAnalysis') || 'Generazione in corso...'}
+                </>
+              ) : (
+                <>
+                  <RefreshCw size={18} />
+                  {t('regenerateSummary') || 'Rigenera Riassunto'}
+                </>
+              )}
+            </button>
+          </div>
+        ) : (
+          <div style={{
+            padding: 'clamp(16px, 4vw, 24px)',
+            textAlign: 'center',
+            background: 'rgba(255, 165, 0, 0.05)',
+            border: '1px dashed rgba(255, 165, 0, 0.3)',
+            borderRadius: '12px'
+          }}>
+            <p style={{ marginBottom: '16px', opacity: 0.8, fontSize: 'clamp(13px, 3vw, 14px)', lineHeight: '1.6' }}>
+              {t('noSummaryAvailable') || 'Nessun riassunto disponibile. Genera un riassunto per vedere l\'analisi della partita.'}
+            </p>
+            <button
+              onClick={handleGenerateSummary}
+              disabled={generatingSummary}
+              style={{
+                padding: 'clamp(10px, 2.5vw, 12px) clamp(16px, 4vw, 24px)',
+                background: generatingSummary ? 'rgba(156, 163, 175, 0.2)' : 'rgba(0, 212, 255, 0.2)',
+                border: `1px solid ${generatingSummary ? 'rgba(156, 163, 175, 0.5)' : 'rgba(0, 212, 255, 0.5)'}`,
+                borderRadius: '8px',
+                color: generatingSummary ? '#d1d5db' : 'var(--neon-blue)',
+                cursor: generatingSummary ? 'not-allowed' : 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 'clamp(6px, 1.5vw, 8px)',
+                fontWeight: 600,
+                fontSize: 'clamp(13px, 3vw, 14px)',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              {generatingSummary ? (
+                <>
+                  <RefreshCw size={18} style={{ animation: 'spin 1s linear infinite' }} />
+                  {t('generatingAnalysis') || 'Generazione in corso...'}
+                </>
+              ) : (
+                <>
+                  <Brain size={18} />
+                  {t('generateAnalysis') || 'Genera Riassunto AI'}
+                </>
+              )}
+            </button>
+          </div>
+        )}
+
+        {summaryError && (
+          <div style={{
+            marginTop: '16px',
+            padding: '12px',
+            background: 'rgba(239, 68, 68, 0.1)',
+            border: '1px solid rgba(239, 68, 68, 0.3)',
+            borderRadius: '8px',
+            color: '#fca5a5',
+            fontSize: '14px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            <AlertCircle size={18} />
+            {summaryError}
+          </div>
+        )}
       </div>
 
       <style jsx>{`

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 import { validateToken, extractBearerToken } from '../../../lib/authHelper'
 import { callOpenAIWithRetry } from '../../../lib/openaiHelper'
 import { checkRateLimit, RATE_LIMIT_CONFIG } from '../../../lib/rateLimiter'
@@ -78,9 +79,9 @@ function getMissingSections(matchData) {
 }
 
 /**
- * Genera prompt per analisi AI con conservative mode
+ * Genera prompt per analisi AI con conservative mode, personalizzazione e contesto completo
  */
-function generateAnalysisPrompt(matchData, confidence, missingSections) {
+function generateAnalysisPrompt(matchData, confidence, missingSections, userProfile = null, players = [], opponentFormation = null) {
   const hasResult = matchData.result && matchData.result !== 'N/A' && matchData.result !== null
   const missingText = missingSections.length > 0 
     ? `\n\n⚠️ DATI PARZIALI: Le seguenti sezioni non sono disponibili: ${missingSections.join(', ')}.`
@@ -136,28 +137,110 @@ Suggerisci di caricare le foto mancanti per un'analisi più precisa.`
     availableDataText += `- Stile di Gioco: ${matchData.playing_style_played}\n`
   }
   
-  return `Analizza i dati di questa partita di eFootball e genera un riassunto dell'andamento.
+  // Costruisci contesto utente per personalizzazione
+  let userContext = ''
+  let personalizationInstructions = ''
+  
+  if (userProfile) {
+    const userName = userProfile.first_name || null
+    const teamName = userProfile.team_name || null
+    const howToRemember = userProfile.how_to_remember || null
+    const aiName = userProfile.ai_name || null
+    
+    if (userName || teamName || howToRemember) {
+      userContext = `\nCONTESTO UTENTE:\n`
+      if (userName) {
+        userContext += `- Nome: ${userName}\n`
+      }
+      if (teamName) {
+        userContext += `- Squadra: ${teamName}\n`
+      }
+      if (howToRemember) {
+        userContext += `- Preferenze: ${howToRemember}\n`
+      }
+      if (aiName) {
+        userContext += `- Nome IA: ${aiName}\n`
+      }
+      
+      // Istruzioni personalizzazione
+      personalizationInstructions = `\nISTRUZIONI PERSONALIZZAZIONE:
+1. Rivolgiti direttamente a ${userName || 'l\'utente'} (usa "tu", "la tua squadra", "tuo")
+2. ${teamName ? `Riferisciti alla squadra "${teamName}" quando parli della squadra del cliente. Identifica quale squadra è quella del cliente confrontando "${teamName}" con i nomi squadra nei dati.` : 'Identifica quale squadra è quella del cliente confrontando i nomi squadra nei dati.'}
+3. ${howToRemember ? `Considera che ${howToRemember}. Adatta il tono e i suggerimenti di conseguenza.` : ''}
+4. Sii incoraggiante ma costruttivo, focalizzato sul miglioramento
+5. Usa un tono ${howToRemember?.includes('divertimento') ? 'amichevole e positivo' : 'professionale ma accessibile'}\n`
+    }
+  }
+  
+  // Costruisci sezione ROSA DISPONIBILE
+  let rosterText = ''
+  if (players && players.length > 0) {
+    rosterText = `\nROSA DISPONIBILE (${players.length} giocatori):\n`
+    players.slice(0, 30).forEach((player, idx) => { // Max 30 per non appesantire prompt
+      const skills = player.skills && Array.isArray(player.skills) ? player.skills.slice(0, 3).join(', ') : ''
+      const comSkills = player.com_skills && Array.isArray(player.com_skills) ? player.com_skills.slice(0, 2).join(', ') : ''
+      const skillsText = skills || comSkills ? ` (Skills: ${skills || comSkills})` : ''
+      rosterText += `${idx + 1}. ${player.player_name || 'N/A'} - ${player.position || 'N/A'} - Overall: ${player.overall_rating || 'N/A'}${skillsText}\n`
+    })
+    if (players.length > 30) {
+      rosterText += `... e altri ${players.length - 30} giocatori\n`
+    }
+  } else {
+    rosterText = `\nROSA DISPONIBILE: Non disponibile (nessun giocatore salvato nella rosa)\n`
+  }
+  
+  // Costruisci sezione FORMAZIONE AVVERSARIA
+  let opponentFormationText = ''
+  if (opponentFormation) {
+    opponentFormationText = `\nFORMAZIONE AVVERSARIA:\n`
+    opponentFormationText += `- Nome: ${opponentFormation.formation_name || 'N/A'}\n`
+    if (opponentFormation.overall_strength) {
+      opponentFormationText += `- Forza Complessiva: ${opponentFormation.overall_strength}\n`
+    }
+    if (opponentFormation.tactical_style) {
+      opponentFormationText += `- Stile Tattico: ${opponentFormation.tactical_style}\n`
+    }
+    if (opponentFormation.players && Array.isArray(opponentFormation.players)) {
+      opponentFormationText += `- Giocatori: ${opponentFormation.players.length} giocatori rilevati\n`
+    }
+  } else {
+    opponentFormationText = `\nFORMAZIONE AVVERSARIA: Non disponibile\n`
+  }
+  
+  // Identifica squadra cliente
+  const clientTeamName = userProfile?.team_name || matchData.client_team_name || null
+  const clientTeamText = clientTeamName ? `\nSQUADRA CLIENTE: ${clientTeamName}\n` : `\nSQUADRA CLIENTE: Identifica quale squadra è quella del cliente confrontando i nomi squadra nei dati match.\n`
+  
+  const userName = userProfile?.first_name || null
+  const greeting = userName ? ` per ${userName}` : ''
+  
+  return `Analizza i dati di questa partita di eFootball${greeting} e genera un riassunto motivazionale e decisionale dell'andamento.
 
 ${hasResult ? `RISULTATO: ${matchData.result}` : 'RISULTATO: Non disponibile'}
 
-DATI DISPONIBILI:
+${userContext}${clientTeamText}${rosterText}${opponentFormationText}DATI MATCH DISPONIBILI:
 ${availableDataText}
 ${missingText}
-${conservativeMode}
+${conservativeMode}${personalizationInstructions}
+ISTRUZIONI PER L'ANALISI (COACH MOTIVAZIONALE):
+1. Identifica chiaramente quale squadra è quella del cliente${clientTeamName ? ` (${clientTeamName})` : ''} e analizza le sue performance (non quelle dell'avversario)
+2. Rispondi a queste domande intrinseche:
+   a) Come è andato il match? (risultato, performance generale della squadra cliente)
+   b) Quali giocatori hanno performato bene/male? (confronta pagelle con rosa disponibile, suggerisci alternative dalla rosa se necessario)
+   c) Cosa ha funzionato contro questa formazione avversaria? (analisi tattica basata su formazione avversaria se disponibile)
+   d) Cosa cambiare per migliorare? (suggerimenti concreti basati su dati, rosa e formazione avversaria)
+   e) Quali giocatori della rosa potrebbero essere utili? (suggerimenti specifici basati su skills e overall dei giocatori disponibili)
+3. Sii un coach motivazionale: incoraggiante ma costruttivo, focalizzato sul supporto decisionale
+4. Incrocia i dati: usa rosa disponibile, formazione avversaria, statistiche per analisi coerente e contestuale
+5. ${confidence < 0.5 ? '⚠️ ATTENZIONE: Dati molto limitati. Sottolinea chiaramente che l\'analisi è basata su informazioni parziali e che per suggerimenti più precisi servono più dati.' : ''}
+6. ${missingSections.length > 0 ? `Alla fine, aggiungi una nota: "⚠️ Nota: Analisi basata su dati parziali (${Math.round(confidence * 100)}% completezza). Per suggerimenti più precisi, carica anche: ${missingSections.join(', ')}."` : ''}
 
-ISTRUZIONI PER IL RIASSUNTO:
-1. Genera un riassunto in italiano (max 300 parole)
-2. Focus su: Decision Support System - cosa cambiare, non archivio dati
-3. Includi:
-   - Analisi del risultato (se disponibile)
-   - Performance chiave dei giocatori (se disponibili)
-   - Statistiche significative (se disponibili)
-   - Punti di forza e debolezze (basati sui dati disponibili)
-   - Suggerimenti tattici concreti (cosa cambiare)
-4. ${conservativeMode ? 'SII CONSERVATIVO: Evita conclusioni categoriche con dati limitati. Indica quando le analisi sono basate su dati parziali.' : 'Puoi essere più specifico, hai dati completi.'}
-5. ${missingSections.length > 0 ? `Alla fine, aggiungi una nota: "⚠️ Nota: Analisi basata su dati parziali (${Math.round(confidence * 100)}% completezza). Per suggerimenti più precisi, carica anche: ${missingSections.join(', ')}."` : ''}
+7. Genera un riassunto in italiano (max 300 parole, breve ma completo)
+8. Focus su: Decision Support System - cosa cambiare, non archivio dati
+9. Formato: Testo continuo, naturale, in italiano, rivolto direttamente${userName ? ` a ${userName}` : ' all\'utente'} (usa "tu", "la tua squadra", "tuo")
+10. ${conservativeMode ? 'SII CONSERVATIVO: Evita conclusioni categoriche con dati limitati. Indica quando le analisi sono basate su dati parziali.' : 'Puoi essere più specifico, hai dati completi.'}
 
-Formato: Testo continuo, naturale, in italiano.`
+Formato: Testo continuo, naturale, in italiano, motivazionale ma costruttivo.`
 }
 
 export async function POST(req) {
@@ -220,6 +303,59 @@ export async function POST(req) {
       return NextResponse.json({ error: 'matchData is required' }, { status: 400 })
     }
 
+    // Recupera dati contestuali per analisi completa (profilo, rosa, formazione avversaria)
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    let userProfile = null
+    let players = []
+    let opponentFormation = null
+    
+    if (serviceKey) {
+      try {
+        const admin = createClient(supabaseUrl, serviceKey, {
+          auth: { autoRefreshToken: false, persistSession: false }
+        })
+        
+        // 1. Recupera profilo utente
+        const { data: profile, error: profileError } = await admin
+          .from('user_profiles')
+          .select('first_name, team_name, ai_name, how_to_remember')
+          .eq('user_id', userId)
+          .maybeSingle()
+        
+        if (!profileError && profile) {
+          userProfile = profile
+        }
+        
+        // 2. Recupera rosa del cliente (per analisi contestuale)
+        const { data: roster, error: rosterError } = await admin
+          .from('players')
+          .select('player_name, position, overall_rating, base_stats, skills, com_skills')
+          .eq('user_id', userId)
+          .order('overall_rating', { ascending: false })
+          .limit(50) // Max 50 giocatori per evitare prompt troppo grande
+        
+        if (!rosterError && roster) {
+          players = roster
+        }
+        
+        // 3. Recupera formazione avversaria (se presente nel match)
+        if (matchData.opponent_formation_id) {
+          const { data: formation, error: formationError } = await admin
+            .from('opponent_formations')
+            .select('formation_name, players, overall_strength, tactical_style')
+            .eq('id', matchData.opponent_formation_id)
+            .single()
+          
+          if (!formationError && formation) {
+            opponentFormation = formation
+          }
+        }
+      } catch (err) {
+        console.warn('[analyze-match] Error retrieving contextual data:', err)
+        // Non bloccare analisi se errore recupero dati contestuali
+      }
+    }
+
     // Verifica che ci sia almeno una sezione con dati
     const confidence = calculateConfidence(matchData)
     if (confidence === 0) {
@@ -248,7 +384,7 @@ export async function POST(req) {
       team_strength: matchData.team_strength
     }
     
-    const prompt = generateAnalysisPrompt(sanitizedMatchData, confidence, missingSections)
+    const prompt = generateAnalysisPrompt(sanitizedMatchData, confidence, missingSections, userProfile, players, opponentFormation)
     
     // Validazione dimensione prompt (max 50KB per sicurezza)
     const promptSize = prompt.length
