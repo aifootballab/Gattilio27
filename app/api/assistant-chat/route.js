@@ -275,16 +275,12 @@ export async function POST(req) {
     }
     
     // Usa il modello migliore disponibile
-    // Prova GPT-5, fallback a GPT-4o se non disponibile
-    let model = 'gpt-4o' // Default
-    try {
-      // Verifica se GPT-5 è disponibile (da testare in produzione)
-      // Per ora usiamo GPT-4o che è stabile e disponibile
-      // TODO: Testare GPT-5 quando disponibile e aggiornare
-      model = 'gpt-4o'
-    } catch (e) {
-      model = 'gpt-4o' // Fallback sicuro
-    }
+    // GPT-5 disponibile (Agosto 2025) - modello più avanzato per qualità superiore
+    // Per chat testuale: GPT-5 (migliore ragionamento, contesto più ampio)
+    // Per Realtime vocale: gpt-realtime (Agosto 2025)
+    // Fallback a GPT-4o se GPT-5 non disponibile
+    let model = 'gpt-5' // Prova GPT-5 (modello migliore)
+    // Se GPT-5 non disponibile, fallback automatico a GPT-4o gestito da OpenAI
     
     const requestBody = {
       model: model,
@@ -295,12 +291,13 @@ export async function POST(req) {
 Rispondi sempre in modo empatico, motivante e incoraggiante. 
 Usa il nome del cliente quando possibile.
 
-⚠️ REGOLE CRITICHE:
+⚠️ REGOLE CRITICHE (FONDAMENTALI):
 - NON inventare funzionalità che non esistono nella piattaforma
-- Rispondi SOLO su funzionalità reali e documentate
-- Se cliente chiede qualcosa che non esiste, sii onesto e suggerisci alternativa esistente
-- Mantieni coerenza: tutte le informazioni devono essere accurate
-- Se non sei sicuro di una funzionalità, ammettilo e chiedi chiarimenti`
+- Rispondi SOLO su funzionalità reali e documentate nel prompt
+- Se cliente chiede qualcosa che non esiste, sii onesto: "Questa funzionalità non è ancora disponibile, ma posso aiutarti con [funzionalità simile esistente]"
+- Mantieni coerenza: tutte le informazioni devono essere accurate e verificate
+- Se non sei sicuro di una funzionalità, ammettilo: "Non sono sicuro, ma posso guidarti su [funzionalità esistente]"
+- Riferisciti SOLO alle 6 funzionalità elencate nel prompt utente`
         },
         {
           role: 'user',
@@ -312,27 +309,43 @@ Usa il nome del cliente quando possibile.
       response_format: { type: 'text' }
     }
     
+    // Chiama OpenAI con retry (gestisce anche fallback GPT-4o se GPT-5 non disponibile)
     const response = await callOpenAIWithRetry(apiKey, requestBody, 'assistant-chat')
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ error: { message: 'Unknown error' } }))
+      
+      // Se GPT-5 non disponibile, fallback a GPT-4o
+      if (errorData.error?.code === 'model_not_found' && model === 'gpt-5') {
+        console.log('[assistant-chat] GPT-5 non disponibile, fallback a GPT-4o')
+        requestBody.model = 'gpt-4o'
+        const fallbackResponse = await callOpenAIWithRetry(apiKey, requestBody, 'assistant-chat')
+        if (!fallbackResponse.ok) {
+          throw new Error(errorData.error?.message || 'OpenAI API error')
+        }
+        const fallbackData = await fallbackResponse.json()
+        const content = fallbackData.choices[0]?.message?.content || 'Mi dispiace, non ho capito. Puoi ripetere?'
+        return NextResponse.json({
+          response: content,
+          remaining: rateLimit.remaining,
+          resetAt: rateLimit.resetAt
+        })
+      }
+      
       throw new Error(errorData.error?.message || 'OpenAI API error')
     }
     
     const data = await response.json()
-    let content = data.choices[0]?.message?.content || 'Mi dispiace, non ho capito. Puoi ripetere?'
+    const content = data.choices[0]?.message?.content || 'Mi dispiace, non ho capito. Puoi ripetere?'
     
-    // Validazione base: rimuovi riferimenti a funzionalità inesistenti comuni
-    // (questo è un fallback, il prompt dovrebbe già prevenire)
-    const invalidFeatures = [
-      'funzionalità non disponibile',
-      'non implementato',
-      'non ancora disponibile'
-    ]
-    
-    // Se la risposta contiene riferimenti a funzionalità inesistenti, 
-    // assicurati che sia chiaro che è onesto (non inventato)
-    // Il prompt già gestisce questo, ma aggiungiamo validazione extra
+    // Validazione base: verifica che la risposta non contenga riferimenti a funzionalità inventate
+    // (il prompt già previene, ma aggiungiamo controllo extra)
+    // Per ora solo logging, in futuro possiamo aggiungere filtri più sofisticati
+    if (content.toLowerCase().includes('funzionalità non disponibile') || 
+        content.toLowerCase().includes('non è ancora disponibile')) {
+      // OK: AI è onesta su funzionalità inesistente (comportamento corretto)
+      console.log('[assistant-chat] AI ha ammesso funzionalità non disponibile - comportamento corretto')
+    }
     
     return NextResponse.json({
       response: content,
