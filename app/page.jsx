@@ -20,7 +20,8 @@ import {
   FileImage,
   Calendar,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Trash2
 } from 'lucide-react'
 
 export default function DashboardPage() {
@@ -37,6 +38,7 @@ export default function DashboardPage() {
   const [topPlayers, setTopPlayers] = React.useState([])
   const [recentMatches, setRecentMatches] = React.useState([])
   const [matchesExpanded, setMatchesExpanded] = React.useState(false)
+  const [deletingMatchId, setDeletingMatchId] = React.useState(null)
 
   React.useEffect(() => {
     if (!supabase) {
@@ -140,6 +142,47 @@ export default function DashboardPage() {
       await supabase.auth.signOut()
     }
     router.push('/login')
+  }
+
+  const handleDeleteMatch = async (matchId, e) => {
+    e.stopPropagation() // Previeni click sul card
+    
+    if (!confirm(t('confirmDeleteMatch'))) {
+      return
+    }
+
+    setDeletingMatchId(matchId)
+    setError(null)
+
+    try {
+      const { data: session } = await supabase.auth.getSession()
+      if (!session?.session?.access_token) {
+        throw new Error(t('sessionExpired'))
+      }
+
+      const token = session.session.access_token
+
+      const res = await fetch(`/api/supabase/delete-match?match_id=${matchId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.error || t('deleteMatchError'))
+      }
+
+      // Rimuovi match dalla lista
+      setRecentMatches(prev => prev.filter(m => m.id !== matchId))
+    } catch (err) {
+      console.error('[Dashboard] Delete match error:', err)
+      setError(err.message || t('deleteMatchError'))
+    } finally {
+      setDeletingMatchId(null)
+    }
   }
 
   if (loading) {
@@ -447,9 +490,45 @@ export default function DashboardPage() {
                         </div>
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px', flexShrink: 0 }}>
-                        <span className={`completeness-badge ${isComplete ? 'complete' : 'incomplete'}`}>
-                          {isComplete ? '✓ Completa' : `${match.photos_uploaded || 0}/5`}
-                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span className={`completeness-badge ${isComplete ? 'complete' : 'incomplete'}`}>
+                            {isComplete ? '✓ Completa' : `${match.photos_uploaded || 0}/5`}
+                          </span>
+                          <button
+                            onClick={(e) => handleDeleteMatch(match.id, e)}
+                            disabled={deletingMatchId === match.id}
+                            style={{
+                              background: 'rgba(239, 68, 68, 0.2)',
+                              border: '1px solid rgba(239, 68, 68, 0.5)',
+                              borderRadius: '6px',
+                              padding: '6px',
+                              color: '#fca5a5',
+                              cursor: deletingMatchId === match.id ? 'not-allowed' : 'pointer',
+                              opacity: deletingMatchId === match.id ? 0.5 : 1,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              transition: 'all 0.2s ease'
+                            }}
+                            onMouseEnter={(e) => {
+                              if (deletingMatchId !== match.id) {
+                                e.currentTarget.style.background = 'rgba(239, 68, 68, 0.3)'
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              if (deletingMatchId !== match.id) {
+                                e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)'
+                              }
+                            }}
+                            title={t('deleteMatch')}
+                          >
+                            {deletingMatchId === match.id ? (
+                              <RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                            ) : (
+                              <Trash2 size={14} />
+                            )}
+                          </button>
+                        </div>
                         {missingCount > 0 && (
                           <span style={{ fontSize: '12px', opacity: 0.7, color: 'var(--neon-orange)' }}>
                             {missingCount} mancanti

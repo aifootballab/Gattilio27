@@ -199,6 +199,7 @@ function getPromptForSection(section, userTeamInfo = null) {
 IMPORTANTE:
 - Estrai SOLO ciò che vedi nell'immagine
 - Questa schermata mostra SOLO i VOTI (ratings) dei giocatori, NON ci sono goals, assists o minuti giocati
+- Se vedi il RISULTATO della partita (es. "3-1", "2-2", "4-0", "6-1"), estrailo nel campo "result" (formato: "X-Y" dove X sono i gol della squadra utente e Y i gol dell'avversario)
 - Per ogni giocatore visibile nella lista delle pagelle, estrai:
   * nome (nome completo del giocatore come appare nella lista)
   * rating (voto numerico, es. 8.5, 7.0, 6.5, 5.5 - OBBLIGATORIO, è l'unico dato visibile)
@@ -210,6 +211,7 @@ IMPORTANTE:
 
 Formato JSON richiesto:
 {
+  "result": "6-1",
   "ratings": {
     "Nome Giocatore Cliente": {
       "rating": 8.5,
@@ -258,11 +260,13 @@ Restituisci SOLO JSON valido, senza altro testo.`,
 
 IMPORTANTE:
 - Estrai SOLO ciò che vedi nell'immagine (null se non visibile)
+- Se vedi il RISULTATO della partita (es. "3-1", "2-2", "4-0", "6-1"), estrailo nel campo "result" (formato: "X-Y" dove X sono i gol della squadra utente e Y i gol dell'avversario)
 - Estrai le percentuali per zona: sinistra (left), centro (center), destra (right)
 - Se ci sono dati per entrambe le squadre, identifica team1 (squadra utente) e team2 (avversario)
 
 Formato JSON richiesto:
 {
+  "result": "6-1",
   "team1": {
     "left": 46,
     "center": 45,
@@ -281,11 +285,13 @@ Restituisci SOLO JSON valido, senza altro testo.`,
 
 IMPORTANTE:
 - Estrai SOLO ciò che vedi nell'immagine (null se non visibile)
+- Se vedi il RISULTATO della partita (es. "3-1", "2-2", "4-0", "6-1"), estrailo nel campo "result" (formato: "X-Y" dove X sono i gol della squadra utente e Y i gol dell'avversario)
 - Per ogni punto verde sul campo, estrai la posizione normalizzata (x: 0-1, y: 0-1 dove 0,0 è in alto a sinistra)
 - Identifica quale squadra ha recuperato (team1 o team2)
 
 Formato JSON richiesto:
 {
+  "result": "6-1",
   "zones": [
     { "x": 0.3, "y": 0.5, "team": "team1" },
     { "x": 0.7, "y": 0.4, "team": "team2" }
@@ -490,18 +496,17 @@ export async function POST(req) {
         )
     }
 
-    // Estrai risultato se presente (può essere in player_ratings, team_stats, formation_style o nei dati raw)
+    // Estrai risultato se presente (può essere in qualsiasi sezione: player_ratings, team_stats, attack_areas, ball_recovery_zones, formation_style)
     let result = null
     if (extractedData.result && typeof extractedData.result === 'string') {
       result = extractedData.result.trim()
     } else if (normalizedData && normalizedData.result && typeof normalizedData.result === 'string') {
       result = normalizedData.result.trim()
-      // Rimuovi result da normalizedData se è in team_stats (non fa parte delle statistiche)
-      if (section === 'team_stats' && normalizedData.result) {
-        delete normalizedData.result
-      }
-    } else if (section === 'formation_style' && extractedData.result) {
-      result = typeof extractedData.result === 'string' ? extractedData.result.trim() : null
+    }
+    
+    // Rimuovi result da normalizedData (non fa parte dei dati della sezione specifica)
+    if (normalizedData && normalizedData.result) {
+      delete normalizedData.result
     }
 
     return NextResponse.json({

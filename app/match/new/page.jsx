@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { useTranslation } from '@/lib/i18n'
 import LanguageSwitch from '@/components/LanguageSwitch'
-import { ArrowLeft, Upload, AlertCircle, CheckCircle2, RefreshCw, X, SkipForward, Save, Camera } from 'lucide-react'
+import { ArrowLeft, Upload, AlertCircle, CheckCircle2, RefreshCw, X, SkipForward, Save, Camera, Brain, Trophy } from 'lucide-react'
 
 // STEPS sarà definito dentro il componente per avere accesso a t()
 
@@ -31,6 +31,11 @@ export default function NewMatchPage() {
   const [error, setError] = React.useState(null)
   const [success, setSuccess] = React.useState(false)
   const [mounted, setMounted] = React.useState(false)
+  const [showSummary, setShowSummary] = React.useState(false)
+  const [generatingAnalysis, setGeneratingAnalysis] = React.useState(false)
+  const [analysisSummary, setAnalysisSummary] = React.useState(null)
+  const [analysisConfidence, setAnalysisConfidence] = React.useState(null)
+  const [missingSections, setMissingSections] = React.useState([])
 
   // Carica progresso salvato al mount
   React.useEffect(() => {
@@ -137,7 +142,20 @@ export default function NewMatchPage() {
       const extractData = await extractRes.json()
 
       if (!extractRes.ok) {
-        throw new Error(extractData.error || t('extractDataError'))
+        // Messaggi di errore specifici
+        let errorMsg = extractData.error || t('extractDataError')
+        
+        if (errorMsg.includes('quota') || errorMsg.includes('billing')) {
+          errorMsg = t('errorQuotaExhausted')
+        } else if (errorMsg.includes('timeout') || errorMsg.includes('took too long')) {
+          errorMsg = t('errorTimeout')
+        } else if (errorMsg.includes('too large') || errorMsg.includes('10MB')) {
+          errorMsg = t('errorImageTooLarge')
+        } else if (errorMsg.includes('Unable to extract') || errorMsg.includes('No content')) {
+          errorMsg = t('errorInvalidScreenshot')
+        }
+        
+        throw new Error(errorMsg)
       }
 
       // Salva dati estratti
@@ -188,14 +206,91 @@ export default function NewMatchPage() {
     }
   }
 
-  const handleSave = async () => {
+  const handleGenerateAnalysis = async () => {
+    setGeneratingAnalysis(true)
+    setError(null)
+    
+    try {
+      const { data: session } = await supabase.auth.getSession()
+      if (!session?.session?.access_token) {
+        throw new Error(t('sessionExpired'))
+      }
+
+      const token = session.session.access_token
+      
+      // Prepara dati match (stessa logica di handleSave)
+      let matchResult = stepData.result || null
+      if (!matchResult && stepData.team_stats && stepData.team_stats.result) {
+        matchResult = stepData.team_stats.result
+      }
+
+      const matchData = {
+        result: matchResult,
+        player_ratings: stepData.player_ratings || null,
+        team_stats: stepData.team_stats || null,
+        attack_areas: stepData.attack_areas || null,
+        ball_recovery_zones: stepData.ball_recovery_zones || null,
+        formation_played: stepData.formation_style?.formation_played || null,
+        playing_style_played: stepData.formation_style?.playing_style_played || null,
+        team_strength: stepData.formation_style?.team_strength || null
+      }
+
+      const res = await fetch('/api/analyze-match', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ matchData })
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.error || t('errorAnalysisGeneration'))
+      }
+
+      setAnalysisSummary(data.summary)
+      setAnalysisConfidence(data.confidence)
+      setMissingSections(data.missing_sections || [])
+    } catch (err) {
+      console.error('[NewMatch] Analysis error:', err)
+      setError(err.message || t('errorAnalysisGeneration'))
+    } finally {
+      setGeneratingAnalysis(false)
+    }
+  }
+
+  // Calcola progresso foto (solo sezioni, non result)
+  const photosUploaded = React.useMemo(() => {
+    return STEPS.filter(step => stepData[step.id] && stepData[step.id] !== null).length
+  }, [stepData, STEPS])
+
+  const photosMissing = React.useMemo(() => {
+    return STEPS.filter(step => !stepData[step.id] || stepData[step.id] === null).map(step => step.label)
+  }, [stepData, STEPS])
+
+  const photosComplete = React.useMemo(() => {
+    return STEPS.filter(step => stepData[step.id] && stepData[step.id] !== null).map(step => step.label)
+  }, [stepData, STEPS])
+
+  const handleShowSummary = () => {
     // Verifica che almeno una sezione abbia dati
     const hasData = Object.values(stepData).some(data => data !== null && data !== undefined)
     if (!hasData) {
       setError(t('loadAtLeastOneSection'))
       return
     }
+    setShowSummary(true)
+    setError(null)
+  }
 
+  const handleConfirmSave = () => {
+    setShowSummary(false)
+    handleSave()
+  }
+
+  const handleSave = async () => {
     setSaving(true)
     setError(null)
 
@@ -211,6 +306,12 @@ export default function NewMatchPage() {
       let matchResult = stepData.result || null
       if (!matchResult && stepData.team_stats && stepData.team_stats.result) {
         matchResult = stepData.team_stats.result
+      }
+      
+      // Rimuovi result da team_stats se presente (non fa parte delle statistiche)
+      if (stepData.team_stats && stepData.team_stats.result) {
+        const { result, ...statsWithoutResult } = stepData.team_stats
+        stepData.team_stats = statsWithoutResult
       }
 
       // Prepara dati match
@@ -268,6 +369,7 @@ export default function NewMatchPage() {
   const currentImage = stepImages[currentSection]
   const currentData = stepData[currentSection]
   const progress = ((currentStep + 1) / STEPS.length) * 100
+  const extractedResult = stepData.result || null
 
   if (!mounted) {
     return null
@@ -278,7 +380,7 @@ export default function NewMatchPage() {
       minHeight: '100vh',
       background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%)',
       color: '#fff',
-      padding: '20px',
+      padding: 'clamp(12px, 3vw, 20px)',
       paddingBottom: '100px'
     }}>
       {/* Header */}
@@ -307,7 +409,7 @@ export default function NewMatchPage() {
           >
             <ArrowLeft size={20} />
           </button>
-          <h1 style={{ fontSize: '24px', fontWeight: 700, margin: 0 }}>
+          <h1 style={{ fontSize: 'clamp(20px, 5vw, 24px)', fontWeight: 700, margin: 0 }}>
             {t('addMatch')}
           </h1>
         </div>
@@ -321,7 +423,7 @@ export default function NewMatchPage() {
         background: 'rgba(255, 255, 255, 0.1)',
         borderRadius: '8px',
         height: '8px',
-        marginBottom: '24px',
+        marginBottom: '12px',
         overflow: 'hidden'
       }}>
         <div style={{
@@ -330,6 +432,42 @@ export default function NewMatchPage() {
           width: `${progress}%`,
           transition: 'width 0.3s ease'
         }} />
+      </div>
+
+      {/* Progress Counter & Result */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '24px',
+        flexWrap: 'wrap',
+        gap: '12px'
+      }}>
+        <div style={{
+          fontSize: '14px',
+          opacity: 0.8,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+          <span>{photosUploaded}/{STEPS.length} {t('photosCount')}</span>
+        </div>
+        {extractedResult && (
+          <div style={{
+            background: 'rgba(34, 197, 94, 0.2)',
+            border: '1px solid rgba(34, 197, 94, 0.5)',
+            borderRadius: '6px',
+            padding: '6px 12px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            fontSize: '14px',
+            color: '#86efac'
+          }}>
+            <Trophy size={16} />
+            <span><strong>{t('resultExtracted')}:</strong> {extractedResult}</span>
+          </div>
+        )}
       </div>
 
       {/* Step Indicator */}
@@ -598,7 +736,7 @@ export default function NewMatchPage() {
       {/* Save Button (solo all'ultimo step o se tutti gli step sono completati/saltati) */}
       {(currentStep === STEPS.length - 1 || Object.keys(stepData).length === STEPS.length) && (
         <button
-          onClick={handleSave}
+          onClick={handleShowSummary}
           disabled={saving || !Object.values(stepData).some(d => d !== null && d !== undefined)}
           style={{
             width: '100%',
@@ -631,6 +769,280 @@ export default function NewMatchPage() {
             </>
           )}
         </button>
+      )}
+
+      {/* Summary Modal */}
+      {showSummary && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.8)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: '20px',
+          overflowY: 'auto'
+        }}
+        onClick={(e) => {
+          if (e.target === e.currentTarget) {
+            setShowSummary(false)
+          }
+        }}
+        >
+          <div style={{
+            background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            borderRadius: '12px',
+            padding: 'clamp(16px, 4vw, 24px)',
+            maxWidth: '600px',
+            width: '100%',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            position: 'relative'
+          }}
+          onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close Button */}
+            <button
+              onClick={() => setShowSummary(false)}
+              style={{
+                position: 'absolute',
+                top: '16px',
+                right: '16px',
+                background: 'rgba(255, 255, 255, 0.1)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                borderRadius: '8px',
+                padding: '8px',
+                color: '#fff',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <X size={20} />
+            </button>
+
+            <h2 style={{
+              fontSize: '24px',
+              fontWeight: 700,
+              marginBottom: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <Trophy size={24} color="var(--neon-orange)" />
+              {t('matchSummary')}
+            </h2>
+
+            {/* Risultato Estratto */}
+            {extractedResult && (
+              <div style={{
+                background: 'rgba(34, 197, 94, 0.2)',
+                border: '1px solid rgba(34, 197, 94, 0.5)',
+                borderRadius: '8px',
+                padding: '12px',
+                marginBottom: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                color: '#86efac'
+              }}>
+                <Trophy size={18} />
+                <span><strong>{t('resultExtracted')}:</strong> {extractedResult}</span>
+              </div>
+            )}
+
+            {/* Sezioni Complete/Mancanti */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+              gap: '16px',
+              marginBottom: '24px'
+            }}>
+              {photosComplete.length > 0 && (
+                <div style={{
+                  background: 'rgba(34, 197, 94, 0.1)',
+                  border: '1px solid rgba(34, 197, 94, 0.3)',
+                  borderRadius: '8px',
+                  padding: '12px'
+                }}>
+                  <div style={{ fontSize: '12px', opacity: 0.8, marginBottom: '8px' }}>
+                    {t('sectionsComplete')} ({photosComplete.length})
+                  </div>
+                  <div style={{ fontSize: '14px', color: '#86efac' }}>
+                    {photosComplete.join(', ')}
+                  </div>
+                </div>
+              )}
+              {photosMissing.length > 0 && (
+                <div style={{
+                  background: 'rgba(255, 165, 0, 0.1)',
+                  border: '1px solid rgba(255, 165, 0, 0.3)',
+                  borderRadius: '8px',
+                  padding: '12px'
+                }}>
+                  <div style={{ fontSize: '12px', opacity: 0.8, marginBottom: '8px' }}>
+                    {t('sectionsMissing')} ({photosMissing.length})
+                  </div>
+                  <div style={{ fontSize: '14px', color: '#ffa500' }}>
+                    {photosMissing.join(', ')}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* AI Analysis Section */}
+            <div style={{ marginTop: '24px' }}>
+              {!analysisSummary ? (
+                <button
+                  onClick={handleGenerateAnalysis}
+                  disabled={generatingAnalysis || saving}
+                  style={{
+                    width: '100%',
+                    background: 'rgba(0, 212, 255, 0.2)',
+                    border: '1px solid rgba(0, 212, 255, 0.5)',
+                    borderRadius: '8px',
+                    padding: '12px',
+                    color: '#00d4ff',
+                    cursor: generatingAnalysis || saving ? 'not-allowed' : 'pointer',
+                    opacity: generatingAnalysis || saving ? 0.5 : 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    fontWeight: 600
+                  }}
+                >
+                  {generatingAnalysis ? (
+                    <>
+                      <RefreshCw size={18} style={{ animation: 'spin 1s linear infinite' }} />
+                      {t('generatingAnalysis')}
+                    </>
+                  ) : (
+                    <>
+                      <Brain size={18} />
+                      {t('generateAnalysis')}
+                    </>
+                  )}
+                </button>
+              ) : (
+                <div style={{
+                  background: 'rgba(0, 212, 255, 0.1)',
+                  border: '1px solid rgba(0, 212, 255, 0.3)',
+                  borderRadius: '8px',
+                  padding: '16px',
+                  marginTop: '16px'
+                }}>
+                  {/* Confidence Badge */}
+                  {analysisConfidence < 100 && (
+                    <div style={{
+                      background: 'rgba(255, 165, 0, 0.2)',
+                      border: '1px solid rgba(255, 165, 0, 0.5)',
+                      borderRadius: '6px',
+                      padding: '8px 12px',
+                      marginBottom: '12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      fontSize: '14px',
+                      color: '#ffa500'
+                    }}>
+                      <AlertCircle size={16} />
+                      <span>
+                        <strong>{t('analysisBasedOnPartialData')} ({analysisConfidence}% {t('completeness')})</strong>
+                        {missingSections.length > 0 && (
+                          <span style={{ display: 'block', marginTop: '4px', fontSize: '12px', opacity: 0.9 }}>
+                            {t('missingData')}: {missingSections.join(', ')}. {t('loadMorePhotos')}
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                  )}
+                  
+                  {/* Riassunto */}
+                  <div style={{
+                    fontSize: '14px',
+                    lineHeight: '1.6',
+                    color: '#fff',
+                    whiteSpace: 'pre-wrap'
+                  }}>
+                    {analysisSummary}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Action Buttons */}
+            <div style={{
+              display: 'flex',
+              gap: '12px',
+              marginTop: '24px',
+              flexWrap: 'wrap'
+            }}>
+              <button
+                onClick={handleConfirmSave}
+                disabled={saving}
+                style={{
+                  flex: 1,
+                  minWidth: '120px',
+                  background: saving
+                    ? 'rgba(156, 163, 175, 0.2)'
+                    : 'rgba(34, 197, 94, 0.2)',
+                  border: `1px solid ${saving ? 'rgba(156, 163, 175, 0.5)' : 'rgba(34, 197, 94, 0.5)'}`,
+                  borderRadius: '8px',
+                  padding: '12px',
+                  color: saving ? '#d1d5db' : '#86efac',
+                  cursor: saving ? 'not-allowed' : 'pointer',
+                  opacity: saving ? 0.5 : 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  fontWeight: 600
+                }}
+              >
+                {saving ? (
+                  <>
+                    <RefreshCw size={18} style={{ animation: 'spin 1s linear infinite' }} />
+                    {t('saving')}
+                  </>
+                ) : (
+                  <>
+                    <Save size={18} />
+                    {t('confirmSave')}
+                  </>
+                )}
+              </button>
+              <button
+                onClick={() => setShowSummary(false)}
+                disabled={saving}
+                style={{
+                  flex: 1,
+                  minWidth: '120px',
+                  background: 'rgba(156, 163, 175, 0.2)',
+                  border: '1px solid rgba(156, 163, 175, 0.5)',
+                  borderRadius: '8px',
+                  padding: '12px',
+                  color: '#d1d5db',
+                  cursor: saving ? 'not-allowed' : 'pointer',
+                  opacity: saving ? 0.5 : 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  fontWeight: 600
+                }}
+              >
+                {t('cancel')}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       <style jsx>{`
