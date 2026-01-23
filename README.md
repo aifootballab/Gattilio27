@@ -107,46 +107,26 @@ Crea `.env.local` con le variabili d'ambiente (vedi `.env.example`).
 
 ## 📚 Documentazione
 
-### Documenti Principali
+### Documentazione Principale
 
-- **`DOCUMENTAZIONE_COMPLETA.md`** - Documentazione principale completa
-  - Stack tecnologico dettagliato
-  - Schema database completo
-  - Endpoint API con esempi
-  - Flussi principali e funzioni handler
-  - Sicurezza e validazione
-  - Configurazione e deploy
-  - Troubleshooting
+- **`DOCUMENTAZIONE_MASTER_COMPLETA.md`** - Documentazione completa e aggiornata (Gennaio 2026)
+  - Panoramica generale e architettura
+  - Struttura progetto cartella per cartella
+  - Database schema completo
+  - API endpoints dettagliati
+  - Pagine frontend e componenti
+  - Librerie e utilities
+  - Sicurezza, i18n, configurazione
+  - Flussi principali
 
-- **`DOCUMENTAZIONE_LIBRERIE.md`** - Documentazione librerie (`lib/`)
-  - `authHelper.js` - Validazione token
-  - `supabaseClient.js` - Client Supabase
-  - `normalize.js` - Normalizzazione dati
-  - `i18n.js` - Sistema traduzioni
-
-- **`DOCUMENTAZIONE_COMPONENTI.md`** - Documentazione componenti (`components/`)
-  - `LanguageSwitch.jsx` - Selettore lingua
-  - `LanguageProviderWrapper.jsx` - Wrapper i18n
-
-### Audit e Verifica
-
-- **`AUDIT_SICUREZZA.md`** - Audit sicurezza completo
-  - Vulnerabilità identificate
-  - Raccomandazioni prioritarie
-  - Checklist implementazione
-
-- **`AUDIT_DOCUMENTAZIONE.md`** - Audit documentazione
-  - Gap identificati
-  - Allineamento codice/documentazione
-  - Checklist aggiornamento
-
-- **`VERIFICA_COMPLETA.md`** - Checklist verifica funzionalità
-- **`WORKFLOW_FORMazione_COMPLETO.md`** - Workflow formazioni dettagliato
-- **`ANALISI_ENTERPRISE_FORMATION.md`** - Analisi decisioni enterprise
+- **`DOCUMENTAZIONE_GUIDA_INTERATTIVA.md`** - Documentazione Assistant Chat AI
+  - Architettura e funzionalità
+  - Prompt engineering
+  - Flussi e integrazione
 
 ## 🔒 Sicurezza
 
-⚠️ **IMPORTANTE**: Alcuni endpoint sono pubblici (vedi `AUDIT_SICUREZZA.md` per dettagli):
+⚠️ **IMPORTANTE**: Alcuni endpoint sono pubblici:
 - `POST /api/extract-player` - Nessuna autenticazione
 - `POST /api/extract-formation` - Nessuna autenticazione
 
@@ -155,7 +135,7 @@ Crea `.env.local` con le variabili d'ambiente (vedi `.env.example`).
 - Implementare rate limiting
 - Validare dimensione immagini
 
-**Per dettagli completi**: Vedi `AUDIT_SICUREZZA.md`
+**Per dettagli completi**: Vedi `DOCUMENTAZIONE_MASTER_COMPLETA.md` sezione Sicurezza
 
 ---
 
@@ -191,7 +171,7 @@ Crea `.env.local` con le variabili d'ambiente (vedi `.env.example`).
 
 ## 🐛 Troubleshooting
 
-Vedi `DOCUMENTAZIONE_COMPLETA.md` per troubleshooting dettagliato.
+Vedi `DOCUMENTAZIONE_MASTER_COMPLETA.md` per troubleshooting e dettagli tecnici.
 
 ## 📖 Risorse
 
