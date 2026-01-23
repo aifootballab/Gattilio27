@@ -22,7 +22,8 @@ import {
   ChevronDown,
   ChevronUp,
   Trash2,
-  User
+  User,
+  Shield
 } from 'lucide-react'
 
 export default function DashboardPage() {

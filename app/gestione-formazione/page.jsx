@@ -692,8 +692,8 @@ export default function GestioneFormazionePage() {
       // Messaggio di successo
       showToast(t('photoUploadedSuccessfully'), 'success')
       
-      // Ricarica dati
-      setTimeout(() => window.location.reload(), 500)
+      // Ricarica dati senza reload pagina
+      await fetchData()
     } catch (err) {
       console.error('[GestioneFormazione] Upload player error:', err)
       setError(err.message || 'Errore caricamento giocatore')
@@ -828,8 +828,9 @@ export default function GestioneFormazionePage() {
       }
 
       setShowUploadFormationModal(false)
-      // Ricarica dati
-      window.location.reload()
+      
+      // Ricarica dati senza reload pagina
+      await fetchData()
     } catch (err) {
       console.error('[GestioneFormazione] Upload formation error:', err)
       setError(err.message || 'Errore caricamento formazione')
