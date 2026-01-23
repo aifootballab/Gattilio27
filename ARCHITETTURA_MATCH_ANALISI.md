@@ -507,7 +507,9 @@ function compareFormations(savedFormation, playedFormation) {
 
 **⚠️ PAY-PER-USE**: Credits spesi solo per analisi effettivamente eseguita
 
-**Endpoint**: `/api/ai/analyze-match` (POST)
+**Endpoint**: `/api/analyze-match` (POST)
+
+**⭐ ALLINEATO CON CONTROMISURE LIVE**: L'analisi match utilizza gli stessi dati contestuali delle contromisure live per garantire coerenza tattica.
 
 **Input**:
 ```json
@@ -517,10 +519,13 @@ function compareFormations(savedFormation, playedFormation) {
 ```
 
 **Processo**:
-1. **Carica dati completi per analisi contestuale**:
+1. **Carica dati completi per analisi contestuale** (allineato con contromisure live):
    - Dati match corrente
-   - **Profilo utente** (nome, divisione, problemi comuni, preferenze IA) - **NUOVO**
-   - Profilazione utente (rosa, formazione, istruzioni)
+   - **Profilo utente** (nome, divisione, problemi comuni, preferenze IA)
+   - **Rosa cliente** (`players`) - fino a 50 giocatori con skills e overall
+   - **Formazione avversaria** (`opponent_formations`) - se presente `opponent_formation_id` nel match
+     - Nome formazione, stile tattico, forza complessiva, giocatori rilevati
+   - **Formazione cliente** (da `formation_layout` se disponibile)
    - **Storico ultime 50 partite** (aggregati da `player_performance_aggregates` e `team_tactical_patterns`)
    - **Pattern ricorrenti** (problemi identificati nelle ultime partite)
 2. **Identifica pattern storici**:
@@ -564,10 +569,16 @@ DATI PARTITA CORRENTE:
 - Zone recupero: {ball_recovery_zones}
 
 PROFILO UTENTE:
-- Rosa disponibile: {user_roster}
+- Rosa disponibile: {user_roster} (fino a 50 giocatori con skills e overall)
 - Formazione preferita: {saved_formation}
 - Istruzioni individuali: {individual_instructions}
 - Stile di gioco: {playing_style}
+
+FORMAZIONE AVVERSARIA (se disponibile):
+- Nome: {opponent_formation_name}
+- Stile Tattico: {opponent_tactical_style}
+- Forza Complessiva: {opponent_overall_strength}
+- Giocatori: {opponent_players_count} giocatori rilevati
 
 REGOLE PER ANALISI:
 1. NON dare consigli generici (es. "migliora i passaggi")
@@ -575,6 +586,8 @@ REGOLE PER ANALISI:
 3. Trova ALTERNATIVE concrete per colmare gap (es. "Usa più passaggi laterali invece di sempre in avanti")
 4. Collega problemi attuali a pattern storici (es. "Questo è il 13° match su 50 con centrocampo debole")
 5. Suggerisci cambiamenti basati su cosa ha funzionato in passato (es. "Quando hai giocato 4-3-3, media passaggi era 75%")
+6. **Se formazione avversaria disponibile**: Analizza cosa ha funzionato contro quella formazione specifica (allineato con logica contromisure live)
+7. **Incrocia dati**: Usa rosa disponibile, formazione avversaria, statistiche per analisi coerente e contestuale
 
 Genera:
 1. RIASSUNTO TESTUALE (2-3 paragrafi): 
