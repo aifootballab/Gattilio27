@@ -310,33 +310,62 @@ Usa il nome del cliente quando possibile.
     }
     
     // Chiama OpenAI con retry (gestisce anche fallback GPT-4o se GPT-5 non disponibile)
-    const response = await callOpenAIWithRetry(apiKey, requestBody, 'assistant-chat')
-    
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ error: { message: 'Unknown error' } }))
-      
-      // Se GPT-5 non disponibile, fallback a GPT-4o
-      if (errorData.error?.code === 'model_not_found' && model === 'gpt-5') {
-        console.log('[assistant-chat] GPT-5 non disponibile, fallback a GPT-4o')
-        requestBody.model = 'gpt-4o'
-        const fallbackResponse = await callOpenAIWithRetry(apiKey, requestBody, 'assistant-chat')
-        if (!fallbackResponse.ok) {
-          throw new Error(errorData.error?.message || 'OpenAI API error')
-        }
-        const fallbackData = await fallbackResponse.json()
-        const content = fallbackData.choices[0]?.message?.content || 'Mi dispiace, non ho capito. Puoi ripetere?'
-        return NextResponse.json({
-          response: content,
-          remaining: rateLimit.remaining,
-          resetAt: rateLimit.resetAt
-        })
-      }
-      
-      throw new Error(errorData.error?.message || 'OpenAI API error')
+    let response
+    try {
+      response = await callOpenAIWithRetry(apiKey, requestBody, 'assistant-chat')
+    } catch (retryError) {
+      console.error('[assistant-chat] callOpenAIWithRetry error:', retryError)
+      throw new Error(retryError.message || 'Error calling OpenAI API')
     }
     
-    const data = await response.json()
-    const content = data.choices[0]?.message?.content || 'Mi dispiace, non ho capito. Puoi ripetere?'
+    // Verifica che response sia valida
+    if (!response || !response.ok) {
+      let errorMessage = 'OpenAI API error'
+      try {
+        if (response) {
+          const errorData = await response.json().catch(() => ({ error: { message: 'Unknown error' } }))
+          
+          // Se GPT-5 non disponibile, fallback a GPT-4o
+          if (errorData.error?.code === 'model_not_found' && model === 'gpt-5') {
+            console.log('[assistant-chat] GPT-5 non disponibile, fallback a GPT-4o')
+            requestBody.model = 'gpt-4o'
+            try {
+              const fallbackResponse = await callOpenAIWithRetry(apiKey, requestBody, 'assistant-chat')
+              if (fallbackResponse && fallbackResponse.ok) {
+                const fallbackData = await fallbackResponse.json().catch(() => ({}))
+                const content = fallbackData.choices?.[0]?.message?.content || 'Mi dispiace, non ho capito. Puoi ripetere?'
+                return NextResponse.json({
+                  response: content,
+                  remaining: rateLimit.remaining,
+                  resetAt: rateLimit.resetAt
+                })
+              }
+            } catch (fallbackError) {
+              console.error('[assistant-chat] Fallback error:', fallbackError)
+            }
+          }
+          
+          errorMessage = errorData.error?.message || errorMessage
+        }
+      } catch (parseError) {
+        console.error('[assistant-chat] Error parsing error response:', parseError)
+      }
+      throw new Error(errorMessage)
+    }
+    
+    // Parse risposta JSON con gestione errori
+    let data
+    try {
+      data = await response.json()
+    } catch (jsonError) {
+      console.error('[assistant-chat] JSON parse error:', jsonError)
+      throw new Error('Invalid response from OpenAI API')
+    }
+    
+    // Estrai contenuto con fallback sicuro
+    const content = data?.choices?.[0]?.message?.content || 
+                    data?.choices?.[0]?.content || 
+                    'Mi dispiace, non ho capito. Puoi ripetere?'
     
     // Validazione base: verifica che la risposta non contenga riferimenti a funzionalità inventate
     // (il prompt già previene, ma aggiungiamo controllo extra)

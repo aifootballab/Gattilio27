@@ -121,12 +121,21 @@ export default function AssistantChat() {
         throw new Error(error.error || 'Error generating response')
       }
       
-      const data = await res.json()
+      const data = await res.json().catch((jsonError) => {
+        console.error('[AssistantChat] JSON parse error:', jsonError)
+        throw new Error('Invalid response from server')
+      })
+      
+      // Verifica che data.response esista
+      if (!data || !data.response) {
+        console.error('[AssistantChat] Invalid response data:', data)
+        throw new Error('Invalid response format')
+      }
       
       // Aggiungi risposta AI
       setMessages(prev => [...prev, { 
         role: 'assistant', 
-        content: data.response,
+        content: data.response || 'Mi dispiace, non ho ricevuto una risposta valida.',
         timestamp: new Date()
       }])
       
