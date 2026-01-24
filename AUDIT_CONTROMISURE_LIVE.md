@@ -144,3 +144,23 @@ Le raccomandazioni §6.1 (dati + prompt) e parte di §6.3 (player_ratings) sono 
 - **Helper**: sezioni TITOLARI/RISERVE nel prompt; istruzioni obbligatorie per `add_to_starting_xi` (solo riserve) e `remove_from_starting_xi` (solo titolari).
 
 **Rollback**: vedere `ROLLBACK_CONTROMISURE.md` (branch `backup/pre-contromisure-2026-01-24`, copie in `rollback/`).
+
+**Fix 500 (ReferenceError)**: `titolari` / `riserve` / `hasTitolariRiserve` in helper definiti **prima** dell’uso (spostati subito dopo `opponentText`).
+
+---
+
+## 10. Verifica allineamento (controllo ricorrente)
+
+| Livello | Cosa | Stato |
+|--------|------|-------|
+| **Supabase** | `players`: `id`, `slot_index`, `player_name`, `position`, `overall_rating`, `skills`, `com_skills` | ✅ usati in route |
+| | `formation_layout`: `formation`, `slot_positions` | ✅ |
+| | `team_tactical_settings`: `team_playing_style`, `individual_instructions` | ✅ |
+| | `coaches`: `playing_style_competence`, `stat_boosters`, `connection`, `is_active` | ✅ |
+| | `opponent_formations`: `*` (formation_name, playing_style, …) | ✅ |
+| | `matches`: `player_ratings`, `opponent_formation_id`, … | ✅ |
+| **API → Helper** | Route passa `titolari`, `riserve` in `playerPerformance` | ✅ |
+| | Helper definisce e usa `titolari`/`riserve`/`hasTitolariRiserve` prima dell’uso | ✅ (fix 500) |
+| **API → Frontend** | `POST /api/generate-countermeasures` con `opponent_formation_id` | ✅ contromisure-live |
+| | Risposta `{ success, countermeasures }`; UI legge `analysis`, `countermeasures.*`, `player_suggestions` | ✅ |
+| **player_suggestions** | `action`: `add_to_starting_xi` \| `remove_from_starting_xi`; `player_name`, `position` | ✅ UI e prompt |
