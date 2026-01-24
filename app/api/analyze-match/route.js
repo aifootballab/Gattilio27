@@ -286,35 +286,95 @@ Indica chiaramente quando le tue analisi sono basate su dati limitati.
 Suggerisci di caricare le foto mancanti per un'analisi più precisa.`
     : ''
   
-  // Prepara dati disponibili per il prompt
+  // Prepara dati disponibili per il prompt - ✅ FIX: Include dati effettivi, non solo conteggi
   let availableDataText = ''
   
+  // ✅ FIX: Includi dati effettivi player_ratings (nomi + voti)
   if (matchData.player_ratings) {
-    const ratingsCount = matchData.player_ratings.cliente 
-      ? Object.keys(matchData.player_ratings.cliente).length 
-      : (matchData.player_ratings.avversario 
-        ? Object.keys(matchData.player_ratings.avversario).length 
-        : Object.keys(matchData.player_ratings).length)
-    availableDataText += `- Pagelle Giocatori: ${ratingsCount} giocatori con voti\n`
+    const clienteRatings = matchData.player_ratings.cliente || {}
+    const avversarioRatings = matchData.player_ratings.avversario || {}
+    const allRatings = Object.keys(clienteRatings).length > 0 || Object.keys(avversarioRatings).length > 0
+      ? null
+      : matchData.player_ratings
+    
+    availableDataText += `\nPAGELLE GIOCATORI CLIENTE:\n`
+    if (Object.keys(clienteRatings).length > 0) {
+      Object.entries(clienteRatings).forEach(([name, data]) => {
+        const rating = data.rating || data.rating_value || 'N/A'
+        availableDataText += `- ${name}: Rating ${rating}\n`
+      })
+    } else if (allRatings) {
+      Object.entries(allRatings).forEach(([name, data]) => {
+        const rating = data.rating || data.rating_value || 'N/A'
+        const team = data.team === 'cliente' ? ' (Cliente)' : data.team === 'avversario' ? ' (Avversario)' : ''
+        availableDataText += `- ${name}: Rating ${rating}${team}\n`
+      })
+    } else {
+      availableDataText += `- Nessun dato disponibile\n`
+    }
+    
+    if (Object.keys(avversarioRatings).length > 0) {
+      availableDataText += `\nPAGELLE GIOCATORI AVVERSARIO:\n`
+      Object.entries(avversarioRatings).forEach(([name, data]) => {
+        const rating = data.rating || data.rating_value || 'N/A'
+        availableDataText += `- ${name}: Rating ${rating}\n`
+      })
+    }
+    
+    availableDataText += `\n⚠️ IMPORTANTE: Questi sono SOLO i VOTI (ratings) dei giocatori.\n`
+    availableDataText += `- NON ci sono dati su goals, assists o minuti giocati per singolo giocatore.\n`
+    availableDataText += `- NON inventare o inferire goals/assists per giocatori specifici.\n`
+    availableDataText += `- Se vedi "goals_scored: X" nelle statistiche squadra, questo è il TOTALE squadra, NON per giocatore.\n`
+    availableDataText += `- Usa solo i dati forniti sopra. Se non vedi dati su goals/assists, NON menzionarli.\n`
   } else {
     availableDataText += '- Pagelle Giocatori: Non disponibile\n'
   }
   
+  // ✅ FIX: Includi dati effettivi team_stats (valori)
   if (matchData.team_stats) {
-    const statsKeys = Object.keys(matchData.team_stats).filter(k => k !== 'result')
-    availableDataText += `- Statistiche Squadra: ${statsKeys.length} statistiche disponibili\n`
+    availableDataText += `\nSTATISTICHE SQUADRA CLIENTE:\n`
+    Object.entries(matchData.team_stats).forEach(([key, value]) => {
+      if (key !== 'result' && value != null) {
+        availableDataText += `- ${key}: ${value}\n`
+      }
+    })
+    
+    availableDataText += `\n⚠️ IMPORTANTE: "goals_scored" e "goals_conceded" sono totali squadra, NON per giocatore.\n`
   } else {
     availableDataText += '- Statistiche Squadra: Non disponibile\n'
   }
   
+  // ✅ FIX: Includi dati effettivi attack_areas (percentuali)
   if (matchData.attack_areas) {
-    availableDataText += `- Aree di Attacco: Disponibili\n`
+    availableDataText += `\nAREE DI ATTACCO:\n`
+    if (matchData.attack_areas.team1) {
+      availableDataText += `Squadra Cliente:\n`
+      availableDataText += `- Sinistra: ${matchData.attack_areas.team1.left || 0}%\n`
+      availableDataText += `- Centro: ${matchData.attack_areas.team1.center || 0}%\n`
+      availableDataText += `- Destra: ${matchData.attack_areas.team1.right || 0}%\n`
+    }
+    if (matchData.attack_areas.team2) {
+      availableDataText += `Avversario:\n`
+      availableDataText += `- Sinistra: ${matchData.attack_areas.team2.left || 0}%\n`
+      availableDataText += `- Centro: ${matchData.attack_areas.team2.center || 0}%\n`
+      availableDataText += `- Destra: ${matchData.attack_areas.team2.right || 0}%\n`
+    }
   } else {
     availableDataText += '- Aree di Attacco: Non disponibile\n'
   }
   
-  if (matchData.ball_recovery_zones) {
-    availableDataText += `- Zone Recupero: ${matchData.ball_recovery_zones.length} zone\n`
+  // ✅ FIX: Includi dati effettivi ball_recovery_zones (coordinate)
+  if (matchData.ball_recovery_zones && Array.isArray(matchData.ball_recovery_zones) && matchData.ball_recovery_zones.length > 0) {
+    availableDataText += `\nZONE RECUPERO PALLA (${matchData.ball_recovery_zones.length} zone):\n`
+    matchData.ball_recovery_zones.slice(0, 10).forEach((zone, idx) => {
+      const team = zone.team === 'team1' || zone.team === 'cliente' ? 'Cliente' : 'Avversario'
+      const x = typeof zone.x === 'number' ? zone.x.toFixed(2) : zone.x || 'N/A'
+      const y = typeof zone.y === 'number' ? zone.y.toFixed(2) : zone.y || 'N/A'
+      availableDataText += `- Zona ${idx + 1}: ${team} (x: ${x}, y: ${y})\n`
+    })
+    if (matchData.ball_recovery_zones.length > 10) {
+      availableDataText += `... e altre ${matchData.ball_recovery_zones.length - 10} zone\n`
+    }
   } else {
     availableDataText += '- Zone Recupero: Non disponibile\n'
   }
@@ -480,6 +540,16 @@ ${userContext}${clientTeamText}${opponentNameText}${rosterText}${playersInMatchT
 ${availableDataText}
 ${missingText}
 ${conservativeMode}${personalizationInstructions}
+⚠️ REGOLE CRITICHE - NON INVENTARE DATI:
+1. NON menzionare goals/assists per giocatori specifici a meno che non siano esplicitamente forniti nei dati sopra
+2. Se vedi "goals_scored: X" nelle statistiche squadra, questo è il TOTALE squadra, NON per giocatore
+3. Se vedi rating alto (es. 8.5), questo indica buona performance generale, NON necessariamente gol
+4. Usa SOLO i dati forniti esplicitamente sopra. NON inferire o inventare dettagli
+5. Se non vedi dati su goals/assists per giocatore, usa frasi generiche:
+   - ✅ CORRETTO: "Messi ha performato molto bene (rating 8.5)"
+   - ❌ SBAGLIATO: "Messi ha fatto un gol"
+6. Se non sei sicuro, usa descrizioni generiche di performance invece di dettagli specifici
+
 ISTRUZIONI PER L'ANALISI (COACH MOTIVAZIONALE - ENTERPRISE):
 1. Identifica chiaramente quale squadra è quella del cliente${clientTeamName ? ` (${clientTeamName})` : ''} e analizza le sue performance (non quelle dell'avversario)
 
@@ -498,6 +568,7 @@ ISTRUZIONI PER L'ANALISI (COACH MOTIVAZIONALE - ENTERPRISE):
 4. Rispondi a queste domande intrinseche:
    a) Come è andato il match? (risultato, performance generale della squadra cliente)
    b) Quali giocatori hanno performato bene/male nella loro posizione reale? (confronta pagelle con disposizione reale e rosa disponibile)
+     ⚠️ IMPORTANTE: Usa SOLO i voti (ratings) forniti sopra. NON menzionare goals/assists specifici per giocatore.
    c) Cosa ha funzionato contro questa formazione avversaria? (analisi tattica basata su formazione avversaria e storico)
    d) Cosa cambiare per migliorare? (suggerimenti concreti basati su dati, rosa, disposizione reale, storico)
    e) Quali giocatori della rosa potrebbero essere utili? (suggerimenti specifici basati su skills, overall, e posizioni reali)
