@@ -2804,9 +2804,9 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
 function UploadPlayerModal({ slot, images, onImagesChange, onUpload, onClose, uploading }) {
   const { t } = useTranslation()
   const imageTypes = [
-    { key: 'card', label: t('card'), icon: '👤', color: 'var(--neon-blue)' },
-    { key: 'stats', label: t('statsLabel'), icon: '📊', color: 'var(--neon-green)' },
-    { key: 'skills', label: t('skillsBoosterLabel'), icon: '⭐', color: 'var(--neon-orange)' }
+    { key: 'card', label: 'Statistiche', icon: '👤', color: 'var(--neon-blue)' },
+    { key: 'stats', label: 'Abilità', icon: '📊', color: 'var(--neon-green)' },
+    { key: 'skills', label: 'Booster', icon: '⭐', color: 'var(--neon-orange)' }
   ]
 
   const handleFileSelect = (e, type) => {
@@ -3007,6 +3007,8 @@ function FormationSelectorModal({ onSelect, onClose, loading }) {
     // Moduli con 4 Difensori
     '4-3-3': {
       name: '4-3-3',
+      category: 'base',
+      baseFormation: '4-3-3',
       slot_positions: {
         0: { x: 50, y: 90, position: 'PT' },
         1: { x: 25, y: 75, position: 'TD' },
@@ -3039,6 +3041,8 @@ function FormationSelectorModal({ onSelect, onClose, loading }) {
     },
     '4-4-2': {
       name: '4-4-2',
+      category: 'base',
+      baseFormation: '4-4-2',
       slot_positions: {
         0: { x: 50, y: 90, position: 'PT' },
         1: { x: 25, y: 75, position: 'TD' },
@@ -3055,6 +3059,8 @@ function FormationSelectorModal({ onSelect, onClose, loading }) {
     },
     '4-1-2-3': {
       name: '4-1-2-3',
+      category: 'base',
+      baseFormation: '4-1-2-3',
       slot_positions: {
         0: { x: 50, y: 90, position: 'PT' },
         1: { x: 25, y: 75, position: 'TD' },
@@ -3071,6 +3077,8 @@ function FormationSelectorModal({ onSelect, onClose, loading }) {
     },
     '4-5-1': {
       name: '4-5-1',
+      category: 'base',
+      baseFormation: '4-5-1',
       slot_positions: {
         0: { x: 50, y: 90, position: 'PT' },
         1: { x: 25, y: 75, position: 'TD' },
@@ -3087,6 +3095,8 @@ function FormationSelectorModal({ onSelect, onClose, loading }) {
     },
     '4-4-1-1': {
       name: '4-4-1-1',
+      category: 'base',
+      baseFormation: '4-4-1-1',
       slot_positions: {
         0: { x: 50, y: 90, position: 'PT' },
         1: { x: 25, y: 75, position: 'TD' },
@@ -3120,6 +3130,8 @@ function FormationSelectorModal({ onSelect, onClose, loading }) {
     // Moduli con 3 Difensori
     '3-5-2': {
       name: '3-5-2',
+      category: 'base',
+      baseFormation: '3-5-2',
       slot_positions: {
         0: { x: 50, y: 90, position: 'PT' },
         1: { x: 35, y: 75, position: 'DC' },
@@ -3136,6 +3148,8 @@ function FormationSelectorModal({ onSelect, onClose, loading }) {
     },
     '3-4-3': {
       name: '3-4-3',
+      category: 'base',
+      baseFormation: '3-4-3',
       slot_positions: {
         0: { x: 50, y: 90, position: 'PT' },
         1: { x: 35, y: 75, position: 'DC' },
@@ -3152,6 +3166,8 @@ function FormationSelectorModal({ onSelect, onClose, loading }) {
     },
     '3-1-4-2': {
       name: '3-1-4-2',
+      category: 'base',
+      baseFormation: '3-1-4-2',
       slot_positions: {
         0: { x: 50, y: 90, position: 'PT' },
         1: { x: 35, y: 75, position: 'DC' },
@@ -3168,6 +3184,8 @@ function FormationSelectorModal({ onSelect, onClose, loading }) {
     },
     '3-4-1-2': {
       name: '3-4-1-2',
+      category: 'base',
+      baseFormation: '3-4-1-2',
       slot_positions: {
         0: { x: 50, y: 90, position: 'PT' },
         1: { x: 35, y: 75, position: 'DC' },
@@ -3185,6 +3203,8 @@ function FormationSelectorModal({ onSelect, onClose, loading }) {
     // Moduli con 5 Difensori
     '5-3-2': {
       name: '5-3-2',
+      category: 'base',
+      baseFormation: '5-3-2',
       slot_positions: {
         0: { x: 50, y: 90, position: 'PT' },
         1: { x: 20, y: 75, position: 'TD' },
@@ -3217,6 +3237,8 @@ function FormationSelectorModal({ onSelect, onClose, loading }) {
     },
     '5-2-3': {
       name: '5-2-3',
+      category: 'base',
+      baseFormation: '5-2-3',
       slot_positions: {
         0: { x: 50, y: 90, position: 'PT' },
         1: { x: 20, y: 75, position: 'TD' },
@@ -3230,10 +3252,302 @@ function FormationSelectorModal({ onSelect, onClose, loading }) {
         9: { x: 50, y: 25, position: 'CF' },
         10: { x: 75, y: 25, position: 'SP' }
       }
+    },
+    // Formazioni mancanti ufficiali eFootball
+    '4-2-1-3': {
+      name: '4-2-1-3',
+      category: 'base',
+      baseFormation: '4-2-1-3',
+      slot_positions: {
+        0: { x: 50, y: 90, position: 'PT' },
+        1: { x: 25, y: 75, position: 'TS' },
+        2: { x: 40, y: 75, position: 'DC' },
+        3: { x: 60, y: 75, position: 'DC' },
+        4: { x: 75, y: 75, position: 'TD' },
+        5: { x: 50, y: 60, position: 'MED' },
+        6: { x: 40, y: 50, position: 'TRQ' },
+        7: { x: 60, y: 50, position: 'CC' },
+        8: { x: 25, y: 25, position: 'P' },
+        9: { x: 50, y: 25, position: 'SP' },
+        10: { x: 75, y: 25, position: 'SP' }
+      }
+    },
+    '4-3-2-1': {
+      name: '4-3-2-1',
+      category: 'base',
+      baseFormation: '4-3-2-1',
+      slot_positions: {
+        0: { x: 50, y: 90, position: 'PT' },
+        1: { x: 25, y: 75, position: 'TD' },
+        2: { x: 40, y: 75, position: 'DC' },
+        3: { x: 60, y: 75, position: 'DC' },
+        4: { x: 75, y: 75, position: 'TS' },
+        5: { x: 35, y: 50, position: 'MED' },
+        6: { x: 50, y: 50, position: 'MED' },
+        7: { x: 65, y: 50, position: 'MED' },
+        8: { x: 35, y: 30, position: 'TRQ' },
+        9: { x: 65, y: 30, position: 'TRQ' },
+        10: { x: 50, y: 15, position: 'CF' }
+      }
+    },
+    '4-3-1-2': {
+      name: '4-3-1-2',
+      category: 'base',
+      baseFormation: '4-3-1-2',
+      slot_positions: {
+        0: { x: 50, y: 90, position: 'PT' },
+        1: { x: 25, y: 75, position: 'TD' },
+        2: { x: 40, y: 75, position: 'DC' },
+        3: { x: 60, y: 75, position: 'DC' },
+        4: { x: 75, y: 75, position: 'TS' },
+        5: { x: 35, y: 55, position: 'MED' },
+        6: { x: 50, y: 55, position: 'MED' },
+        7: { x: 65, y: 55, position: 'MED' },
+        8: { x: 50, y: 35, position: 'TRQ' },
+        9: { x: 40, y: 20, position: 'CF' },
+        10: { x: 60, y: 20, position: 'CF' }
+      }
+    },
+    '4-1-4-1': {
+      name: '4-1-4-1',
+      category: 'base',
+      baseFormation: '4-1-4-1',
+      slot_positions: {
+        0: { x: 50, y: 90, position: 'PT' },
+        1: { x: 25, y: 75, position: 'TD' },
+        2: { x: 40, y: 75, position: 'DC' },
+        3: { x: 60, y: 75, position: 'DC' },
+        4: { x: 75, y: 75, position: 'TS' },
+        5: { x: 50, y: 60, position: 'MED' },
+        6: { x: 25, y: 45, position: 'MED' },
+        7: { x: 40, y: 45, position: 'MED' },
+        8: { x: 60, y: 45, position: 'MED' },
+        9: { x: 75, y: 45, position: 'MED' },
+        10: { x: 50, y: 20, position: 'CF' }
+      }
+    },
+    '3-2-4-1': {
+      name: '3-2-4-1',
+      category: 'base',
+      baseFormation: '3-2-4-1',
+      slot_positions: {
+        0: { x: 50, y: 90, position: 'PT' },
+        1: { x: 35, y: 75, position: 'DC' },
+        2: { x: 50, y: 75, position: 'DC' },
+        3: { x: 65, y: 75, position: 'DC' },
+        4: { x: 40, y: 60, position: 'MED' },
+        5: { x: 60, y: 60, position: 'MED' },
+        6: { x: 25, y: 40, position: 'MED' },
+        7: { x: 40, y: 40, position: 'MED' },
+        8: { x: 60, y: 40, position: 'MED' },
+        9: { x: 75, y: 40, position: 'MED' },
+        10: { x: 50, y: 15, position: 'CF' }
+      }
+    },
+    '3-2-3-2': {
+      name: '3-2-3-2',
+      category: 'base',
+      baseFormation: '3-2-3-2',
+      slot_positions: {
+        0: { x: 50, y: 90, position: 'PT' },
+        1: { x: 35, y: 75, position: 'DC' },
+        2: { x: 50, y: 75, position: 'DC' },
+        3: { x: 65, y: 75, position: 'DC' },
+        4: { x: 40, y: 60, position: 'MED' },
+        5: { x: 60, y: 60, position: 'MED' },
+        6: { x: 30, y: 40, position: 'TRQ' },
+        7: { x: 50, y: 40, position: 'TRQ' },
+        8: { x: 70, y: 40, position: 'TRQ' },
+        9: { x: 40, y: 20, position: 'CF' },
+        10: { x: 60, y: 20, position: 'CF' }
+      }
+    },
+    '5-2-2-1': {
+      name: '5-2-2-1',
+      category: 'base',
+      baseFormation: '5-2-2-1',
+      slot_positions: {
+        0: { x: 50, y: 90, position: 'PT' },
+        1: { x: 20, y: 75, position: 'TD' },
+        2: { x: 35, y: 75, position: 'DC' },
+        3: { x: 50, y: 75, position: 'DC' },
+        4: { x: 65, y: 75, position: 'DC' },
+        5: { x: 80, y: 75, position: 'TS' },
+        6: { x: 40, y: 55, position: 'MED' },
+        7: { x: 60, y: 55, position: 'MED' },
+        8: { x: 35, y: 35, position: 'TRQ' },
+        9: { x: 65, y: 35, position: 'TRQ' },
+        10: { x: 50, y: 15, position: 'CF' }
+      }
+    },
+    '5-2-1-2': {
+      name: '5-2-1-2',
+      category: 'base',
+      baseFormation: '5-2-1-2',
+      slot_positions: {
+        0: { x: 50, y: 90, position: 'PT' },
+        1: { x: 20, y: 75, position: 'TD' },
+        2: { x: 35, y: 75, position: 'DC' },
+        3: { x: 50, y: 75, position: 'DC' },
+        4: { x: 65, y: 75, position: 'DC' },
+        5: { x: 80, y: 75, position: 'TS' },
+        6: { x: 40, y: 55, position: 'MED' },
+        7: { x: 60, y: 55, position: 'MED' },
+        8: { x: 50, y: 35, position: 'TRQ' },
+        9: { x: 40, y: 20, position: 'CF' },
+        10: { x: 60, y: 20, position: 'CF' }
+      }
+    },
+    // Variazioni 4-3-3
+    '4-3-3-wide': {
+      name: '4-3-3 (Largo)',
+      category: 'variation',
+      baseFormation: '4-3-3',
+      variation: 'wide',
+      slot_positions: {
+        0: { x: 50, y: 90, position: 'PT' },
+        1: { x: 20, y: 75, position: 'TD' },
+        2: { x: 40, y: 75, position: 'DC' },
+        3: { x: 60, y: 75, position: 'DC' },
+        4: { x: 80, y: 75, position: 'TS' },
+        5: { x: 30, y: 50, position: 'MED' },
+        6: { x: 50, y: 50, position: 'MED' },
+        7: { x: 70, y: 50, position: 'MED' },
+        8: { x: 20, y: 25, position: 'SP' },
+        9: { x: 50, y: 25, position: 'CF' },
+        10: { x: 80, y: 25, position: 'SP' }
+      }
+    },
+    '4-3-3-compact': {
+      name: '4-3-3 (Compatto)',
+      category: 'variation',
+      baseFormation: '4-3-3',
+      variation: 'compact',
+      slot_positions: {
+        0: { x: 50, y: 90, position: 'PT' },
+        1: { x: 25, y: 75, position: 'TD' },
+        2: { x: 40, y: 75, position: 'DC' },
+        3: { x: 60, y: 75, position: 'DC' },
+        4: { x: 75, y: 75, position: 'TS' },
+        5: { x: 42, y: 50, position: 'MED' },
+        6: { x: 50, y: 50, position: 'MED' },
+        7: { x: 58, y: 50, position: 'MED' },
+        8: { x: 25, y: 25, position: 'SP' },
+        9: { x: 50, y: 25, position: 'CF' },
+        10: { x: 75, y: 25, position: 'SP' }
+      }
+    },
+    '4-3-3-offensive': {
+      name: '4-3-3 (Offensivo)',
+      category: 'variation',
+      baseFormation: '4-3-3',
+      variation: 'offensive',
+      slot_positions: {
+        0: { x: 50, y: 90, position: 'PT' },
+        1: { x: 25, y: 78, position: 'TD' },
+        2: { x: 40, y: 78, position: 'DC' },
+        3: { x: 60, y: 78, position: 'DC' },
+        4: { x: 75, y: 78, position: 'TS' },
+        5: { x: 35, y: 50, position: 'MED' },
+        6: { x: 50, y: 50, position: 'MED' },
+        7: { x: 65, y: 50, position: 'MED' },
+        8: { x: 25, y: 20, position: 'SP' },
+        9: { x: 50, y: 20, position: 'CF' },
+        10: { x: 75, y: 20, position: 'SP' }
+      }
+    },
+    '4-3-3-defensive': {
+      name: '4-3-3 (Difensivo)',
+      category: 'variation',
+      baseFormation: '4-3-3',
+      variation: 'defensive',
+      slot_positions: {
+        0: { x: 50, y: 90, position: 'PT' },
+        1: { x: 25, y: 70, position: 'TD' },
+        2: { x: 40, y: 70, position: 'DC' },
+        3: { x: 60, y: 70, position: 'DC' },
+        4: { x: 75, y: 70, position: 'TS' },
+        5: { x: 35, y: 55, position: 'MED' },
+        6: { x: 50, y: 55, position: 'MED' },
+        7: { x: 65, y: 55, position: 'MED' },
+        8: { x: 25, y: 30, position: 'SP' },
+        9: { x: 50, y: 30, position: 'CF' },
+        10: { x: 75, y: 30, position: 'SP' }
+      }
+    },
+    // Variazioni 4-2-1-3
+    '4-2-1-3-compact': {
+      name: '4-2-1-3 (Compatto)',
+      category: 'variation',
+      baseFormation: '4-2-1-3',
+      variation: 'compact',
+      slot_positions: {
+        0: { x: 50, y: 90, position: 'PT' },
+        1: { x: 25, y: 75, position: 'TS' },
+        2: { x: 40, y: 75, position: 'DC' },
+        3: { x: 60, y: 75, position: 'DC' },
+        4: { x: 75, y: 75, position: 'TD' },
+        5: { x: 50, y: 60, position: 'MED' },
+        6: { x: 42, y: 50, position: 'TRQ' },
+        7: { x: 58, y: 50, position: 'CC' },
+        8: { x: 25, y: 25, position: 'P' },
+        9: { x: 50, y: 25, position: 'SP' },
+        10: { x: 75, y: 25, position: 'SP' }
+      }
+    },
+    '4-2-1-3-wide': {
+      name: '4-2-1-3 (Largo)',
+      category: 'variation',
+      baseFormation: '4-2-1-3',
+      variation: 'wide',
+      slot_positions: {
+        0: { x: 50, y: 90, position: 'PT' },
+        1: { x: 20, y: 75, position: 'TS' },
+        2: { x: 40, y: 75, position: 'DC' },
+        3: { x: 60, y: 75, position: 'DC' },
+        4: { x: 80, y: 75, position: 'TD' },
+        5: { x: 50, y: 60, position: 'MED' },
+        6: { x: 40, y: 50, position: 'TRQ' },
+        7: { x: 60, y: 50, position: 'CC' },
+        8: { x: 20, y: 25, position: 'P' },
+        9: { x: 50, y: 25, position: 'SP' },
+        10: { x: 80, y: 25, position: 'SP' }
+      }
     }
   }
 
+  // Helper: raggruppa formazioni per base
+  const groupFormationsByBase = React.useMemo(() => {
+    const grouped = {}
+    Object.entries(formations).forEach(([key, formation]) => {
+      const base = formation.baseFormation || formation.name
+      if (!grouped[base]) {
+        grouped[base] = {
+          base: formation.category === 'base' ? formation : null,
+          variations: []
+        }
+      }
+      if (formation.category === 'base') {
+        grouped[base].base = formation
+      } else {
+        grouped[base].variations.push(formation)
+      }
+    })
+    return grouped
+  }, [])
+
+  // Helper: filtra formazioni per categoria
+  const filterFormations = (category) => {
+    if (category === 'all') return formations
+    return Object.fromEntries(
+      Object.entries(formations).filter(([_, f]) => f.category === category)
+    )
+  }
+
   const [selectedFormation, setSelectedFormation] = React.useState(null)
+  const [activeTab, setActiveTab] = React.useState('base')
+  const [searchQuery, setSearchQuery] = React.useState('')
+  const [expandedBase, setExpandedBase] = React.useState(null)
 
   const handleConfirm = () => {
     if (selectedFormation && formations[selectedFormation]) {
@@ -3273,7 +3587,7 @@ function FormationSelectorModal({ onSelect, onClose, loading }) {
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <h2 style={{ fontSize: '20px', fontWeight: 700, margin: 0 }}>
-            Seleziona Formazione Tattica
+            {t('selectFormationTactical')}
           </h2>
           <button
             onClick={onClose}
@@ -3289,49 +3603,198 @@ function FormationSelectorModal({ onSelect, onClose, loading }) {
           </button>
         </div>
 
-        <div style={{ fontSize: '14px', opacity: 0.8, marginBottom: '24px' }}>
-          Scegli una formazione tattica ufficiale eFootball. I giocatori già assegnati verranno mantenuti nelle loro posizioni, cambieranno solo le coordinate visuali sul campo.
+        <div style={{ fontSize: '14px', opacity: 0.8, marginBottom: '20px' }}>
+          {t('formationDescription')}
         </div>
 
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
-          gap: '12px',
-          marginBottom: '24px'
-        }}>
-          {Object.keys(formations).map((key) => {
-            const formation = formations[key]
-            const isSelected = selectedFormation === key
-            return (
-              <button
-                key={key}
-                onClick={() => setSelectedFormation(key)}
-                style={{
-                  padding: '16px',
-                  background: isSelected ? 'rgba(0, 212, 255, 0.2)' : 'rgba(0, 212, 255, 0.05)',
-                  border: `2px solid ${isSelected ? 'var(--neon-blue)' : 'rgba(0, 212, 255, 0.3)'}`,
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontSize: '18px',
-                  fontWeight: 700,
-                  color: isSelected ? 'var(--neon-blue)' : 'rgba(255, 255, 255, 0.9)',
-                  transition: 'all 0.2s'
-                }}
-                onMouseEnter={(e) => {
-                  if (!isSelected) {
-                    e.target.style.background = 'rgba(0, 212, 255, 0.1)'
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isSelected) {
-                    e.target.style.background = 'rgba(0, 212, 255, 0.05)'
-                  }
-                }}
-              >
-                {formation.name}
-              </button>
-            )
-          })}
+        {/* Tab */}
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', borderBottom: '1px solid rgba(0, 212, 255, 0.2)' }}>
+          <button
+            onClick={() => setActiveTab('base')}
+            style={{
+              padding: '10px 20px',
+              background: activeTab === 'base' ? 'rgba(0, 212, 255, 0.2)' : 'transparent',
+              border: 'none',
+              borderBottom: activeTab === 'base' ? '2px solid var(--neon-blue)' : '2px solid transparent',
+              color: activeTab === 'base' ? 'var(--neon-blue)' : 'rgba(255, 255, 255, 0.7)',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: 600,
+              transition: 'all 0.2s'
+            }}
+          >
+            {t('baseFormations')} ({Object.values(formations).filter(f => f.category === 'base').length})
+          </button>
+          <button
+            onClick={() => setActiveTab('variation')}
+            style={{
+              padding: '10px 20px',
+              background: activeTab === 'variation' ? 'rgba(0, 212, 255, 0.2)' : 'transparent',
+              border: 'none',
+              borderBottom: activeTab === 'variation' ? '2px solid var(--neon-blue)' : '2px solid transparent',
+              color: activeTab === 'variation' ? 'var(--neon-blue)' : 'rgba(255, 255, 255, 0.7)',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: 600,
+              transition: 'all 0.2s'
+            }}
+          >
+            {t('variations')} ({Object.values(formations).filter(f => f.category === 'variation').length})
+          </button>
+        </div>
+
+        {/* Ricerca */}
+        <input
+          type="text"
+          placeholder={t('searchFormation')}
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          style={{
+            width: '100%',
+            padding: '10px 16px',
+            marginBottom: '20px',
+            background: 'rgba(0, 212, 255, 0.05)',
+            border: '1px solid rgba(0, 212, 255, 0.3)',
+            borderRadius: '8px',
+            color: 'rgba(255, 255, 255, 0.9)',
+            fontSize: '14px'
+          }}
+        />
+
+        {/* Lista formazioni */}
+        <div style={{ maxHeight: '400px', overflowY: 'auto', marginBottom: '24px' }}>
+          {activeTab === 'base' ? (
+            // TAB BASE: Griglia semplice
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
+              gap: '12px'
+            }}>
+              {Object.entries(filterFormations('base'))
+                .filter(([key, formation]) => {
+                  if (!searchQuery) return true
+                  return formation.name.toLowerCase().includes(searchQuery.toLowerCase())
+                })
+                .map(([key, formation]) => {
+                  const isSelected = selectedFormation === key
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => setSelectedFormation(key)}
+                      style={{
+                        padding: '16px',
+                        background: isSelected ? 'rgba(0, 212, 255, 0.2)' : 'rgba(0, 212, 255, 0.05)',
+                        border: `2px solid ${isSelected ? 'var(--neon-blue)' : 'rgba(0, 212, 255, 0.3)'}`,
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        fontSize: '18px',
+                        fontWeight: 700,
+                        color: isSelected ? 'var(--neon-blue)' : 'rgba(255, 255, 255, 0.9)',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isSelected) {
+                          e.target.style.background = 'rgba(0, 212, 255, 0.1)'
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isSelected) {
+                          e.target.style.background = 'rgba(0, 212, 255, 0.05)'
+                        }
+                      }}
+                    >
+                      {formation.name}
+                    </button>
+                  )
+                })}
+            </div>
+          ) : (
+            // TAB VARIAZIONI: Raggruppate per base
+            <div>
+              {Object.entries(groupFormationsByBase)
+                .filter(([base, group]) => {
+                  if (!searchQuery) return group.variations.length > 0
+                  const query = searchQuery.toLowerCase()
+                  return base.toLowerCase().includes(query) || 
+                         group.variations.some(v => v.name.toLowerCase().includes(query))
+                })
+                .sort(([a], [b]) => a.localeCompare(b))
+                .map(([base, group]) => {
+                  if (group.variations.length === 0) return null
+                  const isExpanded = expandedBase === base
+                  const matchingVariations = searchQuery 
+                    ? group.variations.filter(v => v.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                    : group.variations
+                  
+                  return (
+                    <div key={base} style={{ marginBottom: '16px' }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          marginBottom: '8px',
+                          cursor: 'pointer',
+                          padding: '8px',
+                          background: 'rgba(0, 212, 255, 0.05)',
+                          borderRadius: '4px'
+                        }}
+                        onClick={() => setExpandedBase(isExpanded ? null : base)}
+                      >
+                        <span style={{ fontSize: '12px' }}>{isExpanded ? '▼' : '▶'}</span>
+                        <strong style={{ fontSize: '16px' }}>{base}</strong>
+                        <span style={{ opacity: 0.6, fontSize: '12px' }}>
+                          ({matchingVariations.length} {t('variationsCount')})
+                        </span>
+                      </div>
+                      
+                      {isExpanded && (
+                        <div style={{ 
+                          display: 'grid', 
+                          gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', 
+                          gap: '8px', 
+                          marginLeft: '24px' 
+                        }}>
+                          {matchingVariations.map(variation => {
+                            const key = Object.keys(formations).find(k => formations[k] === variation)
+                            const isSelected = selectedFormation === key
+                            return (
+                              <button
+                                key={key}
+                                onClick={() => setSelectedFormation(key)}
+                                style={{
+                                  padding: '12px',
+                                  background: isSelected ? 'rgba(0, 212, 255, 0.2)' : 'rgba(0, 212, 255, 0.05)',
+                                  border: `2px solid ${isSelected ? 'var(--neon-blue)' : 'rgba(0, 212, 255, 0.3)'}`,
+                                  borderRadius: '8px',
+                                  cursor: 'pointer',
+                                  fontSize: '14px',
+                                  fontWeight: 600,
+                                  color: isSelected ? 'var(--neon-blue)' : 'rgba(255, 255, 255, 0.9)',
+                                  transition: 'all 0.2s'
+                                }}
+                                onMouseEnter={(e) => {
+                                  if (!isSelected) {
+                                    e.target.style.background = 'rgba(0, 212, 255, 0.1)'
+                                  }
+                                }}
+                                onMouseLeave={(e) => {
+                                  if (!isSelected) {
+                                    e.target.style.background = 'rgba(0, 212, 255, 0.05)'
+                                  }
+                                }}
+                              >
+                                {variation.name}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+            </div>
+          )}
         </div>
 
         <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
@@ -3341,7 +3804,7 @@ function FormationSelectorModal({ onSelect, onClose, loading }) {
             disabled={loading}
             style={{ padding: '10px 20px' }}
           >
-            Annulla
+            {t('cancel') || 'Annulla'}
           </button>
           {selectedFormation && (
             <button 
@@ -3353,7 +3816,7 @@ function FormationSelectorModal({ onSelect, onClose, loading }) {
                 opacity: loading ? 0.6 : 1
               }}
             >
-              {loading ? 'Salvataggio...' : 'Conferma Formazione'}
+              {loading ? t('saving') : t('confirmFormation')}
             </button>
           )}
         </div>
