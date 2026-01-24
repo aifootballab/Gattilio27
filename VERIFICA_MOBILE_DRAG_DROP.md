@@ -82,13 +82,13 @@ document.addEventListener('touchend', handlePointerEnd)
 - [x] Click normale funziona quando non in edit mode
 - [x] Nessuna regressione
 
-### Mobile
-- [ ] Touch start → inizia drag
-- [ ] Touch move → aggiorna posizione
-- [ ] Touch end → salva posizione
-- [ ] Scroll disabilitato durante drag
-- [ ] Scroll funziona quando non in drag
-- [ ] Click normale (tocco veloce) funziona quando non in edit mode
+### Mobile ✅
+- [x] Touch start → inizia drag
+- [x] Touch move → aggiorna posizione
+- [x] Touch end → salva posizione
+- [x] Scroll disabilitato durante drag
+- [x] Scroll funziona quando non in drag
+- [x] Click normale (tocco veloce) funziona quando non in edit mode
 
 ---
 
@@ -137,7 +137,7 @@ document.addEventListener('touchend', handlePointerEnd)
 - ✅ Compatibilità retroattiva - Mantenuta
 - ✅ Nessuna regressione - Verificato
 
-**Pronto per test su dispositivo mobile reale**.
+**✅ Testato e funzionante su Android**.
 
 ---
 
