@@ -33,6 +33,8 @@ export default function GestioneFormazionePage() {
   const [activeCoach, setActiveCoach] = React.useState(null)
   const [tacticalSettings, setTacticalSettings] = React.useState(null)
   const [savingTacticalSettings, setSavingTacticalSettings] = React.useState(false)
+  const [isEditMode, setIsEditMode] = React.useState(false)
+  const [customPositions, setCustomPositions] = React.useState({}) // { slot_index: { x, y } }
 
   // Funzione fetchData riutilizzabile (estratta da useEffect per essere chiamabile)
   const fetchData = React.useCallback(async () => {
@@ -193,6 +195,13 @@ export default function GestioneFormazionePage() {
 
     setSelectedSlot({ slot_index: slotIndex, ...slotPos })
     setShowAssignModal(true)
+  }
+
+  const handlePositionChange = (slotIndex, newPosition) => {
+    setCustomPositions(prev => ({
+      ...prev,
+      [slotIndex]: newPosition
+    }))
   }
 
   const handleAssignFromReserve = async (playerId) => {
@@ -891,6 +900,49 @@ export default function GestioneFormazionePage() {
     }
   }
 
+  const handleSaveCustomPositions = async () => {
+    if (!layout || Object.keys(customPositions).length === 0) {
+      setIsEditMode(false)
+      setCustomPositions({})
+      return
+    }
+    
+    setUploadingFormation(true)
+    setError(null)
+    
+    try {
+      // Merge posizioni personalizzate con slot_positions esistenti
+      const updatedSlotPositions = { ...layout.slot_positions }
+      
+      Object.entries(customPositions).forEach(([slotIndex, position]) => {
+        const slotIdx = Number(slotIndex)
+        if (updatedSlotPositions[slotIdx]) {
+          updatedSlotPositions[slotIdx] = {
+            ...updatedSlotPositions[slotIdx],
+            x: position.x,
+            y: position.y
+          }
+        }
+      })
+      
+      // Usa funzione esistente per salvare (NON MODIFICATA)
+      await handleSelectManualFormation(
+        layout.formation || 'Personalizzato',
+        updatedSlotPositions
+      )
+      
+      setIsEditMode(false)
+      setCustomPositions({})
+      showToast(t('positionsSavedSuccessfully') || 'Posizioni salvate con successo', 'success')
+    } catch (err) {
+      console.error('[GestioneFormazione] Save custom positions error:', err)
+      setError(err.message || 'Errore salvataggio posizioni')
+      showToast(err.message || t('errorSavingPositions') || 'Errore salvataggio posizioni', 'error')
+    } finally {
+      setUploadingFormation(false)
+    }
+  }
+
   const handleUploadReserve = async () => {
     if (uploadReserveImages.length === 0) return
 
@@ -1262,20 +1314,80 @@ export default function GestioneFormazionePage() {
             </div>
           )}
           {layout?.formation && (
-            <button
-              onClick={() => setShowFormationSelectorModal(true)}
-              className="btn"
-              style={{ 
-                display: 'inline-flex', 
-                alignItems: 'center', 
-                gap: '8px',
-                fontSize: '14px',
-                padding: '8px 16px'
-              }}
-            >
-              <Settings size={16} />
-              {t('changeFormation')}
-            </button>
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <button
+                onClick={() => setShowFormationSelectorModal(true)}
+                className="btn"
+                style={{ 
+                  display: 'inline-flex', 
+                  alignItems: 'center', 
+                  gap: '8px',
+                  fontSize: '14px',
+                  padding: '8px 16px'
+                }}
+              >
+                <Settings size={16} />
+                {t('changeFormation')}
+              </button>
+              
+              <button
+                onClick={() => {
+                  if (isEditMode) {
+                    handleSaveCustomPositions()
+                  } else {
+                    setIsEditMode(true)
+                  }
+                }}
+                className="btn"
+                disabled={uploadingFormation}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  fontSize: '14px',
+                  padding: '8px 16px',
+                  background: isEditMode ? 'rgba(34, 197, 94, 0.2)' : 'rgba(0, 212, 255, 0.1)',
+                  borderColor: isEditMode ? 'var(--neon-green)' : 'var(--neon-blue)',
+                  opacity: uploadingFormation ? 0.5 : 1,
+                  cursor: uploadingFormation ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {isEditMode ? (
+                  <>
+                    <CheckCircle2 size={16} />
+                    {t('saveChanges')}
+                  </>
+                ) : (
+                  <>
+                    <Move size={16} />
+                    {t('customizePositions')}
+                  </>
+                )}
+              </button>
+              
+              {isEditMode && (
+                <button
+                  onClick={() => {
+                    setIsEditMode(false)
+                    setCustomPositions({})
+                    showToast(t('changesCancelled') || 'Modifiche annullate', 'success')
+                  }}
+                  className="btn"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    fontSize: '14px',
+                    padding: '8px 16px',
+                    background: 'rgba(239, 68, 68, 0.1)',
+                    borderColor: '#ef4444'
+                  }}
+                >
+                  <X size={16} />
+                  {t('cancel')}
+                </button>
+              )}
+            </div>
           )}
           <button
             onClick={() => router.push('/allenatori')}
@@ -1380,8 +1492,32 @@ export default function GestioneFormazionePage() {
       {/* Campo 2D - Full Width come prima */}
       {!noLayoutContent && (
       <>
+        {/* Indicatore Modalità Edit */}
+        {isEditMode && (
+          <div style={{
+            padding: '12px 16px',
+            background: 'rgba(251, 191, 36, 0.1)',
+            border: '1px solid rgba(251, 191, 36, 0.3)',
+            borderRadius: '8px',
+            marginBottom: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            maxWidth: 'clamp(540px, 45vw, 720px)',
+            margin: '0 auto 16px auto'
+          }}>
+            <Info size={16} color="#fbbf24" />
+            <span style={{ fontSize: '14px', color: '#fbbf24' }}>
+              {t('editModeActive')}
+            </span>
+          </div>
+        )}
+
         {/* Campo 2D */}
-        <div className="card" style={{ 
+        <div 
+          className="card" 
+          data-field-container
+          style={{ 
         marginBottom: '24px',
         padding: 'clamp(16px, 2vw, 24px)',
         position: 'relative',
@@ -1565,14 +1701,29 @@ export default function GestioneFormazionePage() {
         }} />
 
         {/* Card giocatori posizionate */}
-        {slots.map((slot) => (
-          <SlotCard
-            key={slot.slot_index}
-            slot={slot}
-            onClick={() => handleSlotClick(slot.slot_index)}
-            onRemove={slot.player ? () => handleRemoveFromSlot(slot.player.id) : null}
-          />
-        ))}
+        {slots.map((slot) => {
+          // Applica posizioni personalizzate se in edit mode
+          const customPos = customPositions[slot.slot_index]
+          const finalSlot = customPos ? {
+            ...slot,
+            position: {
+              ...slot.position,
+              x: customPos.x,
+              y: customPos.y
+            }
+          } : slot
+          
+          return (
+            <SlotCard
+              key={slot.slot_index}
+              slot={finalSlot}
+              onClick={() => handleSlotClick(slot.slot_index)}
+              onRemove={slot.player ? () => handleRemoveFromSlot(slot.player.id) : null}
+              isEditMode={isEditMode}
+              onPositionChange={handlePositionChange}
+            />
+          )
+        })}
         </div>
 
         {/* Pannello Impostazioni Tattiche - Collassabile sotto il campo */}
@@ -1898,10 +2049,14 @@ function UploadModal({ title, description, onUpload, onClose, uploading }) {
 }
 
 // Slot Card Component - Badge Minimale (solo nome)
-function SlotCard({ slot, onClick, onRemove }) {
+function SlotCard({ slot, onClick, onRemove, isEditMode = false, onPositionChange }) {
   const { t } = useTranslation()
   const { slot_index, position, player, offsetX = 0, offsetY = 0, hasNearbyCards = false } = slot
   const isEmpty = !player
+  
+  const [isDragging, setIsDragging] = React.useState(false)
+  const [dragStart, setDragStart] = React.useState(null)
+  const [currentOffset, setCurrentOffset] = React.useState({ x: 0, y: 0 })
 
   // Abbrevia nome se troppo lungo
   const getDisplayName = (name) => {
@@ -1915,13 +2070,76 @@ function SlotCard({ slot, onClick, onRemove }) {
     return name.substring(0, 10) + '...'
   }
 
+  const handleMouseDown = (e) => {
+    if (!isEditMode || !player) return
+    
+    e.preventDefault()
+    e.stopPropagation()
+    
+    const container = e.currentTarget.closest('[data-field-container]')
+    if (!container) return
+    
+    const containerRect = container.getBoundingClientRect()
+    const startX = e.clientX
+    const startY = e.clientY
+    const startPercentX = position.x + (offsetX || 0)
+    const startPercentY = position.y + (offsetY || 0)
+    
+    setIsDragging(true)
+    const dragState = { startX, startY, startPercentX, startPercentY, containerRect }
+    setDragStart(dragState)
+    
+    let lastOffset = { x: 0, y: 0 }
+    
+    const handleMouseMove = (e) => {
+      const deltaX = e.clientX - dragState.startX
+      const deltaY = e.clientY - dragState.startY
+      
+      const percentX = (deltaX / dragState.containerRect.width) * 100
+      const percentY = (deltaY / dragState.containerRect.height) * 100
+      
+      const newX = Math.max(5, Math.min(95, dragState.startPercentX + percentX))
+      const newY = Math.max(5, Math.min(95, dragState.startPercentY + percentY))
+      
+      lastOffset = {
+        x: newX - dragState.startPercentX,
+        y: newY - dragState.startPercentY
+      }
+      
+      setCurrentOffset(lastOffset)
+    }
+    
+    const handleMouseUp = () => {
+      if (lastOffset.x !== 0 || lastOffset.y !== 0) {
+        const newPosition = {
+          x: dragState.startPercentX + lastOffset.x,
+          y: dragState.startPercentY + lastOffset.y
+        }
+        
+        if (onPositionChange) {
+          onPositionChange(slot_index, newPosition)
+        }
+      }
+      
+      setIsDragging(false)
+      setDragStart(null)
+      setCurrentOffset({ x: 0, y: 0 })
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+    
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+  }
+
   return (
     <div
-      onClick={onClick}
+      onClick={!isEditMode ? onClick : undefined}
+      onMouseDown={isEditMode && player ? handleMouseDown : undefined}
       style={{
         position: 'absolute',
-        left: `${position.x + offsetX}%`,
-        top: `${position.y + offsetY}%`,
+        left: `${position.x + (offsetX || 0) + currentOffset.x}%`,
+        top: `${position.y + (offsetY || 0) + currentOffset.y}%`,
         transform: 'translate(-50%, -50%)',
         padding: isEmpty ? '6px 12px' : '5px 12px',
         background: isEmpty 
@@ -1931,8 +2149,8 @@ function SlotCard({ slot, onClick, onRemove }) {
           ? '1.5px solid rgba(148, 163, 184, 0.5)' 
           : '1.5px solid rgba(147, 51, 234, 0.8)',
         borderRadius: '20px',
-        cursor: 'pointer',
-        transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+        cursor: isEditMode && player ? 'move' : 'pointer',
+        transition: isDragging ? 'none' : 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -1941,11 +2159,14 @@ function SlotCard({ slot, onClick, onRemove }) {
           ? '0 4px 12px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05)'
           : '0 4px 16px rgba(59, 130, 246, 0.4), 0 0 20px rgba(147, 51, 234, 0.3)',
         backdropFilter: 'blur(8px)',
-        zIndex: hasNearbyCards ? 2 : 1,
+        zIndex: isDragging ? 1000 : (hasNearbyCards ? 2 : 1),
         minWidth: 'auto',
-        maxWidth: 'clamp(70px, 10vw, 120px)'
+        maxWidth: 'clamp(70px, 10vw, 120px)',
+        opacity: isDragging ? 0.7 : 1,
+        userSelect: 'none'
       }}
       onMouseEnter={(e) => {
+        if (isDragging) return
         e.currentTarget.style.transform = 'translate(-50%, -50%) scale(1.1)'
         e.currentTarget.style.boxShadow = isEmpty
           ? '0 6px 20px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.1)'
@@ -1959,6 +2180,7 @@ function SlotCard({ slot, onClick, onRemove }) {
           : 'rgba(59, 130, 246, 0.9)'
       }}
       onMouseLeave={(e) => {
+        if (isDragging) return
         e.currentTarget.style.transform = 'translate(-50%, -50%) scale(1)'
         e.currentTarget.style.boxShadow = isEmpty
           ? '0 4px 12px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05)'
@@ -3530,7 +3752,8 @@ function FormationSelectorModal({ onSelect, onClose, loading }) {
       if (formation.category === 'base') {
         grouped[base].base = formation
       } else {
-        grouped[base].variations.push(formation)
+        // Includi chiave per trovare formazione corretta
+        grouped[base].variations.push({ ...formation, _key: key })
       }
     })
     return grouped
@@ -3756,7 +3979,11 @@ function FormationSelectorModal({ onSelect, onClose, loading }) {
                           marginLeft: '24px' 
                         }}>
                           {matchingVariations.map(variation => {
-                            const key = Object.keys(formations).find(k => formations[k] === variation)
+                            // Usa chiave salvata nel raggruppamento
+                            const key = variation._key || Object.keys(formations).find(k => 
+                              formations[k].name === variation.name && 
+                              formations[k].baseFormation === variation.baseFormation
+                            )
                             const isSelected = selectedFormation === key
                             return (
                               <button
