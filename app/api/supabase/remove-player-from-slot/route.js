@@ -40,7 +40,7 @@ export async function PATCH(req) {
     // Verifica che il giocatore appartenga all'utente
     const { data: player, error: fetchError } = await admin
       .from('players')
-      .select('id, user_id, player_name, age, slot_index')
+      .select('id, user_id, player_name, age, slot_index, original_positions, position')
       .eq('id', player_id)
       .eq('user_id', userId)
       .single()
@@ -86,11 +86,17 @@ export async function PATCH(req) {
       }
     }
 
-    // Rimuovi da slot (torna riserva)
+    // NUOVO: Reset a original_position (prima posizione originale o position attuale)
+    const originalPosition = Array.isArray(player.original_positions) && player.original_positions.length > 0
+      ? player.original_positions[0].position
+      : player.position
+
+    // Rimuovi da slot (reset position a originale)
     const { error: updateError } = await admin
       .from('players')
       .update({
         slot_index: null,
+        position: originalPosition,  // NUOVO: reset a originale
         updated_at: new Date().toISOString()
       })
       .eq('id', player_id)

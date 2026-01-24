@@ -7,6 +7,7 @@ import { useTranslation } from '@/lib/i18n'
 import LanguageSwitch from '@/components/LanguageSwitch'
 import { ArrowLeft, Upload, AlertCircle, CheckCircle2, RefreshCw, Info, X, Plus, User, Settings, BarChart3, Zap, Gift, ChevronDown, ChevronUp, Users, Star, Move } from 'lucide-react'
 import TacticalSettingsPanel from '@/components/TacticalSettingsPanel'
+import PositionSelectionModal from '@/components/PositionSelectionModal'
 
 export default function GestioneFormazionePage() {
   const { t } = useTranslation()
@@ -117,7 +118,8 @@ export default function GestioneFormazionePage() {
           skills: p.skills || null,
           com_skills: p.com_skills || null,
           available_boosters: p.available_boosters || null,
-          photo_slots: p.photo_slots || null
+          photo_slots: p.photo_slots || null,
+          original_positions: p.original_positions || null  // NUOVO: posizioni originali
         }))
 
       const titolariArray = playersArray
@@ -283,6 +285,52 @@ export default function GestioneFormazionePage() {
             }
           }
         }
+      }
+
+      // NUOVO: Verifica posizioni originali e conferma se NON originale
+      const originalPositions = Array.isArray(playerToAssign.original_positions) && playerToAssign.original_positions.length > 0
+        ? playerToAssign.original_positions
+        : (playerToAssign.position ? [{ position: playerToAssign.position, competence: "Alta" }] : [])
+
+      const slotPosition = selectedSlot.position
+
+      // Verifica se posizione slot è originale
+      const isOriginalPosition = originalPositions.some(
+        op => op.position && op.position.toUpperCase() === slotPosition.toUpperCase()
+      )
+
+      // Se NON è originale, chiedi conferma con competenza
+      if (!isOriginalPosition && originalPositions.length > 0 && slotPosition) {
+        const originalPosList = originalPositions.map(op => op.position).join(', ')
+        const stats = playerToAssign.base_stats || {}
+        
+        // Cerca competenza per posizione slot
+        const competenceInfo = originalPositions.find(
+          op => op.position && op.position.toUpperCase() === slotPosition.toUpperCase()
+        )
+        const competence = competenceInfo?.competence || t('competenceLow')
+        
+        // Costruisci messaggio con statistiche rilevanti
+        let statsWarning = ''
+        if (slotPosition === 'DC' && stats.difesa) {
+          statsWarning = `\n${slotPosition} NON è una posizione originale.\n- Difesa: ${stats.difesa} (richiesto: 80+)\n`
+        } else if (slotPosition === 'P' && stats.finalizzazione) {
+          statsWarning = `\n${slotPosition} NON è una posizione originale.\n- Finalizzazione: ${stats.finalizzazione} (richiesto: 85+)\n`
+        } else {
+          statsWarning = `\n${slotPosition} NON è una posizione originale.\n`
+        }
+        
+        // Alert con warning e competenza (i18n - sostituzione manuale template)
+        const competenceLabel = competence === 'Alta' ? t('competenceHigh') : competence === 'Intermedia' ? t('competenceMedium') : t('competenceLow')
+        const confirmMessage = `${playerToAssign.player_name} è ${originalPosList} originale, ma lo stai spostando in slot ${slotPosition}.\n\n${slotPosition} NON è una posizione originale.\nCompetenza in ${slotPosition}: ${competenceLabel}\n${statsWarning}Vuoi comunque usarlo come ${slotPosition}? (Performance ridotta)\n\nSe confermi, ti prendi la responsabilità e il sistema accetta la scelta.`
+        
+        const confirmed = window.confirm(confirmMessage)
+        if (!confirmed) {
+          // Annulla, non spostare giocatore
+          setAssigning(false)
+          return
+        }
+        // Se conferma, cliente si prende responsabilità → procedi
       }
 
       const { data: session } = await supabase.auth.getSession()
@@ -612,6 +660,23 @@ export default function GestioneFormazionePage() {
         throw new Error('Errore: dati giocatore non estratti. Verifica le immagini e riprova.')
       }
 
+      // NUOVO: Dopo estrazione dati, mostra modal selezione posizioni
+      const mainPosition = playerData.position || 'AMF'
+      setSelectedOriginalPositions([{
+        position: mainPosition,
+        competence: 'Alta'
+      }])
+      
+      setExtractedPlayerData({
+        ...playerData,
+        photo_slots: photoSlots,
+        slot_index: selectedSlot.slot_index
+      })
+      
+      setShowPositionSelectionModal(true)
+      setUploadingPlayer(false)
+      return // Non salvare ancora, aspetta conferma modal
+
       // Validazione duplicati: verifica se stesso giocatore (nome+età) già presente nei titolari
       const playerName = String(playerData.player_name || '').trim().toLowerCase()
       const playerAge = playerData.age != null ? Number(playerData.age) : null
@@ -673,7 +738,92 @@ export default function GestioneFormazionePage() {
           .eq('id', duplicatePlayer.id)
       }
 
-      // Salva giocatore e assegna allo slot
+      // NOTA: Salvataggio spostato in handleSavePlayerWithPositions (chiamato da modal)
+    } catch (err) {
+      console.error('[GestioneFormazione] Upload player error:', err)
+      setError(err.message || 'Errore caricamento giocatore')
+      showToast(err.message || t('errorUploadingPhoto'), 'error')
+      setUploadingPlayer(false)
+    }
+  }
+
+  // NUOVO: Salva giocatore con posizioni selezionate (chiamato da modal)
+  const handleSavePlayerWithPositions = async () => {
+    if (!extractedPlayerData || !selectedSlot || selectedOriginalPositions.length === 0) return
+
+    setUploadingPlayer(true)
+    setError(null)
+
+    try {
+      const { data: session } = await supabase.auth.getSession()
+      if (!session?.session?.access_token) {
+        throw new Error('Sessione scaduta')
+      }
+
+      const token = session.session.access_token
+
+      // Validazione duplicati: verifica se stesso giocatore (nome+età) già presente nei titolari
+      const playerName = String(extractedPlayerData.player_name || '').trim().toLowerCase()
+      const playerAge = extractedPlayerData.age != null ? Number(extractedPlayerData.age) : null
+      
+      const duplicatePlayer = titolari.find(p => {
+        const pName = String(p.player_name || '').trim().toLowerCase()
+        const pAge = p.age != null ? Number(p.age) : null
+        
+        // Match esatto se nome+età corrispondono
+        if (playerName && pName && playerAge && pAge) {
+          return pName === playerName && pAge === pAge && p.slot_index !== selectedSlot.slot_index
+        }
+        // Fallback: solo nome se età non disponibile
+        if (playerName && pName) {
+          return pName === playerName && p.slot_index !== selectedSlot.slot_index
+        }
+        return false
+      })
+
+      if (duplicatePlayer) {
+        const confirmMsg = `Il giocatore "${extractedPlayerData.player_name}"${playerAge ? ` (${playerAge} anni)` : ''} è già presente in formazione nello slot ${duplicatePlayer.slot_index}. Vuoi sostituirlo?`
+        if (!window.confirm(confirmMsg)) {
+          setUploadingPlayer(false)
+          return
+        }
+        
+        // Verifica duplicati riserve prima di rimuovere vecchio titolare
+        const duplicateReserve = riserve.find(p => {
+          const pName = String(p.player_name || '').trim().toLowerCase()
+          const pAge = p.age != null ? Number(p.age) : null
+          return pName === playerName && 
+                 (playerAge ? pAge === playerAge : true) &&
+                 p.id !== duplicatePlayer.id
+        })
+        
+        if (duplicateReserve) {
+          // Elimina duplicato riserva prima di rimuovere titolare
+          const deleteRes = await fetch('/api/supabase/delete-player', {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ player_id: duplicateReserve.id })
+          })
+          if (!deleteRes.ok) {
+            const deleteData = await deleteRes.json()
+            throw new Error(deleteData.error || 'Errore eliminazione giocatore duplicato riserva')
+          }
+        }
+        
+        // Rimuovi vecchio giocatore (torna riserva)
+        await supabase
+          .from('players')
+          .update({ 
+            slot_index: null,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', duplicatePlayer.id)
+      }
+
+      // Salva giocatore con original_positions
       const saveRes = await fetch('/api/supabase/save-player', {
         method: 'POST',
         headers: {
@@ -682,9 +832,10 @@ export default function GestioneFormazionePage() {
         },
         body: JSON.stringify({
           player: {
-            ...playerData,
+            ...extractedPlayerData,
+            original_positions: selectedOriginalPositions,  // NUOVO: posizioni selezionate
             slot_index: selectedSlot.slot_index,
-            photo_slots: photoSlots // Includi photo_slots tracciati
+            photo_slots: extractedPlayerData.photo_slots
           }
         })
       })
@@ -695,8 +846,11 @@ export default function GestioneFormazionePage() {
       }
 
       setShowUploadPlayerModal(false)
+      setShowPositionSelectionModal(false)
       setUploadImages([])
       setSelectedSlot(null)
+      setExtractedPlayerData(null)
+      setSelectedOriginalPositions([])
       
       // Messaggio di successo
       showToast(t('photoUploadedSuccessfully'), 'success')
@@ -704,8 +858,8 @@ export default function GestioneFormazionePage() {
       // Ricarica dati senza reload pagina
       await fetchData()
     } catch (err) {
-      console.error('[GestioneFormazione] Upload player error:', err)
-      setError(err.message || 'Errore caricamento giocatore')
+      console.error('[GestioneFormazione] Save player with positions error:', err)
+      setError(err.message || 'Errore salvataggio giocatore')
       showToast(err.message || t('errorUploadingPhoto'), 'error')
     } finally {
       setUploadingPlayer(false)
@@ -1892,6 +2046,26 @@ export default function GestioneFormazionePage() {
             setSelectedSlot(null)
           }}
           uploading={uploadingPlayer}
+        />
+      )}
+
+      {/* Modal Selezione Posizioni Originali */}
+      {showPositionSelectionModal && extractedPlayerData && (
+        <PositionSelectionModal
+          playerName={extractedPlayerData.player_name}
+          overallRating={extractedPlayerData.overall_rating}
+          mainPosition={extractedPlayerData.position}
+          selectedPositions={selectedOriginalPositions}
+          onPositionsChange={setSelectedOriginalPositions}
+          onConfirm={handleSavePlayerWithPositions}
+          onCancel={() => {
+            setShowPositionSelectionModal(false)
+            setExtractedPlayerData(null)
+            setSelectedOriginalPositions([])
+            setShowUploadPlayerModal(false)
+            setUploadImages([])
+            setSelectedSlot(null)
+          }}
         />
       )}
 

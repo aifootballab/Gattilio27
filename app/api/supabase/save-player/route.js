@@ -139,7 +139,11 @@ export async function POST(req) {
       // photo_slots: traccia quali foto sono state caricate
       photo_slots: player.photo_slots && typeof player.photo_slots === 'object' 
         ? player.photo_slots 
-        : {}
+        : {},
+      // NUOVO: original_positions - array di posizioni originali dalla card
+      original_positions: Array.isArray(player.original_positions) 
+        ? player.original_positions 
+        : (player.position ? [{ position: player.position, competence: "Alta" }] : [])
     }
 
     // CONTROLLI INCROCIATI: verifica duplicati sia in campo che in riserve
@@ -158,6 +162,9 @@ export async function POST(req) {
       if (!existingErr && existingPlayerInSlot) {
         // Giocatore già presente nello slot → UPDATE con merge dati
         console.log(`[save-player] Player already exists in slot ${playerData.slot_index}, updating: id=${existingPlayerInSlot.id}`)
+        
+        // Se giocatore esiste già, NON sovrascrivere original_positions (mantieni originali)
+        delete playerData.original_positions
         
         // Merge photo_slots
         const existingPhotoSlots = existingPlayerInSlot.photo_slots || {}

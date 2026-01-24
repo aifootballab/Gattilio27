@@ -52,6 +52,16 @@ export async function PATCH(req) {
       auth: { autoRefreshToken: false, persistSession: false }
     })
 
+    // NUOVO: Recupera formazione layout per calcolare slotPosition
+    const { data: formationLayout } = await admin
+      .from('formation_layout')
+      .select('slot_positions')
+      .eq('user_id', userId)
+      .maybeSingle()
+
+    // Calcola posizione richiesta dallo slot
+    const slotPosition = formationLayout?.slot_positions?.[slot_index]?.position || null
+
     // Se slot già occupato, libera vecchio giocatore
     const { data: existingPlayerInSlot } = await admin
       .from('players')
@@ -109,7 +119,7 @@ export async function PATCH(req) {
       // Caso 1: Assegna giocatore esistente (da riserve o altro slot)
       const { data: player, error: playerError } = await admin
         .from('players')
-        .select('id, user_id, player_name, age')
+        .select('id, user_id, player_name, age, position, original_positions')
         .eq('id', player_id)
         .eq('user_id', userId)
         .single()
@@ -187,13 +197,22 @@ export async function PATCH(req) {
         }
       }
 
-      // UPDATE: Assegna slot
+      // NUOVO: Adatta position automaticamente allo slot
+      const updateData = {
+        slot_index: slot_index,
+        position: slotPosition || player.position,  // Adatta automaticamente allo slot (se disponibile)
+        updated_at: new Date().toISOString()
+      }
+
+      // Se original_positions è NULL o vuoto, salvalo (prima volta)
+      if ((!player.original_positions || player.original_positions.length === 0) && player.position) {
+        updateData.original_positions = [{ position: player.position, competence: "Alta" }]
+      }
+
+      // UPDATE: Assegna slot e adatta position
       const { error: updateError } = await admin
         .from('players')
-        .update({
-          slot_index: slot_index,
-          updated_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('id', player_id)
 
       if (updateError) {
@@ -216,7 +235,7 @@ export async function PATCH(req) {
       const playerData = {
         user_id: userId,
         player_name: toText(player_data.player_name),
-        position: toText(player_data.position),
+        position: slotPosition || toText(player_data.position),  // NUOVO: adatta a slot (se disponibile)
         card_type: toText(player_data.card_type),
         team: toText(player_data.team),
         overall_rating: typeof player_data.overall_rating === 'number' 
@@ -228,6 +247,10 @@ export async function PATCH(req) {
         skills: Array.isArray(player_data.skills) ? player_data.skills : [],
         com_skills: Array.isArray(player_data.com_skills) ? player_data.com_skills : [],
         slot_index: slot_index, // Assegna slot
+        // NUOVO: original_positions - salva originali dalla card
+        original_positions: Array.isArray(player_data.original_positions) 
+          ? player_data.original_positions 
+          : (player_data.position ? [{ position: player_data.position, competence: "Alta" }] : []),
         metadata: {
           source: 'formation_assignment',
           saved_at: new Date().toISOString(),
