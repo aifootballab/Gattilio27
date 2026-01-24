@@ -154,10 +154,45 @@ IMPORTANTE:
   * Età apparente
   * Nazionalità/etnia (se riconoscibile)
 
+POSIZIONI ORIGINALI (NUOVO - Guarda Mini-Campo in Alto a Destra):
+- Guarda la sezione in alto a destra della card dove c'è un MINI-CAMPO diviso in zone
+- Il mini-campo mostra le posizioni originali del giocatore evidenziate in VERDE
+- Estrai TUTTE le zone evidenziate e mappale a posizioni:
+  * Zone verdi brillanti = Alta competenza
+  * Zone verdi sfumate = Intermedia competenza
+  * Zone grigie = Bassa competenza o nessuna
+- Mappa zone a posizioni standard:
+  * Zona centrale difesa = DC
+  * Zona sinistra difesa = TS
+  * Zona destra difesa = TD
+  * Zona centrale centrocampo = CC/CMF
+  * Zona sinistra centrocampo = ESA
+  * Zona destra centrocampo = EDE
+  * Zona centrale attacco = AMF/TRQ
+  * Zona sinistra attacco = LWF/CLS
+  * Zona destra attacco = RWF/CLD
+  * Zona centrale punta = CF/P
+  * Zona laterale punta = SP
+- Se non vedi il mini-campo o non ci sono zone evidenziate, usa solo la posizione principale
+
 Formato JSON richiesto:
 {
   "player_name": "Nome Completo",
-  "position": "CF",
+  "position": "AMF",  // Posizione principale (quella più grande/centrale)
+  "original_positions": [  // NUOVO: Array di posizioni originali dal mini-campo
+    {
+      "position": "AMF",
+      "competence": "Alta"  // Alta, Intermedia, Bassa (basato su colore verde)
+    },
+    {
+      "position": "LWF",
+      "competence": "Alta"
+    },
+    {
+      "position": "RWF",
+      "competence": "Alta"
+    }
+  ],
   "overall_rating": 85,
   "team": "Team Name",
   "card_type": "Type",
@@ -254,6 +289,21 @@ Restituisci SOLO JSON valido, senza altro testo.`
 
     // Normalizza dati
     const normalizedPlayer = normalizePlayer(playerData)
+
+    // Validazione e normalizzazione original_positions
+    if (normalizedPlayer.original_positions && !Array.isArray(normalizedPlayer.original_positions)) {
+      // Se non è array, converti o ignora
+      normalizedPlayer.original_positions = []
+    }
+
+    // Se array vuoto o non presente, usa position come originale
+    if (!normalizedPlayer.original_positions || normalizedPlayer.original_positions.length === 0) {
+      if (normalizedPlayer.position) {
+        normalizedPlayer.original_positions = [{ position: normalizedPlayer.position, competence: "Alta" }]
+      } else {
+        normalizedPlayer.original_positions = []
+      }
+    }
 
     // Validazione semantica dei dati estratti (non bloccante - solo warning)
     // Rimossa validazione rigida che bloccava dati validi (es. rating > 100 con boosters, stats > 99)
