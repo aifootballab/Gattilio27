@@ -79,6 +79,130 @@ function calculatePhotosUploaded(matchData) {
   return count
 }
 
+/**
+ * Determina se un risultato è una vittoria
+ */
+function isWin(result) {
+  if (!result || typeof result !== 'string') return false
+  const upper = result.toUpperCase()
+  return upper.includes('W') || upper.includes('VITTORIA') || upper.includes('WIN') || 
+         /^\d+-\d+$/.test(result) && parseInt(result.split('-')[0]) > parseInt(result.split('-')[1])
+}
+
+/**
+ * Determina se un risultato è una sconfitta
+ */
+function isLoss(result) {
+  if (!result || typeof result !== 'string') return false
+  const upper = result.toUpperCase()
+  return upper.includes('L') || upper.includes('SCONFITTA') || upper.includes('LOSS') ||
+         /^\d+-\d+$/.test(result) && parseInt(result.split('-')[0]) < parseInt(result.split('-')[1])
+}
+
+/**
+ * Calcola pattern tattici dalle partite dell'utente (ultime 50)
+ */
+async function calculateTacticalPatterns(admin, userId) {
+  try {
+    // Recupera ultime 50 partite
+    const { data: matches, error: matchesError } = await admin
+      .from('matches')
+      .select('formation_played, playing_style_played, result')
+      .eq('user_id', userId)
+      .order('match_date', { ascending: false })
+      .limit(50)
+
+    if (matchesError) {
+      console.error('[save-match] Error loading matches for pattern calculation:', matchesError)
+      return null
+    }
+
+    if (!matches || matches.length === 0) {
+      return null
+    }
+
+    // Calcola formation_usage
+    const formationUsage = {}
+    matches.forEach(match => {
+      const formation = match.formation_played
+      if (!formation) return
+
+      if (!formationUsage[formation]) {
+        formationUsage[formation] = { matches: 0, wins: 0, losses: 0, draws: 0 }
+      }
+
+      formationUsage[formation].matches++
+      if (isWin(match.result)) {
+        formationUsage[formation].wins++
+      } else if (isLoss(match.result)) {
+        formationUsage[formation].losses++
+      } else {
+        formationUsage[formation].draws++
+      }
+    })
+
+    // Calcola win_rate per ogni formazione
+    Object.keys(formationUsage).forEach(formation => {
+      const stats = formationUsage[formation]
+      stats.win_rate = stats.matches > 0 ? stats.wins / stats.matches : 0
+    })
+
+    // Calcola playing_style_usage
+    const playingStyleUsage = {}
+    matches.forEach(match => {
+      const style = match.playing_style_played
+      if (!style) return
+
+      if (!playingStyleUsage[style]) {
+        playingStyleUsage[style] = { matches: 0, wins: 0, losses: 0, draws: 0 }
+      }
+
+      playingStyleUsage[style].matches++
+      if (isWin(match.result)) {
+        playingStyleUsage[style].wins++
+      } else if (isLoss(match.result)) {
+        playingStyleUsage[style].losses++
+      } else {
+        playingStyleUsage[style].draws++
+      }
+    })
+
+    // Calcola win_rate per ogni stile
+    Object.keys(playingStyleUsage).forEach(style => {
+      const stats = playingStyleUsage[style]
+      stats.win_rate = stats.matches > 0 ? stats.wins / stats.matches : 0
+    })
+
+    // recurring_issues: lasciato vuoto per ora (può essere implementato in futuro con analisi AI)
+    const recurringIssues = []
+
+    // UPSERT su team_tactical_patterns
+    const { error: upsertError } = await admin
+      .from('team_tactical_patterns')
+      .upsert({
+        user_id: userId,
+        formation_usage: formationUsage,
+        playing_style_usage: playingStyleUsage,
+        recurring_issues: recurringIssues,
+        last_50_matches_count: matches.length,
+        last_updated: new Date().toISOString()
+      }, {
+        onConflict: 'user_id'
+      })
+
+    if (upsertError) {
+      console.error('[save-match] Error upserting tactical patterns:', upsertError)
+      return null
+    }
+
+    console.log(`[save-match] Tactical patterns calculated and saved for user ${userId}`)
+    return { formation_usage: formationUsage, playing_style_usage: playingStyleUsage, recurring_issues: recurringIssues }
+  } catch (err) {
+    console.error('[save-match] Error calculating tactical patterns:', err)
+    return null
+  }
+}
+
 export async function POST(req) {
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -284,6 +408,12 @@ export async function POST(req) {
     }
 
     console.log(`[save-match] Match saved successfully: ${savedMatch.id}`)
+
+    // Calcola e aggiorna pattern tattici (on-demand dopo salvataggio match)
+    // Non blocchiamo la risposta se fallisce (non critico)
+    calculateTacticalPatterns(admin, userId).catch(err => {
+      console.error('[save-match] Failed to calculate tactical patterns (non-blocking):', err)
+    })
 
     return NextResponse.json({
       success: true,

@@ -45,6 +45,7 @@ export default function DashboardPage() {
   const [editingOpponentId, setEditingOpponentId] = React.useState(null)
   const [editingOpponentName, setEditingOpponentName] = React.useState('')
   const [savingOpponentName, setSavingOpponentName] = React.useState(false)
+  const [tacticalPatterns, setTacticalPatterns] = React.useState(null) // Pattern tattici per AI Insights
 
   React.useEffect(() => {
     if (!supabase) {
@@ -119,6 +120,19 @@ export default function DashboardPage() {
         } else {
           console.log('[Dashboard] Matches loaded:', matches?.length || 0, 'for user:', userId)
           setRecentMatches(matches || [])
+        }
+
+        // 4. Carica pattern tattici (per AI Insights)
+        const { data: patterns, error: patternsError } = await supabase
+          .from('team_tactical_patterns')
+          .select('formation_usage, playing_style_usage, recurring_issues')
+          .eq('user_id', userId)
+          .maybeSingle()
+
+        if (patternsError && patternsError.code !== 'PGRST116') { // PGRST116 = no rows (normale)
+          console.warn('[Dashboard] Error loading tactical patterns:', patternsError)
+        } else if (patterns) {
+          setTacticalPatterns(patterns)
         }
       } catch (err) {
         console.error('[Dashboard] Error:', err)
@@ -521,15 +535,147 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* AI Insights (Placeholder) */}
+        {/* AI Insights */}
         <div className="card" style={{ padding: '24px' }}>
           <h2 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Brain size={24} color="var(--neon-orange)" />
             {t('aiInsights')}
           </h2>
-          <div style={{ opacity: 0.7, fontSize: '14px' }}>
-            {t('aiInsightsPlaceholder')}
-          </div>
+          
+          {!tacticalPatterns || (
+            (!tacticalPatterns.formation_usage || Object.keys(tacticalPatterns.formation_usage).length === 0) &&
+            (!tacticalPatterns.playing_style_usage || Object.keys(tacticalPatterns.playing_style_usage).length === 0) &&
+            (!tacticalPatterns.recurring_issues || tacticalPatterns.recurring_issues.length === 0)
+          ) ? (
+            <div style={{ 
+              padding: '24px', 
+              textAlign: 'center', 
+              opacity: 0.7, 
+              fontSize: '14px',
+              lineHeight: '1.6'
+            }}>
+              {t('aiInsightsNoData')}
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {/* Formazioni più usate */}
+              {tacticalPatterns.formation_usage && Object.keys(tacticalPatterns.formation_usage).length > 0 && (
+                <div>
+                  <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '12px', color: 'var(--neon-orange)' }}>
+                    {t('formationUsage')}
+                  </h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {Object.entries(tacticalPatterns.formation_usage)
+                      .sort((a, b) => (b[1].matches || 0) - (a[1].matches || 0))
+                      .slice(0, 5)
+                      .map(([formation, stats]) => {
+                        const winRate = stats.win_rate ? (stats.win_rate * 100).toFixed(0) : 0
+                        const matches = stats.matches || 0
+                        return (
+                          <div
+                            key={formation}
+                            style={{
+                              padding: '12px',
+                              background: 'rgba(255, 165, 0, 0.05)',
+                              border: '1px solid rgba(255, 165, 0, 0.2)',
+                              borderRadius: '8px',
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              flexWrap: 'wrap',
+                              gap: '8px'
+                            }}
+                          >
+                            <span style={{ fontWeight: 600, fontSize: '14px' }}>{formation}</span>
+                            <div style={{ display: 'flex', gap: '12px', fontSize: '13px', opacity: 0.8 }}>
+                              <span>{matches} {t('matches')}</span>
+                              <span style={{ color: winRate >= 50 ? '#86efac' : '#fca5a5' }}>
+                                {winRate}% {t('winRate')}
+                              </span>
+                            </div>
+                          </div>
+                        )
+                      })}
+                  </div>
+                </div>
+              )}
+
+              {/* Stili di gioco più usati */}
+              {tacticalPatterns.playing_style_usage && Object.keys(tacticalPatterns.playing_style_usage).length > 0 && (
+                <div>
+                  <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '12px', color: 'var(--neon-orange)' }}>
+                    {t('playingStyleUsage')}
+                  </h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {Object.entries(tacticalPatterns.playing_style_usage)
+                      .sort((a, b) => (b[1].matches || 0) - (a[1].matches || 0))
+                      .slice(0, 5)
+                      .map(([style, stats]) => {
+                        const winRate = stats.win_rate ? (stats.win_rate * 100).toFixed(0) : 0
+                        const matches = stats.matches || 0
+                        return (
+                          <div
+                            key={style}
+                            style={{
+                              padding: '12px',
+                              background: 'rgba(255, 165, 0, 0.05)',
+                              border: '1px solid rgba(255, 165, 0, 0.2)',
+                              borderRadius: '8px',
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              flexWrap: 'wrap',
+                              gap: '8px'
+                            }}
+                          >
+                            <span style={{ fontWeight: 600, fontSize: '14px' }}>{style}</span>
+                            <div style={{ display: 'flex', gap: '12px', fontSize: '13px', opacity: 0.8 }}>
+                              <span>{matches} {t('matches')}</span>
+                              <span style={{ color: winRate >= 50 ? '#86efac' : '#fca5a5' }}>
+                                {winRate}% {t('winRate')}
+                              </span>
+                            </div>
+                          </div>
+                        )
+                      })}
+                  </div>
+                </div>
+              )}
+
+              {/* Problemi ricorrenti */}
+              {tacticalPatterns.recurring_issues && Array.isArray(tacticalPatterns.recurring_issues) && tacticalPatterns.recurring_issues.length > 0 && (
+                <div>
+                  <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '12px', color: 'var(--neon-orange)' }}>
+                    {t('recurringIssues')}
+                  </h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {tacticalPatterns.recurring_issues.slice(0, 5).map((issue, idx) => {
+                      const issueText = typeof issue === 'string' ? issue : (issue.issue || issue)
+                      const frequency = typeof issue === 'object' ? (issue.frequency || 'media') : 'media'
+                      const severity = typeof issue === 'object' ? (issue.severity || 'media') : 'media'
+                      return (
+                        <div
+                          key={idx}
+                          style={{
+                            padding: '12px',
+                            background: 'rgba(239, 68, 68, 0.05)',
+                            border: '1px solid rgba(239, 68, 68, 0.2)',
+                            borderRadius: '8px',
+                            fontSize: '14px'
+                          }}
+                        >
+                          <div style={{ fontWeight: 600, marginBottom: '4px' }}>{issueText}</div>
+                          <div style={{ fontSize: '12px', opacity: 0.7 }}>
+                            {t('frequency')}: {frequency} | {t('severity')}: {severity}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
