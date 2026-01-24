@@ -36,6 +36,9 @@ export default function GestioneFormazionePage() {
   const [savingTacticalSettings, setSavingTacticalSettings] = React.useState(false)
   const [isEditMode, setIsEditMode] = React.useState(false)
   const [customPositions, setCustomPositions] = React.useState({}) // { slot_index: { x, y } }
+  const [showPositionSelectionModal, setShowPositionSelectionModal] = React.useState(false)
+  const [extractedPlayerData, setExtractedPlayerData] = React.useState(null)
+  const [selectedOriginalPositions, setSelectedOriginalPositions] = React.useState([])
 
   // Funzione fetchData riutilizzabile (estratta da useEffect per essere chiamabile)
   const fetchData = React.useCallback(async () => {
