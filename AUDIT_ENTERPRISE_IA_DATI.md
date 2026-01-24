@@ -32,6 +32,105 @@ if (matchData.player_ratings) {
 
 ---
 
+## 📊 DATI DISPONIBILI POST-PARTITA (CONFERMATO DA IMMAGINI CLIENTE)
+
+### **Screen 1: Pagelle Giocatori** ✅
+**Dati Visibili**:
+- Nome giocatore (es. "Alessandro Del Piero")
+- Rating (voto numerico, es. 8.5, 7.0, 6.5)
+- Team (cliente/avversario)
+- Man of the Match indicator (stella nera per Del Piero 8.5)
+
+**Dati NON Visibili**:
+- ❌ Goals per giocatore
+- ❌ Assists per giocatore
+- ❌ Minuti giocati
+- ❌ Eventi specifici (chi ha segnato, quando, assist)
+
+**Esempio Reale**:
+```
+Alessandro Del Piero: 8.5 ⭐ (Man of the Match)
+Cristiano Ronaldo: 7.0
+Eden Hazard: 6.5
+```
+
+**⚠️ CRITICO**: Se l'IA dice "Del Piero ha segnato un gol", sta inventando. L'unico dato disponibile è il rating 8.5.
+
+---
+
+### **Screen 2: Statistiche Squadra** ✅
+**Dati Visibili**:
+- `goals_scored: 6` (TOTALE squadra)
+- `goals_conceded: 1` (TOTALE squadra)
+- `possession: 49%`
+- `shots: 16`
+- `shots_on_target: 10`
+- Altri aggregati (fouls, corners, passes, etc.)
+
+**Dati NON Visibili**:
+- ❌ Chi ha segnato i 6 gol
+- ❌ Quando sono stati segnati
+- ❌ Chi ha fatto assist
+- ❌ Eventi gol specifici
+
+**⚠️ CRITICO**: `goals_scored: 6` è TOTALE squadra. L'IA NON può sapere chi ha segnato.
+
+---
+
+### **Screen 3: Aree di Attacco** ✅
+**Dati Visibili**:
+- Percentuali per zona:
+  - Left: 46%
+  - Center: 45%
+  - Right: 9%
+
+**Dati NON Visibili**:
+- ❌ Eventi gol specifici
+- ❌ Chi ha attaccato in ogni zona
+- ❌ Quando sono avvenuti gli attacchi
+
+---
+
+### **Screen 4: Aree di Recupero Palla** ✅
+**Dati Visibili**:
+- Coordinate recuperi (punti verdi sul campo)
+- Distribuzione zone (midfield, attacco, difesa)
+
+**Dati NON Visibili**:
+- ❌ Chi ha recuperato
+- ❌ Quando è avvenuto il recupero
+- ❌ Eventi specifici
+
+---
+
+### **Screen 5: Formazione** ✅
+**Dati Visibili**:
+- Giocatori in campo
+- Posizioni (P, SP, TRQ, CC, MED, TS, DC, PT)
+- Overall rating (es. 105, 104, 102)
+- Formazione (es. 4-2-1-3)
+- Stile tattico (es. "Contrattacco")
+
+**Dati NON Visibili**:
+- ❌ Performance partita specifica
+- ❌ Goals/assists per giocatore
+- ❌ Eventi match
+
+---
+
+### **Rosa Disponibile** ✅
+**Dati Disponibili**:
+- Tutti i giocatori della rosa (titolari + riserve)
+- Nome, posizione, overall rating, skills
+- `original_positions` (posizioni originali con competenza)
+- Statistiche carriera (`goals`, `assists` dalla card giocatore)
+
+**⚠️ IMPORTANTE**: 
+- `goals` e `assists` nella rosa sono statistiche **carriera**, NON partita specifica
+- Se Messi ha `goals: 86` nella rosa, questo è totale carriera, NON gol in questa partita
+
+---
+
 ## 📊 SEZIONE 1: ESTRAZIONE DATI PARTITA (`/api/extract-match-data`)
 
 ### 1.1 Dati Estratti
@@ -94,8 +193,10 @@ if (matchData.player_ratings) {
 - Include `goals_scored` e `goals_conceded` (gol squadra, NON per giocatore)
 
 **⚠️ Problema**: 
-- `goals_scored` è gol totali squadra
+- `goals_scored` è gol totali squadra (CONFERMATO dalle immagini)
 - L'IA potrebbe inferire "chi ha segnato" basandosi su rating alto
+- **CONFERMATO**: Le immagini mostrano `goals_scored: 6` ma NON chi ha segnato
+- Il sistema estrae correttamente solo `goals_scored` (totale), non inventa chi ha segnato
 
 ---
 
@@ -344,26 +445,36 @@ ISTRUZIONI PER L'ANALISI:
 
 ## 🚨 PROBLEMA ROOT CAUSE ANALYSIS
 
-### **Perché l'IA Inventa "Messi ha fatto un gol"**
+### **Perché l'IA Inventa "Messi ha fatto un gol"** (CONFERMATO DA IMMAGINI)
 
-1. **Dati Non Inclusi**:
+1. **Dati Non Inclusi** (PRIMA DEL FIX):
    - Prompt dice: "Pagelle Giocatori: 11 giocatori con voti"
    - Prompt NON include: nomi giocatori, voti, goals, assists
+   - **FIX IMPLEMENTATO**: Ora include nomi + voti
 
-2. **Dati Disponibili ma Non Usati**:
+2. **Dati Disponibili ma Non Usati** (PRIMA DEL FIX):
    - `matchData.player_ratings` contiene: `{ "Messi": { rating: 8.5, team: "cliente" } }`
-   - Questi dati NON vengono serializzati nel prompt
+   - Questi dati NON venivano serializzati nel prompt
+   - **FIX IMPLEMENTATO**: Ora vengono serializzati
 
-3. **Inferenza IA**:
+3. **Dati NON Disponibili nel Sistema** (CONFERMATO):
+   - Le immagini cliente mostrano che NON ci sono dati su chi ha segnato
+   - Pagelle mostrano solo ratings (es. "Del Piero: 8.5"), NON goals
+   - Statistiche mostrano solo `goals_scored: 6` (totale), NON chi ha segnato
+   - **CRITICO**: Anche con il fix, l'IA NON ha accesso a questi dati perché non esistono
+
+4. **Inferenza IA** (CAUSA ROOT):
    - L'IA vede "Messi" nella rosa disponibile
    - L'IA vede "goals_scored: 6" (gol totali squadra)
-   - L'IA vede rating alto (se presente in rosa)
-   - L'IA inferisce: "Messi probabilmente ha segnato" (bias conoscenza)
+   - L'IA vede rating alto (es. 8.5 per Del Piero)
+   - L'IA inferisce: "Messi probabilmente ha segnato" (bias conoscenza generale)
    - L'IA inventa: "Messi ha fatto un gol"
+   - **FIX IMPLEMENTATO**: Istruzioni esplicite "NON inventare goals/assists"
 
-4. **Mancanza Istruzioni Esplicite**:
-   - Prompt NON dice: "NON menzionare goals/assists specifici per giocatore"
-   - Prompt NON dice: "Usa solo dati forniti, non inferire"
+5. **Mancanza Istruzioni Esplicite** (PRIMA DEL FIX):
+   - Prompt NON diceva: "NON menzionare goals/assists specifici per giocatore"
+   - Prompt NON diceva: "Usa solo dati forniti, non inferire"
+   - **FIX IMPLEMENTATO**: Ora include istruzioni esplicite anti-invenzione
 
 ---
 
