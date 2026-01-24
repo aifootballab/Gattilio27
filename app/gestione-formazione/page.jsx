@@ -2070,30 +2070,43 @@ function SlotCard({ slot, onClick, onRemove, isEditMode = false, onPositionChang
     return name.substring(0, 10) + '...'
   }
 
-  const handleMouseDown = (e) => {
+  // Handler unificato per mouse e touch
+  const handlePointerStart = (e) => {
     if (!isEditMode || !player) return
     
-    e.preventDefault()
+    // Previeni scroll su mobile durante drag
+    const isTouch = e.type.startsWith('touch')
+    if (isTouch) {
+      e.preventDefault()
+    }
     e.stopPropagation()
     
     const container = e.currentTarget.closest('[data-field-container]')
     if (!container) return
     
     const containerRect = container.getBoundingClientRect()
-    const startX = e.clientX
-    const startY = e.clientY
+    
+    // Estrai coordinate (mouse o touch)
+    const startX = isTouch ? e.touches[0].clientX : e.clientX
+    const startY = isTouch ? e.touches[0].clientY : e.clientY
+    
     const startPercentX = position.x + (offsetX || 0)
     const startPercentY = position.y + (offsetY || 0)
     
     setIsDragging(true)
-    const dragState = { startX, startY, startPercentX, startPercentY, containerRect }
+    const dragState = { startX, startY, startPercentX, startPercentY, containerRect, isTouch }
     setDragStart(dragState)
     
     let lastOffset = { x: 0, y: 0 }
     
-    const handleMouseMove = (e) => {
-      const deltaX = e.clientX - dragState.startX
-      const deltaY = e.clientY - dragState.startY
+    const handlePointerMove = (moveEvent) => {
+      // Estrai coordinate (mouse o touch)
+      const moveIsTouch = moveEvent.type.startsWith('touch')
+      const currentX = moveIsTouch ? moveEvent.touches[0].clientX : moveEvent.clientX
+      const currentY = moveIsTouch ? moveEvent.touches[0].clientY : moveEvent.clientY
+      
+      const deltaX = currentX - dragState.startX
+      const deltaY = currentY - dragState.startY
       
       const percentX = (deltaX / dragState.containerRect.width) * 100
       const percentY = (deltaY / dragState.containerRect.height) * 100
@@ -2107,9 +2120,14 @@ function SlotCard({ slot, onClick, onRemove, isEditMode = false, onPositionChang
       }
       
       setCurrentOffset(lastOffset)
+      
+      // Previeni scroll su mobile durante drag
+      if (moveIsTouch) {
+        moveEvent.preventDefault()
+      }
     }
     
-    const handleMouseUp = () => {
+    const handlePointerEnd = () => {
       if (lastOffset.x !== 0 || lastOffset.y !== 0) {
         const newPosition = {
           x: dragState.startPercentX + lastOffset.x,
@@ -2124,18 +2142,32 @@ function SlotCard({ slot, onClick, onRemove, isEditMode = false, onPositionChang
       setIsDragging(false)
       setDragStart(null)
       setCurrentOffset({ x: 0, y: 0 })
-      document.removeEventListener('mousemove', handleMouseMove)
-      document.removeEventListener('mouseup', handleMouseUp)
+      
+      // Rimuovi listener appropriati
+      if (dragState.isTouch) {
+        document.removeEventListener('touchmove', handlePointerMove)
+        document.removeEventListener('touchend', handlePointerEnd)
+      } else {
+        document.removeEventListener('mousemove', handlePointerMove)
+        document.removeEventListener('mouseup', handlePointerEnd)
+      }
     }
     
-    document.addEventListener('mousemove', handleMouseMove)
-    document.addEventListener('mouseup', handleMouseUp)
+    // Aggiungi listener appropriati
+    if (dragState.isTouch) {
+      document.addEventListener('touchmove', handlePointerMove, { passive: false })
+      document.addEventListener('touchend', handlePointerEnd)
+    } else {
+      document.addEventListener('mousemove', handlePointerMove)
+      document.addEventListener('mouseup', handlePointerEnd)
+    }
   }
 
   return (
     <div
       onClick={!isEditMode ? onClick : undefined}
-      onMouseDown={isEditMode && player ? handleMouseDown : undefined}
+      onMouseDown={isEditMode && player ? handlePointerStart : undefined}
+      onTouchStart={isEditMode && player ? handlePointerStart : undefined}
       style={{
         position: 'absolute',
         left: `${position.x + (offsetX || 0) + currentOffset.x}%`,
