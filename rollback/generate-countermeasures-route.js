@@ -99,21 +99,15 @@ export async function POST(req) {
       )
     }
 
-    // 2. Recupera rosa cliente completa (con slot_index per titolari/riserve)
+    // 2. Recupera rosa cliente completa
     const { data: clientRoster, error: rosterError } = await admin
       .from('players')
-      .select('id, player_name, position, overall_rating, base_stats, skills, com_skills, playing_style_id, slot_index')
+      .select('id, player_name, position, overall_rating, base_stats, skills, com_skills, playing_style_id')
       .eq('user_id', userId)
       .order('overall_rating', { ascending: false })
       .limit(100) // Max 100 giocatori
 
     const roster = clientRoster || []
-
-    // Titolari = slot_index 0-10, riserve = slot_index null (audit contromisure)
-    const titolari = roster
-      .filter(p => p.slot_index != null && p.slot_index >= 0 && p.slot_index <= 10)
-      .sort((a, b) => (Number(a.slot_index) || 0) - (Number(b.slot_index) || 0))
-    const riserve = roster.filter(p => p.slot_index == null)
 
     // 3. Recupera formazione cliente
     const { data: clientFormation, error: formationLayoutError } = await admin
@@ -177,45 +171,27 @@ export async function POST(req) {
     }
 
     // 6.2 Analizza performance giocatori contro formazioni simili
-    // player_ratings può essere { cliente: { "Nome": { rating } } } o flat { id/name: rating }
     const playerPerformanceAgainstSimilar = {}
-    const resolveRating = (v) => {
-      if (typeof v === 'number' && v > 0) return v
-      if (v && typeof v.rating === 'number') return v.rating
-      const p = parseFloat(v)
-      return Number.isFinite(p) ? p : 0
-    }
-    const resolveToPlayerId = (key, rosterList) => {
-      const byId = rosterList.find(p => p.id === key)
-      if (byId) return byId.id
-      const byName = rosterList.find(p => (p.player_name || '').trim() === (key || '').trim())
-      if (byName) return byName.id
-      return null
-    }
-
     if (similarFormationMatches.length > 0 && roster.length > 0) {
       similarFormationMatches.forEach(match => {
-        if (!match.player_ratings || typeof match.player_ratings !== 'object') return
-        const source = match.player_ratings.cliente && typeof match.player_ratings.cliente === 'object'
-          ? match.player_ratings.cliente
-          : (match.player_ratings.cliente || match.player_ratings.avversario) ? {} : match.player_ratings
-        Object.entries(source).forEach(([key, rating]) => {
-          const playerId = resolveToPlayerId(key, roster)
-          if (!playerId) return
-          const numRating = resolveRating(rating)
-          if (numRating <= 0) return
-          if (!playerPerformanceAgainstSimilar[playerId]) {
-            playerPerformanceAgainstSimilar[playerId] = {
-              matches: 0,
-              totalRating: 0,
-              ratings: [],
-              playerName: roster.find(p => p.id === playerId)?.player_name || key
+        if (match.player_ratings && typeof match.player_ratings === 'object') {
+          Object.entries(match.player_ratings).forEach(([playerId, rating]) => {
+            if (!playerPerformanceAgainstSimilar[playerId]) {
+              playerPerformanceAgainstSimilar[playerId] = {
+                matches: 0,
+                totalRating: 0,
+                ratings: [],
+                playerName: roster.find(p => p.id === playerId)?.player_name || playerId
+              }
             }
-          }
-          playerPerformanceAgainstSimilar[playerId].matches++
-          playerPerformanceAgainstSimilar[playerId].totalRating += numRating
-          playerPerformanceAgainstSimilar[playerId].ratings.push(numRating)
-        })
+            const numRating = typeof rating === 'number' ? rating : parseFloat(rating) || 0
+            if (numRating > 0) {
+              playerPerformanceAgainstSimilar[playerId].matches++
+              playerPerformanceAgainstSimilar[playerId].totalRating += numRating
+              playerPerformanceAgainstSimilar[playerId].ratings.push(numRating)
+            }
+          })
+        }
       })
     }
 
@@ -281,8 +257,6 @@ export async function POST(req) {
     console.log('[generate-countermeasures] Data summary:', {
       opponentFormation: opponentFormation.formation_name,
       rosterSize: roster.length,
-      titolariCount: titolari.length,
-      riserveCount: riserve.length,
       hasClientFormation: !!clientFormation,
       hasTacticalSettings: !!tacticalSettings,
       hasActiveCoach: !!activeCoach,
@@ -305,9 +279,7 @@ export async function POST(req) {
         {
           similarFormationMatches: similarFormationMatches || [],
           playerPerformanceAgainstSimilar: playerPerformanceAgainstSimilar || {},
-          tacticalHabits: tacticalHabits || {},
-          titolari: titolari || [],
-          riserve: riserve || []
+          tacticalHabits: tacticalHabits || {}
         }
       )
     } catch (promptErr) {

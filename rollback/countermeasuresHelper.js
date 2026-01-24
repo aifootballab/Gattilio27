@@ -67,46 +67,27 @@ export function generateCountermeasuresPrompt(
     opponentText += `Questa è una formazione meta comune. Applica contromisure specifiche basate su best practices community.\n`
   }
   
-  // Costruisci sezione rosa cliente: se abbiamo titolari/riserve espliciti, usali (audit contromisure)
-  let rosterText = ''
-  if (hasTitolariRiserve) {
-    rosterText = `\nTITOLARI (in campo, ${titolari.length}):\n`
-    titolari.forEach((p, idx) => {
-      const slot = p.slot_index != null ? ` slot ${p.slot_index}` : ''
-      const sk = (p.skills && Array.isArray(p.skills) ? p.skills.slice(0, 2).join(', ') : '') || (p.com_skills && Array.isArray(p.com_skills) ? p.com_skills.slice(0, 1).join(', ') : '')
-      const skillsPart = sk ? ` (${sk})` : ''
-      rosterText += `- [${p.id}] ${p.player_name || 'N/A'} - ${p.position || 'N/A'} - Overall ${p.overall_rating || 'N/A'}${skillsPart}${slot}\n`
-    })
-    rosterText += `\nRISERVE (panchina, ${riserve.length}):\n`
-    riserve.slice(0, 30).forEach((p, idx) => {
-      const sk = (p.skills && Array.isArray(p.skills) ? p.skills.slice(0, 2).join(', ') : '') || (p.com_skills && Array.isArray(p.com_skills) ? p.com_skills.slice(0, 1).join(', ') : '')
-      const skillsPart = sk ? ` (${sk})` : ''
-      rosterText += `- [${p.id}] ${p.player_name || 'N/A'} - ${p.position || 'N/A'} - Overall ${p.overall_rating || 'N/A'}${skillsPart}\n`
-    })
-    if (riserve.length > 30) rosterText += `... e altri ${riserve.length - 30} riserve\n`
+  // Costruisci sezione rosa cliente
+  let rosterText = `\nROSA CLIENTE (${clientRoster.length} giocatori):\n`
+  clientRoster.slice(0, 50).forEach((player, idx) => {
+    const skills = player.skills && Array.isArray(player.skills) ? player.skills.slice(0, 3).join(', ') : ''
+    const comSkills = player.com_skills && Array.isArray(player.com_skills) ? player.com_skills.slice(0, 2).join(', ') : ''
+    const skillsText = skills || comSkills ? ` (Skills: ${skills || comSkills})` : ''
+    rosterText += `${idx + 1}. ${player.player_name || 'N/A'} - ${player.position || 'N/A'} - Overall: ${player.overall_rating || 'N/A'}${skillsText}\n`
+  })
+  if (clientRoster.length > 50) {
+    rosterText += `... e altri ${clientRoster.length - 50} giocatori\n`
   }
-  if (!rosterText) {
-    rosterText = `\nROSA CLIENTE (${clientRoster.length} giocatori):\n`
-    clientRoster.slice(0, 50).forEach((player, idx) => {
-      const skills = player.skills && Array.isArray(player.skills) ? player.skills.slice(0, 3).join(', ') : ''
-      const comSkills = player.com_skills && Array.isArray(player.com_skills) ? player.com_skills.slice(0, 2).join(', ') : ''
-      const skillsText = skills || comSkills ? ` (Skills: ${skills || comSkills})` : ''
-      rosterText += `${idx + 1}. ${player.player_name || 'N/A'} - ${player.position || 'N/A'} - Overall: ${player.overall_rating || 'N/A'}${skillsText}\n`
-    })
-    if (clientRoster.length > 50) rosterText += `... e altri ${clientRoster.length - 50} giocatori\n`
-  }
-
+  
   // Costruisci sezione formazione cliente
   let formationText = `\nFORMazione CLIENTE ATTUALE:\n`
   if (clientFormation) {
     formationText += `- Formazione: ${clientFormation.formation || 'N/A'}\n`
-    if (hasTitolariRiserve && titolari.length > 0) {
-      formationText += `- Titolari: ${titolari.length} giocatori (vedi elenco TITOLARI sopra)\n`
-    } else if (clientFormation.slot_positions) {
-      const slotCount = Object.keys(clientFormation.slot_positions).filter(slot =>
+    if (clientFormation.slot_positions) {
+      const titolari = Object.keys(clientFormation.slot_positions).filter(slot => 
         clientFormation.slot_positions[slot] && slot >= 0 && slot <= 10
-      ).length
-      formationText += `- Titolari: ${slotCount} slot formazione\n`
+      )
+      formationText += `- Titolari: ${titolari.length} giocatori\n`
     }
   } else {
     formationText += `- Formazione: Non configurata\n`
@@ -150,9 +131,6 @@ export function generateCountermeasuresPrompt(
   const similarFormationMatches = playerPerformance?.similarFormationMatches || []
   const playerPerformanceAgainstSimilar = playerPerformance?.playerPerformanceAgainstSimilar || {}
   const tacticalHabits = playerPerformance?.tacticalHabits || {}
-  const titolari = playerPerformance?.titolari || []
-  const riserve = playerPerformance?.riserve || []
-  const hasTitolariRiserve = Array.isArray(titolari) && Array.isArray(riserve)
   
   if (matchHistory && matchHistory.length > 0) {
     historyText = `\nSTORICO MATCH COMPLETO (ultimi ${matchHistory.length}):\n`
@@ -389,12 +367,11 @@ ISTRUZIONI SPECIFICHE (Focus Community eFootball):
    - **Ampiezza:** Sfruttare ali vs Gioco centrale
    - **Marcature:** Strette vs Zona (spiega quando e perché)
 
-6. **SUGGERIMENTI GIOCATORI (OBBLIGATORIO):**
-   ${hasTitolariRiserve ? `- Usa SOLO gli elenchi TITOLARI e RISERVE sopra. Titolari = in campo, Riserve = panchina.
-   - add_to_starting_xi: SOLO giocatori dalla lista RISERVE. Mai "aggiungi" per chi è in TITOLARI.
-   - remove_from_starting_xi: SOLO giocatori dalla lista TITOLARI. Mai "rimuovi" per chi è in RISERVE.
-   - Usa sempre il player_id (UUID) tra [ ] negli elenchi. Non inventare id.` : `- Identifica giocatori dalla rosa ideali per contromisura. Considera Overall, Skills, Stats.`}
-   - Considera Overall, Skills, Stats. Motivazione breve (1-2 righe) per ogni suggerimento.
+6. **SUGGERIMENTI GIOCATORI:**
+   - Identifica giocatori dalla rosa IDEALI per contromisura
+   - Considera: Overall, Skills, Playing Style, Stats rilevanti
+   - Suggerisci sostituzioni se giocatori attuali non ottimali
+   - Spiega PERCHÉ quel giocatore è ideale
 
 7. **ISTRUZIONI INDIVIDUALI:**
    - Suggerisci istruzioni SPECIFICHE per ogni ruolo
@@ -483,11 +460,11 @@ OUTPUT FORMATO JSON (STRUTTURATO):
     ],
     "player_suggestions": [
       {
-        "player_id": "uuid dalla lista TITOLARI o RISERVE",
+        "player_id": "uuid",
         "player_name": "Nome Giocatore",
-        "action": "add_to_starting_xi (solo riserve) o remove_from_starting_xi (solo titolari)",
+        "action": "add_to_starting_xi",
         "position": "SP",
-        "reason": "Motivazione breve 1-2 righe",
+        "reason": "Motivazione dettagliata...",
         "priority": "high"
       }
     ],
@@ -508,9 +485,8 @@ OUTPUT FORMATO JSON (STRUTTURATO):
 IMPORTANTE: 
 - Rispondi SOLO in formato JSON valido
 - Non includere markdown o codice
-- Ogni suggerimento deve avere reason (breve)
-- Priorità: "high", "medium" o "low"
-- player_suggestions: usa SOLO player_id dagli elenchi TITOLARI/RISERVE; add_to_starting_xi solo per riserve, remove_from_starting_xi solo per titolari
+- Ogni suggerimento deve avere reason dettagliata
+- Priorità deve essere "high", "medium" o "low"
 - Se dati insufficienti, imposta data_quality a "low" e aggiungi warnings`
 }
 
