@@ -202,10 +202,96 @@ export default function GestioneFormazionePage() {
     setShowAssignModal(true)
   }
 
+  // Calcola posizione in base alle coordinate x,y sul campo
+  // Se viene passato array di slot in attacco, usa logica relativa per P vs SP
+  const calculatePositionFromCoordinates = (x, y, attackSlots = null) => {
+    // y: 0-100 (0 = porta avversaria, 100 = nostra porta)
+    // x: 0-100 (0 = sinistra, 100 = destra)
+    
+    // Portiere: sempre in area porta (y > 80)
+    if (y > 80) {
+      return 'PT'
+    }
+    
+    // Difesa: y tra 60-80
+    if (y >= 60 && y <= 80) {
+      if (x < 30) return 'TD'  // Terzino destro (sinistra campo)
+      if (x > 70) return 'TS'   // Terzino sinistro (destra campo)
+      return 'DC'              // Centrale difesa
+    }
+    
+    // Centrocampo: y tra 40-60
+    if (y >= 40 && y <= 60) {
+      if (x < 30) return 'EDE'  // Esterno destro (sinistra campo)
+      if (x > 70) return 'ESA'  // Esterno sinistro (destra campo)
+      if (y < 50) return 'AMF'  // Trequartista (centro avanzato)
+      return 'MED'              // Centrocampista centrale
+    }
+    
+    // Attacco: y < 40
+    if (y < 40) {
+      if (x < 30) return 'CLD'  // Ala destra (sinistra campo)
+      if (x > 70) return 'CLS'  // Ala sinistra (destra campo)
+      
+      // Logica relativa per P vs SP se ci sono più giocatori in attacco
+      if (attackSlots && attackSlots.length > 1) {
+        // Ordina per y (dal più avanzato al più arretrato)
+        const sorted = [...attackSlots].sort((a, b) => a.y - b.y)
+        const currentIndex = sorted.findIndex(s => Math.abs(s.x - x) < 5 && Math.abs(s.y - y) < 5)
+        
+        if (currentIndex === 0) {
+          return 'P'  // Il più avanzato → Punta
+        } else if (currentIndex === 1) {
+          return 'SP' // Il secondo → Seconda Punta
+        } else {
+          return 'SP' // Altri → Seconda Punta
+        }
+      }
+      
+      // Logica assoluta (fallback)
+      if (y < 25) return 'P'    // Punta (molto avanzato)
+      if (y < 35) return 'CF'   // Centravanti
+      return 'SP'               // Seconda punta
+    }
+    
+    // Default: centrocampo
+    return 'MED'
+  }
+
   const handlePositionChange = (slotIndex, newPosition) => {
+    // Raccogli tutti gli slot in attacco (y < 40) per logica relativa P vs SP
+    const allSlotsInAttack = []
+    Object.entries(customPositions).forEach(([idx, pos]) => {
+      if (pos.y < 40) {
+        allSlotsInAttack.push({ slotIndex: Number(idx), x: pos.x, y: pos.y })
+      }
+    })
+    // Aggiungi anche il nuovo slot se è in attacco
+    if (newPosition.y < 40) {
+      allSlotsInAttack.push({ slotIndex: Number(slotIndex), x: newPosition.x, y: newPosition.y })
+    }
+    // Aggiungi anche slot esistenti in attacco (non modificati)
+    if (layout?.slot_positions) {
+      Object.entries(layout.slot_positions).forEach(([idx, pos]) => {
+        if (pos.y < 40 && !customPositions[idx]) {
+          allSlotsInAttack.push({ slotIndex: Number(idx), x: pos.x, y: pos.y })
+        }
+      })
+    }
+    
+    // Calcola nuova position in base alle coordinate (con logica relativa se in attacco)
+    const newRole = calculatePositionFromCoordinates(
+      newPosition.x, 
+      newPosition.y,
+      allSlotsInAttack.length > 1 ? allSlotsInAttack : null
+    )
+    
     setCustomPositions(prev => ({
       ...prev,
-      [slotIndex]: newPosition
+      [slotIndex]: {
+        ...newPosition,
+        position: newRole  // Aggiorna anche la position
+      }
     }))
   }
 
@@ -252,14 +338,18 @@ export default function GestioneFormazionePage() {
 
       // Se ci sono duplicati, gestisci
       if (duplicateInField || duplicateInReserves.length > 0) {
-        let errorMsg = `Il giocatore "${playerToAssign.player_name}"${playerAge ? ` (${playerAge} anni)` : ''} è già presente:`
+        const playerAgeStr = playerAge ? ` (${playerAge} ${t('years')})` : ''
+        let errorMsg = t('duplicatePlayerAlert')
+          .replace('${playerName}', playerToAssign.player_name)
+          .replace('${playerAge}', playerAgeStr)
+        
         if (duplicateInField) {
-          errorMsg += `\n- In campo nello slot ${duplicateInField.slot_index}`
+          errorMsg += `\n- ${t('duplicateInField').replace('${slotIndex}', duplicateInField.slot_index)}`
         }
         if (duplicateInReserves.length > 0) {
-          errorMsg += `\n- Nelle riserve (${duplicateInReserves.length} duplicato/i)`
+          errorMsg += `\n- ${t('duplicateInReserves').replace('${count}', duplicateInReserves.length)}`
         }
-        errorMsg += `\n\nVuoi eliminare i duplicati e procedere?`
+        errorMsg += `\n\n${t('deleteDuplicatesAndProceed')}`
         
         if (!window.confirm(errorMsg)) {
           setAssigning(false)
@@ -316,16 +406,21 @@ export default function GestioneFormazionePage() {
         // Costruisci messaggio con statistiche rilevanti
         let statsWarning = ''
         if (slotPosition === 'DC' && stats.difesa) {
-          statsWarning = `\n${slotPosition} NON è una posizione originale.\n- Difesa: ${stats.difesa} (richiesto: 80+)\n`
+          statsWarning = `\n${t('positionNotOriginal').replace('${slotPosition}', slotPosition)}\n- ${t('defending')}: ${stats.difesa} (${t('required')}: 80+)\n`
         } else if (slotPosition === 'P' && stats.finalizzazione) {
-          statsWarning = `\n${slotPosition} NON è una posizione originale.\n- Finalizzazione: ${stats.finalizzazione} (richiesto: 85+)\n`
+          statsWarning = `\n${t('positionNotOriginal').replace('${slotPosition}', slotPosition)}\n- ${t('finishing')}: ${stats.finalizzazione} (${t('required')}: 85+)\n`
         } else {
-          statsWarning = `\n${slotPosition} NON è una posizione originale.\n`
+          statsWarning = `\n${t('positionNotOriginal').replace('${slotPosition}', slotPosition)}\n`
         }
         
         // Alert con warning e competenza (i18n - sostituzione manuale template)
         const competenceLabel = competence === 'Alta' ? t('competenceHigh') : competence === 'Intermedia' ? t('competenceMedium') : t('competenceLow')
-        const confirmMessage = `${playerToAssign.player_name} è ${originalPosList} originale, ma lo stai spostando in slot ${slotPosition}.\n\n${slotPosition} NON è una posizione originale.\nCompetenza in ${slotPosition}: ${competenceLabel}\n${statsWarning}Vuoi comunque usarlo come ${slotPosition}? (Performance ridotta)\n\nSe confermi, ti prendi la responsabilità e il sistema accetta la scelta.`
+        const confirmMessage = t('confirmPositionChange')
+          .replace('${playerName}', playerToAssign.player_name)
+          .replace('${originalPositions}', originalPosList)
+          .replace('${slotPosition}', slotPosition)
+          .replace('${competence}', competenceLabel)
+          .replace('${statsWarning}', statsWarning)
         
         const confirmed = window.confirm(confirmMessage)
         if (!confirmed) {
@@ -404,7 +499,10 @@ export default function GestioneFormazionePage() {
       if (!res.ok) {
         // Se è errore di duplicato riserva, gestisci
         if (data.duplicate_reserve_id) {
-          const confirmMsg = `Il giocatore "${data.duplicate_player_name || 'questo giocatore'}"${data.duplicate_player_age ? ` (${data.duplicate_player_age} anni)` : ''} è già presente nelle riserve. Vuoi eliminare il duplicato nelle riserve?`
+          const playerAgeStr = data.duplicate_player_age ? ` (${data.duplicate_player_age} ${t('years')})` : ''
+          const confirmMsg = t('duplicateReserveAlert')
+            .replace('${playerName}', data.duplicate_player_name || t('thisPlayer'))
+            .replace('${playerAge}', playerAgeStr)
           if (window.confirm(confirmMsg)) {
             // Elimina duplicato riserva
             const deleteRes = await fetch('/api/supabase/delete-player', {
@@ -700,7 +798,11 @@ export default function GestioneFormazionePage() {
       })
 
       if (duplicatePlayer) {
-        const confirmMsg = `Il giocatore "${playerData.player_name}"${playerAge ? ` (${playerAge} anni)` : ''} è già presente in formazione nello slot ${duplicatePlayer.slot_index}. Vuoi sostituirlo?`
+        const playerAgeStr = playerAge ? ` (${playerAge} ${t('years')})` : ''
+        const confirmMsg = t('duplicateInFormationAlert')
+          .replace('${playerName}', playerData.player_name)
+          .replace('${playerAge}', playerAgeStr)
+          .replace('${slotIndex}', duplicatePlayer.slot_index)
         if (!window.confirm(confirmMsg)) {
           setUploadingPlayer(false)
           return
@@ -785,7 +887,11 @@ export default function GestioneFormazionePage() {
       })
 
       if (duplicatePlayer) {
-        const confirmMsg = `Il giocatore "${extractedPlayerData.player_name}"${playerAge ? ` (${playerAge} anni)` : ''} è già presente in formazione nello slot ${duplicatePlayer.slot_index}. Vuoi sostituirlo?`
+        const playerAgeStr = playerAge ? ` (${playerAge} ${t('years')})` : ''
+        const confirmMsg = t('duplicateInFormationAlert')
+          .replace('${playerName}', extractedPlayerData.player_name)
+          .replace('${playerAge}', playerAgeStr)
+          .replace('${slotIndex}', duplicatePlayer.slot_index)
         if (!window.confirm(confirmMsg)) {
           setUploadingPlayer(false)
           return
@@ -1071,16 +1177,166 @@ export default function GestioneFormazionePage() {
       // Merge posizioni personalizzate con slot_positions esistenti
       const updatedSlotPositions = { ...layout.slot_positions }
       
+      // Raccogli tutti gli slot in attacco per logica relativa P vs SP
+      const allAttackSlots = []
+      Object.entries(customPositions).forEach(([idx, pos]) => {
+        if (pos.y < 40) {
+          allAttackSlots.push({ slotIndex: Number(idx), x: pos.x, y: pos.y })
+        }
+      })
+      if (layout?.slot_positions) {
+        Object.entries(layout.slot_positions).forEach(([idx, pos]) => {
+          if (pos.y < 40 && !customPositions[idx]) {
+            allAttackSlots.push({ slotIndex: Number(idx), x: pos.x, y: pos.y })
+          }
+        })
+      }
+      
       Object.entries(customPositions).forEach(([slotIndex, position]) => {
         const slotIdx = Number(slotIndex)
         if (updatedSlotPositions[slotIdx]) {
           updatedSlotPositions[slotIdx] = {
             ...updatedSlotPositions[slotIdx],
             x: position.x,
-            y: position.y
+            y: position.y,
+            position: position.position || calculatePositionFromCoordinates(
+              position.x, 
+              position.y,
+              allAttackSlots.length > 1 ? allAttackSlots : null
+            )  // Aggiorna position in base a coordinate (con logica relativa)
           }
         }
       })
+      
+      // Verifica posizioni originali e chiedi conferma per ruoli non originali
+      const { data: session } = await supabase.auth.getSession()
+      if (!session?.session?.access_token) {
+        throw new Error('Sessione scaduta')
+      }
+      const token = session.session.access_token
+      
+      const playersOutOfRole = []
+      const playersToUpdate = []
+      
+      // Per ogni slot MODIFICATO, verifica se ruolo è originale
+      for (const [slotIndex, customPos] of Object.entries(customPositions)) {
+        const slotIdx = Number(slotIndex)
+        const playerInSlot = titolari.find(p => p.slot_index === slotIdx)
+        const newSlotPos = updatedSlotPositions[slotIdx]
+        
+        if (playerInSlot && newSlotPos && newSlotPos.position) {
+          const newRole = newSlotPos.position
+          const originalPositions = Array.isArray(playerInSlot.original_positions) && playerInSlot.original_positions.length > 0
+            ? playerInSlot.original_positions
+            : (playerInSlot.position ? [{ position: playerInSlot.position, competence: "Alta" }] : [])
+          
+          // Verifica se nuovo ruolo è tra quelli originali
+          const isOriginalRole = originalPositions.some(
+            op => op.position && op.position.toUpperCase() === newRole.toUpperCase()
+          )
+          
+          if (!isOriginalRole && originalPositions.length > 0) {
+            const originalPosList = originalPositions.map(op => op.position).join(', ')
+            playersOutOfRole.push({
+              player: playerInSlot,
+              newRole: newRole,
+              originalPositions: originalPosList
+            })
+            playersToUpdate.push({
+              slotIdx: slotIdx,
+              playerId: playerInSlot.id,
+              newRole: newRole,
+              originalPositions: originalPositions
+            })
+          }
+        }
+      }
+      
+      // Se ci sono giocatori fuori ruolo, mostra alert
+      if (playersOutOfRole.length > 0) {
+        let alertMessage = t('playersOutOfRoleAlert')
+        playersOutOfRole.forEach(({ player, newRole, originalPositions }) => {
+          alertMessage += t('playerOutOfRoleLine')
+            .replace('${playerName}', player.player_name)
+            .replace('${originalPositions}', originalPositions)
+            .replace('${newRole}', newRole) + '\n'
+        })
+        alertMessage += `\n${t('cannotPlayTheseRoles')}\n${t('addCompetenceAndSave')}`
+        
+        const confirmed = window.confirm(alertMessage)
+        if (!confirmed) {
+          setIsEditMode(false)
+          setCustomPositions({})
+          setUploadingFormation(false)
+          return
+        }
+        
+        // Se conferma, aggiorna original_positions aggiungendo nuovo ruolo con competenza "Intermedia"
+        for (const { playerId, newRole, originalPositions } of playersToUpdate) {
+          try {
+            // Recupera giocatore completo
+            const { data: playerData } = await supabase
+              .from('players')
+              .select('original_positions')
+              .eq('id', playerId)
+              .single()
+            
+            if (playerData) {
+              const currentOriginalPositions = Array.isArray(playerData.original_positions) 
+                ? playerData.original_positions 
+                : []
+              
+              // Aggiungi nuovo ruolo se non presente
+              const roleExists = currentOriginalPositions.some(
+                op => op.position && op.position.toUpperCase() === newRole.toUpperCase()
+              )
+              
+              if (!roleExists) {
+                const updatedOriginalPositions = [
+                  ...currentOriginalPositions,
+                  { position: newRole, competence: "Intermedia" }  // Competenza "Intermedia" per ruolo acquisito
+                ]
+                
+                // Aggiorna original_positions
+                await supabase
+                  .from('players')
+                  .update({ original_positions: updatedOriginalPositions })
+                  .eq('id', playerId)
+              }
+            }
+          } catch (err) {
+            console.error(`[handleSaveCustomPositions] Errore aggiornamento original_positions per ${playerId}:`, err)
+            // Non bloccare il salvataggio
+          }
+        }
+      }
+      
+      // Aggiorna position dei giocatori in base alle nuove posizioni degli slot MODIFICATI
+      for (const [slotIndex, customPos] of Object.entries(customPositions)) {
+        const slotIdx = Number(slotIndex)
+        const playerInSlot = titolari.find(p => p.slot_index === slotIdx)
+        const newSlotPos = updatedSlotPositions[slotIdx]
+        
+        if (playerInSlot && newSlotPos && newSlotPos.position) {
+          // Aggiorna position del giocatore in base alla nuova position dello slot
+          try {
+            await fetch('/api/supabase/assign-player-to-slot', {
+              method: 'PATCH',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                slot_index: slotIdx,
+                player_id: playerInSlot.id
+              })
+            })
+          } catch (err) {
+            console.error(`[handleSaveCustomPositions] Errore aggiornamento position per slot ${slotIdx}:`, err)
+            // Non bloccare il salvataggio se un aggiornamento fallisce
+          }
+        }
+      }
       
       // Usa funzione esistente per salvare (NON MODIFICATA)
       await handleSelectManualFormation(
@@ -1221,7 +1477,10 @@ export default function GestioneFormazionePage() {
       })
 
       if (duplicateReserve) {
-        const confirmMsg = `Il giocatore "${playerData.player_name}"${playerAge ? ` (${playerAge} anni)` : ''} è già presente nelle riserve. Vuoi sostituirlo con i nuovi dati?`
+        const playerAgeStr = playerAge ? ` (${playerAge} ${t('years')})` : ''
+        const confirmMsg = t('duplicateReserveReplaceAlert')
+          .replace('${playerName}', playerData.player_name)
+          .replace('${playerAge}', playerAgeStr)
         if (!window.confirm(confirmMsg)) {
           setUploadingReserve(false)
           return
@@ -1261,7 +1520,10 @@ export default function GestioneFormazionePage() {
       if (!saveRes.ok) {
         // Se è un errore di duplicato riserva, mostra messaggio chiaro
         if (saveData.is_reserve && saveData.duplicate_player_id) {
-          const confirmMsg = `Il giocatore "${playerData.player_name}"${playerAge ? ` (${playerAge} anni)` : ''} è già presente nelle riserve. Vuoi sostituirlo con i nuovi dati?`
+          const playerAgeStr = playerAge ? ` (${playerAge} ${t('years')})` : ''
+          const confirmMsg = t('duplicateReserveReplaceAlert')
+            .replace('${playerName}', playerData.player_name)
+            .replace('${playerAge}', playerAgeStr)
           if (window.confirm(confirmMsg)) {
             // Elimina vecchio giocatore e riprova
             const deleteRes = await fetch('/api/supabase/delete-player', {
@@ -1866,7 +2128,8 @@ export default function GestioneFormazionePage() {
             position: {
               ...slot.position,
               x: customPos.x,
-              y: customPos.y
+              y: customPos.y,
+              position: customPos.position || slot.position?.position  // Usa position calcolata se presente
             }
           } : slot
           
@@ -1878,6 +2141,7 @@ export default function GestioneFormazionePage() {
               onRemove={slot.player ? () => handleRemoveFromSlot(slot.player.id) : null}
               isEditMode={isEditMode}
               onPositionChange={handlePositionChange}
+              customPosition={customPos}  // Passa customPosition per mostrare sigla ruolo
             />
           )
         })}
@@ -2226,10 +2490,13 @@ function UploadModal({ title, description, onUpload, onClose, uploading }) {
 }
 
 // Slot Card Component - Badge Minimale (solo nome)
-function SlotCard({ slot, onClick, onRemove, isEditMode = false, onPositionChange }) {
+function SlotCard({ slot, onClick, onRemove, isEditMode = false, onPositionChange, customPosition = null }) {
   const { t } = useTranslation()
   const { slot_index, position, player, offsetX = 0, offsetY = 0, hasNearbyCards = false } = slot
   const isEmpty = !player
+  
+  // Usa position da customPosition se presente (durante drag), altrimenti da slot.position
+  const displayPosition = customPosition?.position || position?.position || '?'
   
   const [isDragging, setIsDragging] = React.useState(false)
   const [dragStart, setDragStart] = React.useState(null)
@@ -2418,13 +2685,32 @@ function SlotCard({ slot, onClick, onRemove, isEditMode = false, onPositionChang
         </div>
       ) : (
         <div style={{
-          fontSize: 'clamp(10px, 1.1vw, 13px)',
-          fontWeight: 700,
-          color: '#ffffff',
-          textShadow: '0 2px 6px rgba(0, 0, 0, 0.8), 0 0 12px rgba(59, 130, 246, 0.5)',
-          letterSpacing: '0.3px'
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '2px'
         }}>
-          {getDisplayName(player.player_name)}
+          {/* Sigla ruolo sopra il nome */}
+          <div style={{
+            fontSize: 'clamp(8px, 0.9vw, 10px)',
+            fontWeight: 600,
+            color: 'rgba(255, 255, 255, 0.7)',
+            textShadow: '0 1px 3px rgba(0, 0, 0, 0.8)',
+            letterSpacing: '0.5px',
+            textTransform: 'uppercase'
+          }}>
+            {displayPosition}
+          </div>
+          {/* Nome giocatore */}
+          <div style={{
+            fontSize: 'clamp(10px, 1.1vw, 13px)',
+            fontWeight: 700,
+            color: '#ffffff',
+            textShadow: '0 2px 6px rgba(0, 0, 0, 0.8), 0 0 12px rgba(59, 130, 246, 0.5)',
+            letterSpacing: '0.3px'
+          }}>
+            {getDisplayName(player.player_name)}
+          </div>
         </div>
       )}
     </div>
