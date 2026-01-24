@@ -133,6 +133,41 @@ export default function DashboardPage() {
           console.warn('[Dashboard] Error loading tactical patterns:', patternsError)
         } else if (patterns) {
           setTacticalPatterns(patterns)
+        } else {
+          // Pattern non esistono: verifica se ci sono partite e calcola on-demand (retroattività)
+          // Usa matches locale (non recentMatches che è state e potrebbe non essere ancora aggiornato)
+          const hasMatches = matches && matches.length > 0
+          if (hasMatches) {
+            console.log('[Dashboard] Pattern non trovati ma ci sono partite, calcolo on-demand...')
+            try {
+              // Chiama API per calcolare pattern retroattivamente
+              const session = await supabase.auth.getSession()
+              const token = session?.data?.session?.access_token
+              if (token) {
+                const response = await fetch('/api/admin/recalculate-patterns', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                  },
+                  body: JSON.stringify({ user_id: userId })
+                })
+                
+                if (response.ok) {
+                  const result = await response.json()
+                  if (result.success && result.patterns) {
+                    setTacticalPatterns(result.patterns)
+                    console.log('[Dashboard] Pattern calcolati retroattivamente')
+                  }
+                } else {
+                  console.warn('[Dashboard] Errore calcolo pattern:', await response.text())
+                }
+              }
+            } catch (calcError) {
+              console.warn('[Dashboard] Errore calcolo pattern retroattivo (non critico):', calcError)
+              // Non bloccare dashboard se fallisce
+            }
+          }
         }
       } catch (err) {
         console.error('[Dashboard] Error:', err)
