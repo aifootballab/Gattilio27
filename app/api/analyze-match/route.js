@@ -273,7 +273,7 @@ function analyzeMatchHistory(matchHistory, currentOpponentFormationId) {
 /**
  * Genera prompt per analisi AI con conservative mode, personalizzazione e contesto completo (Enterprise)
  */
-function generateAnalysisPrompt(matchData, confidence, missingSections, userProfile = null, players = [], opponentFormation = null, playersInMatch = [], matchHistory = [], tacticalPatterns = null) {
+function generateAnalysisPrompt(matchData, confidence, missingSections, userProfile = null, players = [], opponentFormation = null, playersInMatch = [], matchHistory = [], tacticalPatterns = null, activeCoach = null) {
   const hasResult = matchData.result && matchData.result !== 'N/A' && matchData.result !== null
   const missingText = missingSections.length > 0 
     ? `\n\n⚠️ DATI PARZIALI: Le seguenti sezioni non sono disponibili: ${missingSections.join(', ')}.`
@@ -523,6 +523,75 @@ Suggerisci di caricare le foto mancanti per un'analisi più precisa.`
     opponentFormationText = `\nFORMAZIONE AVVERSARIA: Non disponibile\n`
   }
   
+  // ✅ FIX: Costruisci sezione ALLENATORE con competenze numeriche e istruzioni esplicite
+  let coachText = ''
+  if (activeCoach) {
+    coachText = `\nALLENATORE CLIENTE:\n`
+    if (activeCoach.coach_name) {
+      coachText += `- Nome: ${activeCoach.coach_name}\n`
+    }
+    
+    if (activeCoach.playing_style_competence && typeof activeCoach.playing_style_competence === 'object') {
+      coachText += `- Competenze Stili di Gioco (valori 0-100, più alto = più competente):\n`
+      
+      // Mappa nomi italiani per chiarezza
+      const styleNames = {
+        'possesso_palla': 'Possesso Palla',
+        'contropiede_veloce': 'Contropiede Veloce',
+        'contrattacco': 'Contrattacco',
+        'vie_laterali': 'Vie Laterali',
+        'passaggio_lungo': 'Passaggio Lungo'
+      }
+      
+      const competences = []
+      Object.entries(activeCoach.playing_style_competence).forEach(([style, value]) => {
+        const styleName = styleNames[style] || style
+        const numValue = typeof value === 'number' ? value : parseInt(value) || 0
+        competences.push({ style, styleName, value: numValue })
+      })
+      
+      // Ordina per valore (dal più alto)
+      competences.sort((a, b) => b.value - a.value)
+      
+      competences.forEach(({ styleName, value }) => {
+        const level = value >= 80 ? '🔴 ALTA' : value >= 60 ? '🟡 MEDIA' : '⚪ BASSA'
+        coachText += `  * ${styleName}: ${value} ${level}\n`
+      })
+      
+      // Identifica stili alti e bassi
+      const highCompetences = competences.filter(c => c.value >= 70).map(c => c.styleName)
+      const lowCompetences = competences.filter(c => c.value < 50).map(c => c.styleName)
+      
+      coachText += `\n⚠️ REGOLE CRITICHE ALLENATORE:\n`
+      if (highCompetences.length > 0) {
+        coachText += `- Stili con competenza ALTA (>= 70): ${highCompetences.join(', ')}\n`
+        coachText += `  → SUGGERISCI questi stili, sono quelli in cui l'allenatore è più competente\n`
+      }
+      if (lowCompetences.length > 0) {
+        coachText += `- Stili con competenza BASSA (< 50): ${lowCompetences.join(', ')}\n`
+        coachText += `  → NON SUGGERIRE questi stili, l'allenatore non è competente\n`
+      }
+      coachText += `- Se suggerisci un cambio stile, usa SOLO stili con competenza >= 70\n`
+      coachText += `- Se l'allenatore ha competenza < 50 in uno stile, NON suggerirlo MAI\n`
+    }
+    
+    if (activeCoach.stat_boosters && Array.isArray(activeCoach.stat_boosters) && activeCoach.stat_boosters.length > 0) {
+      coachText += `- Stat Boosters: ${activeCoach.stat_boosters.length} boosters attivi\n`
+      activeCoach.stat_boosters.slice(0, 3).forEach(booster => {
+        const statName = booster.stat_name || booster.name || 'N/A'
+        const bonus = booster.bonus || booster.value || 0
+        coachText += `  * ${statName}: +${bonus}\n`
+      })
+    }
+    
+    if (activeCoach.connection && activeCoach.connection.name) {
+      coachText += `- Connection: ${activeCoach.connection.name}\n`
+    }
+  } else {
+    coachText = `\nALLENATORE CLIENTE: Non configurato\n`
+    coachText += `⚠️ Nota: Senza allenatore configurato, i suggerimenti non considerano competenze specifiche.\n`
+  }
+  
   // Identifica squadra cliente e avversario
   const clientTeamName = userProfile?.team_name || matchData.client_team_name || null
   const clientTeamText = clientTeamName ? `\nSQUADRA CLIENTE: ${clientTeamName}\n` : `\nSQUADRA CLIENTE: Identifica quale squadra è quella del cliente confrontando i nomi squadra nei dati match.\n`
@@ -570,7 +639,9 @@ ISTRUZIONI PER L'ANALISI (COACH MOTIVAZIONALE - ENTERPRISE):
    b) Quali giocatori hanno performato bene/male nella loro posizione reale? (confronta pagelle con disposizione reale e rosa disponibile)
      ⚠️ IMPORTANTE: Usa SOLO i voti (ratings) forniti sopra. NON menzionare goals/assists specifici per giocatore.
    c) Cosa ha funzionato contro questa formazione avversaria? (analisi tattica basata su formazione avversaria e storico)
-   d) Cosa cambiare per migliorare? (suggerimenti concreti basati su dati, rosa, disposizione reale, storico)
+   d) Cosa cambiare per migliorare? (suggerimenti concreti basati su dati, rosa, disposizione reale, storico, competenze allenatore)
+     ⚠️ IMPORTANTE: Se suggerisci un cambio stile di gioco, usa SOLO stili in cui l'allenatore ha competenza >= 70.
+     NON suggerire stili con competenza < 50, l'allenatore non è competente.
    e) Quali giocatori della rosa potrebbero essere utili? (suggerimenti specifici basati su skills, overall, e posizioni reali)
 
 5. Sii un coach motivazionale: incoraggiante ma costruttivo, focalizzato sul supporto decisionale
@@ -752,7 +823,15 @@ export async function POST(req) {
           matchHistory = history
         }
         
-        // 5. Recupera pattern tattici (se disponibili)
+        // 5. Recupera allenatore attivo (✅ FIX: Aggiunto recupero allenatore)
+        const { data: activeCoach, error: coachError } = await admin
+          .from('coaches')
+          .select('coach_name, playing_style_competence, stat_boosters, connection')
+          .eq('user_id', userId)
+          .eq('is_active', true)
+          .maybeSingle()
+        
+        // 6. Recupera pattern tattici (se disponibili)
         const { data: patterns, error: patternsError } = await admin
           .from('team_tactical_patterns')
           .select('formation_usage, playing_style_usage, recurring_issues')
@@ -761,6 +840,11 @@ export async function POST(req) {
         
         if (!patternsError && patterns) {
           tacticalPatterns = patterns
+        }
+        
+        // ✅ FIX: Recupera allenatore attivo (già recuperato sopra, ora lo salviamo)
+        if (!coachError && activeCoach) {
+          // activeCoach già recuperato sopra
         }
       } catch (err) {
         console.warn('[analyze-match] Error retrieving contextual data:', err)
