@@ -8,6 +8,7 @@ import LanguageSwitch from '@/components/LanguageSwitch'
 import { ArrowLeft, Upload, AlertCircle, CheckCircle2, RefreshCw, Info, X, Plus, User, Settings, BarChart3, Zap, Gift, ChevronDown, ChevronUp, Users, Star, Move } from 'lucide-react'
 import TacticalSettingsPanel from '@/components/TacticalSettingsPanel'
 import PositionSelectionModal from '@/components/PositionSelectionModal'
+import MissingDataModal from '@/components/MissingDataModal'
 
 export default function GestioneFormazionePage() {
   const { t } = useTranslation()
@@ -38,6 +39,9 @@ export default function GestioneFormazionePage() {
   const [showPositionSelectionModal, setShowPositionSelectionModal] = React.useState(false)
   const [extractedPlayerData, setExtractedPlayerData] = React.useState(null)
   const [selectedOriginalPositions, setSelectedOriginalPositions] = React.useState([])
+  const [showMissingDataModal, setShowMissingDataModal] = React.useState(false)
+  const [missingData, setMissingData] = React.useState({ required: [], optional: [] })
+  const [manualDataInput, setManualDataInput] = React.useState({})
 
   // Funzione fetchData riutilizzabile (estratta da useEffect per essere chiamabile)
   const fetchData = React.useCallback(async () => {
@@ -673,6 +677,50 @@ export default function GestioneFormazionePage() {
     setShowUploadPlayerModal(true)
   }
 
+  // Funzione per verificare dati mancanti dopo estrazione
+  const checkMissingData = (playerData) => {
+    const missing = { required: [], optional: [] }
+    
+    // Campi OBBLIGATORI (bloccano salvataggio se mancanti)
+    if (!playerData.player_name || String(playerData.player_name).trim().length === 0) {
+      missing.required.push({ field: 'player_name', label: t('playerName') || 'Nome giocatore' })
+    }
+    if (playerData.overall_rating == null || playerData.overall_rating === 0) {
+      missing.required.push({ field: 'overall_rating', label: t('overallRating') || 'Overall Rating' })
+    }
+    if (!playerData.position && (!playerData.original_positions || playerData.original_positions.length === 0)) {
+      missing.required.push({ field: 'position', label: t('position') || 'Posizione' })
+    }
+    
+    // Campi OPZIONALI ma importanti (warning, non bloccano)
+    if (!playerData.base_stats || Object.keys(playerData.base_stats || {}).length === 0) {
+      missing.optional.push({ field: 'base_stats', label: t('statistics') || 'Statistiche' })
+    }
+    if (!playerData.skills || (Array.isArray(playerData.skills) && playerData.skills.length === 0)) {
+      missing.optional.push({ field: 'skills', label: t('skills') || 'Abilità' })
+    }
+    if (!playerData.com_skills || (Array.isArray(playerData.com_skills) && playerData.com_skills.length === 0)) {
+      missing.optional.push({ field: 'com_skills', label: t('comSkills') || 'Abilità aggiuntive' })
+    }
+    if (!playerData.boosters || (Array.isArray(playerData.boosters) && playerData.boosters.length === 0)) {
+      missing.optional.push({ field: 'boosters', label: t('boosters') || 'Booster' })
+    }
+    if (!playerData.age || playerData.age === 0) {
+      missing.optional.push({ field: 'age', label: t('age') || 'Età' })
+    }
+    if (!playerData.height_cm || playerData.height_cm === 0) {
+      missing.optional.push({ field: 'height_cm', label: t('height') || 'Altezza' })
+    }
+    if (!playerData.weight_kg || playerData.weight_kg === 0) {
+      missing.optional.push({ field: 'weight_kg', label: t('weight') || 'Peso' })
+    }
+    if (!playerData.nationality || String(playerData.nationality).trim().length === 0) {
+      missing.optional.push({ field: 'nationality', label: t('nationality') || 'Nazionalità' })
+    }
+    
+    return missing
+  }
+
   const handleUploadPlayerToSlot = async () => {
     if (!selectedSlot || uploadImages.length === 0) return
 
@@ -783,6 +831,41 @@ export default function GestioneFormazionePage() {
         .filter(r => r != null && r > 0)
       if (allRatings.length > 0) {
         playerData.overall_rating = Math.max(...allRatings)
+      }
+
+      // NUOVO: Check finale dati mancanti dopo estrazione
+      const missing = checkMissingData(playerData)
+      
+      // Se ci sono campi OBBLIGATORI mancanti, mostra modal per inserimento manuale o ricarica
+      if (missing.required.length > 0) {
+        setMissingData(missing)
+        setExtractedPlayerData({
+          ...playerData,
+          photo_slots: photoSlots,
+          slot_index: selectedSlot.slot_index
+        })
+        setShowMissingDataModal(true)
+        setUploadingPlayer(false)
+        return // Blocca salvataggio finché non vengono inseriti dati obbligatori
+      }
+      
+      // Se ci sono solo campi OPZIONALI mancanti, mostra warning ma permette continuare
+      if (missing.optional.length > 0) {
+        const optionalFields = missing.optional.map(m => m.label).join(', ')
+        const shouldContinue = window.confirm(
+          `${t('missingOptionalData') || 'Alcuni dati opzionali non sono stati estratti'}: ${optionalFields}.\n\n${t('continueWithoutOptionalData') || 'Vuoi continuare comunque? Puoi aggiungerli dopo.'}`
+        )
+        if (!shouldContinue) {
+          setMissingData(missing)
+          setExtractedPlayerData({
+            ...playerData,
+            photo_slots: photoSlots,
+            slot_index: selectedSlot.slot_index
+          })
+          setShowMissingDataModal(true)
+          setUploadingPlayer(false)
+          return
+        }
       }
 
       // NUOVO: Dopo estrazione dati, mostra modal selezione posizioni
@@ -997,6 +1080,64 @@ export default function GestioneFormazionePage() {
     } finally {
       setUploadingPlayer(false)
     }
+  }
+
+  // Handler per inserimento manuale dati mancanti
+  const handleManualInput = (manualData) => {
+    if (!extractedPlayerData) return
+    
+    // Merge dati manuali con dati estratti
+    const updatedData = {
+      ...extractedPlayerData,
+      ...manualData
+    }
+    
+    setExtractedPlayerData(updatedData)
+    setShowMissingDataModal(false)
+    setMissingData({ required: [], optional: [] })
+    
+    // Verifica se ci sono ancora dati obbligatori mancanti
+    const stillMissing = checkMissingData(updatedData)
+    if (stillMissing.required.length > 0) {
+      // Se ancora mancano obbligatori, mostra di nuovo modal
+      setMissingData(stillMissing)
+      setShowMissingDataModal(true)
+      return
+    }
+    
+    // Se tutto ok, procedi con selezione posizioni
+    const mainPosition = updatedData.position || 'AMF'
+    setSelectedOriginalPositions([{
+      position: mainPosition,
+      competence: 'Alta'
+    }])
+    setShowPositionSelectionModal(true)
+  }
+
+  // Handler per ricarica foto
+  const handleRetryUpload = () => {
+    setShowMissingDataModal(false)
+    setMissingData({ required: [], optional: [] })
+    setExtractedPlayerData(null)
+    setManualDataInput({})
+    // Mantieni uploadImages e selectedSlot per permettere ricarica
+    // L'utente può chiudere e riaprire modal upload
+  }
+
+  // Handler per salva comunque (solo dati opzionali mancanti)
+  const handleSaveAnyway = () => {
+    if (!extractedPlayerData) return
+    
+    setShowMissingDataModal(false)
+    setMissingData({ required: [], optional: [] })
+    
+    // Procedi con selezione posizioni
+    const mainPosition = extractedPlayerData.position || 'AMF'
+    setSelectedOriginalPositions([{
+      position: mainPosition,
+      competence: 'Alta'
+    }])
+    setShowPositionSelectionModal(true)
   }
 
   // Salva impostazioni tattiche
@@ -2277,6 +2418,22 @@ export default function GestioneFormazionePage() {
       )}
 
       {/* Modal Selezione Posizioni Originali */}
+      {showMissingDataModal && extractedPlayerData && (
+        <MissingDataModal
+          missingData={missingData}
+          playerData={extractedPlayerData}
+          onManualInput={handleManualInput}
+          onRetryUpload={handleRetryUpload}
+          onSaveAnyway={handleSaveAnyway}
+          onCancel={() => {
+            setShowMissingDataModal(false)
+            setMissingData({ required: [], optional: [] })
+            setExtractedPlayerData(null)
+            setManualDataInput({})
+          }}
+        />
+      )}
+
       {showPositionSelectionModal && extractedPlayerData && (
         <PositionSelectionModal
           playerName={extractedPlayerData.player_name}

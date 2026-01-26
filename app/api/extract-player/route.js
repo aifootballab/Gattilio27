@@ -145,7 +145,19 @@ export async function POST(req) {
 IMPORTANTE:
 - Estrai SOLO ciò che vedi nell'immagine (null se non visibile)
 - PRIORITÀ: Usa la TABELLA statistiche se presente (non il radar chart)
-- OVERALL RATING: Estrai ESATTAMENTE il numero che vedi nella card. NON fare calcoli, NON sottrarre o aggiungere nulla. Il numero che vedi è quello corretto da salvare (può essere fino a 110). L'overall_rating è presente in tutte le foto (card, statistiche, abilità) - estrai quello che vedi.
+
+OVERALL RATING (CRITICO - Leggi con attenzione):
+- L'overall_rating è SEMPRE posizionato in una posizione precisa nella card:
+  * Cerca il "playing_style" (stile di gioco) del giocatore (es. "Ala prolifica", "Attaccante", ecc.)
+  * L'overall_rating è SEMPRE posizionato DIRETTAMENTE SOTTO lo stile di gioco
+  * L'overall_rating è SEMPRE posizionato DIRETTAMENTE SOPRA la bandiera nazionale o lo stemma del club
+  * Cerca un numero grande (es. "99", "85", "92") che appare tra lo stile e la bandiera
+  * Il numero può avere accanto lettere (es. "99 ESA", "85", "92") - estrai SOLO il numero
+  * NON fare calcoli, NON sottrarre o aggiungere nulla
+  * Estrai ESATTAMENTE il numero che vedi in quella posizione specifica
+  * Il numero può essere da 40 a 110 (con boosters può superare 99)
+  * Se non vedi chiaramente il numero in quella posizione, usa null (non indovinare)
+
 - Estrai TUTTI questi dati: nome giocatore, posizione, overall rating, team, card_type, base_stats (attacking, defending, athleticism), skills, com_skills, boosters, height, weight, age, nationality, level, form, role, playing_style, ai_playstyles, matches_played, goals, assists, weak_foot_frequency, weak_foot_accuracy, injury_resistance
 
 POSIZIONI ORIGINALI (NUOVO - Guarda Mini-Campo in Alto a Destra):

@@ -154,7 +154,7 @@ export async function POST(req) {
     if (playerData.slot_index !== null && playerData.slot_index !== undefined) {
       const { data: existingPlayerInSlot, error: existingErr } = await admin
         .from('players')
-        .select('id, player_name, photo_slots, base_stats, skills, com_skills, available_boosters, extracted_data, metadata')
+        .select('id, player_name, overall_rating, photo_slots, base_stats, skills, com_skills, available_boosters, extracted_data, metadata')
         .eq('user_id', userId)
         .eq('slot_index', playerData.slot_index)
         .maybeSingle()
