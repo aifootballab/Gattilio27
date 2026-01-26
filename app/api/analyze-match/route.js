@@ -323,9 +323,20 @@ Suggerisci di caricare le foto mancanti per un'analisi più precisa.`
     
     availableDataText += `\n⚠️ IMPORTANTE: Questi sono SOLO i VOTI (ratings) dei giocatori.\n`
     availableDataText += `- NON ci sono dati su goals, assists o minuti giocati per singolo giocatore.\n`
-    availableDataText += `- NON inventare o inferire goals/assists per giocatori specifici.\n`
+    availableDataText += `- NON ci sono dati su azioni specifiche: dribbling, passaggi, tiri, contrasti, recuperi, ecc.\n`
+    availableDataText += `- NON analizziamo video: abbiamo SOLO il rating (voto numerico), NON dettagli su come ha giocato.\n`
+    availableDataText += `- NON inventare o inferire goals/assists/azioni per giocatori specifici.\n`
     availableDataText += `- Se vedi "goals_scored: X" nelle statistiche squadra, questo è il TOTALE squadra, NON per giocatore.\n`
-    availableDataText += `- Usa solo i dati forniti sopra. Se non vedi dati su goals/assists, NON menzionarli.\n`
+    availableDataText += `- Usa solo i dati forniti sopra. Se non vedi dati su goals/assists/azioni, NON menzionarli.\n`
+    availableDataText += `- Esempi SBAGLIATI da evitare: "Neymar ha fatto dribbling", "Messi ha creato occasioni", "ha dominato con le sue azioni".\n`
+    availableDataText += `- Esempi CORRETTI: "Neymar ha performato bene (rating 8.5)", "Messi ha avuto una buona performance (rating 8.5)".\n`
+    availableDataText += `\n⚠️ DISTINZIONI CRITICHE:\n`
+    availableDataText += `- Skills/Com_Skills nella rosa = caratteristiche giocatore, NON azioni nel match\n`
+    availableDataText += `- Overall rating nella rosa = caratteristica giocatore, NON performance nel match (usa solo rating match)\n`
+    availableDataText += `- Base stats = caratteristiche giocatore, NON performance nel match\n`
+    availableDataText += `- Form (A/B/C/D/E) = forma generale, NON performance nel match\n`
+    availableDataText += `- Boosters = bonus statistici, NON azioni effettuate\n`
+    availableDataText += `- Connection = bonus statistici, NON causa diretta performance\n`
   } else {
     availableDataText += '- Pagelle Giocatori: Non disponibile\n'
   }
@@ -339,7 +350,10 @@ Suggerisci di caricare le foto mancanti per un'analisi più precisa.`
       }
     })
     
-    availableDataText += `\n⚠️ IMPORTANTE: "goals_scored" e "goals_conceded" sono totali squadra, NON per giocatore.\n`
+    availableDataText += `\n⚠️ IMPORTANTE: TUTTE le statistiche sono TOTALI SQUADRA, NON per giocatore.\n`
+    availableDataText += `- "goals_scored" e "goals_conceded" = totali squadra, NON per giocatore\n`
+    availableDataText += `- "shots", "passes", "tackles", ecc. = totali squadra, NON per giocatore\n`
+    availableDataText += `- NON dire "Messi ha tirato X volte" da shots: 16 (è totale squadra)\n`
   } else {
     availableDataText += '- Statistiche Squadra: Non disponibile\n'
   }
@@ -347,17 +361,19 @@ Suggerisci di caricare le foto mancanti per un'analisi più precisa.`
   // ✅ FIX: Includi dati effettivi attack_areas (percentuali)
   if (matchData.attack_areas) {
     availableDataText += `\nAREE DI ATTACCO:\n`
+    availableDataText += `⚠️ IMPORTANTE: Queste sono PERCENTUALI SQUADRA, NON per giocatore.\n`
+    availableDataText += `- NON dire "Messi ha attaccato da sinistra" da left: 46% (è percentuale squadra)\n`
     if (matchData.attack_areas.team1) {
       availableDataText += `Squadra Cliente:\n`
-      availableDataText += `- Sinistra: ${matchData.attack_areas.team1.left || 0}%\n`
-      availableDataText += `- Centro: ${matchData.attack_areas.team1.center || 0}%\n`
-      availableDataText += `- Destra: ${matchData.attack_areas.team1.right || 0}%\n`
+      availableDataText += `- Sinistra: ${matchData.attack_areas.team1.left || 0}% (squadra)\n`
+      availableDataText += `- Centro: ${matchData.attack_areas.team1.center || 0}% (squadra)\n`
+      availableDataText += `- Destra: ${matchData.attack_areas.team1.right || 0}% (squadra)\n`
     }
     if (matchData.attack_areas.team2) {
       availableDataText += `Avversario:\n`
-      availableDataText += `- Sinistra: ${matchData.attack_areas.team2.left || 0}%\n`
-      availableDataText += `- Centro: ${matchData.attack_areas.team2.center || 0}%\n`
-      availableDataText += `- Destra: ${matchData.attack_areas.team2.right || 0}%\n`
+      availableDataText += `- Sinistra: ${matchData.attack_areas.team2.left || 0}% (squadra)\n`
+      availableDataText += `- Centro: ${matchData.attack_areas.team2.center || 0}% (squadra)\n`
+      availableDataText += `- Destra: ${matchData.attack_areas.team2.right || 0}% (squadra)\n`
     }
   } else {
     availableDataText += '- Aree di Attacco: Non disponibile\n'
@@ -432,7 +448,23 @@ Suggerisci di caricare le foto mancanti per un'analisi più precisa.`
       const skills = player.skills && Array.isArray(player.skills) ? player.skills.slice(0, 3).join(', ') : ''
       const comSkills = player.com_skills && Array.isArray(player.com_skills) ? player.com_skills.slice(0, 2).join(', ') : ''
       const skillsText = skills || comSkills ? ` (Skills: ${skills || comSkills})` : ''
-      rosterText += `${idx + 1}. ${player.player_name || 'N/A'} - ${player.position || 'N/A'} - Overall: ${player.overall_rating || 'N/A'}${skillsText}\n`
+      
+      // Verifica se dati sono verificati (per regole comunicazione)
+      const isVerified = player.photo_slots && typeof player.photo_slots === 'object' && player.photo_slots.card === true
+      const hasOriginalPositions = Array.isArray(player.original_positions) && player.original_positions.length > 0
+      const verifiedMarker = isVerified && hasOriginalPositions ? ' ✅' : (isVerified ? ' ⚠️' : ' ❌')
+      
+      rosterText += `${idx + 1}. ${player.player_name || 'N/A'} - ${player.position || 'N/A'} - Overall: ${player.overall_rating || 'N/A'}${skillsText}${verifiedMarker}\n`
+      
+      // Se NON verificato, aggiungi warning discreto per IA
+      if (!isVerified || !hasOriginalPositions) {
+        rosterText += `  (⚠️ Dati posizione/overall non verificati - NON menzionare posizione specifica o overall al cliente)\n`
+      }
+      
+      // Warning su skills/overall = caratteristiche, non performance match
+      if (skillsText) {
+        rosterText += `  (⚠️ Skills/Overall = caratteristiche giocatore, NON azioni/performance nel match - usa solo rating match)\n`
+      }
     })
     if (players.length > 30) {
       rosterText += `... e altri ${players.length - 30} giocatori\n`
@@ -609,15 +641,87 @@ ${userContext}${clientTeamText}${opponentNameText}${rosterText}${playersInMatchT
 ${availableDataText}
 ${missingText}
 ${conservativeMode}${personalizationInstructions}
-⚠️ REGOLE CRITICHE - NON INVENTARE DATI:
+⚠️ REGOLE CRITICHE - NON INVENTARE DATI (ASSOLUTO):
 1. NON menzionare goals/assists per giocatori specifici a meno che non siano esplicitamente forniti nei dati sopra
 2. Se vedi "goals_scored: X" nelle statistiche squadra, questo è il TOTALE squadra, NON per giocatore
 3. Se vedi rating alto (es. 8.5), questo indica buona performance generale, NON necessariamente gol
 4. Usa SOLO i dati forniti esplicitamente sopra. NON inferire o inventare dettagli
-5. Se non vedi dati su goals/assists per giocatore, usa frasi generiche:
-   - ✅ CORRETTO: "Messi ha performato molto bene (rating 8.5)"
-   - ❌ SBAGLIATO: "Messi ha fatto un gol"
-6. Se non sei sicuro, usa descrizioni generiche di performance invece di dettagli specifici
+5. NON inventare azioni specifiche: dribbling, passaggi, tiri, contrasti, recuperi, ecc.
+6. NON analizzare video o azioni: abbiamo SOLO il rating (voto), NON dettagli su come ha giocato
+7. Se non vedi dati su goals/assists/azioni per giocatore, usa SOLO frasi generiche basate sul rating:
+   - ✅ CORRETTO: "Neymar ha performato molto bene (rating 8.5)"
+   - ✅ CORRETTO: "Neymar ha avuto una buona performance (rating 8.5)"
+   - ❌ SBAGLIATO: "Neymar ha fatto un gol"
+   - ❌ SBAGLIATO: "Neymar ha fatto dei dribbling"
+   - ❌ SBAGLIATO: "Neymar ha creato occasioni con i suoi passaggi"
+   - ❌ SBAGLIATO: "Neymar ha dominato con le sue azioni"
+8. Se non sei sicuro, usa descrizioni generiche di performance invece di dettagli specifici
+9. RICORDA: Abbiamo SOLO il RATING (voto numerico). NON abbiamo video, azioni, dribbling, passaggi, tiri, ecc.
+
+⚠️ DISTINZIONI CRITICHE - CARATTERISTICHE vs PERFORMANCE:
+1. **Skills/Com_Skills** = Caratteristiche del giocatore (es. "Dribbling", "Passing"), NON azioni nel match
+   - ❌ SBAGLIATO: "Messi ha fatto dribbling perché ha skill Dribbling"
+   - ✅ CORRETTO: "Messi ha performato bene (rating 8.5)" (usa solo rating)
+2. **Overall Rating** = Caratteristica giocatore (es. 99), NON performance nel match
+   - ❌ SBAGLIATO: "Messi ha giocato bene perché ha overall 99"
+   - ✅ CORRETTO: "Messi ha performato bene (rating 8.5)" (usa solo rating match)
+3. **Base Stats** (finishing, speed, ecc.) = Caratteristiche giocatore, NON performance nel match
+   - ❌ SBAGLIATO: "Messi ha segnato perché ha finishing 95"
+   - ✅ CORRETTO: "Messi ha performato bene (rating 8.5)" (usa solo rating)
+4. **Form** (A/B/C/D/E) = Forma generale giocatore, NON performance nel match
+   - ❌ SBAGLIATO: "Messi ha giocato bene perché è in forma A"
+   - ✅ CORRETTO: "Messi ha performato bene (rating 8.5)" (usa solo rating)
+5. **Boosters** = Bonus statistici, NON azioni effettuate
+   - ❌ SBAGLIATO: "Messi ha corso veloce perché ha booster Speed"
+   - ✅ CORRETTO: "Messi ha performato bene (rating 8.5)" (usa solo rating)
+6. **Connection** = Bonus statistici, NON causa diretta performance
+   - ❌ SBAGLIATO: "Messi ha giocato bene perché ha connection X"
+   - ✅ CORRETTO: "Messi ha performato bene (rating 8.5)" (usa solo rating)
+7. **Statistiche Squadra** (shots, passes, ecc.) = TOTALI squadra, NON per giocatore
+   - ❌ SBAGLIATO: "Messi ha tirato 5 volte" (da shots: 16)
+   - ✅ CORRETTO: "Squadra ha tirato 16 volte" (se menzioni, dì totale squadra)
+8. **Attack Areas** (left/center/right %) = Percentuali squadra, NON per giocatore
+   - ❌ SBAGLIATO: "Messi ha attaccato da sinistra" (da left: 46%)
+   - ✅ CORRETTO: "Squadra ha attaccato 46% da sinistra" (se menzioni, dì squadra)
+9. **Ball Recovery Zones** = Zone squadra, NON per giocatore
+   - ❌ SBAGLIATO: "Messi ha recuperato palla in zona X"
+   - ✅ CORRETTO: "Squadra ha recuperato palla in zona X" (se menzioni, dì squadra)
+
+⚠️ NON INFERIRE CAUSE - DATI STORICI/STATISTICI ≠ CAUSE DIRETTE:
+1. **Competenze Allenatore** = Competenze disponibili, NON stile usato nel match
+   - ❌ SBAGLIATO: "Ha usato Contrattacco perché allenatore ha competenza 89"
+   - ✅ CORRETTO: "Stile usato: Contrattacco" (se disponibile nei dati)
+2. **Win Rate** = Statistica storica, NON causa vittoria
+   - ❌ SBAGLIATO: "Ha vinto perché ha win rate 60%"
+   - ✅ CORRETTO: "Ha vinto. Win rate storico: 60%" (se menzioni, dì che è storico)
+3. **Performance Storiche** = Pattern storico, NON causa performance attuale
+   - ❌ SBAGLIATO: "Ha giocato male perché ha sempre giocato male contro 4-3-3"
+   - ✅ CORRETTO: "Rating attuale: 5.5. Storicamente ha rating medio 5.8 contro 4-3-3" (se menzioni, dì che è storico)
+4. **Istruzioni Individuali** = Istruzioni configurate, NON azioni effettuate
+   - ❌ SBAGLIATO: "Ha attaccato perché ha istruzione offensiva"
+   - ✅ CORRETTO: "Ha istruzione offensiva configurata" (se menzioni, dì che è configurato)
+5. **Formazione Avversaria** = Formazione avversaria, NON causa performance
+   - ❌ SBAGLIATO: "Ha giocato bene perché ha sfruttato debolezze 4-3-3"
+   - ✅ CORRETTO: "Formazione avversaria: 4-3-3. Performance: rating 8.5" (non inferire causa)
+6. **Meta Formation** = Classificazione formazione, NON causa risultato
+   - ❌ SBAGLIATO: "Ha perso perché avversario usa formazione meta"
+   - ✅ CORRETTO: "Formazione avversaria: 4-3-3 (meta). Risultato: sconfitta" (non inferire causa)
+7. **Pattern Ricorrenti** = Pattern identificato, NON causa diretta
+   - ❌ SBAGLIATO: "Ha perso perché ha sempre problema X"
+   - ✅ CORRETTO: "Pattern ricorrente: problema X. Risultato: sconfitta" (non inferire causa)
+8. **Posizioni Originali** = Posizioni naturali giocatore, NON posizione nel match
+   - ❌ SBAGLIATO: "Ha giocato in AMF perché è sua posizione originale"
+   - ✅ CORRETTO: "Posizione originale: AMF. Posizione match: SP" (se diverse, menziona entrambe)
+9. **Playing Style Giocatore** = Stile giocatore, NON stile squadra
+   - ❌ SBAGLIATO: "Ha usato stile X perché giocatore ha playing style X"
+   - ✅ CORRETTO: "Playing style giocatore: X. Team playing style: Y" (se diversi, menziona entrambi)
+
+⚠️ REGOLE CRITICHE - POSIZIONI E OVERALL:
+1. NON menzionare overall_rating se photo_slots è vuoto {} (dati non verificati)
+2. NON menzionare posizione specifica se original_positions è vuoto [] (posizioni non estratte)
+3. NON menzionare posizione se original_positions.length === 1 E photo_slots.card !== true (troppo incerto)
+4. Se dati non verificati, usa generico: "Messi va bene in campo" (non "Messi va bene in SP")
+5. Essere professionale: dire solo ciò che sai con certezza, non inventare
 
 ISTRUZIONI PER L'ANALISI (COACH MOTIVAZIONALE - ENTERPRISE):
 1. Identifica chiaramente quale squadra è quella del cliente${clientTeamName ? ` (${clientTeamName})` : ''} e analizza le sue performance (non quelle dell'avversario)
@@ -627,6 +731,8 @@ ISTRUZIONI PER L'ANALISI (COACH MOTIVAZIONALE - ENTERPRISE):
    b) Analizza performance dei giocatori nella loro posizione reale (slot_index)
    c) Identifica se giocatori sono stati usati fuori posizione e impatto sulle performance
    d) Suggerisci cambiamenti basati su posizioni reali, non su formazione salvata
+   e) ⚠️ IMPORTANTE: Posizione originale ≠ posizione match. Se diverse, menziona entrambe ma non inferire causa
+   f) ⚠️ NON dire "ha giocato male perché è fuori posizione" (usa solo rating: "rating 5.5 in SP, posizione originale: AMF")
 
 3. STORICO ANDAMENTO:
    a) Se il cliente soffre contro formazioni simili a quella avversaria, evidenzia il problema
@@ -637,16 +743,20 @@ ISTRUZIONI PER L'ANALISI (COACH MOTIVAZIONALE - ENTERPRISE):
 4. Rispondi a queste domande intrinseche:
    a) Come è andato il match? (risultato, performance generale della squadra cliente)
    b) Quali giocatori hanno performato bene/male nella loro posizione reale? (confronta pagelle con disposizione reale e rosa disponibile)
-     ⚠️ IMPORTANTE: Usa SOLO i voti (ratings) forniti sopra. NON menzionare goals/assists specifici per giocatore.
-   c) Cosa ha funzionato contro questa formazione avversaria? (analisi tattica basata su formazione avversaria e storico)
-   d) Cosa cambiare per migliorare? (suggerimenti concreti basati su dati, rosa, disposizione reale, storico, competenze allenatore)
+     ⚠️ IMPORTANTE: Usa SOLO i voti (ratings) forniti sopra. NON menzionare goals/assists/azioni specifiche per giocatore.
+     ⚠️ NON inventare dettagli: dribbling, passaggi, tiri, contrasti, recuperi, ecc. NON analizziamo video.
+     ⚠️ Esempi CORRETTI: "Neymar ha performato bene (rating 8.5)", "Messi ha avuto una buona performance (rating 8.5)".
+     ⚠️ Esempi SBAGLIATI: "Neymar ha fatto dribbling", "Messi ha creato occasioni", "ha dominato con le sue azioni".
+   c) Cosa ha funzionato contro questa formazione avversaria?
+   d) Cosa cambiare per migliorare?
      ⚠️ IMPORTANTE: Se suggerisci un cambio stile di gioco, usa SOLO stili in cui l'allenatore ha competenza >= 70.
      NON suggerire stili con competenza < 50, l'allenatore non è competente.
-   e) Quali giocatori della rosa potrebbero essere utili? (suggerimenti specifici basati su skills, overall, e posizioni reali)
+     ⚠️ NON inferire: competenze allenatore ≠ stile usato nel match. Suggerisci, non dire che lo userà.
+   e) Quali giocatori della rosa potrebbero essere utili?
 
 5. Sii un coach motivazionale: incoraggiante ma costruttivo, focalizzato sul supporto decisionale
 
-6. Incrocia i dati: usa rosa disponibile, formazione avversaria, disposizione reale, statistiche, storico per analisi coerente e contestuale
+6. Usa rosa disponibile, formazione avversaria, disposizione reale, statistiche, storico per analisi coerente e contestuale
 
 7. ${confidence < 0.5 ? `⚠️ ATTENZIONE: Dati molto limitati. Sottolinea chiaramente che l'analisi è basata su informazioni parziali e che per suggerimenti più precisi servono più dati.` : ''}
 8. ${missingSections.length > 0 ? `Alla fine, aggiungi una nota: "⚠️ Nota: Analisi basata su dati parziali (${Math.round(confidence * 100)}% completezza). Per suggerimenti più precisi, carica anche: ${missingSections.join(', ')}."` : ''}
@@ -681,6 +791,17 @@ ISTRUZIONI PER L'ANALISI (COACH MOTIVAZIONALE - ENTERPRISE):
   "data_quality": "high",
   "warnings": { "it": ["..."], "en": ["..."] }
 }
+
+⚠️ IMPORTANTE - CAMPO "reason":
+- Il campo "reason" deve contenere solo una breve motivazione diretta (1-2 righe)
+- NON spiegare ragionamenti tattici espliciti
+- NON dire "perché" o "perché l'avversario ha X quindi Y"
+- NON inventare azioni specifiche: dribbling, passaggi, tiri, contrasti, recuperi, ecc.
+- NON analizzare video o azioni: abbiamo SOLO il rating (voto), NON dettagli su come ha giocato
+- Dire solo il risultato basato sul rating: "Messi ha performato bene in SP (rating 8.5)" (non "Messi ha performato bene perché è in posizione originale SP e ha sfruttato la debolezza del DC")
+- Esempi SBAGLIATI: "Neymar ha fatto dribbling", "Messi ha creato occasioni", "ha dominato con le sue azioni"
+- Esempi CORRETTI: "Neymar ha performato bene (rating 8.5)", "Messi ha avuto una buona performance (rating 8.5)"
+- Essere professionale, fermo, diretto
 
 12. Formato: Testo continuo, naturale, in DOPPIA LINGUA, motivazionale ma costruttivo, rivolto direttamente${userName ? ` a ${userName}` : ` all'utente`} (usa "tu", "la tua squadra", "tuo" in italiano, "you", "your team", "your" in inglese)
 
