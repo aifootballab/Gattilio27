@@ -80,12 +80,16 @@ lib/
 - `DELETE /api/supabase/delete-match` - Elimina partita
 - `POST /api/analyze-match` - Genera riassunto AI bilingue (dettaglio partita)
 
-**📚 Documentazione Master**: `DOCUMENTAZIONE_MASTER_COMPLETA.md` – Documentazione completa (26 Gennaio 2026)
+## 📚 Documentazione
+
+**Documentazione principale**:
+- **`DOCUMENTAZIONE_MASTER_COMPLETA.md`** – Documentazione completa e aggiornata (26 Gennaio 2026)
+  - Panoramica, architettura, struttura progetto, DB schema, API, pagine, librerie, sicurezza, i18n, flussi
 
 **Documenti specializzati**:
-- `DOCUMENTAZIONE_GUIDA_INTERATTIVA.md` – Assistant Chat AI
-- `DOCUMENTAZIONE_DRAG_DROP.md` – Drag & Drop giocatori sul campo 2D
-- `DOCUMENTAZIONE_MODIFICHE_POSIZIONI_MULTIPLE.md` – Gestione posizioni multiple giocatori
+- **`DOCUMENTAZIONE_GUIDA_INTERATTIVA.md`** – Assistant Chat AI: architettura, prompt engineering, flussi
+- **`DOCUMENTAZIONE_DRAG_DROP.md`** – Drag & Drop giocatori sul campo 2D: funzionalità e implementazione
+- **`DOCUMENTAZIONE_MODIFICHE_POSIZIONI_MULTIPLE.md`** – Gestione posizioni multiple giocatori: modifiche DB e codice
 
 ## ⚙️ Environment Variables
 
@@ -112,18 +116,6 @@ npm run dev
 
 Crea `.env.local` con le variabili d'ambiente (vedi `.env.example`).
 
-## 📚 Documentazione
-
-### Documentazione Principale
-
-- **`DOCUMENTAZIONE_MASTER_COMPLETA.md`** – Documentazione completa (Gennaio 2026)
-  - Panoramica, architettura, struttura progetto, DB schema, API, pagine, librerie, sicurezza, i18n, flussi
-
-- **`AUDIT_FLUSSI_ENDPOINT_2026.md`** – Audit flussi e endpoint (24 gen 2026)
-  - Flussi wizard/dashboard/dettaglio partita, endpoint match, fix applicati, coerenza auth/i18n
-
-- **`DOCUMENTAZIONE_GUIDA_INTERATTIVA.md`** – Assistant Chat AI
-  - Architettura, prompt engineering, flussi e integrazione
 
 ## 🔒 Sicurezza
 
@@ -138,6 +130,7 @@ Crea `.env.local` con le variabili d'ambiente (vedi `.env.example`).
 - ✅ Rate limiting su endpoint principali (vedi `lib/rateLimiter.js`)
 - ✅ Validazione dimensione immagini (max 10MB)
 - ✅ Row Level Security (RLS) su tutte le tabelle Supabase
+- ✅ Service Role Key: Server-only, non esposto al client
 
 **Per dettagli completi**: Vedi `DOCUMENTAZIONE_MASTER_COMPLETA.md` sezione Sicurezza
 
@@ -156,12 +149,6 @@ Crea `.env.local` con le variabili d'ambiente (vedi `.env.example`).
 - **Costa**: Chiamate OpenAI Vision (~$0.01-0.05 per foto)
 
 **Setup Iniziale Cliente**: ~$0.46-1.40 (formazione + profilazione)
-
-## 🔒 Sicurezza
-
-- **RLS**: Row Level Security abilitato su tutte le tabelle
-- **Auth**: Validazione token Bearer in API routes
-- **Service Role Key**: Server-only, non esposto al client
 
 ## 📝 Note Importanti
 
