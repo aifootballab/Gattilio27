@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { validateToken, extractBearerToken } from '../../../../lib/authHelper'
 import { validateIndividualInstruction, INDIVIDUAL_INSTRUCTIONS_CONFIG } from '../../../../lib/tacticalInstructions'
+import { checkRateLimit, RATE_LIMIT_CONFIG } from '../../../../lib/rateLimiter'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -28,6 +29,32 @@ export async function POST(req) {
     }
 
     const userId = userData.user.id
+
+    // ✅ Rate limiting (pattern enterprise)
+    const rateLimitConfig = RATE_LIMIT_CONFIG['/api/supabase/save-tactical-settings']
+    const rateLimit = await checkRateLimit(
+      userId,
+      '/api/supabase/save-tactical-settings',
+      rateLimitConfig.maxRequests,
+      rateLimitConfig.windowMs
+    )
+    
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { 
+          error: 'Rate limit exceeded. Please try again later.',
+          resetAt: rateLimit.resetAt
+        },
+        { 
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': rateLimitConfig.maxRequests.toString(),
+            'X-RateLimit-Remaining': rateLimit.remaining.toString(),
+            'X-RateLimit-Reset': rateLimit.resetAt.toString()
+          }
+        }
+      )
+    }
 
     const { team_playing_style, individual_instructions } = await req.json()
 
@@ -68,6 +95,18 @@ export async function POST(req) {
 
     const titolari = players || []
 
+    // ✅ Recupera formazione layout per validazione "linea_bassa" (conta difensori)
+    const { data: formationLayout, error: formationError } = await admin
+      .from('formation_layout')
+      .select('slot_positions')
+      .eq('user_id', userId)
+      .maybeSingle()
+
+    if (formationError) {
+      console.warn('[save-tactical-settings] Error fetching formation layout for validation:', formationError)
+      // Non bloccare, ma la validazione "linea_bassa" con 5 difensori non funzionerà
+    }
+
     // Validazione delle istruzioni individuali
     if (individual_instructions && typeof individual_instructions === 'object') {
       for (const categoryKey in individual_instructions) {
@@ -97,7 +136,8 @@ export async function POST(req) {
               categoryKey,
               instructionData.player_id.trim(),
               instructionData.instruction,
-              titolari
+              titolari,
+              formationLayout || null // Passa formationLayout per validazione "linea_bassa"
             )
             if (!validationResult.valid) {
               return NextResponse.json(

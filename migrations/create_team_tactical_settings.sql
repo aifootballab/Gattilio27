@@ -18,13 +18,13 @@ CREATE TABLE IF NOT EXISTS team_tactical_settings (
   -- Struttura:
   -- {
   --   "attacco_1": { "player_id": "uuid", "instruction": "ancoraggio", "enabled": true },
-  --   "attacco_2": { "player_id": "uuid", "instruction": "attacco_spazio", "enabled": true },
+  --   "attacco_2": { "player_id": "uuid", "instruction": "offensivo", "enabled": true },
   --   "difesa_1": { "player_id": "uuid", "instruction": "linea_bassa", "enabled": true },
-  --   "difesa_2": { "player_id": "uuid", "instruction": "difensivo", "enabled": true }
+  --   "difesa_2": { "player_id": "uuid", "instruction": "marcatura_stretta", "enabled": true }
   -- }
   -- Istruzioni disponibili:
-  -- Attacco: "ancoraggio", "attacco_spazio", "contropiede", "offensivo"
-  -- Difesa: "linea_bassa", "difensivo", "marcatura_stretta", "marcatura_uomo"
+  -- Attacco 1/2: "difensivo", "offensivo", "ancoraggio"
+  -- Difesa 1/2: "marcatura_stretta", "marcatura_uomo", "contropiede" (obiettivo contropiede), "linea_bassa"
   individual_instructions JSONB DEFAULT '{}'::jsonb,
   
   created_at TIMESTAMPTZ DEFAULT NOW(),

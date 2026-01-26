@@ -1041,11 +1041,11 @@ export default function GestioneFormazionePage() {
       const { validateFormationLimits } = await import('../../lib/validateFormationLimits')
       const validation = validateFormationLimits(slotPositions)
       if (!validation.valid) {
-        const errorMsg = validation.errors.join('\n')
-        const warningMsg = `${t('formationInvalidTitle')}:\n\n${errorMsg}\n\n${t('formationInvalidConfirm')}`
+        // Messaggio semplificato senza dettagli specifici
+        const warningMsg = `${t('formationValidationSimple')}\n\n${t('formationInvalidConfirm')}`
         const confirmed = window.confirm(warningMsg)
         if (!confirmed) {
-          setError(errorMsg)
+          setError(t('formationValidationSimple'))
           showToast(t('saveCancelled'), 'error')
           setUploadingFormation(false)
           return
@@ -1282,11 +1282,11 @@ export default function GestioneFormazionePage() {
       const { validateFormationLimits } = await import('../../lib/validateFormationLimits')
       const validation = validateFormationLimits(updatedSlotPositions)
       if (!validation.valid) {
-        const errorMsg = validation.errors.join('\n')
-        const warningMsg = `${t('formationInvalidTitle')}:\n\n${errorMsg}\n\n${t('formationInvalidConfirm')}`
+        // Messaggio semplificato senza dettagli specifici
+        const warningMsg = `${t('formationValidationSimple')}\n\n${t('formationInvalidConfirm')}`
         const confirmed = window.confirm(warningMsg)
         if (!confirmed) {
-          setError(errorMsg)
+          setError(t('formationValidationSimple'))
           showToast(t('saveCancelled'), 'error')
           setUploadingFormation(false)
           return

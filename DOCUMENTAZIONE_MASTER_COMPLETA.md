@@ -1,14 +1,19 @@
 # 📚 Documentazione Master Completa - eFootball AI Coach
 
-**Data Aggiornamento**: 24 Gennaio 2026  
-**Versione**: 2.0.1  
+**Data Aggiornamento**: 26 Gennaio 2026  
+**Versione**: 2.0.2  
 **Status**: ✅ **PRODUZIONE** – Sistema completo e funzionante
+
+**Aggiornamenti 26 gen 2026**:
+- **Validazione formazioni**: Alert semplificato con messaggio generico (senza dettagli specifici)
+- **Sincronizzazione players.position**: Aggiornamento automatico dopo salvataggio formation_layout
+- **Correzione TS/TD**: TS a sinistra (x < 30), TD a destra (x > 70)
+- **Validazione limitazioni**: Warning invece di blocco (fase test), con conferma cliente
 
 **Aggiornamenti 24 gen 2026**:
 - Input manuale **nome avversario**: wizard (`/match/new`), modifica in dashboard, update via `POST /api/supabase/update-match` con `opponent_name`.
 - Fix `update-match`: `admin` prima del branch, rate limit per tutti i POST, validazione UUID `match_id`, uso `opponent_name` da body.
 - `opponent_name` in `matchData` per analyze-match e nel prompt AI (dettaglio partita).
-- **Audit**: vedi `AUDIT_FLUSSI_ENDPOINT_2026.md` per flussi, endpoint, fix e coerenza.
 
 ---
 

@@ -80,12 +80,12 @@ lib/
 - `DELETE /api/supabase/delete-match` - Elimina partita
 - `POST /api/analyze-match` - Genera riassunto AI bilingue (dettaglio partita)
 
-**📚 Documentazione Master**: `DOCUMENTAZIONE_MASTER_COMPLETA.md` – Documentazione completa (Gennaio 2026)
+**📚 Documentazione Master**: `DOCUMENTAZIONE_MASTER_COMPLETA.md` – Documentazione completa (26 Gennaio 2026)
 
 **Documenti specializzati**:
-- `AUDIT_FLUSSI_ENDPOINT_2026.md` – Audit flussi match, endpoint, fix opponent_name (24 gen 2026)
 - `DOCUMENTAZIONE_GUIDA_INTERATTIVA.md` – Assistant Chat AI
-- `ROLLBACK_PLAN_INPUT_MANUALE.md` – Rollback input manuale nome avversario
+- `DOCUMENTAZIONE_DRAG_DROP.md` – Drag & Drop giocatori sul campo 2D
+- `DOCUMENTAZIONE_MODIFICHE_POSIZIONI_MULTIPLE.md` – Gestione posizioni multiple giocatori
 
 ## ⚙️ Environment Variables
 
