@@ -128,14 +128,17 @@ Crea `.env.local` con le variabili d'ambiente (vedi `.env.example`).
 
 ## 🔒 Sicurezza
 
-⚠️ **IMPORTANTE**: Alcuni endpoint sono pubblici:
-- `POST /api/extract-player` - Nessuna autenticazione
-- `POST /api/extract-formation` - Nessuna autenticazione
+✅ **Tutti gli endpoint richiedono autenticazione Bearer token**:
+- `POST /api/extract-player` - ✅ Autenticazione Bearer token richiesta
+- `POST /api/extract-formation` - ✅ Autenticazione Bearer token richiesta
+- `POST /api/extract-match-data` - ✅ Autenticazione Bearer token richiesta
+- Tutti gli altri endpoint API - ✅ Autenticazione Bearer token richiesta
 
-**Raccomandazioni**:
-- Aggiungere autenticazione Bearer token
-- Implementare rate limiting
-- Validare dimensione immagini
+**Protezioni implementate**:
+- ✅ Autenticazione Bearer token su tutti gli endpoint
+- ✅ Rate limiting su endpoint principali (vedi `lib/rateLimiter.js`)
+- ✅ Validazione dimensione immagini (max 10MB)
+- ✅ Row Level Security (RLS) su tutte le tabelle Supabase
 
 **Per dettagli completi**: Vedi `DOCUMENTAZIONE_MASTER_COMPLETA.md` sezione Sicurezza
 
