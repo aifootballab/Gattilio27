@@ -214,8 +214,8 @@ export default function GestioneFormazionePage() {
     
     // Difesa: y tra 60-80
     if (y >= 60 && y <= 80) {
-      if (x < 30) return 'TD'  // Terzino destro (sinistra campo)
-      if (x > 70) return 'TS'   // Terzino sinistro (destra campo)
+      if (x < 30) return 'TS'  // Terzino sinistro (sinistra campo)
+      if (x > 70) return 'TD'   // Terzino destro (destra campo)
       return 'DC'              // Centrale difesa
     }
     

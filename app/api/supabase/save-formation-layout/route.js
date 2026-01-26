@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { validateToken, extractBearerToken } from '../../../../lib/authHelper'
+import { validateFormationLimits } from '../../../../lib/validateFormationLimits'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -87,6 +88,19 @@ export async function POST(req) {
       console.warn(`[save-formation-layout] Solo ${slotKeys.length} slot, completati a 11`)
     }
 
+    // Validazione limitazioni ruolo (memoria Attila)
+    // ⚠️ FASE TEST: Warning invece di blocco (permette salvataggio anche se non valida)
+    const validation = validateFormationLimits(completeSlots)
+    if (!validation.valid) {
+      // Log warning ma non blocca salvataggio (fase test)
+      console.warn('[save-formation-layout] Formazione non valida, ma permessa (fase test):', {
+        errors: validation.errors,
+        stats: validation.stats,
+        userId
+      })
+      // Procedi con salvataggio (non bloccare)
+    }
+
     const admin = createClient(supabaseUrl, serviceKey, {
       auth: { autoRefreshToken: false, persistSession: false }
     })
@@ -156,6 +170,27 @@ export async function POST(req) {
         { error: `Failed to save layout: ${layoutError.message}` },
         { status: 500 }
       )
+    }
+
+    // 3. Sincronizza players.position con slot_positions (dopo salvataggio layout)
+    // Aggiorna position di tutti i giocatori titolari in base alle nuove posizioni slot
+    for (const [slotIndex, slotPos] of Object.entries(completeSlots)) {
+      const slotIdx = Number(slotIndex)
+      if (slotPos && slotPos.position && slotIdx >= 0 && slotIdx <= 10) {
+        const { error: playerUpdateError } = await admin
+          .from('players')
+          .update({ 
+            position: slotPos.position,
+            updated_at: new Date().toISOString()
+          })
+          .eq('user_id', userId)
+          .eq('slot_index', slotIdx)
+        
+        if (playerUpdateError) {
+          // Log errore ma non bloccare (non critico)
+          console.warn(`[save-formation-layout] Error updating player position for slot ${slotIdx}:`, playerUpdateError)
+        }
+      }
     }
 
     return NextResponse.json({
