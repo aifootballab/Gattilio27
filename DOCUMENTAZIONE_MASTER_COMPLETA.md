@@ -148,16 +148,11 @@ Cartella principale che contiene tutte le route e le API. Next.js 14 usa l'App R
 - **14 Formazioni Ufficiali**: Selezione tra tutti i moduli eFootball (4-3-3, 4-2-3-1, 4-4-2, 3-5-2, ecc.)
 - **Slot Interattivi**: 11 slot per titolari (0-10), click per assegnare giocatori
 - **Sezione Riserve**: 12 slot per riserve (slot_index = NULL)
-- **Upload Formazione**: Screenshot completo → estrazione automatica 11 giocatori
+- **Selezione Formazione Manuale**: 14 formazioni ufficiali eFootball predefinite
+- **Personalizzazione Posizioni**: Drag & drop per personalizzare posizioni giocatori
 - **Upload Giocatori**: Fino a 3 immagini per giocatore (card, stats, skills/booster)
 - **Cambio Formazione Intelligente**: Mantiene giocatori quando si cambia modulo
 - **Modal Dettagli**: Click su card → mostra statistiche, abilità, booster
-
-**Flusso Upload Formazione**:
-1. Cliente carica screenshot formazione completa (11 giocatori visibili)
-2. Click "Estrai Formazione" → chiama `/api/extract-formation`
-3. AI estrae 11 giocatori con posizioni (slot 0-10)
-4. Giocatori salvati automaticamente come TITOLARI
 
 **Flusso Upload Giocatore**:
 1. Cliente seleziona slot (titolare o riserva)
@@ -309,10 +304,10 @@ Cartella principale che contiene tutte le route e le API. Next.js 14 usa l'App R
 **Scopo**: Suggerimenti tattici basati su formazione avversaria.
 
 **Funzionalità**:
-- **Carica Formazione Avversaria**: Screenshot → estrazione automatica
+- **Carica Formazione Avversaria**: Screenshot → estrazione automatica → salva in `opponent_formations`
 - **Genera Contromisure**: Analisi AI basata su:
-  - Formazione propria (salvata in rosa)
-  - Formazione avversaria (caricata)
+  - Formazione propria (salvata in `formation_layout`)
+  - Formazione avversaria (caricata in `opponent_formations`)
   - Storico partite (formazioni che soffre)
 - **Suggerimenti Operativi**: Cosa cambiare, posizionamento, istruzioni individuali
 

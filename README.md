@@ -8,12 +8,11 @@ Web app per coaching eFootball con estrazione dati da screenshot e gestione rosa
 2. **Gestione Formazione 2D**: Campo interattivo realistico con card giocatori cliccabili
 3. **14 Formazioni Ufficiali eFootball**: Selezione tra tutti i moduli tattici ufficiali
 4. **Cambio Formazione Intelligente**: Mantiene giocatori quando si cambia modulo
-5. **Upload Formazione**: Estrazione disposizione tattica da screenshot completo (opzione avanzata)
-6. **Upload Giocatori**: Estrazione dati da card giocatori (fino a 3 immagini per giocatore) con tracciamento foto
-7. **Visualizzazione Dati Estratti**: Modal dettagli mostra statistiche, abilità e booster quando si clicca su una card
-8. **Gestione Riserve**: Upload e gestione giocatori riserva
-9. **Profilazione Giocatori**: Completamento profilo con foto aggiuntive
-10. **Internazionalizzazione**: Supporto IT/EN
+5. **Upload Giocatori**: Estrazione dati da card giocatori (fino a 3 immagini per giocatore) con tracciamento foto
+6. **Visualizzazione Dati Estratti**: Modal dettagli mostra statistiche, abilità e booster quando si clicca su una card
+7. **Gestione Riserve**: Upload e gestione giocatori riserva
+8. **Profilazione Giocatori**: Completamento profilo con foto aggiuntive
+9. **Internazionalizzazione**: Supporto IT/EN
 
 ## 🛠️ Stack Tecnologico
 
@@ -68,9 +67,9 @@ lib/
 ## 🔌 Endpoint API
 
 **Formazione e giocatori**:
-- `POST /api/extract-formation` - Estrae formazione da screenshot
+- `POST /api/extract-formation` - Estrae formazione avversaria da screenshot (usato in contromisure-live e match/new)
 - `POST /api/extract-player` - Estrae dati giocatore da screenshot
-- `POST /api/supabase/save-formation-layout` - Salva layout formazione
+- `POST /api/supabase/save-formation-layout` - Salva layout formazione propria
 - `POST /api/supabase/save-player` - Salva/aggiorna giocatore
 - `PATCH /api/supabase/assign-player-to-slot` - Assegna giocatore a slot
 
