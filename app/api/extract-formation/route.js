@@ -190,9 +190,10 @@ Restituisci SOLO JSON valido, senza altro testo. Assicurati che ci siano ESATTAM
       if (formationData.players && Array.isArray(formationData.players)) {
         formationData.players.forEach((player, index) => {
           // Validazione overall_rating per ogni giocatore
+          // FIX: Supporta valori fino a 110 (con boosters applicati)
           if (player.overall_rating !== null && player.overall_rating !== undefined) {
             const rating = Number(player.overall_rating)
-            if (isNaN(rating) || rating < 40 || rating > 100) {
+            if (isNaN(rating) || rating < 40 || rating > 110) {
               console.warn(`[extract-formation] Invalid rating for player ${index}: ${player.overall_rating}`)
               player.overall_rating = null // Rimuovi rating non valido
             }

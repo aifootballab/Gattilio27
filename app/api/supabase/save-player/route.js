@@ -199,13 +199,20 @@ export async function POST(req) {
         // Validazione dimensione JSONB rimossa - Supabase gestisce automaticamente i limiti
         
         // Prepara dati aggiornati (NON usare spread di playerData per evitare sovrascrivere campi importanti)
+        // FIX: overall_rating - preferire sempre il valore più alto per evitare downgrade
+        const existingOverall = existingPlayerInSlot.overall_rating != null ? Number(existingPlayerInSlot.overall_rating) : null
+        const newOverall = playerData.overall_rating != null ? Number(playerData.overall_rating) : null
+        const finalOverall = (existingOverall != null && newOverall != null) 
+          ? Math.max(existingOverall, newOverall) 
+          : (newOverall != null ? newOverall : existingOverall)
+        
         const updateData = {
           // Campi base (sovrascrivibili solo se presenti nei nuovi dati)
           ...(playerData.player_name && { player_name: playerData.player_name }),
           ...(playerData.position && { position: playerData.position }),
           ...(playerData.card_type && { card_type: playerData.card_type }),
           ...(playerData.team && { team: playerData.team }),
-          ...(playerData.overall_rating !== null && playerData.overall_rating !== undefined && { overall_rating: playerData.overall_rating }),
+          ...(finalOverall !== null && finalOverall !== undefined && { overall_rating: finalOverall }),
           ...(playerData.age !== null && playerData.age !== undefined && { age: playerData.age }),
           ...(playerData.nationality && { nationality: playerData.nationality }),
           ...(playerData.club_name && { club_name: playerData.club_name }),

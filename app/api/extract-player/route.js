@@ -145,6 +145,7 @@ export async function POST(req) {
 IMPORTANTE:
 - Estrai SOLO ciò che vedi nell'immagine (null se non visibile)
 - PRIORITÀ: Usa la TABELLA statistiche se presente (non il radar chart)
+- OVERALL RATING: Estrai l'overall rating VISIBILE nella card (quello mostrato, che include già i boosters se applicati). NON sottrarre boosters: estrai esattamente il numero che vedi (può essere fino a 110).
 - Estrai TUTTI questi dati: nome giocatore, posizione, overall rating, team, card_type, base_stats (attacking, defending, athleticism), skills, com_skills, boosters, height, weight, age, nationality, level, form, role, playing_style, ai_playstyles, matches_played, goals, assists, weak_foot_frequency, weak_foot_accuracy, injury_resistance
 - Se vedi il volto/faccia del giocatore nella card, indicane la descrizione visiva dettagliata:
   * Colore pelle (chiaro, medio, scuro)

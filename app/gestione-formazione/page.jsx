@@ -774,6 +774,20 @@ export default function GestioneFormazionePage() {
         throw new Error('Errore: dati giocatore non estratti. Verifica le immagini e riprova.')
       }
 
+      // FIX: overall_rating - preferire sempre quello dalla foto "card" se presente, altrimenti il valore più alto
+      // L'overall_rating è presente in tutte e tre le foto, ma quello della card è sempre quello corretto (con boosters già applicati)
+      if (allExtractedData['card']?.overall_rating != null) {
+        playerData.overall_rating = allExtractedData['card'].overall_rating
+      } else {
+        // Se non c'è la foto card, usa il valore più alto tra quelli estratti
+        const allRatings = Object.values(allExtractedData)
+          .map(p => p?.overall_rating)
+          .filter(r => r != null && r > 0)
+        if (allRatings.length > 0) {
+          playerData.overall_rating = Math.max(...allRatings)
+        }
+      }
+
       // NUOVO: Dopo estrazione dati, mostra modal selezione posizioni
       const mainPosition = playerData.position || 'AMF'
       setSelectedOriginalPositions([{
@@ -1374,7 +1388,7 @@ export default function GestioneFormazionePage() {
               ...playerData,
               ...extractData.player,
               // Mantieni dati migliori
-              overall_rating: extractData.player.overall_rating || playerData.overall_rating,
+              // IMPORTANTE: overall_rating viene gestito dopo il loop per preferire sempre quello dalla foto "card"
               base_stats: extractData.player.base_stats || playerData.base_stats,
               skills: extractData.player.skills || playerData.skills,
               com_skills: extractData.player.com_skills || playerData.com_skills,
@@ -1412,6 +1426,20 @@ export default function GestioneFormazionePage() {
           throw new Error(`Errore estrazione dati: ${errors[0]}`)
         }
         throw new Error('Errore: dati giocatore non estratti. Verifica le immagini e riprova.')
+      }
+
+      // FIX: overall_rating - preferire sempre quello dalla foto "card" se presente, altrimenti il valore più alto
+      // L'overall_rating è presente in tutte e tre le foto, ma quello della card è sempre quello corretto (con boosters già applicati)
+      if (allExtractedData['card']?.overall_rating != null) {
+        playerData.overall_rating = allExtractedData['card'].overall_rating
+      } else {
+        // Se non c'è la foto card, usa il valore più alto tra quelli estratti
+        const allRatings = Object.values(allExtractedData)
+          .map(p => p?.overall_rating)
+          .filter(r => r != null && r > 0)
+        if (allRatings.length > 0) {
+          playerData.overall_rating = Math.max(...allRatings)
+        }
       }
 
       // Validazione duplicati riserve: verifica se stesso giocatore (nome+età) già presente nelle riserve
