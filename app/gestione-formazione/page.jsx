@@ -221,16 +221,30 @@ export default function GestioneFormazionePage() {
     
     // Centrocampo: y tra 40-60
     if (y >= 40 && y <= 60) {
-      if (x < 30) return 'EDE'  // Esterno destro (sinistra campo)
-      if (x > 70) return 'ESA'  // Esterno sinistro (destra campo)
-      if (y < 50) return 'AMF'  // Trequartista (centro avanzato)
+      if (x < 30) return 'ESA'  // Esterno sinistro (sinistra campo)
+      if (x > 70) return 'EDE'  // Esterno destro (destra campo)
+      // CC (Centrocampista Centrale): laterale destra in centrocampo (x: 55-65, y: 48-52)
+      if (x >= 55 && x <= 65 && y >= 48 && y <= 52) return 'CC'  // Centrocampista centrale laterale
+      // TRQ (Trequartista): centrocampo avanzato (y: 40-50, x: 35-65, escludendo centro esatto)
+      if (y >= 40 && y <= 50 && x >= 35 && x <= 65 && !(x >= 48 && x <= 52)) return 'TRQ'  // Trequartista in centrocampo avanzato (esclude centro esatto che è MED)
+      if (y < 50) return 'AMF'  // Trequartista (centro avanzato) - fallback se non TRQ
       return 'MED'              // Centrocampista centrale
     }
     
     // Attacco: y < 40
     if (y < 40) {
-      if (x < 30) return 'CLD'  // Ala destra (sinistra campo)
-      if (x > 70) return 'CLS'  // Ala sinistra (destra campo)
+      if (x < 30) return 'CLS'  // Ala sinistra (sinistra campo)
+      if (x > 70) return 'CLD'  // Ala destra (destra campo)
+      // TRQ (Trequartista): può essere in attacco avanzato (y: 30-40, x: 30-70)
+      // Ma esclude centro esatto (x: 48-52) in y: 30-31 per evitare conflitti con CF centrale
+      if (y >= 30 && y <= 40 && x >= 30 && x <= 70) {
+        // Se è in zona centrale (x: 48-52) e molto avanzato (y: 30-31), probabilmente è CF, non TRQ
+        if (y >= 30 && y <= 31 && x >= 48 && x <= 52) {
+          // Lascia che vada a logica CF/SP/P
+        } else {
+          return 'TRQ'  // Trequartista in attacco
+        }
+      }
       
       // Logica relativa per P vs SP se ci sono più giocatori in attacco
       if (attackSlots && attackSlots.length > 1) {
@@ -1023,6 +1037,23 @@ export default function GestioneFormazionePage() {
     setError(null)
 
     try {
+      // Validazione limitazioni ruolo prima di salvare (coerente con handleSaveCustomPositions)
+      const { validateFormationLimits } = await import('../../lib/validateFormationLimits')
+      const validation = validateFormationLimits(slotPositions)
+      if (!validation.valid) {
+        const errorMsg = validation.errors.join('\n')
+        const warningMsg = `${t('formationInvalidTitle')}:\n\n${errorMsg}\n\n${t('formationInvalidConfirm')}`
+        const confirmed = window.confirm(warningMsg)
+        if (!confirmed) {
+          setError(errorMsg)
+          showToast(t('saveCancelled'), 'error')
+          setUploadingFormation(false)
+          return
+        }
+        // Cliente conferma → procedi con salvataggio (warning ma non blocco)
+        showToast(t('formationSavedWithWarnings'), 'error')
+      }
+
       const { data: session } = await supabase.auth.getSession()
       if (!session?.session?.access_token) {
         throw new Error('Sessione scaduta')
@@ -1064,7 +1095,9 @@ export default function GestioneFormazionePage() {
       await fetchData()
     } catch (err) {
       console.error('[GestioneFormazione] Manual formation error:', err)
-      setError(err.message || 'Errore salvataggio formazione')
+      const errorMsg = err.message || 'Errore salvataggio formazione'
+      setError(errorMsg)
+      showToast(errorMsg, 'error')
     } finally {
       setUploadingFormation(false)
     }
@@ -1243,6 +1276,23 @@ export default function GestioneFormazionePage() {
             // Non bloccare il salvataggio se un aggiornamento fallisce
           }
         }
+      }
+      
+      // Validazione limitazioni ruolo prima di salvare
+      const { validateFormationLimits } = await import('../../lib/validateFormationLimits')
+      const validation = validateFormationLimits(updatedSlotPositions)
+      if (!validation.valid) {
+        const errorMsg = validation.errors.join('\n')
+        const warningMsg = `${t('formationInvalidTitle')}:\n\n${errorMsg}\n\n${t('formationInvalidConfirm')}`
+        const confirmed = window.confirm(warningMsg)
+        if (!confirmed) {
+          setError(errorMsg)
+          showToast(t('saveCancelled'), 'error')
+          setUploadingFormation(false)
+          return
+        }
+        // Cliente conferma → procedi con salvataggio (warning ma non blocco)
+        showToast(t('formationSavedWithWarnings'), 'error')
       }
       
       // Usa funzione esistente per salvare (NON MODIFICATA)
