@@ -145,15 +145,8 @@ export async function POST(req) {
 IMPORTANTE:
 - Estrai SOLO ciò che vedi nell'immagine (null se non visibile)
 - PRIORITÀ: Usa la TABELLA statistiche se presente (non il radar chart)
-- OVERALL RATING: Estrai l'overall rating VISIBILE nella card (quello mostrato, che include già i boosters se applicati). NON sottrarre boosters: estrai esattamente il numero che vedi (può essere fino a 110).
+- OVERALL RATING: Estrai ESATTAMENTE il numero che vedi nella card. NON fare calcoli, NON sottrarre o aggiungere nulla. Il numero che vedi è quello corretto da salvare (può essere fino a 110). L'overall_rating è presente in tutte le foto (card, statistiche, abilità) - estrai quello che vedi.
 - Estrai TUTTI questi dati: nome giocatore, posizione, overall rating, team, card_type, base_stats (attacking, defending, athleticism), skills, com_skills, boosters, height, weight, age, nationality, level, form, role, playing_style, ai_playstyles, matches_played, goals, assists, weak_foot_frequency, weak_foot_accuracy, injury_resistance
-- Se vedi il volto/faccia del giocatore nella card, indicane la descrizione visiva dettagliata:
-  * Colore pelle (chiaro, medio, scuro)
-  * Colore capelli (nero, biondo, castano, rosso, ecc.)
-  * Lunghezza capelli (corti, medi, lunghi)
-  * Caratteristiche distintive (barba, baffi, occhiali, capelli ricci, ecc.)
-  * Età apparente
-  * Nazionalità/etnia (se riconoscibile)
 
 POSIZIONI ORIGINALI (NUOVO - Guarda Mini-Campo in Alto a Destra):
 - Guarda la sezione in alto a destra della card dove c'è un MINI-CAMPO diviso in zone
@@ -220,8 +213,7 @@ Formato JSON richiesto:
   "assists": 37,
   "weak_foot_frequency": "Raramente",
   "weak_foot_accuracy": "Alta",
-  "injury_resistance": "Media",
-  "player_face_description": "Descrizione dettagliata del volto se visibile (colore pelle, capelli, caratteristiche distintive)"
+  "injury_resistance": "Media"
 }
 
 Restituisci SOLO JSON valido, senza altro testo.`
