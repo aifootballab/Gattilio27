@@ -2512,9 +2512,12 @@ function SlotCard({ slot, onClick, onRemove, isEditMode = false, onPositionChang
       return 'rgba(239, 68, 68, 0.8)' // Rosso: nessun dato
     }
     
-    const hasCard = photoSlots.card === true
-    const hasStats = photoSlots.statistiche === true
-    const hasSkills = photoSlots.abilita === true || photoSlots.booster === true
+    // Normalizza valori: gestisce boolean e stringhe (per compatibilità database)
+    // Verifica esplicita === true per boolean, oppure === 'true' per stringhe
+    const hasCard = photoSlots.card === true || photoSlots.card === 'true'
+    const hasStats = photoSlots.statistiche === true || photoSlots.statistiche === 'true'
+    const hasSkills = (photoSlots.abilita === true || photoSlots.abilita === 'true') || 
+                      (photoSlots.booster === true || photoSlots.booster === 'true')
     
     const count = [hasCard, hasStats, hasSkills].filter(Boolean).length
     

@@ -137,9 +137,10 @@ export async function POST(req) {
         ? Math.max(0, Math.min(10, Number(player.slot_index))) 
         : null,
       // photo_slots: traccia quali foto sono state caricate
-      photo_slots: player.photo_slots && typeof player.photo_slots === 'object' 
+      // FIX: Se photo_slots non è presente o è vuoto, usa null invece di {} per evitare sovrascritture
+      photo_slots: player.photo_slots && typeof player.photo_slots === 'object' && Object.keys(player.photo_slots).length > 0
         ? player.photo_slots 
-        : {},
+        : null,
       // NUOVO: original_positions - array di posizioni originali dalla card
       original_positions: Array.isArray(player.original_positions) 
         ? player.original_positions 
@@ -166,10 +167,13 @@ export async function POST(req) {
         // Se giocatore esiste già, NON sovrascrivere original_positions (mantieni originali)
         delete playerData.original_positions
         
-        // Merge photo_slots
+        // Merge photo_slots (solo se newPhotoSlots ha valori, altrimenti mantieni existing)
         const existingPhotoSlots = existingPlayerInSlot.photo_slots || {}
         const newPhotoSlots = playerData.photo_slots || {}
-        const mergedPhotoSlots = { ...existingPhotoSlots, ...newPhotoSlots }
+        // FIX: Se newPhotoSlots è vuoto o null, mantieni existingPhotoSlots invece di sovrascrivere
+        const mergedPhotoSlots = (newPhotoSlots && typeof newPhotoSlots === 'object' && Object.keys(newPhotoSlots).length > 0)
+          ? { ...existingPhotoSlots, ...newPhotoSlots }
+          : existingPhotoSlots
         
         // Merge base_stats (preferisci nuovi se presenti)
         const mergedBaseStats = playerData.base_stats && Object.keys(playerData.base_stats).length > 0
