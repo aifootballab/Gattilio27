@@ -22,8 +22,9 @@ export async function POST(request) {
     // Validazione token (pattern coerente con altri endpoint)
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
     
-    if (!supabaseUrl || !anonKey) {
+    if (!supabaseUrl || !anonKey || !serviceKey) {
       return NextResponse.json({ error: 'Supabase not configured' }, { status: 500 })
     }
 
@@ -93,14 +94,7 @@ export async function POST(request) {
       end: weekEnd.toISOString().split('T')[0]
     }
 
-    // 4. Genera task
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-    if (!supabaseUrl || !serviceKey) {
-      return NextResponse.json({ error: 'Supabase not configured' }, { status: 500 })
-    }
-
+    // 4. Genera task (usa variabili già dichiarate sopra)
     const tasks = await generateWeeklyTasksForUser(user_id, supabaseUrl, serviceKey, week)
 
     // 5. Restituisci task generati
