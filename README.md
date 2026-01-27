@@ -5,14 +5,16 @@ Web app per coaching eFootball con estrazione dati da screenshot e gestione rosa
 ## 🎯 Funzionalità Principali
 
 1. **Dashboard**: Panoramica squadra con statistiche e navigazione rapida
-2. **Gestione Formazione 2D**: Campo interattivo realistico con card giocatori cliccabili
-3. **14 Formazioni Ufficiali eFootball**: Selezione tra tutti i moduli tattici ufficiali
-4. **Cambio Formazione Intelligente**: Mantiene giocatori quando si cambia modulo
-5. **Upload Giocatori**: Estrazione dati da card giocatori (fino a 3 immagini per giocatore) con tracciamento foto
-6. **Visualizzazione Dati Estratti**: Modal dettagli mostra statistiche, abilità e booster quando si clicca su una card
-7. **Gestione Riserve**: Upload e gestione giocatori riserva
-8. **Profilazione Giocatori**: Completamento profilo con foto aggiuntive
-9. **Internazionalizzazione**: Supporto IT/EN
+2. **Barra Conoscenza IA**: Indicatore progressivo che mostra quanto l'IA conosce il cliente (0-100%), basato su profilo, rosa, partite, pattern, allenatore, utilizzo e successi
+3. **Gestione Formazione 2D**: Campo interattivo realistico con card giocatori cliccabili
+4. **14 Formazioni Ufficiali eFootball**: Selezione tra tutti i moduli tattici ufficiali
+5. **Cambio Formazione Intelligente**: Mantiene giocatori quando si cambia modulo
+6. **Upload Giocatori**: Estrazione dati da card giocatori (fino a 3 immagini per giocatore) con tracciamento foto
+7. **Visualizzazione Dati Estratti**: Modal dettagli mostra statistiche, abilità e booster quando si clicca su una card
+8. **Gestione Riserve**: Upload e gestione giocatori riserva
+9. **Profilazione Giocatori**: Completamento profilo con foto aggiuntive
+10. **Obiettivi Settimanali**: Sistema per tracciare e completare obiettivi personalizzati (in sviluppo)
+11. **Internazionalizzazione**: Supporto IT/EN
 
 ## 🛠️ Stack Tecnologico
 
@@ -45,7 +47,9 @@ lib/
 ├── supabaseClient.js            # Client Supabase (frontend)
 ├── authHelper.js                 # Helper autenticazione (API)
 ├── i18n.js                       # Internazionalizzazione (IT/EN)
-└── normalize.js                  # Normalizzazione dati
+├── normalize.js                  # Normalizzazione dati
+├── aiKnowledgeHelper.js          # Calcolo AI Knowledge Score
+└── rateLimiter.js                # Rate limiting per API
 ```
 
 ## 🗄️ Database Schema
@@ -61,6 +65,18 @@ lib/
   - `formation` (es: "4-3-3")
   - `slot_positions` (coordinate x, y per slot 0-10)
   - Un layout per utente (UNIQUE user_id)
+
+- **`user_profiles`**: Profilo utente esteso
+  - `ai_knowledge_score` (0-100%) - Score conoscenza IA
+  - `ai_knowledge_level` (beginner/intermediate/advanced/expert)
+  - `ai_knowledge_breakdown` (JSONB) - Dettaglio score per componente
+  - `initial_division` - Divisione al primo login (per tracciare miglioramento)
+
+- **`weekly_goals`**: Obiettivi settimanali
+  - `goal_type`, `goal_description`, `target_value`, `current_value`
+  - `status` (active/completed/failed)
+  - `week_start_date`, `week_end_date`
+  - RLS abilitato
 
 - **`playing_styles`**: Catalogo stili di gioco
 
@@ -80,6 +96,9 @@ lib/
 - `DELETE /api/supabase/delete-match` - Elimina partita
 - `POST /api/analyze-match` - Genera riassunto AI bilingue (dettaglio partita)
 
+**AI Knowledge**:
+- `GET /api/ai-knowledge` - Restituisce score conoscenza IA (0-100%) con breakdown per componente
+
 ## 📚 Documentazione
 
 **Documentazione principale**:
@@ -90,6 +109,9 @@ lib/
 - **`DOCUMENTAZIONE_GUIDA_INTERATTIVA.md`** – Assistant Chat AI: architettura, prompt engineering, flussi
 - **`DOCUMENTAZIONE_DRAG_DROP.md`** – Drag & Drop giocatori sul campo 2D: funzionalità e implementazione
 - **`DOCUMENTAZIONE_MODIFICHE_POSIZIONI_MULTIPLE.md`** – Gestione posizioni multiple giocatori: modifiche DB e codice
+- **`PROGETTAZIONE_BARRA_CONOSCENZA_IA.md`** – Barra Conoscenza IA: progettazione completa, formula calcolo, architettura enterprise
+- **`ANALISI_360_OBIETTIVI_SETTIMANALI.md`** – Obiettivi settimanali: analisi 360°, generazione, tracking, validazione
+- **`PIANO_IMPLEMENTAZIONE_BARRA_CONOSCENZA_IA.md`** – Piano implementazione step-by-step con verifiche e rollback
 
 ## ⚙️ Environment Variables
 

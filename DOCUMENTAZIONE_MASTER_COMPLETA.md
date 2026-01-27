@@ -1,10 +1,16 @@
 # 📚 Documentazione Master Completa - eFootball AI Coach
 
 **Data Aggiornamento**: 26 Gennaio 2026  
-**Versione**: 2.0.2  
+**Versione**: 2.1.0  
 **Status**: ✅ **PRODUZIONE** – Sistema completo e funzionante
 
-**Aggiornamenti 26 gen 2026**:
+**Aggiornamenti 26 gen 2026 (v2.1.0)**:
+- **⭐ Barra Conoscenza IA**: Indicatore progressivo (0-100%) che mostra quanto l'IA conosce il cliente
+  - Calcolo basato su: Profilo (20%), Rosa (25%), Partite (30%), Pattern (15%), Allenatore (10%), Utilizzo (10%), Successi (15%)
+  - Visualizzazione in dashboard con breakdown espandibile
+  - Aggiornamento automatico dopo save-match e save-profile
+  - Cache 5 minuti per performance
+- **Obiettivi Settimanali**: Tabella `weekly_goals` creata per tracciare obiettivi personalizzati (fase 1: DB schema)
 - **Validazione formazioni**: Alert semplificato con messaggio generico (senza dettagli specifici)
 - **Sincronizzazione players.position**: Aggiornamento automatico dopo salvataggio formation_layout
 - **Correzione TS/TD**: TS a sinistra (x < 30), TD a destra (x > 70)
@@ -60,6 +66,13 @@ La piattaforma è progettata come **Decision Support System**, non come archivio
 
 ### **Funzionalità Avanzate**
 
+- **Barra Conoscenza IA** - Indicatore progressivo in dashboard che mostra quanto l'IA conosce il cliente (0-100%)
+  - Calcolo automatico basato su 7 componenti: Profilo, Rosa, Partite, Pattern, Allenatore, Utilizzo, Successi
+  - Breakdown dettagliato espandibile per componente
+  - Aggiornamento automatico dopo ogni azione rilevante (save-match, save-profile)
+  - Cache intelligente (5 minuti) per performance ottimali
+  - 4 livelli: Beginner (0-30%), Intermediate (31-60%), Advanced (61-80%), Expert (81-100%)
+- **Obiettivi Settimanali** - Sistema per tracciare e completare obiettivi personalizzati (DB schema pronto, UI in sviluppo)
 - **Guida Completa** (`/guida`) - Documentazione interattiva con CTA per completare profilo
 - **Assistant Chat** - Widget AI sempre disponibile (bottom-right) per guida personale
 - **Contromisure Live** (`/contromisure-live`) - Suggerimenti tattici basati su formazione avversaria
@@ -123,6 +136,11 @@ Cartella principale che contiene tutte le route e le API. Next.js 14 usa l'App R
 **Scopo**: Pagina home con panoramica completa della squadra.
 
 **Funzionalità**:
+- **⭐ Barra Conoscenza IA**: Indicatore progressivo (0-100%) che mostra quanto l'IA conosce il cliente (v2.1.0)
+  - Visualizzazione con breakdown espandibile per componente
+  - Aggiornamento automatico ogni 5 minuti
+  - 4 livelli: Beginner, Intermediate, Advanced, Expert
+  - CTA per completare profilo se score < 50%
 - **Statistiche Squadra**: Titolari, riserve, totale giocatori
 - **Top 3 Giocatori**: Per rating (query Supabase con ordinamento)
 - **Ultime Partite**: Lista espandibile con click per dettaglio
@@ -506,6 +524,57 @@ Tutte le API routes sono in `/app/api`. Ogni cartella rappresenta un endpoint.
 
 ---
 
+#### **`/app/api/ai-knowledge/route.js` - AI Knowledge Score**
+
+**Scopo**: Restituisce lo score di conoscenza IA (0-100%) per l'utente autenticato.
+
+**Input**:
+- Nessuno (usa Bearer token per identificare utente)
+
+**Output**:
+- `score`: Score 0-100%
+- `level`: Livello ('beginner' | 'intermediate' | 'advanced' | 'expert')
+- `breakdown`: Dettaglio score per componente:
+  - `profile`: Score profilo (0-20)
+  - `roster`: Score rosa (0-25)
+  - `matches`: Score partite (0-30)
+  - `patterns`: Score pattern (0-15)
+  - `coach`: Score allenatore (0-10)
+  - `usage`: Bonus utilizzo (0-10)
+  - `success`: Score successi (0-15)
+- `last_calculated`: Timestamp ultimo calcolo
+
+**Flusso Completo**:
+1. **Autenticazione**: Valida Bearer token
+2. **Rate Limiting**: 20 richieste/minuto per utente
+3. **Cache Check**: Verifica se score esiste e è stato calcolato < 5 minuti fa
+4. **Se Cache Valida**: Restituisci score cached
+5. **Se Cache Scaduta o Non Esiste**:
+   - Calcola score completo con `calculateAIKnowledgeScore()`
+   - Salva nel database (async, non blocca response)
+   - Return score calcolato
+6. **Fallback**: Se errore calcolo, restituisci score cached (anche scaduto) o default 0
+
+**Formula Calcolo Score**:
+- **Profilo** (20%): Campi compilati in `user_profiles` (8 campi principali)
+- **Rosa** (25%): 11 titolari (15%) + riserve (5%) + dati completi (5%)
+- **Partite** (30%): 1 partita = 3%, max 30% (10 partite)
+- **Pattern** (15%): Pattern tattici identificati (10%) + confermati (5%)
+- **Allenatore** (10%): Allenatore caricato
+- **Utilizzo** (10%): Messaggi chat (5%) + interazioni sistema (5%)
+- **Successi** (15%): Miglioramento divisione (5%) + obiettivi completati (5%) + miglioramenti performance (5%)
+
+**Note Tecniche**:
+- **Cache Intelligente**: Score cached per 5 minuti per performance
+- **Calcolo Async**: Salvataggio nel database non blocca response
+- **Fallback Graceful**: Restituisce sempre un valore (anche 0 se errore)
+- **Aggiornamento Automatico**: Score aggiornato automaticamente dopo `save-match` e `save-profile`
+- **Helper**: `lib/aiKnowledgeHelper.js` contiene tutte le funzioni di calcolo
+
+**Vedi anche**: `PROGETTAZIONE_BARRA_CONOSCENZA_IA.md` per progettazione completa e architettura enterprise.
+
+---
+
 #### **`/app/api/assistant-chat/route.js` - Assistant Chat AI**
 
 **Scopo**: Endpoint per chat interattiva con AI guida personale.
@@ -693,6 +762,34 @@ const [currentPage, setCurrentPage] = useState('')
 
 ---
 
+#### **`/components/AIKnowledgeBar.jsx` - Barra Conoscenza IA** (v2.1.0)
+
+**Scopo**: Componente per visualizzare score conoscenza IA (0-100%) con breakdown dettagliato.
+
+**Funzionalità**:
+- **Visualizzazione Score**: Barra progressiva con percentuale e livello
+- **Breakdown Espandibile**: Dettaglio score per componente (Profilo, Rosa, Partite, Pattern, Allenatore, Utilizzo, Successi)
+- **Aggiornamento Automatico**: Ricarica score ogni 5 minuti
+- **Loading/Error States**: Gestione stati di caricamento e errori
+- **CTA Motivazionale**: Messaggio per completare profilo se score < 50%
+
+**Stile**:
+- Identico a barra profilazione in `/impostazioni-profilo`
+- Responsive (clamp, flexWrap)
+- Colori dinamici basati su score:
+  - 0-30%: Rosso/Arancione (#ff6b00)
+  - 31-60%: Arancione (#ffaa00)
+  - 61-80%: Blu (#00d4ff)
+  - 81-100%: Verde (#00ff88)
+
+**Note Tecniche**:
+- Usa `GET /api/ai-knowledge` per fetch score
+- Cache locale (ricarica ogni 5 minuti)
+- Bilingue (IT/EN) con `useTranslation()`
+- Integrato in dashboard (`/app/page.jsx`)
+
+---
+
 ### **`/lib` - Librerie e Utilities**
 
 #### **`/lib/supabaseClient.js` - Client Supabase Frontend**
@@ -752,8 +849,12 @@ const RATE_LIMIT_CONFIG = {
   '/api/supabase/save-match': { maxRequests: 20, windowMs: 60000 },
   '/api/supabase/update-match': { maxRequests: 30, windowMs: 60000 },
   '/api/supabase/delete-match': { maxRequests: 5, windowMs: 60000 },
-  '/api/generate-countermeasures': { maxRequests: 5, windowMs: 60000 }
-  // assistant-chat: fallback se configurato
+  '/api/generate-countermeasures': { maxRequests: 5, windowMs: 60000 },
+  '/api/ai-knowledge': { maxRequests: 20, windowMs: 60000 }, // v2.1.0
+  '/api/extract-match-data': { maxRequests: 10, windowMs: 60000 },
+  '/api/extract-player': { maxRequests: 15, windowMs: 60000 },
+  '/api/extract-formation': { maxRequests: 10, windowMs: 60000 },
+  '/api/extract-coach': { maxRequests: 5, windowMs: 60000 }
 }
 ```
 
@@ -765,6 +866,42 @@ const RATE_LIMIT_CONFIG = {
 - **In-Memory**: Per produzione, usare Redis
 - Reset automatico ogni `windowMs`
 - Headers rate limit restituiti in risposta
+
+---
+
+#### **`/lib/aiKnowledgeHelper.js` - AI Knowledge Score Helper** (v2.1.0)
+
+**Scopo**: Funzioni per calcolo e gestione AI Knowledge Score.
+
+**Funzioni Principali**:
+- `getAIKnowledgeLevel(score)`: Determina livello da score (beginner/intermediate/advanced/expert)
+- `calculateAIKnowledgeScore(userId, supabaseUrl, serviceKey)`: Calcola score completo
+- `updateAIKnowledgeScore(userId, supabaseUrl, serviceKey)`: Calcola e aggiorna nel database
+
+**Funzioni Calcolo Componenti**:
+- `calculateProfileScore(profile)`: Score profilo (0-20%)
+- `calculateRosterScore(players, formation)`: Score rosa (0-25%)
+- `calculateMatchesScore(matches)`: Score partite (0-30%)
+- `calculatePatternsScore(tacticalPatterns)`: Score pattern (0-15%)
+- `calculateCoachScore(coach)`: Score allenatore (0-10%)
+- `calculateUsageBonus(usage)`: Bonus utilizzo (0-10%)
+- `calculateSuccessScore(profile, weeklyGoals, matches)`: Score successi (0-15%)
+
+**Formula Totale**:
+- Profilo: 20%
+- Rosa: 25%
+- Partite: 30%
+- Pattern: 15%
+- Allenatore: 10%
+- Utilizzo: 10%
+- Successi: 15%
+- **Totale: 100%**
+
+**Note Tecniche**:
+- Stateless: Funzioni pure, testabili
+- Error handling robusto
+- Logging strutturato per monitoring
+- Query Supabase ottimizzate (limiti, indici)
 
 ---
 
@@ -862,8 +999,16 @@ Cartella con file SQL per migrazioni Supabase.
 - `common_problems` (text[]) - Array problemi comuni
 - `profile_completion_score` (numeric) - 0-100
 - `profile_completion_level` (text) - "beginner" | "intermediate" | "advanced" | "expert"
+- **`ai_knowledge_score`** (numeric) - Score conoscenza IA 0-100% (agg. v2.1.0)
+- **`ai_knowledge_level`** (text) - Livello conoscenza: "beginner" | "intermediate" | "advanced" | "expert" (agg. v2.1.0)
+- **`ai_knowledge_breakdown`** (JSONB) - Dettaglio score per componente (agg. v2.1.0)
+- **`ai_knowledge_last_calculated`** (timestamptz) - Timestamp ultimo calcolo (agg. v2.1.0)
+- **`initial_division`** (text) - Divisione al primo login (per tracciare miglioramento) (agg. v2.1.0)
 
 **RLS**: Abilitato, utente può leggere/scrivere solo il proprio profilo.
+
+**Indici**:
+- `idx_user_profiles_ai_knowledge`: `(user_id, ai_knowledge_score DESC)` per query veloci
 
 ---
 
@@ -974,6 +1119,35 @@ Cartella con file SQL per migrazioni Supabase.
 
 ---
 
+#### **`weekly_goals` - Obiettivi Settimanali** (v2.1.0)
+
+**Scopo**: Obiettivi settimanali generati automaticamente dall'IA per ogni utente.
+
+**Colonne Principali**:
+- `id` (UUID, PK)
+- `user_id` (UUID, FK → auth.users)
+- `goal_type` (text) - Tipo obiettivo: "reduce_goals_conceded", "increase_wins", "improve_possession", ecc.
+- `goal_description` (text) - Descrizione obiettivo in linguaggio naturale
+- `target_value` (numeric) - Valore target da raggiungere
+- `current_value` (numeric) - Valore attuale (aggiornato automaticamente)
+- `difficulty` (text) - "easy" | "medium" | "hard"
+- `week_start_date` (date) - Data inizio settimana (Lunedì)
+- `week_end_date` (date) - Data fine settimana (Domenica)
+- `status` (text) - "active" | "completed" | "failed"
+- `completed_at` (timestamptz) - Timestamp completamento
+- `created_at`, `updated_at` (timestamptz)
+
+**RLS**: Abilitato, utente può leggere/scrivere solo i propri obiettivi.
+
+**Indici**:
+- `idx_weekly_goals_user_week`: `(user_id, week_start_date DESC)` per query veloci
+- `idx_weekly_goals_status`: `(user_id, status, week_start_date DESC)` per filtrare per status
+- `idx_weekly_goals_active`: `(user_id, status)` WHERE status = 'active' per query obiettivi attivi
+
+**Note**: Tabella creata per supportare sistema obiettivi settimanali. Generazione automatica e tracking in sviluppo.
+
+---
+
 ## 🔒 SICUREZZA E AUTENTICAZIONE
 
 ### **Autenticazione**
@@ -987,6 +1161,7 @@ Cartella con file SQL per migrazioni Supabase.
 - Tutti gli endpoint in `/app/api/supabase/*` richiedono autenticazione
 - `/api/analyze-match` richiede autenticazione
 - `/api/assistant-chat` richiede autenticazione
+- `/api/ai-knowledge` richiede autenticazione (v2.1.0)
 
 **Endpoints Pubblici** (da proteggere in futuro):
 - `/api/extract-player` - Attualmente pubblico
@@ -1060,10 +1235,17 @@ const text = t('dashboard') // "Dashboard" o "Dashboard"
 - Ogni chiave ha traduzione IT e EN
 - Fallback: Se IT manca, usa EN
 
+**Nuove Traduzioni (v2.1.0)**:
+- `aiKnowledge`, `aiKnowledgeLevel`, `aiKnowledgeBeginner`, `aiKnowledgeIntermediate`, `aiKnowledgeAdvanced`, `aiKnowledgeExpert`
+- `aiKnowledgeDescription*` (4 varianti per livello)
+- `viewDetails`, `completeProfileToIncreaseKnowledge`
+- `weeklyGoals`, `noGoalsThisWeek`, `goalsWillBeGenerated`, `goalCompleted`, `goalFailed`, `viewAllGoals`, `currentWeek`
+
 **Componenti con i18n**:
 - Tutte le pagine frontend
 - Assistant Chat (risposte AI in lingua utente)
 - Riassunto AI (bilingue IT/EN)
+- **AIKnowledgeBar** (componente barra conoscenza IA)
 
 ---
 
