@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { validateToken, extractBearerToken } from '../../../lib/authHelper'
 import { callOpenAIWithRetry, parseOpenAIResponse } from '../../../lib/openaiHelper'
+import { checkRateLimit, RATE_LIMIT_CONFIG } from '../../../lib/rateLimiter'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -10,8 +11,10 @@ const VALID_SECTIONS = ['player_ratings', 'team_stats', 'attack_areas', 'ball_re
 
 /**
  * Normalizza dati estratti per player_ratings
+ * @param {Object} data - Dati estratti
+ * @param {boolean|null} isHome - Se true, team1 = cliente; se false, team2 = cliente; se null, usa logica vecchia
  */
-function normalizePlayerRatings(data) {
+function normalizePlayerRatings(data, isHome = null) {
   if (!data || typeof data !== 'object') return {}
   
   const ratings = {}
@@ -44,13 +47,41 @@ function normalizePlayerRatings(data) {
           
           // Identifica se è cliente o avversario
           const team = String(playerData.team || '').toLowerCase()
-          if (team.includes('cliente') || team === 'cliente' || team === 'team1') {
-            clienteRatings[playerName] = playerRating
-          } else if (team.includes('avversario') || team === 'avversario' || team === 'opponent' || team === 'team2') {
-            avversarioRatings[playerName] = playerRating
+          
+          // Logica nuova: usa is_home se disponibile
+          if (isHome !== null && isHome !== undefined) {
+            if (team.includes('cliente') || team === 'cliente') {
+              clienteRatings[playerName] = playerRating
+            } else if (team.includes('avversario') || team === 'avversario' || team === 'opponent') {
+              avversarioRatings[playerName] = playerRating
+            } else if (team === 'team1' || team.includes('team1') || team.includes('first')) {
+              // team1 = cliente se casa, avversario se fuori
+              if (isHome) {
+                clienteRatings[playerName] = playerRating
+              } else {
+                avversarioRatings[playerName] = playerRating
+              }
+            } else if (team === 'team2' || team.includes('team2') || team.includes('second')) {
+              // team2 = avversario se casa, cliente se fuori
+              if (isHome) {
+                avversarioRatings[playerName] = playerRating
+              } else {
+                clienteRatings[playerName] = playerRating
+              }
+            } else {
+              // Fallback: metti in ratings generale
+              ratings[playerName] = playerRating
+            }
           } else {
-            // Se non specificato, metti in ratings generale (compatibilità retroattiva)
-            ratings[playerName] = playerRating
+            // Logica vecchia: usa etichette esplicite o team1/team2 (assume team1 = cliente)
+            if (team.includes('cliente') || team === 'cliente' || team === 'team1') {
+              clienteRatings[playerName] = playerRating
+            } else if (team.includes('avversario') || team === 'avversario' || team === 'opponent' || team === 'team2') {
+              avversarioRatings[playerName] = playerRating
+            } else {
+              // Se non specificato, metti in ratings generale (compatibilità retroattiva)
+              ratings[playerName] = playerRating
+            }
           }
         }
       }
@@ -179,11 +210,25 @@ function normalizeFormationStyle(data) {
 
 /**
  * Genera prompt per estrazione dati in base alla sezione
+ * @param {string} section - Sezione da estrarre
+ * @param {Object|null} userTeamInfo - Info squadra utente (logica vecchia)
+ * @param {boolean|null} isHome - Se true, team1 = cliente; se false, team2 = cliente; se null, usa logica vecchia
  */
-function getPromptForSection(section, userTeamInfo = null) {
+function getPromptForSection(section, userTeamInfo = null, isHome = null) {
   // Costruisci hint per identificare squadra cliente
   let teamHint = ''
-  if (userTeamInfo) {
+  
+  if (isHome !== null && isHome !== undefined) {
+    // Nuova logica: usa is_home
+    teamHint = `
+IDENTIFICAZIONE SQUADRA CLIENTE:
+- Il cliente ha giocato ${isHome ? 'IN CASA' : 'FUORI CASA'}
+- ${isHome ? 'La PRIMA squadra (team1) nei dati è quella del CLIENTE' : 'La SECONDA squadra (team2) nei dati è quella del CLIENTE'}
+- ${isHome ? 'La SECONDA squadra (team2) è l\'AVVERSARIO' : 'La PRIMA squadra (team1) è l\'AVVERSARIO'}
+- Per ogni giocatore, identifica se appartiene a team1 o team2 e etichetta come "cliente" o "avversario" di conseguenza
+`
+  } else if (userTeamInfo) {
+    // Vecchia logica: usa team_name
     const hints = []
     if (userTeamInfo.team_name) hints.push(`Nome squadra cliente: "${userTeamInfo.team_name}"`)
     if (userTeamInfo.favorite_team) hints.push(`Squadra preferita: "${userTeamInfo.favorite_team}"`)
@@ -344,6 +389,32 @@ export async function POST(req) {
 
     const userId = userData.user.id
 
+    // Rate limiting
+    const rateLimitConfig = RATE_LIMIT_CONFIG['/api/extract-match-data']
+    const rateLimit = await checkRateLimit(
+      userId,
+      '/api/extract-match-data',
+      rateLimitConfig.maxRequests,
+      rateLimitConfig.windowMs
+    )
+
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { 
+          error: 'Rate limit exceeded. Please try again later.', 
+          resetAt: rateLimit.resetAt 
+        },
+        { 
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': rateLimitConfig.maxRequests.toString(),
+            'X-RateLimit-Remaining': rateLimit.remaining.toString(),
+            'X-RateLimit-Reset': rateLimit.resetAt.toString()
+          }
+        }
+      )
+    }
+
     // Recupera informazioni utente per identificare squadra cliente
     const { createClient } = await import('@supabase/supabase-js')
     const supabaseClient = createClient(supabaseUrl, process.env.SUPABASE_SERVICE_ROLE_KEY, {
@@ -378,7 +449,10 @@ export async function POST(req) {
       )
     }
 
-    const { imageDataUrl, section } = await req.json()
+    const { imageDataUrl, section, is_home } = await req.json()
+    
+    // Normalizza is_home: accetta boolean o null/undefined
+    const isHome = typeof is_home === 'boolean' ? is_home : null
 
     if (!imageDataUrl || typeof imageDataUrl !== 'string') {
       return NextResponse.json(
@@ -410,8 +484,8 @@ export async function POST(req) {
       }
     }
 
-    // Genera prompt per sezione (con info utente se disponibili)
-    const prompt = getPromptForSection(section, userTeamInfo)
+    // Genera prompt per sezione (con info utente se disponibili o is_home)
+    const prompt = getPromptForSection(section, userTeamInfo, isHome)
 
     // Chiama OpenAI Vision API
     let extractedData = null
@@ -475,7 +549,7 @@ export async function POST(req) {
     let normalizedData = null
     switch (section) {
       case 'player_ratings':
-        normalizedData = normalizePlayerRatings(extractedData)
+        normalizedData = normalizePlayerRatings(extractedData, isHome)
         break
       case 'team_stats':
         normalizedData = normalizeTeamStats(extractedData)

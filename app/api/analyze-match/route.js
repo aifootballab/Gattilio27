@@ -363,17 +363,25 @@ Suggerisci di caricare le foto mancanti per un'analisi più precisa.`
     availableDataText += `\nAREE DI ATTACCO:\n`
     availableDataText += `⚠️ IMPORTANTE: Queste sono PERCENTUALI SQUADRA, NON per giocatore.\n`
     availableDataText += `- NON dire "Messi ha attaccato da sinistra" da left: 46% (è percentuale squadra)\n`
-    if (matchData.attack_areas.team1) {
+    
+    // Determina quale team è cliente in base a is_home (se match nuovo) o assume team1 = cliente (match vecchio)
+    const useIsHome = isNewMatch && matchData.is_home !== undefined && matchData.is_home !== null
+    const clientTeam = useIsHome ? (matchData.is_home ? 'team1' : 'team2') : 'team1'
+    const opponentTeam = useIsHome ? (matchData.is_home ? 'team2' : 'team1') : 'team2'
+    
+    if (matchData.attack_areas[clientTeam] || matchData.attack_areas.team1) {
+      const clientData = matchData.attack_areas[clientTeam] || matchData.attack_areas.team1
       availableDataText += `Squadra Cliente:\n`
-      availableDataText += `- Sinistra: ${matchData.attack_areas.team1.left || 0}% (squadra)\n`
-      availableDataText += `- Centro: ${matchData.attack_areas.team1.center || 0}% (squadra)\n`
-      availableDataText += `- Destra: ${matchData.attack_areas.team1.right || 0}% (squadra)\n`
+      availableDataText += `- Sinistra: ${clientData.left || 0}% (squadra)\n`
+      availableDataText += `- Centro: ${clientData.center || 0}% (squadra)\n`
+      availableDataText += `- Destra: ${clientData.right || 0}% (squadra)\n`
     }
-    if (matchData.attack_areas.team2) {
+    if (matchData.attack_areas[opponentTeam] || matchData.attack_areas.team2) {
+      const opponentData = matchData.attack_areas[opponentTeam] || matchData.attack_areas.team2
       availableDataText += `Avversario:\n`
-      availableDataText += `- Sinistra: ${matchData.attack_areas.team2.left || 0}% (squadra)\n`
-      availableDataText += `- Centro: ${matchData.attack_areas.team2.center || 0}% (squadra)\n`
-      availableDataText += `- Destra: ${matchData.attack_areas.team2.right || 0}% (squadra)\n`
+      availableDataText += `- Sinistra: ${opponentData.left || 0}% (squadra)\n`
+      availableDataText += `- Centro: ${opponentData.center || 0}% (squadra)\n`
+      availableDataText += `- Destra: ${opponentData.right || 0}% (squadra)\n`
     }
   } else {
     availableDataText += '- Aree di Attacco: Non disponibile\n'
@@ -382,11 +390,21 @@ Suggerisci di caricare le foto mancanti per un'analisi più precisa.`
   // ✅ FIX: Includi dati effettivi ball_recovery_zones (coordinate)
   if (matchData.ball_recovery_zones && Array.isArray(matchData.ball_recovery_zones) && matchData.ball_recovery_zones.length > 0) {
     availableDataText += `\nZONE RECUPERO PALLA (${matchData.ball_recovery_zones.length} zone):\n`
+    
+    // Determina quale team è cliente in base a is_home (se match nuovo) o assume team1 = cliente (match vecchio)
+    const useIsHome = isNewMatch && matchData.is_home !== undefined && matchData.is_home !== null
+    const clientTeamLabel = useIsHome ? (matchData.is_home ? 'team1' : 'team2') : 'team1'
+    
     matchData.ball_recovery_zones.slice(0, 10).forEach((zone, idx) => {
-      const team = zone.team === 'team1' || zone.team === 'cliente' ? 'Cliente' : 'Avversario'
+      let teamLabel = 'Avversario'
+      if (zone.team === 'cliente') {
+        teamLabel = 'Cliente'
+      } else if (zone.team === clientTeamLabel || (zone.team === 'team1' && !useIsHome)) {
+        teamLabel = 'Cliente'
+      }
       const x = typeof zone.x === 'number' ? zone.x.toFixed(2) : zone.x || 'N/A'
       const y = typeof zone.y === 'number' ? zone.y.toFixed(2) : zone.y || 'N/A'
-      availableDataText += `- Zona ${idx + 1}: ${team} (x: ${x}, y: ${y})\n`
+      availableDataText += `- Zona ${idx + 1}: ${teamLabel} (x: ${x}, y: ${y})\n`
     })
     if (matchData.ball_recovery_zones.length > 10) {
       availableDataText += `... e altre ${matchData.ball_recovery_zones.length - 10} zone\n`
@@ -625,8 +643,31 @@ Suggerisci di caricare le foto mancanti per un'analisi più precisa.`
   }
   
   // Identifica squadra cliente e avversario
-  const clientTeamName = userProfile?.team_name || matchData.client_team_name || null
-  const clientTeamText = clientTeamName ? `\nSQUADRA CLIENTE: ${clientTeamName}\n` : `\nSQUADRA CLIENTE: Identifica quale squadra è quella del cliente confrontando i nomi squadra nei dati match.\n`
+  // Data implementazione campo is_home nel wizard (27 Gennaio 2026)
+  const IS_HOME_IMPLEMENTATION_DATE = new Date('2026-01-27T00:00:00Z')
+  
+  // Determina se match è vecchio o nuovo (basato su timestamp)
+  const matchDate = matchData.match_date 
+    ? new Date(matchData.match_date) 
+    : new Date()
+  const isNewMatch = matchDate >= IS_HOME_IMPLEMENTATION_DATE
+  
+  // Logica identificazione squadra cliente
+  let clientTeamText = ''
+  if (isNewMatch && matchData.is_home !== undefined && matchData.is_home !== null) {
+    // Match nuovo: usa logica is_home
+    const isHome = matchData.is_home === true
+    clientTeamText = isHome
+      ? `\nSQUADRA CLIENTE: La PRIMA squadra (team1) nei dati è quella del CLIENTE (hai giocato in casa).\n`
+      : `\nSQUADRA CLIENTE: La SECONDA squadra (team2) nei dati è quella del CLIENTE (hai giocato fuori casa).\n`
+  } else {
+    // Match vecchio: usa logica client_team_name (backward compatibility)
+    const clientTeamName = userProfile?.team_name || matchData.client_team_name || null
+    clientTeamText = clientTeamName
+      ? `\nSQUADRA CLIENTE: ${clientTeamName}\n`
+      : `\nSQUADRA CLIENTE: Identifica quale squadra è quella del cliente confrontando i nomi squadra nei dati match.\n`
+  }
+  
   const opponentName = matchData.opponent_name && typeof matchData.opponent_name === 'string' ? String(matchData.opponent_name).trim() : null
   const opponentNameText = opponentName ? `\nAVVERSARIO: ${opponentName}\n` : ''
 
@@ -874,6 +915,14 @@ export async function POST(req) {
     
     if (!matchData || typeof matchData !== 'object') {
       return NextResponse.json({ error: 'matchData is required' }, { status: 400 })
+    }
+
+    // Validazione match ID se presente (deve essere UUID)
+    if (matchData.id && typeof matchData.id === 'string') {
+      const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+      if (!UUID_REGEX.test(matchData.id)) {
+        return NextResponse.json({ error: 'Invalid match ID format' }, { status: 400 })
+      }
     }
 
     // Recupera dati contestuali per analisi completa (profilo, rosa, formazione avversaria, storico)

@@ -225,8 +225,8 @@ export default function GestioneFormazionePage() {
     
     // Centrocampo: y tra 40-60
     if (y >= 40 && y <= 60) {
-      if (x < 30) return 'ESA'  // Esterno sinistro (sinistra campo)
-      if (x > 70) return 'EDE'  // Esterno destro (destra campo)
+      if (x < 30) return 'CLS'  // Centrocampista laterale sinistro (sinistra campo)
+      if (x > 70) return 'CLD'  // Centrocampista laterale destro (destra campo)
       // CC (Centrocampista Centrale): laterale destra in centrocampo (x: 55-65, y: 48-52)
       if (x >= 55 && x <= 65 && y >= 48 && y <= 52) return 'CC'  // Centrocampista centrale laterale
       // TRQ (Trequartista): centrocampo avanzato (y: 40-50, x: 35-65, escludendo centro esatto)
@@ -237,8 +237,8 @@ export default function GestioneFormazionePage() {
     
     // Attacco: y < 40
     if (y < 40) {
-      if (x < 30) return 'CLS'  // Ala sinistra (sinistra campo)
-      if (x > 70) return 'CLD'  // Ala destra (destra campo)
+      if (x < 30) return 'ESA'  // Estremo sinistro avanzato / Ala sinistra (sinistra campo)
+      if (x > 70) return 'EDE'  // Estremo destro avanzato / Ala destra (destra campo)
       // TRQ (Trequartista): può essere in attacco avanzato (y: 30-40, x: 30-70)
       // Ma esclude centro esatto (x: 48-52) in y: 30-31 per evitare conflitti con CF centrale
       if (y >= 30 && y <= 40 && x >= 30 && x <= 70) {

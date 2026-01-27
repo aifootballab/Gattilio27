@@ -33,6 +33,7 @@ export default function NewMatchPage() {
   const [mounted, setMounted] = React.useState(false)
   const [showSummary, setShowSummary] = React.useState(false)
   const [opponentName, setOpponentName] = React.useState('')
+  const [isHome, setIsHome] = React.useState(true) // Default: Casa
 
   // Carica progresso salvato al mount
   React.useEffect(() => {
@@ -45,6 +46,9 @@ export default function NewMatchPage() {
         setStepImages(parsed.stepImages || {})
         if (parsed.opponentName) {
           setOpponentName(parsed.opponentName)
+        }
+        if (parsed.isHome !== undefined) {
+          setIsHome(parsed.isHome)
         }
         // Trova primo step senza dati
         const firstEmptyStep = STEPS.findIndex(step => !parsed.stepData?.[step.id])
@@ -64,18 +68,19 @@ export default function NewMatchPage() {
         stepData,
         stepImages,
         opponentName: opponentName || undefined,
+        isHome: isHome,
         timestamp: Date.now()
       }))
     } catch (err) {
       console.warn('[NewMatch] Error saving progress:', err)
     }
-  }, [stepData, stepImages, opponentName])
+  }, [stepData, stepImages, opponentName, isHome])
 
   React.useEffect(() => {
     if (mounted) {
       saveProgress()
     }
-  }, [stepData, stepImages, opponentName, mounted, saveProgress])
+  }, [stepData, stepImages, opponentName, isHome, mounted, saveProgress])
 
   // Pulisci localStorage dopo salvataggio riuscito
   const clearProgress = () => {
@@ -136,7 +141,8 @@ export default function NewMatchPage() {
         },
         body: JSON.stringify({
           imageDataUrl,
-          section
+          section,
+          is_home: isHome
         })
       })
 
@@ -227,6 +233,11 @@ export default function NewMatchPage() {
       setError(t('loadAtLeastOneSection'))
       return
     }
+    // Verifica che isHome sia definito (boolean)
+    if (typeof isHome !== 'boolean') {
+      setError(t('homeAwayLabel') + ' - ' + t('required'))
+      return
+    }
     setShowSummary(true)
     setError(null)
   }
@@ -264,6 +275,7 @@ export default function NewMatchPage() {
       const matchData = {
         result: matchResult,
         opponent_name: opponentName.trim() || null,
+        is_home: isHome, // Campo Casa/Fuori Casa
         player_ratings: stepData.player_ratings || null,
         team_stats: stepData.team_stats || null,
         attack_areas: stepData.attack_areas || null,
@@ -803,6 +815,75 @@ export default function NewMatchPage() {
                 <span><strong>{t('resultExtracted')}:</strong> {extractedResult}</span>
               </div>
             )}
+
+            {/* Campo Casa/Fuori Casa - Obbligatorio */}
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: 600,
+                color: 'var(--neon-blue)',
+                marginBottom: '8px'
+              }}>
+                {t('homeAwayLabel')} <span style={{ opacity: 0.6, fontWeight: 400 }}>({t('required')})</span>
+              </label>
+              <div style={{
+                display: 'flex',
+                gap: '12px',
+                marginBottom: '8px'
+              }}>
+                <button
+                  type="button"
+                  onClick={() => setIsHome(true)}
+                  style={{
+                    flex: 1,
+                    padding: '12px',
+                    background: isHome
+                      ? 'rgba(0, 212, 255, 0.3)'
+                      : 'rgba(0, 212, 255, 0.1)',
+                    border: `1px solid ${isHome ? 'rgba(0, 212, 255, 0.6)' : 'rgba(0, 212, 255, 0.3)'}`,
+                    borderRadius: '8px',
+                    color: '#00d4ff',
+                    fontSize: '14px',
+                    fontWeight: isHome ? 600 : 400,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    boxShadow: isHome ? '0 0 10px rgba(0, 212, 255, 0.3)' : 'none'
+                  }}
+                >
+                  🏠 {t('home')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsHome(false)}
+                  style={{
+                    flex: 1,
+                    padding: '12px',
+                    background: !isHome
+                      ? 'rgba(0, 212, 255, 0.3)'
+                      : 'rgba(0, 212, 255, 0.1)',
+                    border: `1px solid ${!isHome ? 'rgba(0, 212, 255, 0.6)' : 'rgba(0, 212, 255, 0.3)'}`,
+                    borderRadius: '8px',
+                    color: '#00d4ff',
+                    fontSize: '14px',
+                    fontWeight: !isHome ? 600 : 400,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    boxShadow: !isHome ? '0 0 10px rgba(0, 212, 255, 0.3)' : 'none'
+                  }}
+                >
+                  ✈️ {t('away')}
+                </button>
+              </div>
+              <div style={{
+                fontSize: '12px',
+                opacity: 0.7,
+                marginTop: '4px',
+                color: '#00d4ff'
+              }}>
+                {t('homeAwayHint')}
+              </div>
+            </div>
 
             {/* Campo Nome Avversario - Opzionale */}
             <div style={{ marginBottom: '16px' }}>

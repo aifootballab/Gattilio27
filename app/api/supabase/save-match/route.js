@@ -289,6 +289,18 @@ export async function POST(req) {
       return NextResponse.json({ error: 'matchData is required' }, { status: 400 })
     }
 
+    // Validazione dimensione dati (prevenire payload troppo grandi)
+    const matchDataString = JSON.stringify(matchData)
+    const maxSizeBytes = 5 * 1024 * 1024 // 5MB max
+    if (matchDataString.length > maxSizeBytes) {
+      return NextResponse.json({ error: 'Match data too large (max 5MB)' }, { status: 400 })
+    }
+
+    // Validazione is_home se presente
+    if (matchData.is_home !== undefined && typeof matchData.is_home !== 'boolean') {
+      return NextResponse.json({ error: 'is_home must be a boolean' }, { status: 400 })
+    }
+
     // Validazione: almeno una sezione deve avere dati
     const photosUploaded = calculatePhotosUploaded(matchData)
     if (photosUploaded === 0) {
