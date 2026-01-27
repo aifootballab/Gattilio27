@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { validateToken, extractBearerToken } from '../../../../lib/authHelper'
 import { checkRateLimit } from '../../../../lib/rateLimiter'
-import { getCurrentWeek } from '../../../../lib/taskHelper'
+import { getCurrentWeek, generateWeeklyTasksForUser } from '../../../../lib/taskHelper'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -86,7 +86,7 @@ export async function GET(request) {
       }
     })
 
-    const { data: tasks, error: tasksError } = await supabase
+    let { data: tasks, error: tasksError } = await supabase
       .from('weekly_goals')
       .select('*')
       .eq('user_id', user_id)
@@ -98,7 +98,65 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Failed to fetch tasks' }, { status: 500 })
     }
 
-    // 5. Restituisci task
+    // 5. Auto-generazione task: se non ci sono per la settimana corrente, generali
+    const currentWeek = getCurrentWeek()
+    const isCurrentWeek = weekStartDate === currentWeek.start
+    const today = new Date()
+    const dayOfWeek = today.getDay() // 0 = Domenica, 1 = Lunedì, ..., 6 = Sabato
+    const isSunday = dayOfWeek === 0
+
+    if (isCurrentWeek) {
+      const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+      if (serviceKey) {
+        try {
+          // Se è domenica, elimina task vecchi e genera nuovi per la prossima settimana
+          if (isSunday && tasks && tasks.length > 0) {
+            const admin = createClient(supabaseUrl, serviceKey, {
+              auth: { autoRefreshToken: false, persistSession: false }
+            })
+            
+            // Elimina task vecchi della settimana corrente
+            await admin
+              .from('weekly_goals')
+              .delete()
+              .eq('user_id', user_id)
+              .eq('week_start_date', weekStartDate)
+            
+            tasks = [] // Reset per rigenerare
+          }
+          
+          // Se non ci sono task (o sono stati eliminati), generali
+          if (!tasks || tasks.length === 0) {
+            console.log(`[tasks/list] Auto-generating tasks for week ${weekStartDate}`)
+            const generatedTasks = await generateWeeklyTasksForUser(
+              user_id,
+              supabaseUrl,
+              serviceKey,
+              currentWeek
+            )
+            
+            // Se generati, recuperali di nuovo
+            if (generatedTasks && generatedTasks.length > 0) {
+              const { data: newTasks, error: fetchError } = await supabase
+                .from('weekly_goals')
+                .select('*')
+                .eq('user_id', user_id)
+                .eq('week_start_date', weekStartDate)
+                .order('created_at', { ascending: true })
+              
+              if (!fetchError && newTasks) {
+                tasks = newTasks
+              }
+            }
+          }
+        } catch (genError) {
+          console.error('[tasks/list] Error auto-generating tasks:', genError)
+          // Non bloccare, restituisci task esistenti o array vuoto
+        }
+      }
+    }
+
+    // 6. Restituisci task
     return NextResponse.json({
       success: true,
       tasks: tasks || [],
