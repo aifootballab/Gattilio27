@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { validateToken, extractBearerToken } from '../../../../lib/authHelper'
+import { checkRateLimit, RATE_LIMIT_CONFIG } from '../../../../lib/rateLimiter'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -27,6 +28,32 @@ export async function DELETE(req) {
     }
 
     const userId = userData.user.id
+
+    // Rate limiting
+    const rateLimitConfig = RATE_LIMIT_CONFIG['/api/supabase/delete-player']
+    const rateLimit = await checkRateLimit(
+      userId,
+      '/api/supabase/delete-player',
+      rateLimitConfig.maxRequests,
+      rateLimitConfig.windowMs
+    )
+
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { 
+          error: 'Rate limit exceeded. Please try again later.',
+          resetAt: rateLimit.resetAt
+        },
+        { 
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': rateLimitConfig.maxRequests.toString(),
+            'X-RateLimit-Remaining': rateLimit.remaining.toString(),
+            'X-RateLimit-Reset': rateLimit.resetAt.toString()
+          }
+        }
+      )
+    }
     
     // Leggi body - Next.js DELETE può avere body JSON
     let player_id
@@ -92,6 +119,12 @@ export async function DELETE(req) {
       success: true,
       player_id: playerIdStr,
       player_name: player.player_name
+    }, {
+      headers: {
+        'X-RateLimit-Limit': rateLimitConfig.maxRequests.toString(),
+        'X-RateLimit-Remaining': rateLimit.remaining.toString(),
+        'X-RateLimit-Reset': rateLimit.resetAt.toString()
+      }
     })
   } catch (err) {
     console.error('[delete-player] Error:', err)
