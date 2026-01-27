@@ -528,10 +528,24 @@ export async function POST(req) {
     console.log(`[update-match] Final photos_uploaded: ${updatedMatch.photos_uploaded}`)
 
     // Calcola e aggiorna pattern tattici (on-demand dopo update match)
+    // DOPO che i pattern sono salvati, aggiorna AI Knowledge Score (sequenziale per evitare race condition)
     // Non blocchiamo la risposta se fallisce (non critico)
-    calculateTacticalPatterns(admin, userId).catch(err => {
-      console.error('[update-match] Failed to calculate tactical patterns (non-blocking):', err)
-    })
+    calculateTacticalPatterns(admin, userId)
+      .then(() => {
+        // Pattern salvati, ora aggiorna AI Knowledge Score
+        if (supabaseUrl && serviceKey) {
+          import('../../../../lib/aiKnowledgeHelper').then(({ updateAIKnowledgeScore }) => {
+            updateAIKnowledgeScore(userId, supabaseUrl, serviceKey).catch(err => {
+              console.error('[update-match] Failed to update AI knowledge score (non-blocking):', err)
+            })
+          }).catch(err => {
+            console.error('[update-match] Failed to import aiKnowledgeHelper (non-blocking):', err)
+          })
+        }
+      })
+      .catch(err => {
+        console.error('[update-match] Failed to calculate tactical patterns (non-blocking):', err)
+      })
 
     return NextResponse.json({
       success: true,

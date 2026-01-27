@@ -422,21 +422,24 @@ export async function POST(req) {
     console.log(`[save-match] Match saved successfully: ${savedMatch.id}`)
 
     // Calcola e aggiorna pattern tattici (on-demand dopo salvataggio match)
+    // DOPO che i pattern sono salvati, aggiorna AI Knowledge Score (sequenziale per evitare race condition)
     // Non blocchiamo la risposta se fallisce (non critico)
-    calculateTacticalPatterns(admin, userId).catch(err => {
-      console.error('[save-match] Failed to calculate tactical patterns (non-blocking):', err)
-    })
-
-    // Aggiorna AI Knowledge Score (async, non blocca risposta)
-    if (supabaseUrl && serviceKey) {
-      import('../../../../lib/aiKnowledgeHelper').then(({ updateAIKnowledgeScore }) => {
-        updateAIKnowledgeScore(userId, supabaseUrl, serviceKey).catch(err => {
-          console.error('[save-match] Failed to update AI knowledge score (non-blocking):', err)
-        })
-      }).catch(err => {
-        console.error('[save-match] Failed to import aiKnowledgeHelper (non-blocking):', err)
+    calculateTacticalPatterns(admin, userId)
+      .then(() => {
+        // Pattern salvati, ora aggiorna AI Knowledge Score
+        if (supabaseUrl && serviceKey) {
+          import('../../../../lib/aiKnowledgeHelper').then(({ updateAIKnowledgeScore }) => {
+            updateAIKnowledgeScore(userId, supabaseUrl, serviceKey).catch(err => {
+              console.error('[save-match] Failed to update AI knowledge score (non-blocking):', err)
+            })
+          }).catch(err => {
+            console.error('[save-match] Failed to import aiKnowledgeHelper (non-blocking):', err)
+          })
+        }
       })
-    }
+      .catch(err => {
+        console.error('[save-match] Failed to calculate tactical patterns (non-blocking):', err)
+      })
 
     // Aggiorna progresso Task settimanali (async, non blocca risposta) ⭐ NUOVO
     if (supabaseUrl && serviceKey) {
