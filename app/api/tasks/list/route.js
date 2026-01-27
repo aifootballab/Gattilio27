@@ -128,25 +128,37 @@ export async function GET(request) {
           // Se non ci sono task (o sono stati eliminati), generali
           if (!tasks || tasks.length === 0) {
             console.log(`[tasks/list] Auto-generating tasks for week ${weekStartDate}`)
-            const generatedTasks = await generateWeeklyTasksForUser(
-              user_id,
-              supabaseUrl,
-              serviceKey,
-              currentWeek
-            )
-            
-            // Se generati, recuperali di nuovo
-            if (generatedTasks && generatedTasks.length > 0) {
-              const { data: newTasks, error: fetchError } = await supabase
-                .from('weekly_goals')
-                .select('*')
-                .eq('user_id', user_id)
-                .eq('week_start_date', weekStartDate)
-                .order('created_at', { ascending: true })
+            try {
+              const generatedTasks = await generateWeeklyTasksForUser(
+                user_id,
+                supabaseUrl,
+                serviceKey,
+                currentWeek
+              )
               
-              if (!fetchError && newTasks) {
-                tasks = newTasks
+              console.log(`[tasks/list] Generated ${generatedTasks?.length || 0} tasks`)
+              
+              // Se generati, recuperali di nuovo
+              if (generatedTasks && generatedTasks.length > 0) {
+                const { data: newTasks, error: fetchError } = await supabase
+                  .from('weekly_goals')
+                  .select('*')
+                  .eq('user_id', user_id)
+                  .eq('week_start_date', weekStartDate)
+                  .order('created_at', { ascending: true })
+                
+                if (!fetchError && newTasks) {
+                  tasks = newTasks
+                  console.log(`[tasks/list] Successfully retrieved ${tasks.length} tasks`)
+                } else {
+                  console.error('[tasks/list] Error fetching generated tasks:', fetchError)
+                }
+              } else {
+                console.warn('[tasks/list] No tasks generated, user might not have enough data')
               }
+            } catch (genErr) {
+              console.error('[tasks/list] Error in generateWeeklyTasksForUser:', genErr)
+              // Non bloccare, continua con array vuoto
             }
           }
         } catch (genError) {
