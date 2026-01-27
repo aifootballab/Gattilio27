@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { useTranslation } from '@/lib/i18n'
 import LanguageSwitch from '@/components/LanguageSwitch'
+import AIKnowledgeBar from '@/components/AIKnowledgeBar'
 import { 
   LayoutDashboard, 
   Users, 
@@ -350,6 +351,9 @@ export default function DashboardPage() {
           {error}
         </div>
       )}
+
+      {/* AI Knowledge Bar */}
+      <AIKnowledgeBar />
 
       {/* Grid Layout */}
       <div style={{ 

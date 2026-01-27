@@ -213,6 +213,17 @@ export async function POST(req) {
       }
     })
 
+    // Aggiorna AI Knowledge Score (async, non blocca risposta)
+    if (supabaseUrl && serviceKey) {
+      import('../../../../lib/aiKnowledgeHelper').then(({ updateAIKnowledgeScore }) => {
+        updateAIKnowledgeScore(userId, supabaseUrl, serviceKey).catch(err => {
+          console.error('[save-profile] Failed to update AI knowledge score (non-blocking):', err)
+        })
+      }).catch(err => {
+        console.error('[save-profile] Failed to import aiKnowledgeHelper (non-blocking):', err)
+      })
+    }
+
   } catch (error) {
     console.error('[save-profile] Unexpected error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

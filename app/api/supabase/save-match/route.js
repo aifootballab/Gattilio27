@@ -427,6 +427,17 @@ export async function POST(req) {
       console.error('[save-match] Failed to calculate tactical patterns (non-blocking):', err)
     })
 
+    // Aggiorna AI Knowledge Score (async, non blocca risposta)
+    if (supabaseUrl && serviceKey) {
+      import('../../../../lib/aiKnowledgeHelper').then(({ updateAIKnowledgeScore }) => {
+        updateAIKnowledgeScore(userId, supabaseUrl, serviceKey).catch(err => {
+          console.error('[save-match] Failed to update AI knowledge score (non-blocking):', err)
+        })
+      }).catch(err => {
+        console.error('[save-match] Failed to import aiKnowledgeHelper (non-blocking):', err)
+      })
+    }
+
     return NextResponse.json({
       success: true,
       match: savedMatch,
