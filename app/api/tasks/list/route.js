@@ -146,6 +146,7 @@ export async function GET(request) {
               
               if (!generatedTasks || generatedTasks.length === 0) {
                 console.warn(`[tasks/list] generateWeeklyTasksForUser returned empty array - this might indicate an issue`)
+                console.warn(`[tasks/list] User ${userData?.user?.email || user_id} might not have enough data for personalized tasks, but should still get generic tasks`)
               }
               
               // Se generati, recuperali di nuovo (usa admin per bypassare RLS temporaneamente per debug)
@@ -187,9 +188,14 @@ export async function GET(request) {
                 }
               } else {
                 console.warn('[tasks/list] No tasks generated, user might not have enough data')
+                // Se non ci sono task generati, dovrebbe comunque esserci almeno 3 task generici
+                // Questo indica un problema nella logica di generazione
+                console.error(`[tasks/list] CRITICAL: generateWeeklyTasksForUser returned empty array for user ${user_id} (${userData?.user?.email || 'unknown'})`)
+                console.error('[tasks/list] This should never happen - even users with no data should get 3 generic tasks')
               }
             } catch (genErr) {
               console.error('[tasks/list] Error in generateWeeklyTasksForUser:', genErr)
+              console.error('[tasks/list] Error stack:', genErr.stack)
               // Non bloccare, continua con array vuoto
             }
           }
