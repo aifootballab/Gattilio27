@@ -36,14 +36,15 @@ export async function GET(request) {
 
     const user_id = userData.user.id
 
-    // 2. Rate limiting
-    const rateLimit = checkRateLimit(user_id, '/api/tasks/list')
-    if (!rateLimit.allowed) {
-      return NextResponse.json(
-        { error: 'Rate limit exceeded', resetAt: rateLimit.resetAt },
-        { status: 429 }
-      )
-    }
+    // 2. Rate limiting (solo per endpoint pesanti, lettura task è leggera)
+    // Per ora disabilitato per /api/tasks/list (endpoint leggero, solo lettura)
+    // const rateLimit = checkRateLimit(user_id, '/api/tasks/list')
+    // if (!rateLimit.allowed) {
+    //   return NextResponse.json(
+    //     { error: 'Rate limit exceeded', resetAt: rateLimit.resetAt },
+    //     { status: 429 }
+    //   )
+    // }
 
     // 3. Parametri query
     const { searchParams } = new URL(request.url)
@@ -103,11 +104,6 @@ export async function GET(request) {
       tasks: tasks || [],
       week_start_date: weekStartDate,
       count: tasks?.length || 0
-    }, {
-      headers: {
-        'X-RateLimit-Remaining': rateLimit.remaining.toString(),
-        'X-RateLimit-Reset': rateLimit.resetAt.toISOString()
-      }
     })
   } catch (error) {
     console.error('[tasks/list] Error:', error)

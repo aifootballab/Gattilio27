@@ -12,8 +12,10 @@ export default function TaskWidget() {
   const [error, setError] = useState(null)
 
   useEffect(() => {
+    // Chiama solo una volta al mount
     fetchTasks()
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Array vuoto = solo al mount
 
   const fetchTasks = async () => {
     try {
