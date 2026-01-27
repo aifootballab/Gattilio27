@@ -104,42 +104,70 @@ export async function GET(request) {
 
     // 5. Auto-generazione task: se non ci sono per la settimana corrente, generali
     const currentWeek = getCurrentWeek()
-    const isCurrentWeek = weekStartDate === currentWeek.start
     const today = new Date()
     const dayOfWeek = today.getDay() // 0 = Domenica, 1 = Lunedì, ..., 6 = Sabato
     const isSunday = dayOfWeek === 0
     
-    console.log(`[tasks/list] Current week: ${currentWeek.start}, Requested week: ${weekStartDate}, isCurrentWeek: ${isCurrentWeek}`)
+    // Se è domenica, calcola la PROSSIMA settimana (non quella corrente)
+    let targetWeek = currentWeek
+    if (isSunday) {
+      // Calcola prossima settimana (lunedì prossimo)
+      const nextMonday = new Date(today)
+      nextMonday.setDate(nextMonday.getDate() + 1) // Lunedì prossimo
+      nextMonday.setHours(0, 0, 0, 0)
+      
+      const nextSunday = new Date(nextMonday)
+      nextSunday.setDate(nextSunday.getDate() + 6)
+      nextSunday.setHours(23, 59, 59, 999)
+      
+      targetWeek = {
+        start: nextMonday.toISOString().split('T')[0],
+        end: nextSunday.toISOString().split('T')[0]
+      }
+    }
+    
+    const isCurrentWeek = weekStartDate === currentWeek.start
+    const isTargetWeek = weekStartDate === targetWeek.start
+    
+    console.log(`[tasks/list] Today: ${today.toISOString().split('T')[0]}, Day: ${dayOfWeek} (${isSunday ? 'Sunday' : 'Not Sunday'})`)
+    console.log(`[tasks/list] Current week: ${currentWeek.start}, Target week: ${targetWeek.start}, Requested week: ${weekStartDate}`)
+    console.log(`[tasks/list] isCurrentWeek: ${isCurrentWeek}, isTargetWeek: ${isTargetWeek}`)
 
-    if (isCurrentWeek) {
+    // Genera task se:
+    // 1. È la settimana corrente (non domenica) O
+    // 2. È domenica e stiamo richiedendo la prossima settimana
+    if (isCurrentWeek || (isSunday && isTargetWeek)) {
       const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
       if (serviceKey) {
         try {
-          // Se è domenica, elimina task vecchi e genera nuovi per la prossima settimana
-          if (isSunday && tasks && tasks.length > 0) {
+          // Se è domenica, elimina task vecchi della settimana corrente (quella che sta finendo)
+          if (isSunday && tasks && tasks.length > 0 && weekStartDate === currentWeek.start) {
+            console.log(`[tasks/list] Sunday detected: cleaning up tasks for ending week ${currentWeek.start}`)
             const admin = createClient(supabaseUrl, serviceKey, {
               auth: { autoRefreshToken: false, persistSession: false }
             })
             
-            // Elimina task vecchi della settimana corrente
+            // Elimina task vecchi della settimana corrente (quella che sta finendo)
             await admin
               .from('weekly_goals')
               .delete()
               .eq('user_id', user_id)
-              .eq('week_start_date', weekStartDate)
+              .eq('week_start_date', currentWeek.start)
             
             tasks = [] // Reset per rigenerare
           }
           
           // Se non ci sono task (o sono stati eliminati), generali
+          // Usa targetWeek (prossima settimana se domenica, altrimenti corrente)
           if (!tasks || tasks.length === 0) {
-            console.log(`[tasks/list] Auto-generating tasks for user ${user_id} (${userData?.user?.email || 'unknown'}), week ${weekStartDate}`)
+            const weekToGenerate = isSunday ? targetWeek : currentWeek
+            console.log(`[tasks/list] Auto-generating tasks for user ${user_id} (${userData?.user?.email || 'unknown'}), week ${weekToGenerate.start}`)
             try {
               const generatedTasks = await generateWeeklyTasksForUser(
                 user_id,
                 supabaseUrl,
                 serviceKey,
-                currentWeek
+                weekToGenerate
               )
               
               console.log(`[tasks/list] generateWeeklyTasksForUser returned ${generatedTasks?.length || 0} tasks`)
@@ -176,7 +204,7 @@ export async function GET(request) {
                     .from('weekly_goals')
                     .select('*')
                     .eq('user_id', user_id)
-                    .eq('week_start_date', weekStartDate)
+                    .eq('week_start_date', weekToFetch)
                     .order('created_at', { ascending: true })
                   
                   if (!adminError && adminTasks && adminTasks.length > 0) {
