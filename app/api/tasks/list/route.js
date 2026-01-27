@@ -100,6 +100,7 @@ export async function GET(request) {
     }
     
     console.log(`[tasks/list] Found ${tasks?.length || 0} existing tasks for user ${user_id}, week ${weekStartDate}`)
+    console.log(`[tasks/list] User email: ${userData?.user?.email || 'unknown'}`)
 
     // 5. Auto-generazione task: se non ci sono per la settimana corrente, generali
     const currentWeek = getCurrentWeek()
@@ -107,6 +108,8 @@ export async function GET(request) {
     const today = new Date()
     const dayOfWeek = today.getDay() // 0 = Domenica, 1 = Lunedì, ..., 6 = Sabato
     const isSunday = dayOfWeek === 0
+    
+    console.log(`[tasks/list] Current week: ${currentWeek.start}, Requested week: ${weekStartDate}, isCurrentWeek: ${isCurrentWeek}`)
 
     if (isCurrentWeek) {
       const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -130,7 +133,7 @@ export async function GET(request) {
           
           // Se non ci sono task (o sono stati eliminati), generali
           if (!tasks || tasks.length === 0) {
-            console.log(`[tasks/list] Auto-generating tasks for week ${weekStartDate}`)
+            console.log(`[tasks/list] Auto-generating tasks for user ${user_id} (${userData?.user?.email || 'unknown'}), week ${weekStartDate}`)
             try {
               const generatedTasks = await generateWeeklyTasksForUser(
                 user_id,
@@ -139,7 +142,11 @@ export async function GET(request) {
                 currentWeek
               )
               
-              console.log(`[tasks/list] Generated ${generatedTasks?.length || 0} tasks`)
+              console.log(`[tasks/list] generateWeeklyTasksForUser returned ${generatedTasks?.length || 0} tasks`)
+              
+              if (!generatedTasks || generatedTasks.length === 0) {
+                console.warn(`[tasks/list] generateWeeklyTasksForUser returned empty array - this might indicate an issue`)
+              }
               
               // Se generati, recuperali di nuovo (usa admin per bypassare RLS temporaneamente per debug)
               if (generatedTasks && generatedTasks.length > 0) {
