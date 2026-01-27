@@ -2506,6 +2506,33 @@ function SlotCard({ slot, onClick, onRemove, isEditMode = false, onPositionChang
     return name.substring(0, 10) + '...'
   }
 
+  // Calcola colore bordo basato su completamento profilazione
+  function getProfileBorderColor(photoSlots) {
+    if (!photoSlots || typeof photoSlots !== 'object') {
+      return 'rgba(239, 68, 68, 0.8)' // Rosso: nessun dato
+    }
+    
+    const hasCard = photoSlots.card === true
+    const hasStats = photoSlots.statistiche === true
+    const hasSkills = photoSlots.abilita === true || photoSlots.booster === true
+    
+    const count = [hasCard, hasStats, hasSkills].filter(Boolean).length
+    
+    if (count === 3) {
+      return 'rgba(34, 197, 94, 0.8)'      // Verde: completo (3/3)
+    }
+    if (count === 2) {
+      return 'rgba(251, 191, 36, 0.8)'      // Giallo/Arancione: parziale (2/3)
+    }
+    return 'rgba(239, 68, 68, 0.8)'        // Rosso: incompleto (0-1/3)
+  }
+
+  // Calcola colore hover (stesso colore, opacità maggiore)
+  function getProfileBorderColorHover(photoSlots) {
+    const baseColor = getProfileBorderColor(photoSlots)
+    return baseColor.replace('0.8', '1.0').replace('0.6', '1.0')
+  }
+
   // Handler unificato per mouse e touch
   const handlePointerStart = (e) => {
     if (!isEditMode || !player) return
@@ -2599,6 +2626,15 @@ function SlotCard({ slot, onClick, onRemove, isEditMode = false, onPositionChang
     }
   }
 
+  // Calcola colori bordo basati su profilazione
+  const profileBorderColor = isEmpty 
+    ? 'rgba(148, 163, 184, 0.5)'  // Grigio per slot vuoto
+    : getProfileBorderColor(player.photo_slots)
+
+  const profileBorderColorHover = isEmpty
+    ? 'rgba(148, 163, 184, 0.7)'
+    : getProfileBorderColorHover(player.photo_slots)
+
   return (
     <div
       onClick={!isEditMode ? onClick : undefined}
@@ -2613,9 +2649,7 @@ function SlotCard({ slot, onClick, onRemove, isEditMode = false, onPositionChang
         background: isEmpty 
           ? 'rgba(15, 23, 42, 0.85)' 
           : 'rgba(59, 130, 246, 0.75)',
-        border: isEmpty 
-          ? '1.5px solid rgba(148, 163, 184, 0.5)' 
-          : '1.5px solid rgba(147, 51, 234, 0.8)',
+        border: `1.5px solid ${profileBorderColor}`,
         borderRadius: '20px',
         cursor: isEditMode && player ? 'move' : 'pointer',
         transition: isDragging ? 'none' : 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
@@ -2640,9 +2674,7 @@ function SlotCard({ slot, onClick, onRemove, isEditMode = false, onPositionChang
           ? '0 6px 20px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.1)'
           : '0 6px 24px rgba(59, 130, 246, 0.6), 0 0 30px rgba(147, 51, 234, 0.5)'
         e.currentTarget.style.zIndex = '100'
-        e.currentTarget.style.borderColor = isEmpty 
-          ? 'rgba(148, 163, 184, 0.7)' 
-          : 'rgba(147, 51, 234, 1)'
+        e.currentTarget.style.borderColor = profileBorderColorHover
         e.currentTarget.style.background = isEmpty
           ? 'rgba(15, 23, 42, 0.95)'
           : 'rgba(59, 130, 246, 0.9)'
@@ -2654,9 +2686,7 @@ function SlotCard({ slot, onClick, onRemove, isEditMode = false, onPositionChang
           ? '0 4px 12px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05)'
           : '0 4px 16px rgba(59, 130, 246, 0.4), 0 0 20px rgba(147, 51, 234, 0.3)'
         e.currentTarget.style.zIndex = hasNearbyCards ? '2' : '1'
-        e.currentTarget.style.borderColor = isEmpty 
-          ? 'rgba(148, 163, 184, 0.5)' 
-          : 'rgba(147, 51, 234, 0.8)'
+        e.currentTarget.style.borderColor = profileBorderColor
         e.currentTarget.style.background = isEmpty
           ? 'rgba(15, 23, 42, 0.85)'
           : 'rgba(59, 130, 246, 0.75)'
