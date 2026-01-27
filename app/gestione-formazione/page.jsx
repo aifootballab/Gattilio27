@@ -227,12 +227,14 @@ export default function GestioneFormazionePage() {
     if (y >= 40 && y <= 60) {
       if (x < 30) return 'CLS'  // Centrocampista laterale sinistro (sinistra campo)
       if (x > 70) return 'CLD'  // Centrocampista laterale destro (destra campo)
-      // CC (Centrocampista Centrale): laterale destra in centrocampo (x: 55-65, y: 48-52)
-      if (x >= 55 && x <= 65 && y >= 48 && y <= 52) return 'CC'  // Centrocampista centrale laterale
+      // CC (Centrocampista Centrale): area centrale del centrocampo (più flessibile)
+      // x: 35-65 (area centrale, esclusi laterali CLS/CLD)
+      // y: 45-55 (centro del centrocampo, non troppo avanzato né arretrato)
+      if (x >= 35 && x <= 65 && y >= 45 && y <= 55) return 'CC'  // Centrocampista centrale versatile
       // TRQ (Trequartista): centrocampo avanzato (y: 40-50, x: 35-65, escludendo centro esatto)
       if (y >= 40 && y <= 50 && x >= 35 && x <= 65 && !(x >= 48 && x <= 52)) return 'TRQ'  // Trequartista in centrocampo avanzato (esclude centro esatto che è MED)
       if (y < 50) return 'AMF'  // Trequartista (centro avanzato) - fallback se non TRQ
-      return 'MED'              // Centrocampista centrale
+      return 'MED'              // Centrocampista centrale (più arretrato o fuori area CC)
     }
     
     // Attacco: y < 40
