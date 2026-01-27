@@ -438,6 +438,17 @@ export async function POST(req) {
       })
     }
 
+    // Aggiorna progresso Task settimanali (async, non blocca risposta) ⭐ NUOVO
+    if (supabaseUrl && serviceKey) {
+      import('../../../../lib/taskHelper').then(({ updateTasksProgressAfterMatch }) => {
+        updateTasksProgressAfterMatch(userId, supabaseUrl, serviceKey, savedMatch).catch(err => {
+          console.error('[save-match] Failed to update tasks progress (non-blocking):', err)
+        })
+      }).catch(err => {
+        console.error('[save-match] Failed to import taskHelper (non-blocking):', err)
+      })
+    }
+
     return NextResponse.json({
       success: true,
       match: savedMatch,

@@ -13,7 +13,7 @@ Web app per coaching eFootball con estrazione dati da screenshot e gestione rosa
 7. **Visualizzazione Dati Estratti**: Modal dettagli mostra statistiche, abilità e booster quando si clicca su una card
 8. **Gestione Riserve**: Upload e gestione giocatori riserva
 9. **Profilazione Giocatori**: Completamento profilo con foto aggiuntive
-10. **Obiettivi Settimanali**: Sistema per tracciare e completare obiettivi personalizzati (in sviluppo)
+10. **Obiettivi Settimanali**: Sistema completo per tracciare e completare obiettivi personalizzati generati automaticamente dall'IA ✅
 11. **Internazionalizzazione**: Supporto IT/EN
 
 ## 🛠️ Stack Tecnologico
@@ -72,11 +72,13 @@ lib/
   - `ai_knowledge_breakdown` (JSONB) - Dettaglio score per componente
   - `initial_division` - Divisione al primo login (per tracciare miglioramento)
 
-- **`weekly_goals`**: Obiettivi settimanali
+- **`weekly_goals`**: Obiettivi settimanali ✅
   - `goal_type`, `goal_description`, `target_value`, `current_value`
   - `status` (active/completed/failed)
   - `week_start_date`, `week_end_date`
-  - RLS abilitato
+  - `difficulty` (easy/medium/hard)
+  - `created_by` (system/user/admin)
+  - RLS abilitato, 4 indici ottimizzati
 
 - **`playing_styles`**: Catalogo stili di gioco
 
@@ -88,6 +90,10 @@ lib/
 - `POST /api/supabase/save-formation-layout` - Salva layout formazione propria
 - `POST /api/supabase/save-player` - Salva/aggiorna giocatore
 - `PATCH /api/supabase/assign-player-to-slot` - Assegna giocatore a slot
+
+**Task e Obiettivi**:
+- `GET /api/tasks/list` - Lista task settimanali per utente corrente
+- `POST /api/tasks/generate` - Genera task settimanali (per test/manuale)
 
 **Partite (match)**:
 - `POST /api/extract-match-data` - Estrae dati partita da screenshot (wizard + dettaglio)

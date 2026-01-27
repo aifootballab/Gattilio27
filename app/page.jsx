@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { useTranslation } from '@/lib/i18n'
 import LanguageSwitch from '@/components/LanguageSwitch'
 import AIKnowledgeBar from '@/components/AIKnowledgeBar'
+import TaskWidget from '@/components/TaskWidget'
 import { 
   LayoutDashboard, 
   Users, 
@@ -354,6 +355,9 @@ export default function DashboardPage() {
 
       {/* AI Knowledge Bar */}
       <AIKnowledgeBar />
+
+      {/* Task Widget (Obiettivi Settimanali) */}
+      <TaskWidget />
 
       {/* Grid Layout */}
       <div style={{ 
