@@ -104,131 +104,88 @@ export async function GET(request) {
 
     // 5. Auto-generazione task: se non ci sono per la settimana corrente, generali
     const currentWeek = getCurrentWeek()
-    const today = new Date()
-    const dayOfWeek = today.getDay() // 0 = Domenica, 1 = Lunedì, ..., 6 = Sabato
-    const isSunday = dayOfWeek === 0
-    
-    // Se è domenica, calcola la PROSSIMA settimana (non quella corrente)
-    let targetWeek = currentWeek
-    if (isSunday) {
-      // Calcola prossima settimana (lunedì prossimo)
-      const nextMonday = new Date(today)
-      nextMonday.setDate(nextMonday.getDate() + 1) // Lunedì prossimo
-      nextMonday.setHours(0, 0, 0, 0)
-      
-      const nextSunday = new Date(nextMonday)
-      nextSunday.setDate(nextSunday.getDate() + 6)
-      nextSunday.setHours(23, 59, 59, 999)
-      
-      targetWeek = {
-        start: nextMonday.toISOString().split('T')[0],
-        end: nextSunday.toISOString().split('T')[0]
-      }
-    }
-    
     const isCurrentWeek = weekStartDate === currentWeek.start
-    const isTargetWeek = weekStartDate === targetWeek.start
     
-    console.log(`[tasks/list] Today: ${today.toISOString().split('T')[0]}, Day: ${dayOfWeek} (${isSunday ? 'Sunday' : 'Not Sunday'})`)
-    console.log(`[tasks/list] Current week: ${currentWeek.start}, Target week: ${targetWeek.start}, Requested week: ${weekStartDate}`)
-    console.log(`[tasks/list] isCurrentWeek: ${isCurrentWeek}, isTargetWeek: ${isTargetWeek}`)
+    console.log(`[tasks/list] Current week: ${currentWeek.start}, Requested week: ${weekStartDate}, isCurrentWeek: ${isCurrentWeek}`)
 
-    // Genera task se:
-    // 1. È la settimana corrente (non domenica) O
-    // 2. È domenica e stiamo richiedendo la prossima settimana
-    if (isCurrentWeek || (isSunday && isTargetWeek)) {
+    // Genera task se è la settimana corrente e non ci sono task
+    // (per settimane passate o future, non generiamo automaticamente)
+    // NOTA: Per test, genera anche per utenti con partite che non hanno mai avuto task
+    if (isCurrentWeek && (!tasks || tasks.length === 0)) {
       const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
       if (serviceKey) {
         try {
-          // Se è domenica, elimina task vecchi della settimana corrente (quella che sta finendo)
-          if (isSunday && tasks && tasks.length > 0 && weekStartDate === currentWeek.start) {
-            console.log(`[tasks/list] Sunday detected: cleaning up tasks for ending week ${currentWeek.start}`)
-            const admin = createClient(supabaseUrl, serviceKey, {
-              auth: { autoRefreshToken: false, persistSession: false }
-            })
-            
-            // Elimina task vecchi della settimana corrente (quella che sta finendo)
-            await admin
-              .from('weekly_goals')
-              .delete()
-              .eq('user_id', user_id)
-              .eq('week_start_date', currentWeek.start)
-            
-            tasks = [] // Reset per rigenerare
+          // Calcola week end per la settimana richiesta (pattern coerente con generate)
+          const weekStart = new Date(weekStartDate)
+          // Assicura che sia lunedì (normalizza)
+          const dayOfWeek = weekStart.getDay()
+          const diff = weekStart.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1)
+          weekStart.setDate(diff)
+          weekStart.setHours(0, 0, 0, 0)
+
+          const weekEnd = new Date(weekStart)
+          weekEnd.setDate(weekEnd.getDate() + 6) // Domenica
+          weekEnd.setHours(23, 59, 59, 999)
+
+          const week = {
+            start: weekStart.toISOString().split('T')[0],
+            end: weekEnd.toISOString().split('T')[0]
           }
           
-          // Se non ci sono task (o sono stati eliminati), generali
-          // Usa targetWeek (prossima settimana se domenica, altrimenti corrente)
-          if (!tasks || tasks.length === 0) {
-            const weekToGenerate = isSunday ? targetWeek : currentWeek
-            console.log(`[tasks/list] Auto-generating tasks for user ${user_id} (${userData?.user?.email || 'unknown'}), week ${weekToGenerate.start}`)
-            try {
-              const generatedTasks = await generateWeeklyTasksForUser(
-                user_id,
-                supabaseUrl,
-                serviceKey,
-                weekToGenerate
-              )
+          console.log(`[tasks/list] Auto-generating tasks for user ${user_id} (${userData?.user?.email || 'unknown'}), week ${week.start}`)
+          
+          const generatedTasks = await generateWeeklyTasksForUser(
+            user_id,
+            supabaseUrl,
+            serviceKey,
+            week
+          )
+          
+          console.log(`[tasks/list] generateWeeklyTasksForUser returned ${generatedTasks?.length || 0} tasks`)
+          
+          if (!generatedTasks || generatedTasks.length === 0) {
+            console.warn(`[tasks/list] generateWeeklyTasksForUser returned empty array - this might indicate an issue`)
+            console.warn(`[tasks/list] User ${userData?.user?.email || user_id} might not have enough data for personalized tasks, but should still get generic tasks`)
+          } else {
+            // Se generati, recuperali di nuovo (usa RLS)
+            console.log(`[tasks/list] Attempting to fetch ${generatedTasks.length} generated tasks`)
+            
+            const { data: newTasks, error: fetchError } = await supabase
+              .from('weekly_goals')
+              .select('*')
+              .eq('user_id', user_id)
+              .eq('week_start_date', weekStartDate)
+              .order('created_at', { ascending: true })
+            
+            if (!fetchError && newTasks && newTasks.length > 0) {
+              tasks = newTasks
+              console.log(`[tasks/list] Successfully retrieved ${tasks.length} tasks via RLS`)
+            } else {
+              console.warn(`[tasks/list] RLS query returned ${newTasks?.length || 0} tasks, error:`, fetchError)
               
-              console.log(`[tasks/list] generateWeeklyTasksForUser returned ${generatedTasks?.length || 0} tasks`)
+              // Fallback: usa admin per verificare se i task esistono
+              const admin = createClient(supabaseUrl, serviceKey, {
+                auth: { autoRefreshToken: false, persistSession: false }
+              })
               
-              if (!generatedTasks || generatedTasks.length === 0) {
-                console.warn(`[tasks/list] generateWeeklyTasksForUser returned empty array - this might indicate an issue`)
-                console.warn(`[tasks/list] User ${userData?.user?.email || user_id} might not have enough data for personalized tasks, but should still get generic tasks`)
-              }
+              const { data: adminTasks, error: adminError } = await admin
+                .from('weekly_goals')
+                .select('*')
+                .eq('user_id', user_id)
+                .eq('week_start_date', weekStartDate)
+                .order('created_at', { ascending: true })
               
-              // Se generati, recuperali di nuovo (usa admin per bypassare RLS temporaneamente per debug)
-              if (generatedTasks && generatedTasks.length > 0) {
-                console.log(`[tasks/list] Attempting to fetch ${generatedTasks.length} generated tasks`)
-                
-                // Prova prima con anon key (RLS)
-                const { data: newTasks, error: fetchError } = await supabase
-                  .from('weekly_goals')
-                  .select('*')
-                  .eq('user_id', user_id)
-                  .eq('week_start_date', weekStartDate)
-                  .order('created_at', { ascending: true })
-                
-                if (!fetchError && newTasks && newTasks.length > 0) {
-                  tasks = newTasks
-                  console.log(`[tasks/list] Successfully retrieved ${tasks.length} tasks via RLS`)
-                } else {
-                  console.warn(`[tasks/list] RLS query returned ${newTasks?.length || 0} tasks, error:`, fetchError)
-                  
-                  // Fallback: usa admin per verificare se i task esistono
-                  const admin = createClient(supabaseUrl, serviceKey, {
-                    auth: { autoRefreshToken: false, persistSession: false }
-                  })
-                  
-                  const { data: adminTasks, error: adminError } = await admin
-                    .from('weekly_goals')
-                    .select('*')
-                    .eq('user_id', user_id)
-                    .eq('week_start_date', weekToFetch)
-                    .order('created_at', { ascending: true })
-                  
-                  if (!adminError && adminTasks && adminTasks.length > 0) {
-                    console.warn(`[tasks/list] Found ${adminTasks.length} tasks via admin (RLS might be blocking), using admin results`)
-                    tasks = adminTasks
-                  } else {
-                    console.error('[tasks/list] Admin query also failed:', adminError)
-                  }
-                }
+              if (!adminError && adminTasks && adminTasks.length > 0) {
+                console.warn(`[tasks/list] Found ${adminTasks.length} tasks via admin (RLS might be blocking), using admin results`)
+                tasks = adminTasks
               } else {
-                console.warn('[tasks/list] No tasks generated, user might not have enough data')
-                // Se non ci sono task generati, dovrebbe comunque esserci almeno 3 task generici
-                // Questo indica un problema nella logica di generazione
-                console.error(`[tasks/list] CRITICAL: generateWeeklyTasksForUser returned empty array for user ${user_id} (${userData?.user?.email || 'unknown'})`)
-                console.error('[tasks/list] This should never happen - even users with no data should get 3 generic tasks')
+                console.error('[tasks/list] Admin query also failed:', adminError)
               }
-            } catch (genErr) {
-              console.error('[tasks/list] Error in generateWeeklyTasksForUser:', genErr)
-              console.error('[tasks/list] Error stack:', genErr.stack)
-              // Non bloccare, continua con array vuoto
             }
           }
         } catch (genError) {
           console.error('[tasks/list] Error auto-generating tasks:', genError)
+          console.error('[tasks/list] Error stack:', genError.stack)
           // Non bloccare, restituisci task esistenti o array vuoto
         }
       }
