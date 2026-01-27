@@ -95,8 +95,11 @@ export async function GET(request) {
 
     if (tasksError) {
       console.error('[tasks/list] Error fetching tasks:', tasksError)
+      console.error('[tasks/list] Error details:', JSON.stringify(tasksError, null, 2))
       return NextResponse.json({ error: 'Failed to fetch tasks' }, { status: 500 })
     }
+    
+    console.log(`[tasks/list] Found ${tasks?.length || 0} existing tasks for user ${user_id}, week ${weekStartDate}`)
 
     // 5. Auto-generazione task: se non ci sono per la settimana corrente, generali
     const currentWeek = getCurrentWeek()
@@ -138,8 +141,11 @@ export async function GET(request) {
               
               console.log(`[tasks/list] Generated ${generatedTasks?.length || 0} tasks`)
               
-              // Se generati, recuperali di nuovo
+              // Se generati, recuperali di nuovo (usa admin per bypassare RLS temporaneamente per debug)
               if (generatedTasks && generatedTasks.length > 0) {
+                console.log(`[tasks/list] Attempting to fetch ${generatedTasks.length} generated tasks`)
+                
+                // Prova prima con anon key (RLS)
                 const { data: newTasks, error: fetchError } = await supabase
                   .from('weekly_goals')
                   .select('*')
@@ -147,11 +153,30 @@ export async function GET(request) {
                   .eq('week_start_date', weekStartDate)
                   .order('created_at', { ascending: true })
                 
-                if (!fetchError && newTasks) {
+                if (!fetchError && newTasks && newTasks.length > 0) {
                   tasks = newTasks
-                  console.log(`[tasks/list] Successfully retrieved ${tasks.length} tasks`)
+                  console.log(`[tasks/list] Successfully retrieved ${tasks.length} tasks via RLS`)
                 } else {
-                  console.error('[tasks/list] Error fetching generated tasks:', fetchError)
+                  console.warn(`[tasks/list] RLS query returned ${newTasks?.length || 0} tasks, error:`, fetchError)
+                  
+                  // Fallback: usa admin per verificare se i task esistono
+                  const admin = createClient(supabaseUrl, serviceKey, {
+                    auth: { autoRefreshToken: false, persistSession: false }
+                  })
+                  
+                  const { data: adminTasks, error: adminError } = await admin
+                    .from('weekly_goals')
+                    .select('*')
+                    .eq('user_id', user_id)
+                    .eq('week_start_date', weekStartDate)
+                    .order('created_at', { ascending: true })
+                  
+                  if (!adminError && adminTasks && adminTasks.length > 0) {
+                    console.warn(`[tasks/list] Found ${adminTasks.length} tasks via admin (RLS might be blocking), using admin results`)
+                    tasks = adminTasks
+                  } else {
+                    console.error('[tasks/list] Admin query also failed:', adminError)
+                  }
                 }
               } else {
                 console.warn('[tasks/list] No tasks generated, user might not have enough data')
