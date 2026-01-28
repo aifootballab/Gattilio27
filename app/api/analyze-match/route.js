@@ -286,6 +286,17 @@ Indica chiaramente quando le tue analisi sono basate su dati limitati.
 Suggerisci di caricare le foto mancanti per un'analisi più precisa.`
     : ''
   
+  // ✅ FIX: Determina se match è vecchio o nuovo (deve essere dichiarato prima dell'uso)
+  // Identifica squadra cliente e avversario
+  // Data implementazione campo is_home nel wizard (27 Gennaio 2026)
+  const IS_HOME_IMPLEMENTATION_DATE = new Date('2026-01-27T00:00:00Z')
+  
+  // Determina se match è vecchio o nuovo (basato su timestamp)
+  const matchDate = matchData.match_date 
+    ? new Date(matchData.match_date) 
+    : new Date()
+  const isNewMatch = matchDate >= IS_HOME_IMPLEMENTATION_DATE
+  
   // Prepara dati disponibili per il prompt - ✅ FIX: Include dati effettivi, non solo conteggi
   let availableDataText = ''
   
@@ -641,16 +652,6 @@ Suggerisci di caricare le foto mancanti per un'analisi più precisa.`
     coachText = `\nALLENATORE CLIENTE: Non configurato\n`
     coachText += `⚠️ Nota: Senza allenatore configurato, i suggerimenti non considerano competenze specifiche.\n`
   }
-  
-  // Identifica squadra cliente e avversario
-  // Data implementazione campo is_home nel wizard (27 Gennaio 2026)
-  const IS_HOME_IMPLEMENTATION_DATE = new Date('2026-01-27T00:00:00Z')
-  
-  // Determina se match è vecchio o nuovo (basato su timestamp)
-  const matchDate = matchData.match_date 
-    ? new Date(matchData.match_date) 
-    : new Date()
-  const isNewMatch = matchDate >= IS_HOME_IMPLEMENTATION_DATE
   
   // Logica identificazione squadra cliente
   let clientTeamText = ''
