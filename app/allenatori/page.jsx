@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { useTranslation } from '@/lib/i18n'
 import LanguageSwitch from '@/components/LanguageSwitch'
+import ConfirmModal from '@/components/ConfirmModal'
 import { ArrowLeft, Upload, AlertCircle, CheckCircle2, X, Trash2, Star, User, Info, Plus } from 'lucide-react'
 
 export default function AllenatoriPage() {
@@ -19,6 +20,7 @@ export default function AllenatoriPage() {
   const [uploading, setUploading] = React.useState(false)
   const [selectedCoach, setSelectedCoach] = React.useState(null)
   const [showDetailsModal, setShowDetailsModal] = React.useState(false)
+  const [deleteConfirmModal, setDeleteConfirmModal] = React.useState(null) // { show, coachId, coachName }
 
   // Carica allenatori
   React.useEffect(() => {
@@ -256,26 +258,40 @@ export default function AllenatoriPage() {
   }
 
   const handleDelete = async (coachId) => {
-    if (!confirm(t('confirmDeleteCoach'))) return
+    // Trova nome allenatore per messaggio
+    const coach = coaches.find(c => c.id === coachId)
+    const coachName = coach?.coach_name || 'questo allenatore'
+    
+    // Mostra modal conferma invece di window.confirm()
+    setDeleteConfirmModal({
+      show: true,
+      coachId,
+      coachName,
+      onConfirm: async () => {
+        setDeleteConfirmModal(null)
+        setError(null)
 
-    setError(null)
+        try {
+          const { error: deleteError } = await supabase
+            .from('coaches')
+            .delete()
+            .eq('id', coachId)
 
-    try {
-      const { error: deleteError } = await supabase
-        .from('coaches')
-        .delete()
-        .eq('id', coachId)
+          if (deleteError) {
+            throw new Error(deleteError.message || t('coachDeleteError'))
+          }
 
-      if (deleteError) {
-        throw new Error(deleteError.message || t('coachDeleteError'))
+          // Ricarica lista
+          window.location.reload()
+        } catch (err) {
+          console.error('[Allenatori] Delete error:', err)
+          setError(err.message || t('coachDeleteError'))
+        }
+      },
+      onCancel: () => {
+        setDeleteConfirmModal(null)
       }
-
-      // Ricarica lista
-      window.location.reload()
-    } catch (err) {
-      console.error('[Allenatori] Delete error:', err)
-      setError(err.message || t('coachDeleteError'))
-    }
+    })
   }
 
   const showCoachDetails = (coach) => {
@@ -790,6 +806,22 @@ export default function AllenatoriPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ConfirmModal per eliminazione allenatore */}
+      {deleteConfirmModal && (
+        <ConfirmModal
+          show={deleteConfirmModal.show}
+          title={t('confirmDeleteCoachTitle') || 'Conferma Eliminazione'}
+          message={t('confirmDeleteCoachMessage', { coachName: deleteConfirmModal.coachName }) || `Sei sicuro di voler eliminare ${deleteConfirmModal.coachName}?`}
+          details={t('confirmDeleteCoachDetails') || 'Questa azione non può essere annullata.'}
+          variant="error"
+          confirmVariant="danger"
+          confirmLabel={t('delete') || 'Elimina'}
+          cancelLabel={t('cancel') || 'Annulla'}
+          onConfirm={deleteConfirmModal.onConfirm}
+          onCancel={deleteConfirmModal.onCancel}
+        />
       )}
     </div>
   )

@@ -9,6 +9,7 @@ import { ArrowLeft, Upload, AlertCircle, CheckCircle2, RefreshCw, Info, X, Plus,
 import TacticalSettingsPanel from '@/components/TacticalSettingsPanel'
 import PositionSelectionModal from '@/components/PositionSelectionModal'
 import MissingDataModal from '@/components/MissingDataModal'
+import ConfirmModal from '@/components/ConfirmModal'
 import { safeJsonResponse } from '@/lib/fetchHelper'
 
 export default function GestioneFormazionePage() {
@@ -43,6 +44,7 @@ export default function GestioneFormazionePage() {
   const [showMissingDataModal, setShowMissingDataModal] = React.useState(false)
   const [missingData, setMissingData] = React.useState({ required: [], optional: [] })
   const [manualDataInput, setManualDataInput] = React.useState({})
+  const [duplicateConfirmModal, setDuplicateConfirmModal] = React.useState(null) // { show, playerName, playerAge, slotIndex, onConfirm }
 
   // Funzione fetchData riutilizzabile (estratta da useEffect per essere chiamabile)
   const fetchData = React.useCallback(async () => {
@@ -912,48 +914,65 @@ export default function GestioneFormazionePage() {
 
       if (duplicatePlayer) {
         const playerAgeStr = playerAge ? ` (${playerAge} ${t('years')})` : ''
-        const confirmMsg = t('duplicateInFormationAlert')
-          .replace('${playerName}', playerData.player_name)
-          .replace('${playerAge}', playerAgeStr)
-          .replace('${slotIndex}', duplicatePlayer.slot_index)
-        if (!window.confirm(confirmMsg)) {
-          setUploadingPlayer(false)
-          return
-        }
-        
-        // Verifica duplicati riserve prima di rimuovere vecchio titolare
-        const duplicateReserve = riserve.find(p => {
-          const pName = String(p.player_name || '').trim().toLowerCase()
-          const pAge = p.age != null ? Number(p.age) : null
-          return pName === playerName && 
-                 (playerAge ? pAge === playerAge : true) &&
-                 p.id !== duplicatePlayer.id
-        })
-        
-        if (duplicateReserve) {
-          // Elimina duplicato riserva prima di rimuovere titolare
-          const deleteRes = await fetch('/api/supabase/delete-player', {
-            method: 'DELETE',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ player_id: duplicateReserve.id })
-          })
-          if (!deleteRes.ok) {
-            const deleteData = await deleteRes.json()
-            throw new Error(deleteData.error || 'Errore eliminazione giocatore duplicato riserva')
+        // Mostra modal conferma invece di window.confirm()
+        setDuplicateConfirmModal({
+          show: true,
+          playerName: playerData.player_name,
+          playerAge: playerAgeStr,
+          slotIndex: duplicatePlayer.slot_index,
+          duplicatePlayerId: duplicatePlayer.id,
+          duplicateReserve: riserve.find(p => {
+            const pName = String(p.player_name || '').trim().toLowerCase()
+            const pAge = p.age != null ? Number(p.age) : null
+            return pName === playerName && 
+                   (playerAge ? pAge === playerAge : true) &&
+                   p.id !== duplicatePlayer.id
+          }),
+          onConfirm: async () => {
+            setDuplicateConfirmModal(null)
+            // Verifica duplicati riserve prima di rimuovere vecchio titolare
+            const duplicateReserve = riserve.find(p => {
+              const pName = String(p.player_name || '').trim().toLowerCase()
+              const pAge = p.age != null ? Number(p.age) : null
+              return pName === playerName && 
+                     (playerAge ? pAge === playerAge : true) &&
+                     p.id !== duplicatePlayer.id
+            })
+            
+            if (duplicateReserve) {
+              // Elimina duplicato riserva prima di rimuovere titolare
+              const deleteRes = await fetch('/api/supabase/delete-player', {
+                method: 'DELETE',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ player_id: duplicateReserve.id })
+              })
+              if (!deleteRes.ok) {
+                const deleteData = await deleteRes.json()
+                throw new Error(deleteData.error || 'Errore eliminazione giocatore duplicato riserva')
+              }
+            }
+            
+            // Rimuovi vecchio giocatore (torna riserva)
+            await supabase
+              .from('players')
+              .update({ 
+                slot_index: null,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', duplicatePlayer.id)
+            
+            // Continua con il salvataggio del nuovo giocatore
+            // (la logica continua dopo questo blocco)
+          },
+          onCancel: () => {
+            setDuplicateConfirmModal(null)
+            setUploadingPlayer(false)
           }
-        }
-        
-        // Rimuovi vecchio giocatore (torna riserva)
-        await supabase
-          .from('players')
-          .update({ 
-            slot_index: null,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', duplicatePlayer.id)
+        })
+        return // Ferma qui, il modal gestirà la continuazione
       }
 
       // NOTA: Salvataggio spostato in handleSavePlayerWithPositions (chiamato da modal)
@@ -1001,48 +1020,92 @@ export default function GestioneFormazionePage() {
 
       if (duplicatePlayer) {
         const playerAgeStr = playerAge ? ` (${playerAge} ${t('years')})` : ''
-        const confirmMsg = t('duplicateInFormationAlert')
-          .replace('${playerName}', extractedPlayerData.player_name)
-          .replace('${playerAge}', playerAgeStr)
-          .replace('${slotIndex}', duplicatePlayer.slot_index)
-        if (!window.confirm(confirmMsg)) {
-          setUploadingPlayer(false)
-          return
-        }
-        
-        // Verifica duplicati riserve prima di rimuovere vecchio titolare
-        const duplicateReserve = riserve.find(p => {
-          const pName = String(p.player_name || '').trim().toLowerCase()
-          const pAge = p.age != null ? Number(p.age) : null
-          return pName === playerName && 
-                 (playerAge ? pAge === playerAge : true) &&
-                 p.id !== duplicatePlayer.id
-        })
-        
-        if (duplicateReserve) {
-          // Elimina duplicato riserva prima di rimuovere titolare
-          const deleteRes = await fetch('/api/supabase/delete-player', {
-            method: 'DELETE',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ player_id: duplicateReserve.id })
-          })
-          if (!deleteRes.ok) {
-            const deleteData = await deleteRes.json()
-            throw new Error(deleteData.error || 'Errore eliminazione giocatore duplicato riserva')
+        // Mostra modal conferma invece di window.confirm()
+        setDuplicateConfirmModal({
+          show: true,
+          playerName: extractedPlayerData.player_name,
+          playerAge: playerAgeStr,
+          slotIndex: duplicatePlayer.slot_index,
+          duplicatePlayerId: duplicatePlayer.id,
+          duplicateReserve: riserve.find(p => {
+            const pName = String(p.player_name || '').trim().toLowerCase()
+            const pAge = p.age != null ? Number(p.age) : null
+            return pName === playerName && 
+                   (playerAge ? pAge === playerAge : true) &&
+                   p.id !== duplicatePlayer.id
+          }),
+          onConfirm: async () => {
+            setDuplicateConfirmModal(null)
+            // Verifica duplicati riserve prima di rimuovere vecchio titolare
+            const duplicateReserve = riserve.find(p => {
+              const pName = String(p.player_name || '').trim().toLowerCase()
+              const pAge = p.age != null ? Number(p.age) : null
+              return pName === playerName && 
+                     (playerAge ? pAge === playerAge : true) &&
+                     p.id !== duplicatePlayer.id
+            })
+            
+            if (duplicateReserve) {
+              // Elimina duplicato riserva prima di rimuovere titolare
+              const deleteRes = await fetch('/api/supabase/delete-player', {
+                method: 'DELETE',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ player_id: duplicateReserve.id })
+              })
+              if (!deleteRes.ok) {
+                const deleteData = await deleteRes.json()
+                throw new Error(deleteData.error || 'Errore eliminazione giocatore duplicato riserva')
+              }
+            }
+            
+            // Rimuovi vecchio giocatore (torna riserva)
+            await supabase
+              .from('players')
+              .update({ 
+                slot_index: null,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', duplicatePlayer.id)
+            
+            // Continua con il salvataggio del nuovo giocatore (chiama ricorsivamente questa funzione)
+            // Salva giocatore con original_positions
+            const saveRes = await fetch('/api/supabase/save-player', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                player: {
+                  ...extractedPlayerData,
+                  original_positions: selectedOriginalPositions,
+                  slot_index: selectedSlot.slot_index,
+                  photo_slots: extractedPlayerData.photo_slots
+                }
+              })
+            })
+
+            const saveData = await safeJsonResponse(saveRes, 'Errore salvataggio giocatore')
+
+            setShowUploadPlayerModal(false)
+            setShowPositionSelectionModal(false)
+            setUploadImages([])
+            setSelectedSlot(null)
+            setExtractedPlayerData(null)
+            setSelectedOriginalPositions([])
+            
+            showToast(t('photoUploadedSuccessfully'), 'success')
+            await fetchData()
+          },
+          onCancel: () => {
+            setDuplicateConfirmModal(null)
+            setUploadingPlayer(false)
           }
-        }
-        
-        // Rimuovi vecchio giocatore (torna riserva)
-        await supabase
-          .from('players')
-          .update({ 
-            slot_index: null,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', duplicatePlayer.id)
+        })
+        return // Ferma qui, il modal gestirà la continuazione
       }
 
       // Salva giocatore con original_positions
@@ -4578,6 +4641,25 @@ function FormationSelectorModal({ onSelect, onClose, loading }) {
           )}
         </div>
       </div>
+
+      {/* ConfirmModal per duplicato giocatore */}
+      {duplicateConfirmModal && (
+        <ConfirmModal
+          show={duplicateConfirmModal.show}
+          title={t('duplicatePlayerTitle') || 'Giocatore Duplicato'}
+          message={t('duplicateInFormationMessage', {
+            playerName: duplicateConfirmModal.playerName,
+            playerAge: duplicateConfirmModal.playerAge,
+            slotIndex: duplicateConfirmModal.slotIndex
+          }) || `Il giocatore "${duplicateConfirmModal.playerName}"${duplicateConfirmModal.playerAge} è già presente in formazione nello slot ${duplicateConfirmModal.slotIndex}.`}
+          details={t('duplicateInFormationDetails') || 'Vuoi sostituirlo con i nuovi dati?'}
+          variant="warning"
+          confirmLabel={t('replace') || 'Sostituisci'}
+          cancelLabel={t('cancel') || 'Annulla'}
+          onConfirm={duplicateConfirmModal.onConfirm}
+          onCancel={duplicateConfirmModal.onCancel}
+        />
+      )}
     </div>
   )
 }
