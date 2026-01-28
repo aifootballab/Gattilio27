@@ -144,7 +144,7 @@ export async function POST(req) {
     // 5. Recupera allenatore attivo
     const { data: activeCoach, error: coachError } = await admin
       .from('coaches')
-      .select('playing_style_competence, stat_boosters, connection')
+      .select('coach_name, playing_style_competence, stat_boosters, connection')
       .eq('user_id', userId)
       .eq('is_active', true)
       .maybeSingle()
