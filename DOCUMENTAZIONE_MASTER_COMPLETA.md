@@ -625,18 +625,75 @@ Tutte le API routes sono in `/app/api`. Ogni cartella rappresenta un endpoint.
 **Scopo**: Genera suggerimenti tattici basati su formazione avversaria.
 
 **Input**:
-- `opponent_formation_id`: ID formazione avversaria
-- `client_formation`: Formazione propria (opzionale)
+- `opponent_formation_id`: ID formazione avversaria (UUID, obbligatorio)
 
 **Output**:
-- Array contromisure con:
-  - `suggestion`: Suggerimento operativo
-  - `reason`: Perché questo suggerimento
-  - `priority`: "high" | "medium" | "low"
+```json
+{
+  "success": true,
+  "countermeasures": {
+    "analysis": {
+      "opponent_formation_analysis": "string",
+      "is_meta_formation": boolean,
+      "strengths": ["string"],
+      "weaknesses": ["string"]
+    },
+    "countermeasures": {
+      "formation_adjustments": [...],
+      "tactical_adjustments": [...],
+      "player_suggestions": [...],
+      "individual_instructions": [...]
+    },
+    "confidence": number,
+    "data_quality": "high" | "medium" | "low",
+    "warnings": ["string"]
+  },
+  "model_used": "gpt-4o"
+}
+```
+
+**Flusso Completo**:
+1. **Autenticazione**: Valida Bearer token
+2. **Rate Limiting**: 5 richieste/minuto per utente
+3. **Validazione Input**: UUID format, formazione esistente
+4. **Recupero Dati Supabase**:
+   - Formazione avversaria (`opponent_formations`)
+   - Rosa cliente con titolari/riserve (`players` con `slot_index`)
+   - Formazione cliente (`formation_layout`)
+   - Impostazioni tattiche (`team_tactical_settings`)
+   - Allenatore attivo (`coaches` con `is_active=true`)
+   - Storico match (ultimi 50) (`matches`)
+   - Pattern tattici (`team_tactical_patterns`)
+5. **Analisi Dati**:
+   - Match con formazioni simili
+   - Performance giocatori contro formazioni simili
+   - Abitudini tattiche cliente
+6. **Generazione Prompt**: `generateCountermeasuresPrompt()` con tutti i dati
+7. **Chiamata OpenAI**: GPT-4o (fallback a gpt-4-turbo, gpt-4)
+8. **Validazione Output**: Struttura JSON, coerenza suggerimenti
+9. **Filtro Suggerimenti**: Rimozione suggerimenti invalidi (es. add riserva inesistente)
+
+**Modello OpenAI**:
+- **Primario**: `gpt-4o`
+- **Fallback**: `gpt-4-turbo`, `gpt-4`
+- **Configurazione**: `response_format: { type: 'json_object' }`, `temperature: 0.7`, `max_tokens: 2000`
+
+**Validazioni**:
+- UUID format per `opponent_formation_id`
+- Formazione completa (deve avere `formation_name`)
+- Prompt size max 50KB
+- Filtro suggerimenti giocatori: `add_to_starting_xi` solo per riserve, `remove_from_starting_xi` solo per titolari
+- Protezione portiere: no rimozione se non c'è riserva portiere
 
 **Note Tecniche**:
-- Usa `countermeasuresHelper.js` per logica tattica
+- Usa `countermeasuresHelper.js` per logica tattica e generazione prompt
 - Considera storico partite (formazioni che soffre)
+- Analisi approfondita: match simili, performance giocatori, abitudini tattiche
+- Validazione multi-livello: JSON parsing, struttura, coerenza dati
+- **Fix 28 gen 2026**: Aggiunto `coach_name` al select coaches per coerenza con helper
+- **Fix 28 gen 2026**: Ripristinato `gpt-4o` come modello principale (rimossi modelli non disponibili)
+
+**Vedi anche**: `AUDIT_COMPLETO_CONTROMISURE.md` per audit completo sistema (flussi, endpoint, Supabase, coerenza dati)
 
 ---
 
@@ -952,12 +1009,37 @@ const RATE_LIMIT_CONFIG = {
 
 #### **`/lib/countermeasuresHelper.js` - Helper Contromisure**
 
-**Scopo**: Logica tattica per generazione contromisure.
+**Scopo**: Logica tattica per generazione contromisure e prompt AI.
 
-**Funzioni**:
-- Analisi formazione avversaria
-- Suggerimenti basati su storico
-- Calcolo priorità suggerimenti
+**Funzioni Principali**:
+- `generateCountermeasuresPrompt()`: Genera prompt completo per AI con tutti i dati contestuali
+- `validateCountermeasuresOutput()`: Valida struttura output AI
+- `identifyMetaFormation()`: Identifica se formazione avversaria è meta
+
+**Dati Inclusi nel Prompt**:
+- Formazione avversaria (nome, stile, forza, giocatori, allenatore se presente)
+- Rosa cliente (titolari/riserve con posizioni, overall, skills)
+- Formazione cliente attuale
+- Impostazioni tattiche (team playing style, istruzioni individuali)
+- Allenatore attivo (competenze stili, stat boosters, connection)
+- Storico match (ultimi 50, con analisi formazioni simili)
+- Performance giocatori contro formazioni simili
+- Abitudini tattiche cliente (formazioni preferite, win rate)
+- Pattern tattici (formation usage, recurring issues)
+
+**Regole Critiche Implementate**:
+- **Pre-partita**: Suggerimenti solo per modifiche configurabili PRIMA della partita
+- **Enterprise**: Comunicazione professionale, diretta, senza ragionamenti espliciti
+- **Titolari/Riserve**: Logica rigorosa per `add_to_starting_xi` (solo riserve) e `remove_from_starting_xi` (solo titolari)
+- **Portiere**: Protezione speciale (no rimozione se no riserva portiere)
+- **Coach**: Suggerimenti stili solo se competenza >= 70, mai se < 50
+- **Memoria Attila**: Interpretazione corretta (caratteristiche vs performance)
+
+**Note Tecniche**:
+- Prompt size: max 50KB (validato prima di invio)
+- Supporto dati parziali: funziona anche con dati incompleti (warnings chiari)
+- Retrocompatibilità: supporta `extracted_data` per formazioni vecchie
+- **Fix 28 gen 2026**: Ripristinato approccio inline per `playerSuggestionsRules` (come 10 commit fa)
 
 ---
 
