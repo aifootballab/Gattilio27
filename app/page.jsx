@@ -313,7 +313,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <main style={{ padding: '24px', minHeight: '100vh', maxWidth: '1400px', margin: '0 auto' }}>
+    <main data-tour-id="tour-dashboard-intro" style={{ padding: '24px', minHeight: '100vh', maxWidth: '1400px', margin: '0 auto' }}>
       {/* Header */}
       <div style={{ 
         display: 'flex', 
@@ -351,10 +351,14 @@ export default function DashboardPage() {
       )}
 
       {/* AI Knowledge Bar */}
-      <AIKnowledgeBar />
+      <div data-tour-id="tour-dashboard-ai">
+        <AIKnowledgeBar />
+      </div>
 
       {/* Task Widget (Obiettivi Settimanali) */}
-      <TaskWidget />
+      <div data-tour-id="tour-dashboard-task">
+        <TaskWidget />
+      </div>
 
       {/* Grid Layout */}
       <div style={{ 
@@ -364,7 +368,7 @@ export default function DashboardPage() {
         marginBottom: '32px'
       }}>
         {/* Panoramica Squadra */}
-        <div className="card" style={{ padding: '24px' }}>
+        <div data-tour-id="tour-dashboard-squad" className="card" style={{ padding: '24px' }}>
           <h2 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Users size={24} color="var(--neon-blue)" />
             {t('squadOverview')}
@@ -406,7 +410,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Quick Links */}
-        <div className="card" style={{ padding: '24px' }}>
+        <div data-tour-id="tour-dashboard-nav" className="card" style={{ padding: '24px' }}>
           <h2 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Settings size={24} color="var(--neon-purple)" />
             {t('navigation')}
@@ -486,6 +490,7 @@ export default function DashboardPage() {
               <ArrowRight size={18} />
             </button>
             <button
+              data-tour-id="tour-dashboard-add-match"
               onClick={() => router.push('/match/new')}
               className="btn"
               style={{ 
@@ -576,7 +581,7 @@ export default function DashboardPage() {
         </div>
 
         {/* AI Insights */}
-        <div className="card" style={{ padding: '24px' }}>
+        <div data-tour-id="tour-dashboard-insights" className="card" style={{ padding: '24px' }}>
           <h2 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Brain size={24} color="var(--neon-orange)" />
             {t('aiInsights')}
@@ -720,7 +725,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Ultime Partite - Fuori dal grid per essere sempre visibile su mobile */}
-      <div className="card" style={{ padding: '24px', marginBottom: '32px' }}>
+      <div data-tour-id="tour-dashboard-matches" className="card" style={{ padding: '24px', marginBottom: '32px' }}>
           <div style={{ 
             display: 'flex', 
             justifyContent: 'space-between', 

@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 import LanguageProviderWrapper from '@/components/LanguageProviderWrapper'
 import AssistantChat from '@/components/AssistantChat'
+import GuideTour from '@/components/GuideTour'
 
 export const metadata: Metadata = {
   title: 'Gattilio27 - Rosa (Production)',
@@ -20,6 +21,8 @@ export default function RootLayout({
           {/* Custom Background Layer - QUI PUOI INSERIRE IL TUO SFONDO */}
           <div className="custom-background" />
           {children}
+          {/* Tour contestuale (Mostrami come) - coerente UX, responsive, bilingue */}
+          <GuideTour />
           {/* Assistant Chat Widget - Sempre disponibile */}
           <AssistantChat />
         </LanguageProviderWrapper>
