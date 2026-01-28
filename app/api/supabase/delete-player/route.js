@@ -100,6 +100,46 @@ export async function DELETE(req) {
       return NextResponse.json({ error: 'Player not found or access denied' }, { status: 404 })
     }
 
+    // ✅ CLEANUP: Rimuovi riferimenti da individual_instructions prima di eliminare giocatore
+    // (Doppio livello: trigger DB + cleanup esplicito qui per sicurezza)
+    const { data: tacticalSettings, error: settingsFetchError } = await admin
+      .from('team_tactical_settings')
+      .select('id, individual_instructions')
+      .eq('user_id', userId)
+      .maybeSingle()
+
+    if (!settingsFetchError && tacticalSettings && tacticalSettings.individual_instructions) {
+      let cleanedInstructions = { ...tacticalSettings.individual_instructions }
+      let hasChanges = false
+
+      // Itera su tutte le categorie e rimuovi istruzioni che puntano a questo giocatore
+      const categories = ['attacco_1', 'attacco_2', 'difesa_1', 'difesa_2']
+      categories.forEach(category => {
+        const instruction = cleanedInstructions[category]
+        if (instruction && instruction.player_id === playerIdStr) {
+          delete cleanedInstructions[category]
+          hasChanges = true
+          console.log(`[delete-player] Removed individual_instruction ${category} for deleted player ${playerIdStr}`)
+        }
+      })
+
+      // Aggiorna solo se ci sono cambiamenti
+      if (hasChanges) {
+        const { error: updateError } = await admin
+          .from('team_tactical_settings')
+          .update({
+            individual_instructions: cleanedInstructions,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', tacticalSettings.id)
+
+        if (updateError) {
+          console.error('[delete-player] Error cleaning up individual_instructions:', updateError)
+          // NON bloccare eliminazione giocatore se cleanup fallisce (trigger DB farà il lavoro)
+        }
+      }
+    }
+
     // Elimina giocatore
     const { error: deleteError } = await admin
       .from('players')

@@ -111,6 +111,18 @@ Questo changelog documenta tutti i fix enterprise implementati il 28 gennaio 202
 
 ---
 
+## 🧠 Documentazione e Prompt Safety (28 Gen 2026)
+
+### 1. Memoria Attila modulare
+- Aggiunto `lib/attilaMemoryHelper.js` per caricare moduli selettivi da `memoria_attila/`
+- Aggiunti moduli `memoria_attila/*.md` + `memoria_attila/index.json`
+
+### 2. Prompt “anti-invenzione”
+- Rafforzate regole dei prompt per evitare termini PES “vecchi” e nomi di menu non verificabili
+- Aggiunta documentazione “Konami-only” per meccaniche citate ufficialmente
+
+---
+
 ## 🟢 Miglioramenti Minori
 
 ### 8. Rate Limiting Riattivato

@@ -93,11 +93,42 @@ export async function POST(req) {
 
     // Validazione dimensione JSONB rimossa - Supabase gestisce automaticamente i limiti
 
+    // ✅ VALIDAZIONE: players.position deve essere una posizione valida eFootball
+    const validPositions = ['PT', 'DC', 'TD', 'TS', 'CC', 'MED', 'P', 'SP', 'TRQ', 'CLD', 'CLS', 'EDA', 'ESA', 'CF']
+    const playerPosition = toText(player.position)
+    
+    // Stili di gioco comuni che NON sono posizioni (vanno in playing_style_id o role)
+    const playingStylesNotPositions = [
+      'Opportunista', 'Tra le linee', 'Ala prolifica', 'Collante', 'Giocatore chiave',
+      'Regista creativo', 'Onnipresente', 'Terzino difensivo', 'Terzino offensivo',
+      'Portiere offensivo', 'Portiere difensivo', 'Frontale extra', 'Sviluppo',
+      'Incontrista', 'Classico n° 10', 'Taglio al centro', 'Terzino mattatore'
+    ]
+    
+    if (playerPosition) {
+      const positionUpper = playerPosition.toUpperCase()
+      const isValidPosition = validPositions.includes(positionUpper)
+      const isPlayingStyle = playingStylesNotPositions.some(style => 
+        playerPosition.toLowerCase().includes(style.toLowerCase()) || 
+        style.toLowerCase().includes(playerPosition.toLowerCase())
+      )
+      
+      if (!isValidPosition && isPlayingStyle) {
+        // Log warning ma NON bloccare (retrocompatibilità)
+        console.warn(`[save-player] WARNING: position "${playerPosition}" appears to be a playing style, not a position. Consider using playing_style_id or role field instead.`)
+        // Suggerisci correzione nel log
+        console.warn(`[save-player] Valid positions: ${validPositions.join(', ')}`)
+      } else if (!isValidPosition && !isPlayingStyle) {
+        // Se non è né posizione valida né stile riconosciuto, logga ma procedi (retrocompatibilità)
+        console.warn(`[save-player] WARNING: position "${playerPosition}" is not a recognized eFootball position. Valid positions: ${validPositions.join(', ')}`)
+      }
+    }
+
     // Prepara dati giocatore (tutto in una struttura)
     const playerData = {
       user_id: userId,
       player_name: toText(player.player_name),
-      position: toText(player.position),
+      position: playerPosition, // Usa la posizione validata (anche se warning, procediamo per retrocompatibilità)
       card_type: toText(player.card_type),
       team: toText(player.team),
       overall_rating: typeof player.overall_rating === 'number' ? player.overall_rating : toInt(player.overall_rating),
