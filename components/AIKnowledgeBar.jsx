@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from '@/lib/i18n'
-import { createClient } from '@supabase/supabase-js'
+import { supabase } from '@/lib/supabaseClient'
+import { safeJsonResponse } from '@/lib/fetchHelper'
 import { Brain, RefreshCw, AlertCircle } from 'lucide-react'
 
 /**
@@ -23,6 +24,9 @@ export default function AIKnowledgeBar() {
   const [showDetails, setShowDetails] = useState(false)
 
   useEffect(() => {
+    // Solo lato client per evitare hydration mismatch
+    if (typeof window === 'undefined') return
+    
     fetchAIKnowledge()
     
     // Cache locale: ricarica ogni 5 minuti
@@ -37,10 +41,9 @@ export default function AIKnowledgeBar() {
     try {
       setError(null)
       
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-      )
+      if (!supabase) {
+        throw new Error('Supabase client not initialized')
+      }
 
       const { data: session } = await supabase.auth.getSession()
       if (!session?.session?.access_token) {
@@ -57,12 +60,7 @@ export default function AIKnowledgeBar() {
         }
       })
 
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}))
-        throw new Error(errorData.error || 'Failed to fetch AI knowledge')
-      }
-
-      const data = await res.json()
+      const data = await safeJsonResponse(res, 'Failed to fetch AI knowledge')
       setScore(data.score || 0)
       setLevel(data.level || 'beginner')
       setBreakdown(data.breakdown || {})
