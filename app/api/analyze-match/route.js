@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { validateToken, extractBearerToken } from '../../../lib/authHelper'
 import { callOpenAIWithRetry } from '../../../lib/openaiHelper'
 import { checkRateLimit, RATE_LIMIT_CONFIG } from '../../../lib/rateLimiter'
+import { loadAttilaMemory } from '../../../lib/attilaMemoryHelper'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -272,8 +273,9 @@ function analyzeMatchHistory(matchHistory, currentOpponentFormationId) {
 
 /**
  * Genera prompt per analisi AI con conservative mode, personalizzazione e contesto completo (Enterprise)
+ * @async
  */
-function generateAnalysisPrompt(matchData, confidence, missingSections, userProfile = null, players = [], opponentFormation = null, playersInMatch = [], matchHistory = [], tacticalPatterns = null, activeCoach = null) {
+async function generateAnalysisPrompt(matchData, confidence, missingSections, userProfile = null, players = [], opponentFormation = null, playersInMatch = [], matchHistory = [], tacticalPatterns = null, activeCoach = null, tacticalSettings = null) {
   const hasResult = matchData.result && matchData.result !== 'N/A' && matchData.result !== null
   const missingText = missingSections.length > 0 
     ? `\n\n⚠️ DATI PARZIALI: Le seguenti sezioni non sono disponibili: ${missingSections.join(', ')}.`
@@ -341,13 +343,6 @@ Suggerisci di caricare le foto mancanti per un'analisi più precisa.`
     availableDataText += `- Usa solo i dati forniti sopra. Se non vedi dati su goals/assists/azioni, NON menzionarli.\n`
     availableDataText += `- Esempi SBAGLIATI da evitare: "Neymar ha fatto dribbling", "Messi ha creato occasioni", "ha dominato con le sue azioni".\n`
     availableDataText += `- Esempi CORRETTI: "Neymar ha performato bene (rating 8.5)", "Messi ha avuto una buona performance (rating 8.5)".\n`
-    availableDataText += `\n⚠️ DISTINZIONI CRITICHE:\n`
-    availableDataText += `- Skills/Com_Skills nella rosa = caratteristiche giocatore, NON azioni nel match\n`
-    availableDataText += `- Overall rating nella rosa = caratteristica giocatore, NON performance nel match (usa solo rating match)\n`
-    availableDataText += `- Base stats = caratteristiche giocatore, NON performance nel match\n`
-    availableDataText += `- Form (A/B/C/D/E) = forma generale, NON performance nel match\n`
-    availableDataText += `- Boosters = bonus statistici, NON azioni effettuate\n`
-    availableDataText += `- Connection = bonus statistici, NON causa diretta performance\n`
   } else {
     availableDataText += '- Pagelle Giocatori: Non disponibile\n'
   }
@@ -677,6 +672,34 @@ Suggerisci di caricare le foto mancanti per un'analisi più precisa.`
   const userName = userProfile?.first_name || null
   const greeting = userName ? ` per ${userName}` : ''
   
+  // ✅ Carica memoria Attila modulare per analisi tattica
+  let attilaMemorySection = ''
+  try {
+    const hasPlayerRatings = matchData.player_ratings && (
+      (matchData.player_ratings.cliente && Object.keys(matchData.player_ratings.cliente).length > 0) ||
+      (matchData.player_ratings.avversario && Object.keys(matchData.player_ratings.avversario).length > 0)
+    )
+    const hasTeamPlayingStyle = tacticalSettings?.team_playing_style || tacticalPatterns?.playing_style_usage
+    
+    const attilaContext = {
+      type: 'analyze-match',
+      hasPlayerRatings: !!hasPlayerRatings,
+      hasTeamPlayingStyle: !!hasTeamPlayingStyle,
+      needsDevelopmentAnalysis: false,
+      needsSetPiecesAnalysis: false,
+      needsMechanics: false
+    }
+    
+    const attilaMemoryContent = await loadAttilaMemory(attilaContext)
+    
+    if (attilaMemoryContent && attilaMemoryContent.length > 0) {
+      attilaMemorySection = `\n\n📌 MEMORIA ATTILA - eFootball (Conoscenza Tattica):\n${attilaMemoryContent}\n\n`
+    }
+  } catch (attilaError) {
+    // Fallback graceful: se memoria modulare fallisce, continua senza
+    console.error('[analyze-match] Error loading Attila memory:', attilaError)
+  }
+
   return `Analizza i dati di questa partita di eFootball${greeting} e genera un riassunto motivazionale e decisionale dell'andamento.
 
 ${hasResult ? `RISULTATO: ${matchData.result}` : 'RISULTATO: Non disponibile'}
@@ -684,7 +707,7 @@ ${hasResult ? `RISULTATO: ${matchData.result}` : 'RISULTATO: Non disponibile'}
 ${userContext}${clientTeamText}${opponentNameText}${rosterText}${playersInMatchText}${opponentFormationText}${historyAnalysisText}DATI MATCH DISPONIBILI:
 ${availableDataText}
 ${missingText}
-${conservativeMode}${personalizationInstructions}
+${attilaMemorySection}${conservativeMode}${personalizationInstructions}
 ⚠️ REGOLE CRITICHE - NON INVENTARE DATI (ASSOLUTO):
 1. NON menzionare goals/assists per giocatori specifici a meno che non siano esplicitamente forniti nei dati sopra
 2. Se vedi "goals_scored: X" nelle statistiche squadra, questo è il TOTALE squadra, NON per giocatore
@@ -937,6 +960,7 @@ export async function POST(req) {
     let matchHistory = []
     let tacticalPatterns = null
     let activeCoach = null // ✅ FIX: Dichiarato fuori dal blocco per essere disponibile nello scope esterno
+    let tacticalSettings = null // ✅ FIX: Necessario per team_playing_style
     
     // Recupera players_in_match da matchData (disposizione reale giocatori)
     if (matchData.players_in_match && Array.isArray(matchData.players_in_match)) {
@@ -997,7 +1021,18 @@ export async function POST(req) {
           matchHistory = history
         }
         
-        // 5. Recupera allenatore attivo (✅ FIX: Aggiunto recupero allenatore)
+        // 5. Recupera impostazioni tattiche (per team_playing_style)
+        const { data: settings, error: settingsError } = await admin
+          .from('team_tactical_settings')
+          .select('team_playing_style')
+          .eq('user_id', userId)
+          .maybeSingle()
+        
+        if (!settingsError && settings) {
+          tacticalSettings = settings
+        }
+        
+        // 6. Recupera allenatore attivo (✅ FIX: Aggiunto recupero allenatore)
         const { data: coach, error: coachError } = await admin
           .from('coaches')
           .select('coach_name, playing_style_competence, stat_boosters, connection')
@@ -1009,7 +1044,7 @@ export async function POST(req) {
           activeCoach = coach // ✅ FIX: Assegna alla variabile dichiarata fuori dal blocco
         }
         
-        // 6. Recupera pattern tattici (se disponibili)
+        // 7. Recupera pattern tattici (se disponibili)
         const { data: patterns, error: patternsError } = await admin
           .from('team_tactical_patterns')
           .select('formation_usage, playing_style_usage, recurring_issues')
@@ -1062,8 +1097,8 @@ export async function POST(req) {
       team_strength: matchData.team_strength
     }
     
-    // ✅ FIX: Passa activeCoach alla funzione generateAnalysisPrompt (era mancante)
-    const prompt = generateAnalysisPrompt(sanitizedMatchData, confidence, missingSections, userProfile, players, opponentFormation, playersInMatch, matchHistory, tacticalPatterns, activeCoach)
+    // ✅ FIX: Passa activeCoach e tacticalSettings alla funzione generateAnalysisPrompt
+    const prompt = await generateAnalysisPrompt(sanitizedMatchData, confidence, missingSections, userProfile, players, opponentFormation, playersInMatch, matchHistory, tacticalPatterns, activeCoach, tacticalSettings)
     
     // Validazione dimensione prompt (max 50KB per sicurezza)
     const promptSize = prompt.length

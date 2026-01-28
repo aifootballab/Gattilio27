@@ -1,0 +1,12 @@
+# 📌 MEMORIA DI ATTILA – eFootball: Regole e Meccaniche di Gioco
+#
+# Questo file è l’ORIGINALE unificato (backup) da cui sono stati creati i moduli in `memoria_attila/*.md`.
+# I prompt IA in produzione NON caricano questo file: usano i moduli `.md` tramite `lib/attilaMemoryHelper.js`.
+#
+# Data backup: 2026-01-28
+
+## Nota
+Per consultazione: vedi `memoria_attila/index.json` e i moduli:
+`01_statistiche_giocatori.md`, `02_stili_gioco.md`, `03_moduli_tattici.md`, `04_competenze_sviluppo.md`,
+`05_stili_tattici_squadra.md`, `06_calci_piazzati.md`, `07_meccaniche_gioco.md`, `08_consigli_strategie.md`.
+

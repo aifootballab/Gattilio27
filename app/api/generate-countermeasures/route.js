@@ -306,7 +306,7 @@ export async function POST(req) {
     // 9.2 Genera prompt contestuale con analisi approfondita
     let prompt
     try {
-      prompt = generateCountermeasuresPrompt(
+      prompt = await generateCountermeasuresPrompt(
         opponentFormation,
         roster || [],
         clientFormation || null,

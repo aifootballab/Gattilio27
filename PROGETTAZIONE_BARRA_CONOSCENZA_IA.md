@@ -1,7 +1,8 @@
 # 🧠 Barra Conoscenza IA (documentazione mantenuta)
 
 **Ultimo aggiornamento**: 2026-01-28  
-**Stato**: ✅ Attivo / allineato al codice
+**Stato**: ✅ Attivo / allineato al codice  
+**Fix implementati**: Race condition risolta, refresh automatico UI, cache ottimizzata
 
 Questo documento descrive **come funziona davvero** la Barra Conoscenza IA in produzione (calcolo, fonti dati, aggiornamento, cache).
 
@@ -91,12 +92,20 @@ Calcolati e salvati in `team_tactical_patterns`:
 Per evitare race condition, l’aggiornamento è **sequenziale**:
 1) calcolo + upsert pattern  
 2) ricalcolo score + update `user_profiles.ai_knowledge_*`
+3) aggiornamento task settimanali (solo dopo save-match)
+
+**Fix implementato (28 gen 2026)**: Gli aggiornamenti sono ora completamente sequenziali usando Promise chain per garantire che ogni step aspetti il precedente.
 
 ### UI
 La dashboard chiama `GET /api/ai-knowledge` e visualizza:
 - percentuale
 - livello (beginner/intermediate/advanced/expert)
 - breakdown (dettagli)
+
+**Fix implementato (28 gen 2026)**: 
+- Componente `AIKnowledgeBar` ora ascolta evento `match-saved` per refresh automatico dopo salvataggio partita
+- Cache ridotta da 5 minuti a 1 minuto per aggiornamenti più frequenti
+- Refresh automatico con delay di 3 secondi per permettere calcolo sequenziale completo
 
 ---
 
@@ -118,4 +127,35 @@ Cosa aspettarsi:
 - **Score non cambia**:
   - può essere cache (< 5 min)
   - verificare `user_profiles.ai_knowledge_last_calculated`
+
+---
+
+## 🔧 Fix Implementati (28 Gennaio 2026)
+
+### Race Condition Risolta
+- **Problema**: Aggiornamenti paralleli causavano race condition tra pattern, AI Knowledge e task
+- **Soluzione**: Aggiornamenti sequenziali usando Promise chain in `save-match` e `update-match`
+- **Ordine**: Pattern → AI Knowledge → Task (ognuno aspetta il precedente)
+
+### Refresh Automatico UI
+- **Problema**: Componenti UI non si aggiornavano automaticamente dopo salvataggio partita
+- **Soluzione**: 
+  - Evento `match-saved` dispatchato dopo salvataggio partita
+  - `AIKnowledgeBar` e `TaskWidget` ascoltano evento per refresh automatico
+  - Delay di 3s per AIKnowledgeBar, 1.5s per TaskWidget per permettere calcolo sequenziale
+
+### Cache Ottimizzata
+- **Problema**: Cache di 5 minuti troppo lunga per feedback immediato
+- **Soluzione**: 
+  - Cache frontend ridotta da 5 minuti a 1 minuto
+  - Polling ogni 1 minuto invece di 5 minuti
+  - Refresh immediato tramite evento `match-saved`
+
+### Task Completamento
+- **Problema**: Task non si completavano automaticamente per problemi di precisione float
+- **Soluzione**: Aggiunta tolleranza float (0.01) e arrotondamento esplicito nel confronto
+
+### Rate Limiting
+- **Problema**: Rate limiting disabilitato su `/api/tasks/list`
+- **Soluzione**: Riattivato con limite 60 richieste/minuto (endpoint leggero)
 

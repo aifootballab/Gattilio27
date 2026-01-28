@@ -1,0 +1,70 @@
+{
+  "version": "1.0",
+  "lastUpdated": "2026-01-28",
+  "modules": {
+    "01_statistiche_giocatori": {
+      "name": "Statistiche Giocatori",
+      "description": "Statistiche tecniche, difensive, fisiche e portieri",
+      "size": "~3KB",
+      "useCases": ["player_ratings", "player_analysis", "tactical_analysis"],
+      "requiredFor": [],
+      "optionalFor": ["countermeasures", "analyze-match"]
+    },
+    "02_stili_gioco": {
+      "name": "Stili di Gioco",
+      "description": "Stili di gioco giocatori (senza/con palla) e posizioni compatibili",
+      "size": "~4KB",
+      "useCases": ["countermeasures", "formation_analysis", "player_selection"],
+      "requiredFor": ["countermeasures"],
+      "optionalFor": ["analyze-match"]
+    },
+    "03_moduli_tattici": {
+      "name": "Moduli Tattici",
+      "description": "Formazioni tattiche (4-3-3, 4-2-3-1, 3-5-2, ecc.)",
+      "size": "~2KB",
+      "useCases": ["countermeasures", "formation_analysis"],
+      "requiredFor": ["countermeasures"],
+      "optionalFor": ["analyze-match"]
+    },
+    "04_competenze_sviluppo": {
+      "name": "Competenze e Sviluppo",
+      "description": "Tipologie giocatori, VG, competenze posizione, squadre",
+      "size": "~2KB",
+      "useCases": ["player_development", "team_building"],
+      "requiredFor": [],
+      "optionalFor": ["analyze-match"]
+    },
+    "05_stili_tattici_squadra": {
+      "name": "Stili Tattici di Squadra",
+      "description": "Stili base, offensivi, difensivi, costruzione, tattiche speciali",
+      "size": "~3KB",
+      "useCases": ["team_playing_style", "tactical_analysis"],
+      "requiredFor": [],
+      "optionalFor": ["countermeasures", "analyze-match"]
+    },
+    "06_calci_piazzati": {
+      "name": "Calci Piazzati",
+      "description": "Strategie attacco/difesa per punizioni e corner",
+      "size": "~2KB",
+      "useCases": ["set_pieces_analysis"],
+      "requiredFor": [],
+      "optionalFor": ["analyze-match"]
+    },
+    "07_meccaniche_gioco": {
+      "name": "Meccaniche di Gioco",
+      "description": "Modifica posizioni, forza squadra, abilità speciali, ML",
+      "size": "~3KB",
+      "useCases": ["game_mechanics", "formation_setup"],
+      "requiredFor": [],
+      "optionalFor": ["assistant-chat"]
+    },
+    "08_consigli_strategie": {
+      "name": "Consigli e Strategie",
+      "description": "Abilità giocatore, tecniche di gioco, comandi specifici",
+      "size": "~4KB",
+      "useCases": ["tactical_advice", "game_strategy"],
+      "requiredFor": ["analyze-match"],
+      "optionalFor": ["countermeasures"]
+    }
+  }
+}
