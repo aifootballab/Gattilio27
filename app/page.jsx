@@ -7,6 +7,7 @@ import { useTranslation } from '@/lib/i18n'
 import LanguageSwitch from '@/components/LanguageSwitch'
 import AIKnowledgeBar from '@/components/AIKnowledgeBar'
 import TaskWidget from '@/components/TaskWidget'
+import { safeJsonResponse } from '@/lib/fetchHelper'
 import { 
   LayoutDashboard, 
   Users, 
@@ -226,11 +227,7 @@ export default function DashboardPage() {
         }
       })
 
-      const data = await res.json()
-
-      if (!res.ok) {
-        throw new Error(data.error || t('deleteMatchError'))
-      }
+      const data = await safeJsonResponse(res, t('deleteMatchError'))
 
       // Rimuovi match dalla lista
       setRecentMatches(prev => prev.filter(m => m.id !== matchId))

@@ -9,6 +9,7 @@ import { ArrowLeft, Upload, AlertCircle, CheckCircle2, RefreshCw, Info, X, Plus,
 import TacticalSettingsPanel from '@/components/TacticalSettingsPanel'
 import PositionSelectionModal from '@/components/PositionSelectionModal'
 import MissingDataModal from '@/components/MissingDataModal'
+import { safeJsonResponse } from '@/lib/fetchHelper'
 
 export default function GestioneFormazionePage() {
   const { t } = useTranslation()
@@ -467,10 +468,7 @@ export default function GestioneFormazionePage() {
         })
       })
 
-      const data = await res.json()
-      if (!res.ok) {
-        throw new Error(data.error || 'Errore assegnazione')
-      }
+      const data = await safeJsonResponse(res, 'Errore assegnazione')
 
       // Messaggio di successo
       showToast(t('playerAssignedSuccessfully'), 'success')
@@ -514,7 +512,14 @@ export default function GestioneFormazionePage() {
         body: JSON.stringify({ player_id: playerId })
       })
 
-      const data = await res.json()
+      // Gestione sicura della risposta JSON
+      let data
+      try {
+        data = await res.json()
+      } catch (jsonError) {
+        throw new Error(`Errore server: ${res.status} ${res.statusText}`)
+      }
+      
       if (!res.ok) {
         // Se è errore di duplicato riserva, gestisci
         if (data.duplicate_reserve_id) {
@@ -542,10 +547,7 @@ export default function GestioneFormazionePage() {
                 },
                 body: JSON.stringify({ player_id: playerId })
               })
-              const retryData = await retryRes.json()
-              if (!retryRes.ok) {
-                throw new Error(retryData.error || 'Errore rimozione dopo eliminazione duplicato')
-              }
+              const retryData = await safeJsonResponse(retryRes, 'Errore rimozione dopo eliminazione duplicato')
             } else {
               throw new Error('Errore eliminazione giocatore duplicato riserva')
             }
@@ -601,10 +603,7 @@ export default function GestioneFormazionePage() {
         body: JSON.stringify({ player_id: playerId })
       })
 
-      const data = await res.json()
-      if (!res.ok) {
-        throw new Error(data.error || 'Errore eliminazione')
-      }
+      const data = await safeJsonResponse(res, 'Errore eliminazione')
 
       // Chiudi modal se aperto
       setShowAssignModal(false)
@@ -654,10 +653,7 @@ export default function GestioneFormazionePage() {
         body: JSON.stringify({ player_id: playerId })
       })
 
-      const data = await res.json()
-      if (!res.ok) {
-        throw new Error(data.error || 'Errore eliminazione')
-      }
+      const data = await safeJsonResponse(res, 'Errore eliminazione')
 
       // Reset stati UI
       setSelectedReserve(null)
@@ -753,7 +749,15 @@ export default function GestioneFormazionePage() {
           body: JSON.stringify({ imageDataUrl: img.dataUrl })
         })
 
-        const extractData = await extractRes.json()
+        let extractData
+        try {
+          extractData = await extractRes.json()
+        } catch (jsonError) {
+          const errorMsg = `Errore server: ${extractRes.status} ${extractRes.statusText}`
+          console.warn('[UploadPlayer] Errore estrazione (JSON invalido):', errorMsg)
+          errors.push(errorMsg)
+          continue
+        }
         if (!extractRes.ok) {
           const errorMsg = extractData.error || 'Errore sconosciuto'
           console.warn('[UploadPlayer] Errore estrazione:', errorMsg)
@@ -1058,10 +1062,7 @@ export default function GestioneFormazionePage() {
         })
       })
 
-      const saveData = await saveRes.json()
-      if (!saveRes.ok) {
-        throw new Error(saveData.error || 'Errore salvataggio giocatore')
-      }
+      const saveData = await safeJsonResponse(saveRes, 'Errore salvataggio giocatore')
 
       setShowUploadPlayerModal(false)
       setShowPositionSelectionModal(false)
@@ -1164,10 +1165,7 @@ export default function GestioneFormazionePage() {
         body: JSON.stringify(settings)
       })
 
-      const data = await res.json()
-      if (!res.ok) {
-        throw new Error(data.error || 'Errore salvataggio impostazioni tattiche')
-      }
+      const data = await safeJsonResponse(res, 'Errore salvataggio impostazioni tattiche')
 
       // Aggiorna state locale
       setTacticalSettings(data.settings)
@@ -1238,10 +1236,7 @@ export default function GestioneFormazionePage() {
         })
       })
 
-      const layoutData = await layoutRes.json()
-      if (!layoutRes.ok) {
-        throw new Error(layoutData.error || 'Errore salvataggio layout')
-      }
+      const layoutData = await safeJsonResponse(layoutRes, 'Errore salvataggio layout')
 
       setShowFormationSelectorModal(false)
       
@@ -1497,7 +1492,15 @@ export default function GestioneFormazionePage() {
           body: JSON.stringify({ imageDataUrl: img.dataUrl })
         })
 
-        const extractData = await extractRes.json()
+        let extractData
+        try {
+          extractData = await extractRes.json()
+        } catch (jsonError) {
+          const errorMsg = `Errore server: ${extractRes.status} ${extractRes.statusText}`
+          console.warn('[UploadReserve] Errore estrazione (JSON invalido):', errorMsg)
+          errors.push(errorMsg)
+          continue
+        }
         if (!extractRes.ok) {
           const errorMsg = extractData.error || 'Errore sconosciuto'
           console.warn('[UploadReserve] Errore estrazione:', errorMsg)
@@ -1638,7 +1641,14 @@ export default function GestioneFormazionePage() {
         })
       })
 
-      const saveData = await saveRes.json()
+      // Gestione sicura della risposta JSON
+      let saveData
+      try {
+        saveData = await saveRes.json()
+      } catch (jsonError) {
+        throw new Error(`Errore server: ${saveRes.status} ${saveRes.statusText}`)
+      }
+      
       if (!saveRes.ok) {
         // Se è un errore di duplicato riserva, mostra messaggio chiaro
         if (saveData.is_reserve && saveData.duplicate_player_id) {
@@ -1672,10 +1682,7 @@ export default function GestioneFormazionePage() {
                   }
                 })
               })
-              const retryData = await retryRes.json()
-              if (!retryRes.ok) {
-                throw new Error(retryData.error || 'Errore salvataggio giocatore dopo sostituzione')
-              }
+              const retryData = await safeJsonResponse(retryRes, 'Errore salvataggio giocatore dopo sostituzione')
             } else {
               throw new Error('Errore eliminazione giocatore duplicato')
             }
