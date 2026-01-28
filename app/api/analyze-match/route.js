@@ -654,6 +654,9 @@ Suggerisci di caricare le foto mancanti per un'analisi più precisa.`
   }
   
   // Logica identificazione squadra cliente
+  // ✅ FIX: clientTeamName deve essere dichiarato fuori dal blocco condizionale per essere disponibile nel template literal
+  const clientTeamName = userProfile?.team_name || matchData.client_team_name || null
+  
   let clientTeamText = ''
   if (isNewMatch && matchData.is_home !== undefined && matchData.is_home !== null) {
     // Match nuovo: usa logica is_home
@@ -663,7 +666,6 @@ Suggerisci di caricare le foto mancanti per un'analisi più precisa.`
       : `\nSQUADRA CLIENTE: La SECONDA squadra (team2) nei dati è quella del CLIENTE (hai giocato fuori casa).\n`
   } else {
     // Match vecchio: usa logica client_team_name (backward compatibility)
-    const clientTeamName = userProfile?.team_name || matchData.client_team_name || null
     clientTeamText = clientTeamName
       ? `\nSQUADRA CLIENTE: ${clientTeamName}\n`
       : `\nSQUADRA CLIENTE: Identifica quale squadra è quella del cliente confrontando i nomi squadra nei dati match.\n`
@@ -934,6 +936,7 @@ export async function POST(req) {
     let playersInMatch = []
     let matchHistory = []
     let tacticalPatterns = null
+    let activeCoach = null // ✅ FIX: Dichiarato fuori dal blocco per essere disponibile nello scope esterno
     
     // Recupera players_in_match da matchData (disposizione reale giocatori)
     if (matchData.players_in_match && Array.isArray(matchData.players_in_match)) {
@@ -995,12 +998,16 @@ export async function POST(req) {
         }
         
         // 5. Recupera allenatore attivo (✅ FIX: Aggiunto recupero allenatore)
-        const { data: activeCoach, error: coachError } = await admin
+        const { data: coach, error: coachError } = await admin
           .from('coaches')
           .select('coach_name, playing_style_competence, stat_boosters, connection')
           .eq('user_id', userId)
           .eq('is_active', true)
           .maybeSingle()
+        
+        if (!coachError && coach) {
+          activeCoach = coach // ✅ FIX: Assegna alla variabile dichiarata fuori dal blocco
+        }
         
         // 6. Recupera pattern tattici (se disponibili)
         const { data: patterns, error: patternsError } = await admin
@@ -1011,11 +1018,6 @@ export async function POST(req) {
         
         if (!patternsError && patterns) {
           tacticalPatterns = patterns
-        }
-        
-        // ✅ FIX: Recupera allenatore attivo (già recuperato sopra, ora lo salviamo)
-        if (!coachError && activeCoach) {
-          // activeCoach già recuperato sopra
         }
       } catch (err) {
         console.warn('[analyze-match] Error retrieving contextual data:', err)
@@ -1034,6 +1036,7 @@ export async function POST(req) {
     const missingSections = getMissingSections(matchData)
     
     // Sanitizzazione prompt: limita lunghezza campi stringa
+    // ✅ FIX: Includi match_date e is_home per determinare correttamente isNewMatch e identificare squadra cliente
     const sanitizedMatchData = {
       result: matchData.result && typeof matchData.result === 'string'
         ? matchData.result.substring(0, 50)
@@ -1044,6 +1047,8 @@ export async function POST(req) {
       client_team_name: matchData.client_team_name && typeof matchData.client_team_name === 'string'
         ? matchData.client_team_name.substring(0, 255).trim()
         : null,
+      match_date: matchData.match_date || null, // ✅ FIX: Necessario per determinare isNewMatch
+      is_home: typeof matchData.is_home === 'boolean' ? matchData.is_home : (matchData.is_home !== undefined ? matchData.is_home : null), // ✅ FIX: Necessario per identificare squadra cliente nei match nuovi
       player_ratings: matchData.player_ratings,
       team_stats: matchData.team_stats,
       attack_areas: matchData.attack_areas,
@@ -1057,7 +1062,8 @@ export async function POST(req) {
       team_strength: matchData.team_strength
     }
     
-    const prompt = generateAnalysisPrompt(sanitizedMatchData, confidence, missingSections, userProfile, players, opponentFormation, playersInMatch, matchHistory, tacticalPatterns)
+    // ✅ FIX: Passa activeCoach alla funzione generateAnalysisPrompt (era mancante)
+    const prompt = generateAnalysisPrompt(sanitizedMatchData, confidence, missingSections, userProfile, players, opponentFormation, playersInMatch, matchHistory, tacticalPatterns, activeCoach)
     
     // Validazione dimensione prompt (max 50KB per sicurezza)
     const promptSize = prompt.length
