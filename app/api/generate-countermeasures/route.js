@@ -342,10 +342,10 @@ export async function POST(req) {
       )
     }
 
-    // 10. Chiama GPT-5.2/GPT-5 (modelli più recenti) con fallback a GPT-4o
-    // Prova prima i modelli più recenti (GPT-5.2, GPT-5), poi fallback a GPT-4o se non disponibili
+    // 10. Chiama GPT-4o (modello principale) con fallback ad altri modelli
+    // GPT-4o è il modello principale, fallback ad altri se non disponibile
     // Tutti supportano JSON mode
-    const models = ['gpt-5.2', 'gpt-5', 'gpt-4o', 'gpt-4-turbo', 'gpt-4']
+    const models = ['gpt-4o', 'gpt-4-turbo', 'gpt-4']
     let lastError = null
     let response = null
     let lastErrorDetails = null
