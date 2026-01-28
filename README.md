@@ -114,10 +114,8 @@ lib/
 **Documenti specializzati**:
 - **`DOCUMENTAZIONE_GUIDA_INTERATTIVA.md`** – Assistant Chat AI: architettura, prompt engineering, flussi
 - **`DOCUMENTAZIONE_DRAG_DROP.md`** – Drag & Drop giocatori sul campo 2D: funzionalità e implementazione
-- **`DOCUMENTAZIONE_MODIFICHE_POSIZIONI_MULTIPLE.md`** – Gestione posizioni multiple giocatori: modifiche DB e codice
-- **`PROGETTAZIONE_BARRA_CONOSCENZA_IA.md`** – Barra Conoscenza IA: progettazione completa, formula calcolo, architettura enterprise
-- **`ANALISI_360_OBIETTIVI_SETTIMANALI.md`** – Obiettivi settimanali: analisi 360°, generazione, tracking, validazione
-- **`PIANO_IMPLEMENTAZIONE_BARRA_CONOSCENZA_IA.md`** – Piano implementazione step-by-step con verifiche e rollback
+- **`PROGETTAZIONE_BARRA_CONOSCENZA_IA.md`** – Barra Conoscenza IA: calcolo + flusso aggiornamento in produzione
+- **`INDICE_DOCUMENTAZIONE.md`** – Indice “pulito” dei documenti mantenuti
 
 ## ⚙️ Environment Variables
 

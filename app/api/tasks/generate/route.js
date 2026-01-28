@@ -37,7 +37,7 @@ export async function POST(request) {
     const user_id = userData.user.id
 
     // 2. Rate limiting
-    const rateLimit = checkRateLimit(user_id, '/api/tasks/generate')
+    const rateLimit = await checkRateLimit(user_id, '/api/tasks/generate')
     if (!rateLimit.allowed) {
       return NextResponse.json(
         { error: 'Rate limit exceeded', resetAt: rateLimit.resetAt },

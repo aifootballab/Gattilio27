@@ -27,12 +27,12 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_service_key
 ```
 
-4. **Esegui migration**:
-```sql
--- In Supabase SQL Editor
-\i migrations/create_weekly_goals_table.sql
-\i migrations/fix_weekly_goals_created_by.sql
-```
+4. **Esegui migration (Supabase SQL Editor)**:
+- Apri Supabase → **SQL Editor**
+- Copia/incolla il contenuto di:
+  - `migrations/create_weekly_goals_table.sql`
+  - `migrations/fix_weekly_goals_created_by.sql`
+- Esegui le query in ordine (sono non-distruttive dove possibile).
 
 5. **Avvia dev server**:
 ```bash

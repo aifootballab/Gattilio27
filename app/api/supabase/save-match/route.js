@@ -441,7 +441,7 @@ export async function POST(req) {
         console.error('[save-match] Failed to calculate tactical patterns (non-blocking):', err)
       })
 
-    // Aggiorna progresso Task settimanali (async, non blocca risposta) ⭐ NUOVO
+    // Aggiorna progresso Task settimanali (async, non blocca risposta)
     if (supabaseUrl && serviceKey) {
       import('../../../../lib/taskHelper').then(({ updateTasksProgressAfterMatch }) => {
         updateTasksProgressAfterMatch(userId, supabaseUrl, serviceKey, savedMatch).catch(err => {
@@ -449,6 +449,17 @@ export async function POST(req) {
         })
       }).catch(err => {
         console.error('[save-match] Failed to import taskHelper (non-blocking):', err)
+      })
+    }
+
+    // Aggiorna aggregati performance per-giocatore (async, non blocca risposta)
+    if (supabaseUrl && serviceKey) {
+      import('../../../../lib/playerPerformanceHelper').then(({ updatePlayerPerformanceAggregates }) => {
+        updatePlayerPerformanceAggregates(userId, supabaseUrl, serviceKey).catch(err => {
+          console.error('[save-match] Failed to update player performance aggregates (non-blocking):', err)
+        })
+      }).catch(err => {
+        console.error('[save-match] Failed to import playerPerformanceHelper (non-blocking):', err)
       })
     }
 

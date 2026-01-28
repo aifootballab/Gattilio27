@@ -1,8 +1,17 @@
 # 📚 Documentazione Master Completa - eFootball AI Coach
 
-**Data Aggiornamento**: 26 Gennaio 2026  
-**Versione**: 2.1.0  
+**Data Aggiornamento**: 28 Gennaio 2026  
+**Versione**: 2.2.0  
 **Status**: ✅ **PRODUZIONE** – Sistema completo e funzionante
+
+**Aggiornamenti 28 gen 2026 (v2.2.0)**:
+- **⭐ Barra Conoscenza IA (allineamento + aggiornamenti affidabili)**:
+  - **Pattern** letti da `team_tactical_patterns` (non placeholder)
+  - Aggiornamento **sequenziale**: prima ricalcolo/salvataggio pattern → poi ricalcolo `ai_knowledge_*` (evita race condition)
+  - Aggiornamento dopo: `save-match`, `update-match`, `save-profile` (e anche dopo completamento task)
+  - Cache “soft” 5 minuti basata su `user_profiles.ai_knowledge_last_calculated` (nessuna Redis in produzione al momento)
+- **Task / Obiettivi Settimanali (coerenza)**:
+  - `GET /api/tasks/list` è endpoint leggero: il rate limit è **configurato** in `lib/rateLimiter.js` ma **attualmente disabilitato** nella route (commentato)
 
 **Aggiornamenti 26 gen 2026 (v2.1.0)**:
 - **⭐ Barra Conoscenza IA**: Indicatore progressivo (0-100%) che mostra quanto l'IA conosce il cliente
@@ -72,7 +81,7 @@ La piattaforma è progettata come **Decision Support System**, non come archivio
   - Aggiornamento automatico dopo ogni azione rilevante (save-match, save-profile)
   - Cache intelligente (5 minuti) per performance ottimali
   - 4 livelli: Beginner (0-30%), Intermediate (31-60%), Advanced (61-80%), Expert (81-100%)
-- **Obiettivi Settimanali** - Sistema per tracciare e completare obiettivi personalizzati (DB schema pronto, UI in sviluppo)
+- **Obiettivi Settimanali** - Sistema task attivo in dashboard (TaskWidget) con progress bar e aggiornamento dopo save match
 - **Guida Completa** (`/guida`) - Documentazione interattiva con CTA per completare profilo
 - **Assistant Chat** - Widget AI sempre disponibile (bottom-right) per guida personale
 - **Contromisure Live** (`/contromisure-live`) - Suggerimenti tattici basati su formazione avversaria
@@ -1135,6 +1144,7 @@ Cartella con file SQL per migrazioni Supabase.
 - `week_end_date` (date) - Data fine settimana (Domenica)
 - `status` (text) - "active" | "completed" | "failed"
 - `completed_at` (timestamptz) - Timestamp completamento
+- `created_by` (text) - "system" | "user" | "admin"
 - `created_at`, `updated_at` (timestamptz)
 
 **RLS**: Abilitato, utente può leggere/scrivere solo i propri obiettivi.
@@ -1144,7 +1154,7 @@ Cartella con file SQL per migrazioni Supabase.
 - `idx_weekly_goals_status`: `(user_id, status, week_start_date DESC)` per filtrare per status
 - `idx_weekly_goals_active`: `(user_id, status)` WHERE status = 'active' per query obiettivi attivi
 
-**Note**: Tabella creata per supportare sistema obiettivi settimanali. Generazione automatica e tracking in sviluppo.
+**Note**: Sistema Task **attivo** (TaskWidget in dashboard). Il progresso viene aggiornato automaticamente dopo `POST /api/supabase/save-match`.
 
 ---
 
@@ -1163,9 +1173,8 @@ Cartella con file SQL per migrazioni Supabase.
 - `/api/assistant-chat` richiede autenticazione
 - `/api/ai-knowledge` richiede autenticazione (v2.1.0)
 
-**Endpoints Pubblici** (da proteggere in futuro):
-- `/api/extract-player` - Attualmente pubblico
-- `/api/extract-formation` - Attualmente pubblico
+**Endpoints Pubblici**:
+- Nessuno tra quelli principali: gli endpoint critici (OpenAI/CRUD) richiedono Bearer token e hanno rate limit (vedi `lib/rateLimiter.js`).
 
 ---
 

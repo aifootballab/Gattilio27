@@ -202,7 +202,9 @@ USING ((select auth.uid()) = user_id);
 **Query Parameters**:
 - `week_start_date` (opzionale): Data inizio settimana (YYYY-MM-DD). Default: settimana corrente.
 
-**Rate Limiting**: 30 richieste/minuto
+**Rate Limiting**:
+- **Configurato** in `lib/rateLimiter.js` come `60 req/min`
+- **Attualmente disabilitato** nella route `app/api/tasks/list/route.js` (commentato perché endpoint di sola lettura e leggero)
 
 **Response**:
 ```json
@@ -604,8 +606,10 @@ export default function Dashboard() {
 
 ### **Rate Limiting**
 
-- `/api/tasks/list`: **30 req/min**
-- `/api/tasks/generate`: **5 req/min**
+- `/api/tasks/list`:
+  - **Configurato**: `60 req/min` in `lib/rateLimiter.js`
+  - **Enforcement**: al momento **disabilitato** nella route (commentato)
+- `/api/tasks/generate`: **5 req/min** (enforced)
 
 ### **Validazione Input**
 
