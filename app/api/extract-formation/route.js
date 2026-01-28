@@ -91,7 +91,7 @@ export async function POST(req) {
       }
     }
 
-    // Prompt per estrazione formazione completa (11 giocatori)
+    // Prompt per estrazione formazione completa (11 giocatori + allenatore opzionale)
     const prompt = `Analizza questo screenshot di eFootball che mostra una formazione completa con 11 giocatori sul campo.
 
 IMPORTANTE:
@@ -104,6 +104,14 @@ IMPORTANTE:
   * Attaccanti (SP, CF, CLD, CLS): slot_index = 9-10 (da sinistra a destra)
 - Estrai anche la formazione (es. "4-2-1-3", "4-3-3", ecc.) se visibile
 - Se vedi il volto/faccia del giocatore nella card, indicane la descrizione visiva
+
+ALLENATORE (OPZIONALE - Solo se presente):
+- A volte nella schermata è presente anche l'allenatore/manager
+- L'allenatore è solitamente visibile in una sezione separata (sidebar, in basso, o in un box dedicato)
+- L'allenatore NON è uno dei giocatori sul campo - è una figura separata con card/stats diverse
+- Se vedi l'allenatore, estrai: nome allenatore, età, nazionalità, squadra, categoria, pack_type (se visibile)
+- Se NON vedi l'allenatore nella schermata, usa null per il campo "coach" (NON è un errore)
+- IMPORTANTE: Se l'allenatore non è visibile, NON inventare dati - usa null
 
 Formato JSON richiesto:
 {
@@ -119,10 +127,23 @@ Formato JSON richiesto:
       "player_face_description": "Descrizione volto se visibile (colore pelle, capelli, caratteristiche distintive)"
     },
     // ... altri 10 giocatori
-  ]
+  ],
+  "coach": {
+    "coach_name": "Nome Allenatore",
+    "age": 45,
+    "nationality": "Italia",
+    "team": "AC Milan",
+    "category": "Campionato italiano",
+    "pack_type": "Manager Pack (se visibile)"
+  }
 }
 
-Restituisci SOLO JSON valido, senza altro testo. Assicurati che ci siano ESATTAMENTE 11 giocatori nell'array.`
+IMPORTANTE:
+- Il campo "coach" deve essere null se l'allenatore NON è visibile nella schermata
+- Assicurati che ci siano ESATTAMENTE 11 giocatori nell'array "players"
+- Se vedi meno di 11 giocatori, indica solo quelli visibili (ma avvisa nel campo "note" se presente)
+
+Restituisci SOLO JSON valido, senza altro testo.`
 
     // Chiama OpenAI Vision API con retry e timeout
     let formationData = null
@@ -146,16 +167,32 @@ Restituisci SOLO JSON valido, senza altro testo. Assicurati che ci siano ESATTAM
         ],
         response_format: { type: 'json_object' },
         temperature: 0,
-        max_tokens: 4000 // Più token per 11 giocatori
+        max_tokens: 4500 // Più token per 11 giocatori + allenatore opzionale
       }
 
       const openaiRes = await callOpenAIWithRetry(apiKey, requestBody, 'extract-formation')
       formationData = await parseOpenAIResponse(openaiRes, 'extract-formation')
 
-      // Valida che ci siano 11 giocatori
-      if (!formationData.players || !Array.isArray(formationData.players) || formationData.players.length !== 11) {
-        console.warn(`[extract-formation] Expected 11 players, got ${formationData.players?.length || 0}`)
-        // Non blocco, ma avverto
+      // Valida che ci siano 11 giocatori (o almeno alcuni)
+      if (!formationData.players || !Array.isArray(formationData.players)) {
+        console.warn(`[extract-formation] No players array found`)
+        formationData.players = []
+      } else if (formationData.players.length !== 11) {
+        console.warn(`[extract-formation] Expected 11 players, got ${formationData.players.length}`)
+        // Non blocco, ma avverto - potrebbe essere formazione parziale
+      }
+
+      // Normalizza coach (può essere null se non presente)
+      if (formationData.coach && typeof formationData.coach === 'object') {
+        // Valida campi coach base
+        if (!formationData.coach.coach_name || typeof formationData.coach.coach_name !== 'string') {
+          console.warn(`[extract-formation] Coach present but missing coach_name, setting to null`)
+          formationData.coach = null
+        }
+      } else if (formationData.coach !== null && formationData.coach !== undefined) {
+        // Coach non è null/undefined ma non è un oggetto valido
+        console.warn(`[extract-formation] Invalid coach format, setting to null`)
+        formationData.coach = null
       }
 
       // Normalizza slot_index per essere sicuri che siano 0-10 e UNIVOCI
@@ -249,7 +286,8 @@ Restituisci SOLO JSON valido, senza altro testo. Assicurati che ci siano ESATTAM
     return NextResponse.json({
       formation: formationData.formation || null,
       slot_positions: formationData.slot_positions || {},
-      players: formationData.players || [] // Opzionale, per preview
+      players: formationData.players || [], // Opzionale, per preview
+      coach: formationData.coach || null // Allenatore opzionale (null se non presente)
     }, {
       headers: {
         'X-RateLimit-Limit': rateLimitConfig.maxRequests.toString(),

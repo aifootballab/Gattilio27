@@ -4,6 +4,7 @@ import React from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { useTranslation } from '@/lib/i18n'
+import { safeJsonResponse } from '@/lib/fetchHelper'
 import LanguageSwitch from '@/components/LanguageSwitch'
 import { ArrowLeft, Upload, AlertCircle, CheckCircle2, RefreshCw, X, Camera, Shield, Target, Users, Settings, ChevronDown, ChevronUp, Brain } from 'lucide-react'
 
@@ -101,25 +102,22 @@ export default function CountermeasuresLivePage() {
             slot_positions: extractData.slot_positions,
             players: extractData.players,
             overall_strength: extractData.overall_strength,
-            tactical_style: extractData.tactical_style
+            tactical_style: extractData.tactical_style,
+            coach: extractData.coach || null // Include coach se presente
           },
           is_pre_match: true
         })
       })
 
-      if (!saveRes.ok) {
-        const errorData = await saveRes.json()
-        throw new Error(errorData.error || 'Errore salvataggio formazione')
-      }
-
-      const saveData = await saveRes.json()
+      const saveData = await safeJsonResponse(saveRes, 'Errore salvataggio formazione')
       setExtractedFormation({
         id: saveData.formation?.id,
         formation_name: extractData.formation,
         playing_style: extractData.playing_style,
         players: extractData.players,
         overall_strength: extractData.overall_strength,
-        tactical_style: extractData.tactical_style
+        tactical_style: extractData.tactical_style,
+        coach: extractData.coach || null // Include coach se presente
       })
     } catch (err) {
       console.error('[CountermeasuresLive] Extract error:', err)
@@ -158,12 +156,7 @@ export default function CountermeasuresLivePage() {
         })
       })
 
-      if (!generateRes.ok) {
-        const errorData = await generateRes.json()
-        throw new Error(errorData.error || t('errorGeneratingCountermeasures'))
-      }
-
-      const generateData = await generateRes.json()
+      const generateData = await safeJsonResponse(generateRes, t('errorGeneratingCountermeasures'))
       // La risposta API ha struttura: { success: true, countermeasures: {...}, model_used: '...' }
       if (generateData.success && generateData.countermeasures) {
         setCountermeasures(generateData.countermeasures)
@@ -407,6 +400,19 @@ export default function CountermeasuresLivePage() {
                 </div>
               )}
             </div>
+            {extractedFormation.coach && (
+              <div style={{ 
+                marginTop: '12px', 
+                padding: '10px', 
+                background: 'rgba(0, 212, 255, 0.1)', 
+                border: '1px solid rgba(0, 212, 255, 0.3)', 
+                borderRadius: '6px',
+                fontSize: 'clamp(12px, 2.5vw, 14px)'
+              }}>
+                <strong style={{ color: 'var(--neon-blue)' }}>✓ {t('coach') || 'Allenatore'} estratto:</strong> {extractedFormation.coach.coach_name || 'N/A'}
+                {extractedFormation.coach.age && ` (${extractedFormation.coach.age} ${t('years') || 'anni'})`}
+              </div>
+            )}
           </div>
 
           <button

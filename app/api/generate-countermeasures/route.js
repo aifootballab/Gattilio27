@@ -102,12 +102,24 @@ export async function POST(req) {
     // 2. Recupera rosa cliente completa (con slot_index per titolari/riserve)
     const { data: clientRoster, error: rosterError } = await admin
       .from('players')
-      .select('id, player_name, position, overall_rating, base_stats, skills, com_skills, playing_style_id, slot_index')
+      .select('id, player_name, position, overall_rating, base_stats, skills, com_skills, playing_style_id, slot_index, original_positions')
       .eq('user_id', userId)
       .order('overall_rating', { ascending: false })
       .limit(100) // Max 100 giocatori
 
     const roster = clientRoster || []
+    
+    // 2.1 Recupera playing_styles per lookup nomi
+    const { data: playingStyles, error: stylesError } = await admin
+      .from('playing_styles')
+      .select('id, name')
+    
+    const stylesLookup = {}
+    if (playingStyles && !stylesError) {
+      playingStyles.forEach(style => {
+        stylesLookup[style.id] = style.name
+      })
+    }
 
     // Titolari = slot_index 0-10, riserve = slot_index null (audit contromisure)
     const titolari = roster
@@ -307,7 +319,9 @@ export async function POST(req) {
           playerPerformanceAgainstSimilar: playerPerformanceAgainstSimilar || {},
           tacticalHabits: tacticalHabits || {},
           titolari: titolari || [],
-          riserve: riserve || []
+          riserve: riserve || [],
+          stylesLookup: stylesLookup || {},
+          team_playing_style: tacticalSettings?.team_playing_style || null
         }
       )
     } catch (promptErr) {
@@ -328,9 +342,10 @@ export async function POST(req) {
       )
     }
 
-    // 10. Chiama GPT-4o (modelli disponibili)
-    // Usa gpt-4o che è disponibile e supporta JSON mode
-    const models = ['gpt-4o', 'gpt-4-turbo', 'gpt-4']
+    // 10. Chiama GPT-5.2/GPT-5 (modelli più recenti) con fallback a GPT-4o
+    // Prova prima i modelli più recenti (GPT-5.2, GPT-5), poi fallback a GPT-4o se non disponibili
+    // Tutti supportano JSON mode
+    const models = ['gpt-5.2', 'gpt-5', 'gpt-4o', 'gpt-4-turbo', 'gpt-4']
     let lastError = null
     let response = null
     let lastErrorDetails = null
@@ -448,6 +463,94 @@ export async function POST(req) {
         { error: `Invalid countermeasures format: ${validation.error}` },
         { status: 500 }
       )
+    }
+
+    // 12.1 Filtra suggerimenti invalidi (coerenza con rosa)
+    if (countermeasures.countermeasures?.player_suggestions && Array.isArray(countermeasures.countermeasures.player_suggestions)) {
+      const validSuggestions = []
+      const invalidSuggestions = []
+      
+      // Crea mappe per lookup veloce
+      const titolariMap = new Map(titolari.map(p => [p.id, p]))
+      const riserveMap = new Map(riserve.map(p => [p.id, p]))
+      const riserveByPosition = {}
+      riserve.forEach(p => {
+        const pos = p.position || 'N/A'
+        if (!riserveByPosition[pos]) riserveByPosition[pos] = []
+        riserveByPosition[pos].push(p)
+      })
+      
+      // Posizioni portiere
+      const gkPositions = ['GK', 'Goalkeeper', 'Portiere']
+      const hasGKReserve = riserve.some(p => gkPositions.includes(p.position))
+      
+      countermeasures.countermeasures.player_suggestions.forEach((suggestion, idx) => {
+        const playerId = suggestion.player_id
+        const action = suggestion.action
+        const position = suggestion.position || ''
+        const isGK = gkPositions.some(gkPos => position.includes(gkPos) || position === gkPos)
+        
+        let isValid = true
+        let reason = ''
+        
+        // Validazione: add_to_starting_xi
+        if (action === 'add_to_starting_xi') {
+          // Deve essere una riserva
+          if (!riserveMap.has(playerId)) {
+            isValid = false
+            reason = `Giocatore ${suggestion.player_name || playerId} non è una riserva`
+          }
+          // Se è portiere, deve esserci riserva portiere
+          else if (isGK && !hasGKReserve) {
+            isValid = false
+            reason = `Nessuna riserva portiere disponibile per sostituire il portiere titolare`
+          }
+          // Se non ci sono riserve, non può aggiungere
+          else if (riserve.length === 0) {
+            isValid = false
+            reason = `Nessuna riserva disponibile in panchina`
+          }
+        }
+        
+        // Validazione: remove_from_starting_xi
+        else if (action === 'remove_from_starting_xi') {
+          // Deve essere un titolare
+          if (!titolariMap.has(playerId)) {
+            isValid = false
+            reason = `Giocatore ${suggestion.player_name || playerId} non è un titolare`
+          }
+          // Se è portiere e non ci sono riserve portiere, non può rimuovere
+          else if (isGK && !hasGKReserve) {
+            isValid = false
+            reason = `Non puoi rimuovere il portiere titolare: nessuna riserva portiere disponibile`
+          }
+        }
+        
+        if (isValid) {
+          validSuggestions.push(suggestion)
+        } else {
+          invalidSuggestions.push({ suggestion, reason, index: idx })
+          console.warn(`[generate-countermeasures] Suggerimento invalido filtrato [${idx}]:`, {
+            player: suggestion.player_name,
+            action: suggestion.action,
+            position: suggestion.position,
+            reason
+          })
+        }
+      })
+      
+      // Sostituisci con suggerimenti validati
+      countermeasures.countermeasures.player_suggestions = validSuggestions
+      
+      // Aggiungi warning se ci sono suggerimenti filtrati
+      if (invalidSuggestions.length > 0) {
+        if (!countermeasures.warnings) {
+          countermeasures.warnings = []
+        }
+        countermeasures.warnings.push(
+          `${invalidSuggestions.length} suggerimento/i giocatore filtrato/i perché non applicabili (nessuna riserva disponibile o posizione non valida)`
+        )
+      }
     }
 
     // 13. Restituisci contromisure
