@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { validateToken, extractBearerToken } from '../../../../lib/authHelper'
-import { checkRateLimit } from '../../../../lib/rateLimiter'
+import { checkRateLimit, RATE_LIMIT_CONFIG } from '../../../../lib/rateLimiter'
 import { getCurrentWeek, generateWeeklyTasksForUser } from '../../../../lib/taskHelper'
 
 export const runtime = 'nodejs'
@@ -36,15 +36,31 @@ export async function GET(request) {
 
     const user_id = userData.user.id
 
-    // 2. Rate limiting (solo per endpoint pesanti, lettura task è leggera)
-    // Per ora disabilitato per /api/tasks/list (endpoint leggero, solo lettura)
-    // const rateLimit = checkRateLimit(user_id, '/api/tasks/list')
-    // if (!rateLimit.allowed) {
-    //   return NextResponse.json(
-    //     { error: 'Rate limit exceeded', resetAt: rateLimit.resetAt },
-    //     { status: 429 }
-    //   )
-    // }
+    // 2. Rate limiting (riattivato con limite alto - endpoint leggero)
+    const rateLimitConfig = RATE_LIMIT_CONFIG['/api/tasks/list']
+    const rateLimit = await checkRateLimit(
+      user_id,
+      '/api/tasks/list',
+      rateLimitConfig.maxRequests,
+      rateLimitConfig.windowMs
+    )
+    
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { 
+          error: 'Rate limit exceeded. Please try again later.',
+          resetAt: rateLimit.resetAt 
+        },
+        { 
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': rateLimitConfig.maxRequests.toString(),
+            'X-RateLimit-Remaining': rateLimit.remaining.toString(),
+            'X-RateLimit-Reset': rateLimit.resetAt.toString()
+          }
+        }
+      )
+    }
 
     // 3. Parametri query
     const { searchParams } = new URL(request.url)

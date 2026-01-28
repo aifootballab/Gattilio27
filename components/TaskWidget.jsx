@@ -13,8 +13,28 @@ export default function TaskWidget() {
   const [isExpanded, setIsExpanded] = useState(true) // Stato per collassare/espandere
 
   useEffect(() => {
-    // Chiama solo una volta al mount
+    // Chiama al mount
     fetchTasks()
+    
+    // FIX: Ascolta eventi di salvataggio partita per ricaricare task
+    const handleMatchSaved = () => {
+      // Delay per permettere salvataggio DB
+      setTimeout(() => {
+        console.log('[TaskWidget] Match saved event received, refreshing tasks...')
+        fetchTasks()
+      }, 1500)
+    }
+    
+    // Solo lato client
+    if (typeof window !== 'undefined') {
+      window.addEventListener('match-saved', handleMatchSaved)
+    }
+    
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('match-saved', handleMatchSaved)
+      }
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // Array vuoto = solo al mount
 

@@ -311,9 +311,15 @@ export default function NewMatchPage() {
       setSuccess(true)
       clearProgress()
 
-      // Redirect dopo 2 secondi
+      // FIX: Notifica altri componenti che partita è stata salvata
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('match-saved'))
+      }
+
+      // Redirect dopo 2 secondi con refresh dati
       setTimeout(() => {
         router.push('/')
+        router.refresh() // Forza refresh dati dashboard
       }, 2000)
     } catch (err) {
       console.error('[NewMatch] Save error:', err)

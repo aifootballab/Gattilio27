@@ -527,36 +527,29 @@ export async function POST(req) {
     console.log(`[update-match] Final data_completeness: ${updatedMatch.data_completeness}`)
     console.log(`[update-match] Final photos_uploaded: ${updatedMatch.photos_uploaded}`)
 
-    // Calcola e aggiorna pattern tattici (on-demand dopo update match)
-    // DOPO che i pattern sono salvati, aggiorna AI Knowledge Score (sequenziale per evitare race condition)
+    // FIX: Sequenziale per evitare race condition (stesso pattern di save-match)
+    // Ordine: Pattern → AI Knowledge (ognuno aspetta il precedente)
     // Non blocchiamo la risposta se fallisce (non critico)
     calculateTacticalPatterns(admin, userId)
-      .then(() => {
-        // Pattern salvati, ora aggiorna AI Knowledge Score
+      .then(async () => {
+        // Pattern salvati, ora aggiorna AI Knowledge Score (sequenziale)
         if (supabaseUrl && serviceKey) {
-          import('../../../../lib/aiKnowledgeHelper').then(({ updateAIKnowledgeScore }) => {
-            updateAIKnowledgeScore(userId, supabaseUrl, serviceKey).catch(err => {
-              console.error('[update-match] Failed to update AI knowledge score (non-blocking):', err)
-            })
-          }).catch(err => {
-            console.error('[update-match] Failed to import aiKnowledgeHelper (non-blocking):', err)
-          })
+          try {
+            const { updateAIKnowledgeScore } = await import('../../../../lib/aiKnowledgeHelper')
+            await updateAIKnowledgeScore(userId, supabaseUrl, serviceKey)
+            console.log('[update-match] AI Knowledge Score updated successfully')
+          } catch (err) {
+            console.error('[update-match] Error updating AI knowledge score:', err)
+          }
         }
       })
       .catch(err => {
         console.error('[update-match] Failed to calculate tactical patterns (non-blocking):', err)
       })
 
-    // Aggiorna aggregati performance per-giocatore (async, non blocca risposta)
-    if (supabaseUrl && serviceKey) {
-      import('../../../../lib/playerPerformanceHelper').then(({ updatePlayerPerformanceAggregates }) => {
-        updatePlayerPerformanceAggregates(userId, supabaseUrl, serviceKey).catch(err => {
-          console.error('[update-match] Failed to update player performance aggregates (non-blocking):', err)
-        })
-      }).catch(err => {
-        console.error('[update-match] Failed to import playerPerformanceHelper (non-blocking):', err)
-      })
-    }
+    // FIX: Rimuovi chiamata a playerPerformanceHelper che non esiste
+    // TODO: Implementare playerPerformanceHelper.js quando necessario
+    // Helper non esiste ancora, rimuovi chiamata per evitare errori silenziosi
     return NextResponse.json({
       success: true,
       match: updatedMatch,

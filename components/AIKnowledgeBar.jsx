@@ -29,12 +29,27 @@ export default function AIKnowledgeBar() {
     
     fetchAIKnowledge()
     
-    // Cache locale: ricarica ogni 5 minuti
+    // FIX: Ridotto cache a 1 minuto e aggiunto event listener per aggiornamento dopo salvataggio partita
+    const handleMatchSaved = () => {
+      // Delay per permettere salvataggio DB e calcolo AI Knowledge
+      setTimeout(() => {
+        console.log('[AIKnowledgeBar] Match saved event received, refreshing knowledge score...')
+        fetchAIKnowledge()
+      }, 3000) // 3 secondi per permettere calcolo sequenziale: pattern → AI Knowledge → task
+    }
+    
+    // Ascolta eventi di salvataggio partita (che triggera aggiornamento AI Knowledge)
+    window.addEventListener('match-saved', handleMatchSaved)
+    
+    // Cache locale: ricarica ogni 1 minuto (ridotto da 5 minuti)
     const interval = setInterval(() => {
       fetchAIKnowledge()
-    }, 5 * 60 * 1000)
+    }, 1 * 60 * 1000) // 1 minuto invece di 5
 
-    return () => clearInterval(interval)
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener('match-saved', handleMatchSaved)
+    }
   }, [])
 
   const fetchAIKnowledge = async () => {

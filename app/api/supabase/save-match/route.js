@@ -421,47 +421,34 @@ export async function POST(req) {
 
     console.log(`[save-match] Match saved successfully: ${savedMatch.id}`)
 
-    // Calcola e aggiorna pattern tattici (on-demand dopo salvataggio match)
-    // DOPO che i pattern sono salvati, aggiorna AI Knowledge Score (sequenziale per evitare race condition)
+    // FIX: Sequenziale per evitare race condition
+    // Ordine: Pattern → AI Knowledge → Task (ognuno aspetta il precedente)
     // Non blocchiamo la risposta se fallisce (non critico)
     calculateTacticalPatterns(admin, userId)
-      .then(() => {
-        // Pattern salvati, ora aggiorna AI Knowledge Score
+      .then(async () => {
+        // Pattern salvati, ora aggiorna AI Knowledge Score (sequenziale)
         if (supabaseUrl && serviceKey) {
-          import('../../../../lib/aiKnowledgeHelper').then(({ updateAIKnowledgeScore }) => {
-            updateAIKnowledgeScore(userId, supabaseUrl, serviceKey).catch(err => {
-              console.error('[save-match] Failed to update AI knowledge score (non-blocking):', err)
-            })
-          }).catch(err => {
-            console.error('[save-match] Failed to import aiKnowledgeHelper (non-blocking):', err)
-          })
+          try {
+            const { updateAIKnowledgeScore } = await import('../../../../lib/aiKnowledgeHelper')
+            await updateAIKnowledgeScore(userId, supabaseUrl, serviceKey)
+            console.log('[save-match] AI Knowledge Score updated successfully')
+            
+            // AI Knowledge aggiornato, ora aggiorna Task (sequenziale)
+            const { updateTasksProgressAfterMatch } = await import('../../../../lib/taskHelper')
+            await updateTasksProgressAfterMatch(userId, supabaseUrl, serviceKey, savedMatch)
+            console.log('[save-match] Tasks progress updated successfully')
+          } catch (err) {
+            console.error('[save-match] Error in sequential updates:', err)
+          }
         }
       })
       .catch(err => {
         console.error('[save-match] Failed to calculate tactical patterns (non-blocking):', err)
       })
 
-    // Aggiorna progresso Task settimanali (async, non blocca risposta)
-    if (supabaseUrl && serviceKey) {
-      import('../../../../lib/taskHelper').then(({ updateTasksProgressAfterMatch }) => {
-        updateTasksProgressAfterMatch(userId, supabaseUrl, serviceKey, savedMatch).catch(err => {
-          console.error('[save-match] Failed to update tasks progress (non-blocking):', err)
-        })
-      }).catch(err => {
-        console.error('[save-match] Failed to import taskHelper (non-blocking):', err)
-      })
-    }
-
-    // Aggiorna aggregati performance per-giocatore (async, non blocca risposta)
-    if (supabaseUrl && serviceKey) {
-      import('../../../../lib/playerPerformanceHelper').then(({ updatePlayerPerformanceAggregates }) => {
-        updatePlayerPerformanceAggregates(userId, supabaseUrl, serviceKey).catch(err => {
-          console.error('[save-match] Failed to update player performance aggregates (non-blocking):', err)
-        })
-      }).catch(err => {
-        console.error('[save-match] Failed to import playerPerformanceHelper (non-blocking):', err)
-      })
-    }
+    // FIX: Rimuovi chiamata a playerPerformanceHelper che non esiste
+    // TODO: Implementare playerPerformanceHelper.js quando necessario
+    // Helper non esiste ancora, rimuovi chiamata per evitare errori silenziosi
 
     return NextResponse.json({
       success: true,
