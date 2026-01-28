@@ -185,7 +185,7 @@ export default function ImpostazioniProfiloPage() {
   }
 
   return (
-    <main style={{ 
+    <main data-tour-id="tour-profile-intro" style={{ 
       padding: '16px', 
       minHeight: '100vh', 
       backgroundColor: '#0a0a0a',
@@ -310,7 +310,7 @@ export default function ImpostazioniProfiloPage() {
       )}
 
       {/* Sezione: Dati Personali */}
-      <div style={{
+      <div data-tour-id="tour-profile-personal" style={{
         backgroundColor: '#1a1a1a',
         borderRadius: '12px',
         padding: '20px',
@@ -411,7 +411,7 @@ export default function ImpostazioniProfiloPage() {
       </div>
 
       {/* Sezione: Dati Gioco */}
-      <div style={{
+      <div data-tour-id="tour-profile-game" style={{
         backgroundColor: '#1a1a1a',
         borderRadius: '12px',
         padding: '20px',
@@ -560,7 +560,7 @@ export default function ImpostazioniProfiloPage() {
       </div>
 
       {/* Sezione: Preferenze IA */}
-      <div style={{
+      <div data-tour-id="tour-profile-ai" style={{
         backgroundColor: '#1a1a1a',
         borderRadius: '12px',
         padding: '20px',
@@ -663,7 +663,7 @@ export default function ImpostazioniProfiloPage() {
       </div>
 
       {/* Sezione: Esperienza Gioco */}
-      <div style={{
+      <div data-tour-id="tour-profile-exp" style={{
         backgroundColor: '#1a1a1a',
         borderRadius: '12px',
         padding: '20px',
@@ -779,6 +779,7 @@ export default function ImpostazioniProfiloPage() {
 
       {/* Bottone Completa Profilo */}
       <button
+        data-tour-id="tour-profile-complete"
         onClick={() => {
           handleSave('Profilo Completo')
           setTimeout(() => router.push('/'), 2000)

@@ -284,7 +284,7 @@ export default function AllenatoriPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', padding: 'clamp(16px, 3vw, 32px)', background: 'var(--bg-dark)' }}>
+    <div data-tour-id="tour-coaches-intro" style={{ minHeight: '100vh', padding: 'clamp(16px, 3vw, 32px)', background: 'var(--bg-dark)' }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
         {/* Header */}
         <div style={{
@@ -308,6 +308,7 @@ export default function AllenatoriPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginLeft: 'auto' }}>
             <LanguageSwitch />
             <button
+              data-tour-id="tour-coaches-upload"
               onClick={() => setShowUploadModal(true)}
               className="btn primary"
               style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
@@ -337,7 +338,7 @@ export default function AllenatoriPage() {
         {!loading && (
           <>
             {coaches.length === 0 ? (
-              <div className="card" style={{ padding: '48px 24px', textAlign: 'center' }}>
+              <div data-tour-id="tour-coaches-list" className="card" style={{ padding: '48px 24px', textAlign: 'center' }}>
                 <Info size={48} style={{ marginBottom: '16px', opacity: 0.5, color: 'var(--neon-blue)' }} />
                 <div style={{ fontSize: '20px', marginBottom: '12px', fontWeight: 600 }}>
                   {t('noCoachesLoaded')}
@@ -355,7 +356,7 @@ export default function AllenatoriPage() {
                 </button>
               </div>
             ) : (
-              <div style={{
+              <div data-tour-id="tour-coaches-list" style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
                 gap: '20px',

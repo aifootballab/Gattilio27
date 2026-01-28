@@ -53,7 +53,7 @@ export default function GuideTour() {
         progressText: t('tourProgress'),
         overlayColor: 'rgba(5, 8, 21, 0.88)',
         popoverClass: 'driver-popover-neon',
-        onDestroy: () => setRunning(false),
+        onDestroyed: () => setRunning(false),
       })
       driverObj.drive()
     } catch (e) {

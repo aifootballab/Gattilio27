@@ -1779,7 +1779,7 @@ export default function GestioneFormazionePage() {
   const slotsWithOffsets = layout?.slot_positions ? calculateCardOffsets(slots) : []
 
   return (
-    <main style={{ padding: '16px', minHeight: '100vh', maxWidth: '1400px', margin: '0 auto' }}>
+    <main data-tour-id="tour-formation-intro" style={{ padding: '16px', minHeight: '100vh', maxWidth: '1400px', margin: '0 auto' }}>
       {/* Toast Notification */}
       {toast && (
         <div style={{
@@ -1832,7 +1832,7 @@ export default function GestioneFormazionePage() {
         </div>
       )}
       {/* Header */}
-      <div style={{ 
+      <div data-tour-id="tour-formation-header" style={{ 
         display: 'flex', 
         alignItems: 'center', 
         gap: '16px',
@@ -1938,6 +1938,7 @@ export default function GestioneFormazionePage() {
             </div>
           )}
           <button
+            data-tour-id="tour-formation-coaches-link"
             onClick={() => router.push('/allenatori')}
             className="btn"
             style={{ 
@@ -1956,7 +1957,7 @@ export default function GestioneFormazionePage() {
 
       {/* Info Allenatore Attivo */}
       {activeCoach && (
-        <div className="card" style={{ 
+        <div data-tour-id="tour-formation-active-coach" className="card" style={{ 
           marginBottom: '24px',
           padding: '16px', 
           background: 'rgba(0, 212, 255, 0.05)',
@@ -2000,7 +2001,7 @@ export default function GestioneFormazionePage() {
 
       {/* Se non c'è layout, mostra messaggio */}
       {noLayoutContent && (
-        <div className="card" style={{ padding: '48px 24px', textAlign: 'center', marginBottom: '24px' }}>
+        <div data-tour-id="tour-formation-upload" className="card" style={{ padding: '48px 24px', textAlign: 'center', marginBottom: '24px' }}>
           <Info size={48} style={{ marginBottom: '16px', opacity: 0.5, color: 'var(--neon-blue)' }} />
           <div style={{ fontSize: '20px', marginBottom: '12px', fontWeight: 600 }}>
             {t('createFormation')}
@@ -2055,6 +2056,7 @@ export default function GestioneFormazionePage() {
 
         {/* Campo 2D */}
         <div 
+          data-tour-id="tour-formation-field"
           className="card" 
           data-field-container
           style={{ 
@@ -2279,7 +2281,7 @@ export default function GestioneFormazionePage() {
       )}
 
       {/* Riserve */}
-      <div style={{ marginBottom: '24px' }}>
+      <div data-tour-id="tour-formation-reserves" style={{ marginBottom: '24px' }}>
         <div style={{ 
           display: 'flex', 
           justifyContent: 'space-between', 
@@ -2295,6 +2297,7 @@ export default function GestioneFormazionePage() {
             {t('riserve')} ({riserve.length})
           </h2>
           <button
+            data-tour-id="tour-formation-upload"
             onClick={() => setShowUploadReserveModal(true)}
             className="btn"
             style={{ 

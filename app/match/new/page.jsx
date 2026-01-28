@@ -335,7 +335,7 @@ export default function NewMatchPage() {
   }
 
   return (
-    <main style={{
+    <main data-tour-id="tour-match-intro" style={{
       minHeight: '100vh',
       background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%)',
       color: '#fff',
@@ -378,7 +378,7 @@ export default function NewMatchPage() {
       </div>
 
       {/* Progress Bar */}
-      <div style={{
+      <div data-tour-id="tour-match-progress" style={{
         background: 'rgba(255, 255, 255, 0.1)',
         borderRadius: '8px',
         height: '8px',
@@ -430,7 +430,7 @@ export default function NewMatchPage() {
       </div>
 
       {/* Step Indicator */}
-      <div style={{
+      <div data-tour-id="tour-match-steps" style={{
         display: 'flex',
         justifyContent: 'space-between',
         marginBottom: '32px',
@@ -524,7 +524,7 @@ export default function NewMatchPage() {
 
       {/* Current Step Content */}
       {currentStepInfo && (
-        <div style={{
+        <div data-tour-id="tour-match-content" style={{
           background: 'rgba(255, 255, 255, 0.05)',
           border: '1px solid rgba(255, 255, 255, 0.1)',
           borderRadius: '12px',
@@ -695,6 +695,7 @@ export default function NewMatchPage() {
       {/* Save Button (solo all'ultimo step o se tutti gli step sono completati/saltati) */}
       {(currentStep === STEPS.length - 1 || Object.keys(stepData).length === STEPS.length) && (
         <button
+          data-tour-id="tour-match-save"
           onClick={handleShowSummary}
           disabled={saving || !Object.values(stepData).some(d => d !== null && d !== undefined)}
           style={{

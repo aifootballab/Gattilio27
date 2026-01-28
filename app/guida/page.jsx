@@ -23,7 +23,10 @@ import {
   Zap,
   ChevronDown,
   ChevronUp,
-  ArrowLeft
+  ArrowLeft,
+  Compass,
+  Shield,
+  UserRound
 } from 'lucide-react'
 
 export default function GuidaPage() {
@@ -174,6 +177,33 @@ export default function GuidaPage() {
         t('guideProfileStep3') || 'Personalizza preferenze IA (nome AI, come ricordarti)',
         t('guideProfileStep4') || 'Indica problemi comuni per suggerimenti mirati'
       ]
+    },
+    {
+      id: 'contromisure-live',
+      icon: Shield,
+      color: 'var(--neon-orange)',
+      path: '/contromisure-live',
+      title: t('guideCountermeasuresTitle') || 'Contromisure Live',
+      description: t('guideCountermeasuresDesc') || 'Carica formazione avversaria, estrai dati e genera contromisure tattiche con l\'IA.',
+      steps: [
+        t('guideCountermeasuresStep1') || 'Carica uno screenshot della formazione avversaria',
+        t('guideCountermeasuresStep2') || 'Clicca "Estrai Formazione" per analizzare',
+        t('guideCountermeasuresStep3') || 'Clicca "Genera Contromisure" per ottenere analisi e suggerimenti',
+        t('guideCountermeasuresStep4') || 'Leggi analisi, aggiustamenti tattici e istruzioni; applica i suggerimenti'
+      ]
+    },
+    {
+      id: 'allenatori',
+      icon: UserRound,
+      color: 'var(--neon-cyan)',
+      path: '/allenatori',
+      title: t('guideCoachesTitle') || 'Allenatori',
+      description: t('guideCoachesDesc') || 'Carica foto allenatori, imposta attivo e consulta competenze.',
+      steps: [
+        t('guideCoachesStep1') || 'Carica 1 o 2 screenshot (foto principale e connessione)',
+        t('guideCoachesStep2') || 'L\'IA estrae nome, squadra e competenze',
+        t('guideCoachesStep3') || 'Imposta un allenatore come attivo; vedi dettagli o elimina'
+      ]
     }
   ]
 
@@ -198,7 +228,7 @@ export default function GuidaPage() {
   }
 
   return (
-    <div style={{
+    <div data-tour-id="tour-guida-intro" style={{
       minHeight: '100vh',
       background: 'var(--bg-darker)',
       padding: '24px',
@@ -272,7 +302,7 @@ export default function GuidaPage() {
         </div>
 
         {/* Hero Section - Completa Profilo */}
-        <div className="card" style={{
+        <div data-tour-id="tour-guida-profile-hero" className="card" style={{
           padding: '32px',
           marginBottom: '32px',
           background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(168, 85, 247, 0.1))',
@@ -403,7 +433,7 @@ export default function GuidaPage() {
         </div>
 
         {/* Hero Section - Usa il Cervello AI */}
-        <div className="card" style={{
+        <div data-tour-id="tour-guida-brain-hero" className="card" style={{
           padding: '32px',
           marginBottom: '32px',
           background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.1), rgba(236, 72, 153, 0.1))',
@@ -533,8 +563,114 @@ export default function GuidaPage() {
           </div>
         </div>
 
+        {/* Hero Section - Mostrami come (Tour interattivo) */}
+        <div className="card" style={{
+          padding: '32px',
+          marginBottom: '32px',
+          background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(34, 197, 94, 0.1))',
+          border: '2px solid var(--neon-cyan)',
+          boxShadow: '0 0 24px rgba(0, 245, 255, 0.2)',
+          position: 'relative',
+          overflow: 'hidden'
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '16px',
+            marginBottom: '20px'
+          }}>
+            <div style={{
+              width: '64px',
+              height: '64px',
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, var(--neon-cyan), var(--neon-blue))',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 0 20px rgba(0, 245, 255, 0.4)'
+            }}>
+              <Compass size={32} color="white" />
+            </div>
+            <div style={{ flex: 1 }}>
+              <h2 style={{
+                fontSize: '24px',
+                fontWeight: 700,
+                color: 'white',
+                marginBottom: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <Sparkles size={24} color="var(--neon-cyan)" />
+                {t('guideShowMeHowTitle') || 'Mostrami come'}
+              </h2>
+              <p style={{
+                fontSize: '16px',
+                opacity: 0.9,
+                color: 'white',
+                lineHeight: '1.6'
+              }}>
+                {t('guideShowMeHowDesc') || 'Tour interattivo su ogni pagina! Clicca il pulsante con la bussola in alto a destra per una guida passo-passo.'}
+              </p>
+            </div>
+          </div>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '12px',
+            marginTop: '20px'
+          }}>
+            <div style={{
+              padding: '16px',
+              background: 'rgba(0, 245, 255, 0.1)',
+              borderRadius: '8px',
+              border: '1px solid rgba(0, 245, 255, 0.3)'
+            }}>
+              <Compass size={20} color="var(--neon-cyan)" style={{ marginBottom: '8px' }} />
+              <div style={{
+                fontSize: '14px',
+                fontWeight: 600,
+                color: 'var(--neon-cyan)',
+                marginBottom: '4px'
+              }}>
+                {t('guideShowMeHowFeature1') || 'Tour contestuali'}
+              </div>
+              <div style={{
+                fontSize: '12px',
+                opacity: 0.8,
+                color: 'white'
+              }}>
+                {t('guideShowMeHowFeature1Desc') || 'Un tour diverso per ogni pagina'}
+              </div>
+            </div>
+            <div style={{
+              padding: '16px',
+              background: 'rgba(0, 212, 255, 0.1)',
+              borderRadius: '8px',
+              border: '1px solid rgba(0, 212, 255, 0.3)'
+            }}>
+              <Zap size={20} color="var(--neon-blue)" style={{ marginBottom: '8px' }} />
+              <div style={{
+                fontSize: '14px',
+                fontWeight: 600,
+                color: 'var(--neon-blue)',
+                marginBottom: '4px'
+              }}>
+                {t('guideShowMeHowFeature2') || 'Sempre disponibile'}
+              </div>
+              <div style={{
+                fontSize: '12px',
+                opacity: 0.8,
+                color: 'white'
+              }}>
+                {t('guideShowMeHowFeature2Desc') || 'Riavvia quando vuoi'}
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Guide per Pagina */}
-        <div style={{
+        <div data-tour-id="tour-guida-pages" style={{
           marginBottom: '32px'
         }}>
           <h2 style={{
@@ -727,7 +863,7 @@ export default function GuidaPage() {
         </div>
 
         {/* Footer CTA */}
-        <div className="card" style={{
+        <div data-tour-id="tour-guida-footer" className="card" style={{
           padding: '32px',
           textAlign: 'center',
           background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(168, 85, 247, 0.1))',

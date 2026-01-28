@@ -234,7 +234,7 @@ export default function CountermeasuresLivePage() {
   }
 
   return (
-    <main style={{ 
+    <main data-tour-id="tour-counter-intro" style={{ 
       minHeight: '100vh', 
       background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%)',
       padding: 'clamp(16px, 4vw, 24px)',
@@ -277,7 +277,7 @@ export default function CountermeasuresLivePage() {
 
       {/* Upload Sezione */}
       {!extractedFormation && (
-        <div className="card" style={{ padding: 'clamp(16px, 4vw, 24px)', marginBottom: '24px' }}>
+        <div data-tour-id="tour-counter-upload" className="card" style={{ padding: 'clamp(16px, 4vw, 24px)', marginBottom: '24px' }}>
           <h2 style={{ fontSize: 'clamp(18px, 4vw, 20px)', fontWeight: 700, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Shield size={24} color="var(--neon-orange)" />
             {t('uploadOpponentFormation') || 'Carica Formazione Avversaria'}
@@ -372,7 +372,7 @@ export default function CountermeasuresLivePage() {
 
       {/* Preview Formazione Estratta */}
       {extractedFormation && !countermeasures && (
-        <div className="card" style={{ padding: 'clamp(16px, 4vw, 24px)', marginBottom: '24px' }}>
+        <div data-tour-id="tour-counter-extracted" className="card" style={{ padding: 'clamp(16px, 4vw, 24px)', marginBottom: '24px' }}>
           <h2 style={{ fontSize: 'clamp(18px, 4vw, 20px)', fontWeight: 700, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <CheckCircle2 size={24} color="#22C55E" />
             {t('formationExtracted') || 'Formazione Estratta'}
@@ -440,7 +440,7 @@ export default function CountermeasuresLivePage() {
       {countermeasures && (
         <>
           {/* Analisi Formazione Avversaria */}
-          <div className="card" style={{ padding: 'clamp(16px, 4vw, 24px)', marginBottom: '24px' }}>
+          <div data-tour-id="tour-counter-result" className="card" style={{ padding: 'clamp(16px, 4vw, 24px)', marginBottom: '24px' }}>
             <div 
               style={{ 
                 display: 'flex', 
