@@ -12,6 +12,11 @@
   - Cache “soft” 5 minuti basata su `user_profiles.ai_knowledge_last_calculated` (nessuna Redis in produzione al momento)
 - **Task / Obiettivi Settimanali (coerenza)**:
   - `GET /api/tasks/list` è endpoint leggero: il rate limit è **configurato** in `lib/rateLimiter.js` ma **attualmente disabilitato** nella route (commentato)
+- **⭐ Contromisure Live (fix e audit completo)**:
+  - **Fix coach_name**: Aggiunto `coach_name` al select coaches per coerenza con helper
+  - **Fix modelli OpenAI**: Ripristinato `gpt-4o` come modello principale (rimossi `gpt-5.2` e `gpt-5` non disponibili)
+  - **Fix playerSuggestionsRules**: Ripristinato approccio inline nel template string (come 10 commit fa)
+  - **Audit completo**: Verificati flussi, endpoint, query Supabase, coerenza dati (vedi `AUDIT_COMPLETO_CONTROMISURE.md`)
 
 **Aggiornamenti 26 gen 2026 (v2.1.0)**:
 - **⭐ Barra Conoscenza IA**: Indicatore progressivo (0-100%) che mostra quanto l'IA conosce il cliente
