@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { callOpenAIWithRetry } from '@/lib/openaiHelper'
 import { checkRateLimit, RATE_LIMIT_CONFIG } from '@/lib/rateLimiter'
 import { validateToken, extractBearerToken } from '@/lib/authHelper'
-import { getRelevantSections, classifyQuestion } from '@/lib/ragHelper'
+import { getRelevantSections, classifyQuestion, needsPersonalContext } from '@/lib/ragHelper'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -11,6 +11,9 @@ export const dynamic = 'force-dynamic'
 /** Limiti storia conversazione (sicurezza e token) */
 const MAX_HISTORY_MESSAGES = 10
 const MAX_HISTORY_CONTENT_LENGTH = 2000
+
+/** Limite riassunto contesto personale (rosa, partite, tattica, allenatore) */
+const MAX_PERSONAL_CONTEXT_CHARS = 3500
 
 /**
  * Normalizza e valida history conversazione (enterprise: limiti e sanitizzazione).
@@ -66,10 +69,151 @@ async function buildAssistantContext(userId, currentPage, appState) {
 }
 
 /**
+ * Costruisce riassunto contesto personale cliente (formazione, rosa, partite, tattica, allenatore).
+ * Usato quando needsPersonalContext(message) è true. Non blocca: in errore restituisce ''.
+ * @param {string} userId - user_id da token
+ * @returns {Promise<string>} Testo compatto (max MAX_PERSONAL_CONTEXT_CHARS) o ''
+ */
+async function buildPersonalContext(userId) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!serviceKey || !supabaseUrl) return ''
+
+  try {
+    const admin = createClient(supabaseUrl, serviceKey, {
+      auth: { autoRefreshToken: false, persistSession: false }
+    })
+
+    // Formation layout
+    const { data: formationRow } = await admin
+      .from('formation_layout')
+      .select('formation, slot_positions')
+      .eq('user_id', userId)
+      .maybeSingle()
+    const formation = formationRow?.formation || 'non impostata'
+
+    // Players (titolari + riserve)
+    const { data: playersData, error: playersError } = await admin
+      .from('players')
+      .select('id, player_name, position, overall_rating, playing_style_id, slot_index, photo_slots, base_stats, original_positions')
+      .eq('user_id', userId)
+      .order('slot_index', { ascending: true, nullsFirst: false })
+      .limit(50)
+    if (playersError) {
+      console.error('[assistant-chat] buildPersonalContext players error:', playersError.message)
+      return ''
+    }
+    const roster = playersData || []
+
+    // Playing styles lookup
+    const { data: stylesData } = await admin.from('playing_styles').select('id, name')
+    const stylesLookup = {}
+    if (stylesData) {
+      stylesData.forEach(s => { stylesLookup[s.id] = s.name || '' })
+    }
+
+    // Profilazione: card, statistiche, abilita/booster da photo_slots
+    function getProfilazione(photoSlots) {
+      if (!photoSlots || typeof photoSlots !== 'object') return 'incompleta (0-1/3)'
+      const card = photoSlots.card === true || photoSlots.card === 'true'
+      const stats = photoSlots.statistiche === true || photoSlots.statistiche === 'true'
+      const skills = photoSlots.abilita === true || photoSlots.abilita === 'true' || photoSlots.booster === true || photoSlots.booster === 'true'
+      const count = [card, stats, skills].filter(Boolean).length
+      return count === 3 ? 'completa (3/3)' : count === 2 ? 'parziale (2/3)' : 'incompleta (0-1/3)'
+    }
+    function getCompetenze(originalPositions) {
+      if (!Array.isArray(originalPositions) || originalPositions.length === 0) return 'non impostate'
+      return originalPositions
+        .map(p => (p.position && p.competence ? `${p.position} ${p.competence}` : null))
+        .filter(Boolean)
+        .join(', ') || 'non impostate'
+    }
+
+    const titolari = roster
+      .filter(p => p.slot_index != null && p.slot_index >= 0 && p.slot_index <= 10)
+      .sort((a, b) => (Number(a.slot_index) || 0) - (Number(b.slot_index) || 0))
+    const riserve = roster.filter(p => p.slot_index == null)
+
+    let rosterLines = []
+    for (const p of titolari) {
+      const styleName = (p.playing_style_id && stylesLookup[p.playing_style_id]) || '-'
+      const prof = getProfilazione(p.photo_slots)
+      const comp = getCompetenze(p.original_positions)
+      rosterLines.push(`  ${p.player_name || '?'} (${p.position || '?'}, ${styleName}, ${p.overall_rating ?? '-'}, profilazione: ${prof}, competenze: ${comp})`)
+    }
+    rosterLines.push('Riserve:')
+    for (const p of riserve.slice(0, 15)) {
+      const styleName = (p.playing_style_id && stylesLookup[p.playing_style_id]) || '-'
+      const prof = getProfilazione(p.photo_slots)
+      const comp = getCompetenze(p.original_positions)
+      rosterLines.push(`  ${p.player_name || '?'} (${p.position || '?'}, ${styleName}, ${p.overall_rating ?? '-'}, profilazione: ${prof}, competenze: ${comp})`)
+    }
+    if (riserve.length > 15) rosterLines.push(`  ... altri ${riserve.length - 15} riserve`)
+
+    // Matches (ultime 10)
+    const { data: matchesData } = await admin
+      .from('matches')
+      .select('opponent_name, result, formation_played, playing_style_played, match_date')
+      .eq('user_id', userId)
+      .order('match_date', { ascending: false })
+      .limit(10)
+    const matches = matchesData || []
+    const matchLines = matches.length === 0
+      ? ['Nessuna partita caricata.']
+      : matches.map(m => {
+          const d = m.match_date ? (typeof m.match_date === 'string' ? m.match_date.slice(0, 10) : String(m.match_date).slice(0, 10)) : '?'
+          return `  ${d} vs ${m.opponent_name || '?'} ${m.result || '-'} (formazione: ${m.formation_played || '-'}, stile: ${m.playing_style_played || '-'})`
+        })
+
+    // Team tactical settings
+    const { data: tacticalRow } = await admin
+      .from('team_tactical_settings')
+      .select('team_playing_style, individual_instructions')
+      .eq('user_id', userId)
+      .maybeSingle()
+    const teamStyle = tacticalRow?.team_playing_style || 'non impostato'
+    const indInstr = tacticalRow?.individual_instructions
+    const numInstructions = Array.isArray(indInstr) ? indInstr.length : (indInstr && typeof indInstr === 'object' ? Object.keys(indInstr).length : 0)
+    const tacticsText = `Stile squadra: ${teamStyle}. Istruzioni individuali: ${numInstructions} attive.`
+
+    // Allenatore attivo
+    const { data: coachRow } = await admin
+      .from('coaches')
+      .select('coach_name')
+      .eq('user_id', userId)
+      .eq('is_active', true)
+      .maybeSingle()
+    const coachText = coachRow?.coach_name ? `Allenatore attivo: ${coachRow.coach_name}.` : 'Nessun allenatore attivo impostato.'
+
+    const parts = [
+      '--- CONTESTO PERSONALE CLIENTE (usa SOLO questi dati per domande su rosa, partite, tattica, allenatore; NON inventare) ---',
+      `Formazione: ${formation}.`,
+      'Titolari:',
+      ...rosterLines,
+      '',
+      'Ultime partite caricate:',
+      ...matchLines,
+      '',
+      tacticsText,
+      coachText
+    ]
+    let summary = parts.join('\n')
+    if (summary.length > MAX_PERSONAL_CONTEXT_CHARS) {
+      summary = summary.slice(0, MAX_PERSONAL_CONTEXT_CHARS) + '\n... (riassunto troncato).'
+    }
+    return summary
+  } catch (err) {
+    console.error('[assistant-chat] buildPersonalContext error:', err?.message || err)
+    return ''
+  }
+}
+
+/**
  * Costruisce prompt personalizzato e motivante.
  * @param {string} efootballKnowledge - Se presente, blocco RAG eFootball (opzionale).
+ * @param {string} personalContextSummary - Se presente, blocco contesto personale (rosa, partite, tattica, allenatore).
  */
-function buildPersonalizedPrompt(userMessage, context, language = 'it', efootballKnowledge = '') {
+function buildPersonalizedPrompt(userMessage, context, language = 'it', efootballKnowledge = '', personalContextSummary = '') {
   const { profile, currentPage, appState } = context || {}
   const firstName = profile?.first_name || 'amico'
   const teamName = profile?.team_name || 'il tuo team'
@@ -121,6 +265,14 @@ ${howToRemember ? `- Come ricordarti: ${howToRemember}` : ''}
 ${commonProblems.length > 0 ? `- Problemi comuni: ${commonProblems.join(', ')}` : ''}
 ${pageContext ? `- Situazione: ${pageContext}` : ''}
 ${stateContext ? `- Stato: ${stateContext}` : ''}
+${personalContextSummary ? `
+📊 CONTESTO PERSONALE CLIENTE (rosa, partite caricate, tattica, allenatore - usa SOLO questi dati per domande personali, NON inventare):
+---
+${personalContextSummary}
+---
+- Per domande su rosa, partite, risultati, tattica, allenatore: rispondi basandoti SOLO sul blocco sopra. Se un dato non c'è, dillo.
+- Profilazione: completa (3/3) = card+stats+skills caricate; parziale (2/3) o incompleta (0-1/3) altrimenti.
+- Competenze posizione: da original_positions (es. DC Alta, MED Intermedia).` : ''}
 
 📱 FUNZIONALITÀ DISPONIBILI NELLA PIATTAFORMA (SOLO QUESTE - NON INVENTARE ALTRO):
 
@@ -323,10 +475,21 @@ export async function POST(req) {
       }
     }
 
-    // Costruisci prompt personalizzato (con eventuale blocco RAG eFootball)
+    // Contesto personale (rosa, partite, tattica, allenatore): solo se la domanda lo richiede
+    let personalContextSummary = ''
+    if (needsPersonalContext(message)) {
+      try {
+        personalContextSummary = await buildPersonalContext(userId)
+        if (personalContextSummary) console.log('[assistant-chat] Personal context loaded')
+      } catch (pcError) {
+        console.error('[assistant-chat] buildPersonalContext error (non-blocking):', pcError?.message)
+      }
+    }
+
+    // Costruisci prompt personalizzato (con eventuali blocchi RAG eFootball e contesto personale)
     let prompt
     try {
-      prompt = buildPersonalizedPrompt(message, context, lang, efootballKnowledge)
+      prompt = buildPersonalizedPrompt(message, context, lang, efootballKnowledge, personalContextSummary)
       if (!prompt || prompt.trim().length === 0) {
         throw new Error('Empty prompt generated')
       }
@@ -352,11 +515,12 @@ Usa il nome del cliente quando possibile.
 
 Quando il cliente chiede come fare qualcosa (app o eFootball), guida passo-passo. Alla fine invita: "Se hai dubbi, dimmelo!" (IT) / "If you have doubts, just ask!" (EN).
 
-Puoi rispondere su: (1) uso della piattaforma/app e (2) meccaniche eFootball, tattica, ruoli, stili, build, difesa, attacco, calci piazzati.
+Puoi rispondere su: (1) uso della piattaforma/app, (2) meccaniche eFootball, tattica, ruoli, stili, build, difesa, attacco, calci piazzati, (3) dati personali del cliente (rosa, partite caricate, risultati, tattica squadra, allenatore) SE nel prompt è presente il blocco "CONTESTO PERSONALE CLIENTE".
 
 ⚠️ REGOLE CRITICHE (FONDAMENTALI):
 - Piattaforma: NON inventare funzionalità che non esistono. Riferisciti SOLO alle 6 funzionalità elencate nel prompt. Se cliente chiede qualcosa che non esiste, sii onesto e suggerisci alternativa esistente.
-- eFootball: Se nel prompt è presente un blocco "KNOWLEDGE eFootball", usa SOLO quel blocco per rispondere su meccaniche/tattica/ruoli. Non inventare informazioni non presenti nel knowledge. Se l'informazione non c'è, dillo.`
+- eFootball: Se nel prompt è presente un blocco "KNOWLEDGE eFootball", usa SOLO quel blocco per rispondere su meccaniche/tattica/ruoli. Non inventare informazioni non presenti nel knowledge. Se l'informazione non c'è, dillo.
+- Contesto personale: Se nel prompt è presente "CONTESTO PERSONALE CLIENTE", usa SOLO quei dati per domande su rosa, partite, risultati, tattica, allenatore. Non inventare partite o giocatori non elencati. Se un dato non c'è, dillo.`
 
     const openAIMessages = [
       { role: 'system', content: systemContent },
