@@ -183,12 +183,23 @@ Database RAG per fornire consigli tattici basati su meccaniche di gioco, comport
 
 ## ISTRUZIONI INDIVIDUALI
 
-**Slot Disponibili**
-- 4 slot totali
-- 2 offensive (attive solo in possesso palla)
-- 2 difensive (attive solo senza possesso)
+Le istruzioni individuali si impostano in partita o pre-partita (schema di gioco). 4 slot totali: 2 offensive (solo in possesso palla), 2 difensive (solo senza possesso). Valide per tutti i giocatori tranne il portiere, salvo limiti specifici.
 
-**Meccanica Calci Piazzati**
+**Slot offensive (possesso palla)**
+- **Difensivo**: il giocatore tende a non spingersi troppo in avanti, mantiene posizione più arretrata
+- **Offensivo**: il giocatore si spinge in avanti e partecipa all’attacco
+- **Ancoraggio (Anchoring)**: il giocatore resta ancorato in una zona (es. davanti alla difesa), utile per mediani o difensori che non devono salire
+
+**Slot difensive (senza possesso)**
+- **Marcatura stretta**: marca l’avversario da vicino, riduce lo spazio
+- **Marcatura uomo**: marca un avversario specifico (man marking)
+- **Contropiede (obiettivo contropiede)**: il giocatore è il riferimento per il contropiede; solo per centrocampisti e attaccanti
+- **Linea bassa (Deep line)**: il giocatore tende a restare più in basso/arretrato; **non** assegnabile ai difensori (TD, TS, DC). Con 5 difensori non si assegna ai centrocampisti
+
+**Linea alta / Linea bassa (squadra)**
+- In partita si può alzare o abbassare la linea difensiva (freccia destra/sinistra). Linea alta = pressing più aggressivo; linea bassa = difesa più profonda, utile contro attaccanti veloci o in vantaggio.
+
+**Meccanica Calci Piazzati (slot set piece)**
 - Primo attaccante: Va sul primo palo
 - Secondo attaccante: Va al centro dell'area
 - Terzo attaccante: Va sul secondo palo
