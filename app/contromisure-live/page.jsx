@@ -8,8 +8,16 @@ import { safeJsonResponse } from '@/lib/fetchHelper'
 import LanguageSwitch from '@/components/LanguageSwitch'
 import { ArrowLeft, Upload, AlertCircle, CheckCircle2, RefreshCw, X, Camera, Shield, Target, Users, Settings, ChevronDown, ChevronUp, Brain } from 'lucide-react'
 
+/** Estrae testo in lingua da valore stringa o oggetto bilingue { it, en } (coerente con analyze-match) */
+function pickLang(val, lang) {
+  if (val == null) return ''
+  if (typeof val === 'string') return val
+  if (typeof val === 'object' && (val.it !== undefined || val.en !== undefined)) return val[lang] || val.it || val.en || ''
+  return String(val)
+}
+
 export default function CountermeasuresLivePage() {
-  const { t } = useTranslation()
+  const { t, lang } = useTranslation()
   const router = useRouter()
   
   const [uploadImage, setUploadImage] = React.useState(null)
@@ -152,7 +160,8 @@ export default function CountermeasuresLivePage() {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          opponent_formation_id: extractedFormation.id
+          opponent_formation_id: extractedFormation.id,
+          language: lang
         })
       })
 
@@ -564,10 +573,10 @@ export default function CountermeasuresLivePage() {
                           </span>
                         </div>
                         <div style={{ fontWeight: 600, marginBottom: '8px', fontSize: 'clamp(14px, 3vw, 16px)' }}>
-                          {adj.type === 'formation_change' ? t('changeFormation') : t('changePlayingStyle')}: {adj.suggestion}
+                          {adj.type === 'formation_change' ? t('changeFormation') : t('changePlayingStyle')}: {pickLang(adj.suggestion, lang)}
                         </div>
                         <div style={{ fontSize: 'clamp(13px, 3vw, 14px)', lineHeight: '1.6', opacity: 0.9 }}>
-                          {adj.reason}
+                          {pickLang(adj.reason, lang)}
                         </div>
                       </div>
                     )
@@ -674,7 +683,7 @@ export default function CountermeasuresLivePage() {
                           {suggestion.action === 'add_to_starting_xi' ? t('addToStartingXI') : t('removeFromStartingXI')}: {suggestion.player_name} ({suggestion.position})
                         </div>
                         <div style={{ fontSize: 'clamp(13px, 3vw, 14px)', lineHeight: '1.6', opacity: 0.9 }}>
-                          {suggestion.reason}
+                          {pickLang(suggestion.reason, lang)}
                         </div>
                       </div>
                     )
@@ -728,11 +737,11 @@ export default function CountermeasuresLivePage() {
                             onClick={(e) => e.stopPropagation()}
                           />
                           <span style={{ fontSize: 'clamp(13px, 3vw, 14px)', fontWeight: 600 }}>
-                            {instruction.slot}: {instruction.instruction}
+                            {instruction.slot}: {pickLang(instruction.instruction, lang)}
                           </span>
                         </div>
                         <div style={{ fontSize: 'clamp(12px, 2.5vw, 13px)', opacity: 0.8, marginLeft: '24px' }}>
-                          {instruction.reason}
+                          {pickLang(instruction.reason, lang)}
                         </div>
                       </div>
                     )
@@ -757,7 +766,7 @@ export default function CountermeasuresLivePage() {
               </div>
               <ul style={{ marginLeft: '24px' }}>
                 {countermeasures.warnings.map((warning, idx) => (
-                  <li key={idx} style={{ marginBottom: '4px', fontSize: 'clamp(13px, 3vw, 14px)' }}>{warning}</li>
+                  <li key={idx} style={{ marginBottom: '4px', fontSize: 'clamp(13px, 3vw, 14px)' }}>{pickLang(warning, lang)}</li>
                 ))}
               </ul>
             </div>

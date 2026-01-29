@@ -200,10 +200,12 @@ export default function MatchDetailPage() {
 
       const token = session.session.access_token
 
-      // Prepara matchData per analisi (include players_in_match, opponent_name per contesto)
+      // Prepara matchData per analisi (include is_home e match_date per identificare squadra cliente team1/team2)
       const matchData = {
         result: match.result,
         opponent_name: match.opponent_name || null,
+        is_home: match.is_home,
+        match_date: match.match_date || null,
         player_ratings: match.player_ratings,
         team_stats: match.team_stats,
         attack_areas: match.attack_areas,
@@ -223,7 +225,7 @@ export default function MatchDetailPage() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ matchData })
+        body: JSON.stringify({ matchData, language: lang })
       })
 
       if (!analyzeRes.ok) {
@@ -413,6 +415,12 @@ export default function MatchDetailPage() {
             <div style={{ fontSize: '14px', opacity: 0.8, marginBottom: '4px' }}>{t('result')}</div>
             <div style={{ fontSize: '18px', fontWeight: 600, color: 'var(--neon-blue)' }}>
               {match.result || 'N/A'}
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: '14px', opacity: 0.8, marginBottom: '4px' }}>{t('homeAwayLabel')}</div>
+            <div style={{ fontSize: '18px', fontWeight: 600, color: 'var(--neon-blue)' }}>
+              {match.is_home === true ? t('home') : match.is_home === false ? t('away') : t('notSpecified')}
             </div>
           </div>
           <div>

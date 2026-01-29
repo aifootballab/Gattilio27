@@ -62,8 +62,10 @@ export async function POST(req) {
       return NextResponse.json({ error: 'OPENAI_API_KEY not configured' }, { status: 500 })
     }
 
-    const { opponent_formation_id, context } = await req.json()
-    
+    const body = await req.json().catch(() => ({}))
+    const { opponent_formation_id, context, language = 'it' } = body
+    const lang = (language === 'en' || language === 'it') ? language : 'it'
+
     if (!opponent_formation_id || typeof opponent_formation_id !== 'string') {
       return NextResponse.json({ error: 'opponent_formation_id is required' }, { status: 400 })
     }
@@ -553,7 +555,46 @@ export async function POST(req) {
       }
     }
 
-    // 13. Restituisci contromisure
+    // 13. Normalizza output in formato bilingue (it/en) per coerenza con analyze-match e UI
+    const toBilingual = (s) => {
+      if (typeof s === 'string') return { it: s, en: s }
+      if (s && typeof s === 'object' && ('it' in s || 'en' in s)) return s
+      return s
+    }
+    if (countermeasures.analysis) {
+      if (typeof countermeasures.analysis.opponent_formation_analysis === 'string') {
+        countermeasures.analysis.opponent_formation_analysis = toBilingual(countermeasures.analysis.opponent_formation_analysis)
+      }
+      if (Array.isArray(countermeasures.analysis.strengths)) {
+        countermeasures.analysis.strengths = countermeasures.analysis.strengths.map(toBilingual)
+      }
+      if (Array.isArray(countermeasures.analysis.weaknesses)) {
+        countermeasures.analysis.weaknesses = countermeasures.analysis.weaknesses.map(toBilingual)
+      }
+      if (typeof countermeasures.analysis.why_weaknesses === 'string') {
+        countermeasures.analysis.why_weaknesses = toBilingual(countermeasures.analysis.why_weaknesses)
+      }
+    }
+    ;(countermeasures.countermeasures?.formation_adjustments || []).forEach((adj) => {
+      if (typeof adj.suggestion === 'string') adj.suggestion = toBilingual(adj.suggestion)
+      if (typeof adj.reason === 'string') adj.reason = toBilingual(adj.reason)
+    })
+    ;(countermeasures.countermeasures?.tactical_adjustments || []).forEach((adj) => {
+      if (typeof adj.suggestion === 'string') adj.suggestion = toBilingual(adj.suggestion)
+      if (typeof adj.reason === 'string') adj.reason = toBilingual(adj.reason)
+    })
+    ;(countermeasures.countermeasures?.player_suggestions || []).forEach((p) => {
+      if (typeof p.reason === 'string') p.reason = toBilingual(p.reason)
+    })
+    ;(countermeasures.countermeasures?.individual_instructions || []).forEach((i) => {
+      if (typeof i.instruction === 'string') i.instruction = toBilingual(i.instruction)
+      if (typeof i.reason === 'string') i.reason = toBilingual(i.reason)
+    })
+    if (Array.isArray(countermeasures.warnings)) {
+      countermeasures.warnings = countermeasures.warnings.map(toBilingual)
+    }
+
+    // 14. Restituisci contromisure (formato bilingue)
     return NextResponse.json({
       success: true,
       countermeasures,
