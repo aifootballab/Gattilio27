@@ -174,6 +174,8 @@ export default function GestioneFormazionePage() {
   React.useEffect(() => {
     fetchData()
 
+    if (!supabase) return
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (event === 'SIGNED_OUT' || (event === 'TOKEN_REFRESHED' && !session)) {

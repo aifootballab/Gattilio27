@@ -101,6 +101,11 @@ export default function AssistantChat() {
         managingFormation: currentPage.includes('/gestione-formazione'),
         viewingDashboard: currentPage === '/'
       }
+
+      // Storia conversazione (ultimi 10 messaggi, senza il messaggio corrente) per continuità come ChatGPT
+      const history = messages
+        .slice(-10)
+        .map(({ role, content }) => ({ role, content: typeof content === 'string' ? content : String(content) }))
       
       const res = await fetch('/api/assistant-chat', {
         method: 'POST',
@@ -112,7 +117,8 @@ export default function AssistantChat() {
           message: userMessage,
           currentPage,
           appState,
-          language: lang
+          language: lang,
+          history
         })
       })
       
@@ -142,10 +148,11 @@ export default function AssistantChat() {
       
     } catch (error) {
       console.error('[AssistantChat] Error:', error)
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: `Mi dispiace, c'è stato un errore. ${error.message || 'Riprova tra un attimo!'} 😔`
-      }])
+      const errorText = error.message || (lang === 'en' ? 'Please try again in a moment!' : 'Riprova tra un attimo!')
+      const errorMsg = lang === 'en'
+        ? `Sorry, something went wrong. ${errorText} 😔`
+        : `Mi dispiace, c'è stato un errore. ${errorText} 😔`
+      setMessages(prev => [...prev, { role: 'assistant', content: errorMsg }])
     } finally {
       setLoading(false)
       inputRef.current?.focus()

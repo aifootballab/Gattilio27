@@ -22,9 +22,10 @@ npm install
 
 3. **Configura variabili ambiente**:
 ```env
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_service_key
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url_here
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key_here
+OPENAI_API_KEY=your_openai_api_key_here
 ```
 
 4. **Esegui migration (Supabase SQL Editor)**:

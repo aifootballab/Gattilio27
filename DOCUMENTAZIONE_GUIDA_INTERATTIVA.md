@@ -201,10 +201,10 @@ Ma posso aiutarti con [funzionalità simile esistente]. Vuoi che ti guidi?"
 
 ### **Variabili Ambiente Richieste:**
 ```env
-NEXT_PUBLIC_SUPABASE_URL=...
-NEXT_PUBLIC_SUPABASE_ANON_KEY=...
-SUPABASE_SERVICE_ROLE_KEY=...
-OPENAI_API_KEY=...
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url_here
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key_here
+OPENAI_API_KEY=your_openai_api_key_here
 ```
 
 ### **Rate Limiting:**

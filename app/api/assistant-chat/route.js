@@ -8,6 +8,31 @@ import { getRelevantSections, classifyQuestion } from '@/lib/ragHelper'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
+/** Limiti storia conversazione (sicurezza e token) */
+const MAX_HISTORY_MESSAGES = 10
+const MAX_HISTORY_CONTENT_LENGTH = 2000
+
+/**
+ * Normalizza e valida history conversazione (enterprise: limiti e sanitizzazione).
+ * @param {unknown} raw - Array da body (può essere undefined o non-array)
+ * @returns {{ role: 'user'|'assistant', content: string }[]}
+ */
+function normalizeHistory(raw) {
+  if (!Array.isArray(raw) || raw.length === 0) return []
+  const out = []
+  for (let i = 0; i < Math.min(raw.length, MAX_HISTORY_MESSAGES); i++) {
+    const item = raw[i]
+    if (!item || typeof item !== 'object') continue
+    const role = item.role === 'assistant' ? 'assistant' : item.role === 'user' ? 'user' : null
+    if (!role) continue
+    let content = typeof item.content === 'string' ? item.content.trim() : ''
+    if (content.length > MAX_HISTORY_CONTENT_LENGTH) content = content.slice(0, MAX_HISTORY_CONTENT_LENGTH)
+    if (content.length === 0) continue
+    out.push({ role, content })
+  }
+  return out
+}
+
 /**
  * Costruisce contesto personale per AI
  */
@@ -162,8 +187,8 @@ ${efootballKnowledge}
 5. Se cliente è frustrato, sii empatico: "Non ti preoccupare, ${firstName}! Ti aiuto subito!"
 6. Se cliente ha successo, celebra: "Fantastico, ${firstName}! 🎉 Ottimo lavoro!"
 7. Rispondi in ${language === 'it' ? 'italiano' : 'inglese'}
-8. Massimo 3-4 frasi per risposta (breve ma efficace)
-9. Se cliente chiede "come faccio X?", guida passo-passo con entusiasmo
+8. Breve ma efficace: 4-6 frasi quando serve per guida passo-passo; 3-4 per risposte semplici
+9. Se cliente chiede "come faccio X?", guida passo-passo con entusiasmo e invita: "Se hai dubbi, dimmelo!" / "If you have doubts, just ask!"
 10. Se cliente dice "non capisco", spiega in modo più semplice e paziente
 11. ⚠️ NON inventare funzionalità - usa SOLO quelle elencate sopra
 12. ⚠️ Se cliente chiede qualcosa che non esiste, sii onesto e suggerisci alternativa esistente
@@ -265,12 +290,14 @@ export async function POST(req) {
       return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
     }
     
-    const { message, currentPage, appState, language = 'it' } = body
+    const { message, currentPage, appState, language = 'it', history: rawHistory } = body
     const lang = (language === 'en' || language === 'it') ? language : 'it'
 
     if (!message || typeof message !== 'string' || message.trim().length === 0) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 })
     }
+
+    const history = normalizeHistory(rawHistory)
     
     // Costruisci contesto personale
     let context
@@ -319,28 +346,29 @@ export async function POST(req) {
     // TODO: Quando GPT-5 sarà disponibile e testato, aggiornare qui
     const model = 'gpt-4o' // Modello stabile e disponibile
     
-    const requestBody = {
-      model: model,
-      messages: [
-        {
-          role: 'system',
-          content: `Sei un coach AI personale e amichevole per eFootball. 
+    const systemContent = `Sei un coach AI personale e amichevole per eFootball. 
 Rispondi sempre in modo empatico, motivante e incoraggiante. 
 Usa il nome del cliente quando possibile.
+
+Quando il cliente chiede come fare qualcosa (app o eFootball), guida passo-passo. Alla fine invita: "Se hai dubbi, dimmelo!" (IT) / "If you have doubts, just ask!" (EN).
 
 Puoi rispondere su: (1) uso della piattaforma/app e (2) meccaniche eFootball, tattica, ruoli, stili, build, difesa, attacco, calci piazzati.
 
 ⚠️ REGOLE CRITICHE (FONDAMENTALI):
 - Piattaforma: NON inventare funzionalità che non esistono. Riferisciti SOLO alle 6 funzionalità elencate nel prompt. Se cliente chiede qualcosa che non esiste, sii onesto e suggerisci alternativa esistente.
 - eFootball: Se nel prompt è presente un blocco "KNOWLEDGE eFootball", usa SOLO quel blocco per rispondere su meccaniche/tattica/ruoli. Non inventare informazioni non presenti nel knowledge. Se l'informazione non c'è, dillo.`
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      temperature: 0.7, // Bilanciato: creativo ma preciso (non inventare)
-      max_tokens: 300, // Breve ma efficace (3-4 frasi)
+
+    const openAIMessages = [
+      { role: 'system', content: systemContent },
+      ...history.map(({ role, content }) => ({ role, content })),
+      { role: 'user', content: prompt }
+    ]
+
+    const requestBody = {
+      model: model,
+      messages: openAIMessages,
+      temperature: 0.7,
+      max_tokens: 450, // Guida passo-passo: spazio per 4-6 frasi quando serve
       response_format: { type: 'text' }
     }
     
