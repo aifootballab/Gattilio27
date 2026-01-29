@@ -809,18 +809,18 @@ export default function AllenatoriPage() {
       )}
 
       {/* ConfirmModal per eliminazione allenatore */}
-      {deleteConfirmModal && (
+      {deleteConfirmModal && deleteConfirmModal.show && (
         <ConfirmModal
           show={deleteConfirmModal.show}
           title={t('confirmDeleteCoachTitle') || 'Conferma Eliminazione'}
-          message={t('confirmDeleteCoachMessage', { coachName: deleteConfirmModal.coachName }) || `Sei sicuro di voler eliminare ${deleteConfirmModal.coachName}?`}
+          message={t('confirmDeleteCoachMessage', { coachName: deleteConfirmModal.coachName || '' }) || `Sei sicuro di voler eliminare ${deleteConfirmModal.coachName || ''}?`}
           details={t('confirmDeleteCoachDetails') || 'Questa azione non può essere annullata.'}
           variant="error"
           confirmVariant="danger"
           confirmLabel={t('delete') || 'Elimina'}
           cancelLabel={t('cancel') || 'Annulla'}
-          onConfirm={deleteConfirmModal.onConfirm}
-          onCancel={deleteConfirmModal.onCancel}
+          onConfirm={deleteConfirmModal.onConfirm || (() => {})}
+          onCancel={deleteConfirmModal.onCancel || (() => {})}
         />
       )}
     </div>
