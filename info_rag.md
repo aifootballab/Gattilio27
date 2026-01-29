@@ -10,6 +10,8 @@ Database RAG per fornire consigli tattici basati su meccaniche di gioco, comport
 
 ## STILI DI GIOCO DEI GIOCATORI
 
+**Importante**: Gli stili di gioco (Ala prolifica, Collante, Box-to-Box, Cacciatore di gol, ecc.) sono **caratteristiche FISSE della card** in eFootball. **NON si possono potenziare, modificare o "migliorare"** dall'utente. Si può solo scegliere chi schierare, formazione, tattica e istruzioni individuali.
+
 ### Attaccanti
 
 **Cacciatore di Gol**

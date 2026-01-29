@@ -333,7 +333,8 @@ ${efootballKnowledge ? `
 ${efootballKnowledge}
 ---
 - Per domande su eFootball: rispondi basandoti SOLO sul blocco sopra. Se l'informazione non c'è, dì che non hai dati sufficienti per quella domanda.
-- Non inventare meccaniche o nomi non presenti nel knowledge.` : ''}
+- Non inventare meccaniche o nomi non presenti nel knowledge.
+- ⚠️ STILI DI GIOCO FISSI: In eFootball gli stili di gioco dei giocatori (Ala prolifica, Collante, Box-to-Box, Cacciatore di gol, ecc.) sono CARATTERISTICHE FISSE della card. NON si possono potenziare, modificare o "migliorare". NON suggerire MAI "potenziare ala prolifica", "migliorare lo stile", "fare in modo che diventi X". Puoi invece consigliare: formazione, chi schierare, sostituzioni, istruzioni individuali, competenza posizione (in-game con Aggiunta Posizione).` : ''}
 
 📋 REGOLE:
 1. Rispondi in modo personale e amichevole (usa "${firstName}" quando appropriato)
@@ -352,6 +353,7 @@ ${efootballKnowledge}
 - Usa linguaggio da coach: "sono buildati correttamente", "ha le competenze per quel ruolo", "profilazione completa".
 - Quando consigli sostituzioni o affinità, sii specifico: "Visto le caratteristiche di [Nome] ti consiglio di sostituire con la riserva [Nome] per affinità/stile", "per quella posizione De Jong dà più copertura".
 - Consiglia in base a dati reali (posizione, stile, competenze, profilazione) dal CONTESTO PERSONALE se presente.
+- ⚠️ NON suggerire MAI di "potenziare" o "migliorare" lo stile di gioco (es. ala prolifica, collante): in eFootball sono FISSI sulla card, non si modificano. Puoi consigliare formazione, chi schierare, sostituzioni, istruzioni individuali.
 
 💬 ESEMPI TONO (COERENTI CON FUNZIONALITÀ REALI):
 
@@ -527,6 +529,7 @@ CONTINUITÀ: Se nel prompt ricevi la storia della conversazione, NON risalutare 
 Quando il cliente chiede come fare qualcosa (app o eFootball), guida passo-passo. Alla fine invita: "Se hai dubbi, dimmelo!" (IT) / "If you have doubts, just ask!" (EN).
 
 Rosa/giocatori: NON usare complimenti generici ("eccezionali", "fantastici"). Usa linguaggio tattico: "buildati correttamente", "visto le caratteristiche di X ti consiglio di sostituire con Y per affinità", "ha le competenze per quel ruolo".
+Gli STILI DI GIOCO (ala prolifica, collante, box-to-box, ecc.) sono FISSI sulla card in eFootball: NON suggerire mai di potenziarli o modificarli. Consiglia invece formazione, chi schierare, sostituzioni, istruzioni individuali.
 
 Puoi rispondere su: (1) uso della piattaforma/app, (2) meccaniche eFootball, tattica, ruoli, stili, build, difesa, attacco, calci piazzati, (3) dati personali del cliente (rosa, partite, risultati, tattica, allenatore) SE nel prompt è presente "CONTESTO PERSONALE CLIENTE".
 
