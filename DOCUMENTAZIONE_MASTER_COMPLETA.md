@@ -1,8 +1,16 @@
 # 📚 Documentazione Master Completa - eFootball AI Coach
 
-**Data Aggiornamento**: 28 Gennaio 2026  
-**Versione**: 2.2.0  
+**Data Aggiornamento**: 29 Gennaio 2026  
+**Versione**: 2.3.0  
 **Status**: ✅ **PRODUZIONE** – Sistema completo e funzionante
+
+**Aggiornamenti 29 gen 2026 (v2.3.0)**:
+- **Assistant Chat (contesto completo)**:
+  - **Contesto personale on-demand**: Se la domanda riguarda rosa, partite, tattica, allenatore, la chat carica formation_layout, players (con profilazione e competenze), matches (ultime 10), team_tactical_settings, coaches attivo. Funzione `buildPersonalContext(userId)` in route; `needsPersonalContext(message)` in `lib/ragHelper.js`.
+  - **Continuità conversazione**: Se c'è storia (history.length > 0), la chat non risaluta; continua in modo naturale. Parametro `hasHistory` passato a `buildPersonalizedPrompt`.
+  - **Stili di gioco fissi**: In eFootball gli stili (Ala prolifica, Collante, ecc.) sono FISSI sulla card. La chat NON suggerisce mai "potenziare ala prolifica" o modificare lo stile; consiglia formazione, chi schierare, sostituzioni, istruzioni individuali. Regola esplicita in prompt, system e in `info_rag.md`.
+  - **RAG eFootball**: `lib/ragHelper.js` – `getRelevantSections(message)`, `classifyQuestion(message)`, `needsPersonalContext(message)`. Knowledge da `info_rag.md` (path con `process.cwd()` per Vercel).
+  - **Input API**: `message`, `currentPage`, `appState`, `language`, `history` (ultimi 10 messaggi con role e content). Frontend invia tutto in `AssistantChat.jsx`.
 
 **Aggiornamenti 28 gen 2026 (v2.2.0)**:
 - **⭐ Barra Conoscenza IA (allineamento + aggiornamenti affidabili)**:
@@ -591,11 +599,14 @@ Tutte le API routes sono in `/app/api`. Ogni cartella rappresenta un endpoint.
 
 #### **`/app/api/assistant-chat/route.js` - Assistant Chat AI**
 
-**Scopo**: Endpoint per chat interattiva con AI guida personale.
+**Scopo**: Endpoint per chat interattiva con AI guida personale. Risponde su: (1) uso piattaforma, (2) meccaniche eFootball (RAG da info_rag.md), (3) dati personali (rosa, partite, tattica, allenatore) quando la domanda lo richiede.
 
-**Input**:
-- `message`: Messaggio utente
+**Input** (body JSON):
+- `message`: Messaggio utente (obbligatorio)
 - `currentPage`: Pagina corrente (opzionale, per contesto)
+- `appState`: Stato app (opzionale: completingMatch, uploadingPlayer, viewingMatch, ecc.)
+- `language`: Lingua risposta (`it` | `en`, default `it`)
+- `history`: Array ultimi N messaggi `[{ role: 'user'|'assistant', content: string }]` (max 10, per continuità)
 
 **Output**:
 - `response`: Risposta AI personalizzata
@@ -604,24 +615,27 @@ Tutte le API routes sono in `/app/api`. Ogni cartella rappresenta un endpoint.
 
 **Flusso Completo**:
 1. **Autenticazione**: Valida Bearer token
-2. **Rate Limiting**: 30 richieste/minuto per utente
-3. **Build Context**:
-   - Recupera profilo utente (`user_profiles`)
-   - Estrae: `first_name`, `team_name`, `ai_name`, `how_to_remember`, `common_problems`
-4. **Build Prompt**:
-   - Prompt personalizzato con nome cliente
-   - Lista completa 6 funzionalità disponibili (NON inventare altre)
-   - Regole critiche: Tono amichevole, motivante, personale
-   - Contesto pagina corrente
-5. **Chiama OpenAI**: GPT-4o con `temperature: 0.7` (bilanciato)
-6. **Parse Risposta**: Estrae `content` da risposta
-7. **Return**: Risposta formattata
+2. **Rate Limiting**: 30 richieste/minuto per utente (`/api/assistant-chat` in rateLimiter)
+3. **Normalizza history**: `normalizeHistory(rawHistory)` – max 10 messaggi, max 2000 caratteri per content
+4. **Build Context**: `buildAssistantContext(userId, currentPage, appState)` – profilo da `user_profiles`
+5. **RAG eFootball**: Se `classifyQuestion(message) === 'efootball'` → `getRelevantSections(message, 18000)` da `lib/ragHelper.js` (knowledge da `info_rag.md`)
+6. **Contesto personale**: Se `needsPersonalContext(message)` → `buildPersonalContext(userId)` – carica formation_layout, players (con profilazione/competenze), matches (ultime 10), team_tactical_settings, coaches attivo. Riassunto max 3500 caratteri.
+7. **Build Prompt**: `buildPersonalizedPrompt(message, context, lang, efootballKnowledge, personalContextSummary, hasHistory)` – se hasHistory=true aggiunge blocco CONTINUITÀ (non risalutare); se personalContextSummary presente aggiunge blocco CONTESTO PERSONALE CLIENTE; regole stili di gioco FISSI (non suggerire potenziare ala prolifica/ modificare stile)
+8. **System content**: Regole critiche piattaforma, eFootball, contesto personale; continuità; rosa/giocatori linguaggio tattico (buildati correttamente, sostituzioni per affinità)
+9. **OpenAI**: `openAIMessages = [system, ...history, user(prompt)]`, model gpt-4o, max_tokens 450
+10. **Return**: Risposta formattata
+
+**Funzioni principali (route.js)**:
+- `normalizeHistory(raw)`: Valida e tronca history
+- `buildAssistantContext(userId, currentPage, appState)`: Profilo utente
+- `buildPersonalContext(userId)`: Riassunto rosa, partite, tattica, allenatore (solo se needsPersonalContext)
+- `buildPersonalizedPrompt(..., efootballKnowledge, personalContextSummary, hasHistory)`: Prompt completo
 
 **Note Tecniche**:
-- **Prompt Engineering**: Lista esplicita funzionalità per evitare "invenzioni"
-- **Tono Personale**: Usa sempre nome cliente, celebra successi, incoraggia
-- **Contesto Dinamico**: Passa `currentPage` per risposte contestuali
-- **Error Handling**: Fallback sicuri se contesto non disponibile
+- **Stili di gioco fissi**: In eFootball gli stili (Ala prolifica, Collante, ecc.) sono FISSI sulla card. La chat NON suggerisce mai di potenziarli o modificarli. Vedi anche `info_rag.md` (nota in STILI DI GIOCO DEI GIOCATORI).
+- **Continuità**: Con history non vuota, la chat non dice "Ciao!" / "Benvenuto!" – continua naturalmente.
+- **Linguaggio tattico**: Niente "eccezionali"/"fantastici"; usa "buildati correttamente", "visto le caratteristiche di X ti consiglio di sostituire con Y per affinità".
+- **Vedi anche**: `INTEGRAZIONE_ROSA_CHAT_PERSONALIZZATA.md`, `COSA_FARE_CHAT_GUIDA.md`
 
 ---
 
@@ -925,7 +939,8 @@ const RATE_LIMIT_CONFIG = {
   '/api/extract-match-data': { maxRequests: 10, windowMs: 60000 },
   '/api/extract-player': { maxRequests: 15, windowMs: 60000 },
   '/api/extract-formation': { maxRequests: 10, windowMs: 60000 },
-  '/api/extract-coach': { maxRequests: 5, windowMs: 60000 }
+  '/api/extract-coach': { maxRequests: 5, windowMs: 60000 },
+  '/api/assistant-chat': { maxRequests: 30, windowMs: 60000 }
 }
 ```
 
@@ -993,6 +1008,28 @@ const RATE_LIMIT_CONFIG = {
 - **1400+ righe**: File grande con tutte le traduzioni
 - **Fallback**: Se traduzione IT manca, usa EN
 - **Persistenza**: Lingua salvata in localStorage
+
+---
+
+#### **`/lib/ragHelper.js` - RAG eFootball e contesto personale**
+
+**Scopo**: Recupero sezioni rilevanti da `info_rag.md` per domande eFootball; classificazione domanda; rilevamento domande su contesto personale (rosa, partite, tattica, allenatore).
+
+**Funzioni esportate**:
+- `getRelevantSections(userMessage, maxChars = 18000)`: Restituisce blocco testo (sezioni concatenate) da `info_rag.md` in base a keyword match sul messaggio. Usato quando la domanda è eFootball.
+- `classifyQuestion(message)`: Restituisce `'efootball'` | `'platform'`. Priorità a termini eFootball (stili, ruoli, meccaniche); altrimenti platform (dashboard, caricare partita, formazione, ecc.).
+- `needsPersonalContext(message)`: Restituisce `true` se il messaggio suggerisce domanda su dati personali (rosa, partite caricate, risultati, tattica, allenatore, formazione attuale, profilazione, competenze). Usato per caricare contesto personale on-demand in assistant-chat.
+
+**Dati interni**:
+- `SECTION_KEYWORDS`: Mappa titolo sezione → keyword per matching (stili gioco, istruzioni individuali, calci piazzati, ecc.)
+- `EFOOTBALL_TERMS`: Termini che forzano classificazione eFootball
+- `PERSONAL_CONTEXT_TERMS`: Termini che richiedono contesto personale (IT+EN)
+- Path `info_rag.md`: prima `process.cwd()/info_rag.md` (Vercel), poi fallback `__dirname/../info_rag.md`
+
+**Note Tecniche**:
+- Cache in memoria per contenuto e sezioni parse di info_rag.md
+- Parsing sezioni tramite regex `## TITOLO`
+- Normalizzazione messaggio (lowercase, NFD, rimozione accenti) per matching
 
 ---
 

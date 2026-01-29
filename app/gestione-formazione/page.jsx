@@ -2583,6 +2583,9 @@ export default function GestioneFormazionePage() {
           }
         }
       `}</style>
+
+      {/* ConfirmModal per duplicato giocatore (qui per scope: duplicateConfirmModal è stato di GestioneFormazionePage) */}
+      <DuplicatePlayerConfirmModal state={duplicateConfirmModal} t={t} />
     </main>
   )
 }
@@ -4675,9 +4678,6 @@ function FormationSelectorModal({ onSelect, onClose, loading }) {
           )}
         </div>
       </div>
-
-      {/* ConfirmModal per duplicato giocatore (componente dedicato per evitare ReferenceError in bundle) */}
-      <DuplicatePlayerConfirmModal state={duplicateConfirmModal} t={t} />
     </div>
   )
 }

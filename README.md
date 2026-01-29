@@ -30,9 +30,13 @@ Web app per coaching eFootball con estrazione dati da screenshot e gestione rosa
 ```
 app/
 ├── api/                          # API Routes (Backend)
+│   ├── assistant-chat/           # Chat AI guida (RAG + contesto personale)
 │   ├── extract-formation/       # Estrazione formazione da screenshot
 │   ├── extract-player/           # Estrazione dati giocatore
-│   └── supabase/                 # Operazioni database
+│   ├── extract-match-data/      # Estrazione dati partita (wizard)
+│   ├── analyze-match/           # Riassunto AI partita
+│   ├── generate-countermeasures/ # Contromisure live
+│   └── supabase/                # Operazioni database
 │       ├── assign-player-to-slot/
 │       ├── save-formation-layout/
 │       └── save-player/
@@ -49,6 +53,7 @@ lib/
 ├── i18n.js                       # Internazionalizzazione (IT/EN)
 ├── normalize.js                  # Normalizzazione dati
 ├── aiKnowledgeHelper.js          # Calcolo AI Knowledge Score
+├── ragHelper.js                  # RAG eFootball (info_rag), classifyQuestion, needsPersonalContext
 └── rateLimiter.js                # Rate limiting per API
 ```
 
@@ -105,11 +110,15 @@ lib/
 **AI Knowledge**:
 - `GET /api/ai-knowledge` - Restituisce score conoscenza IA (0-100%) con breakdown per componente
 
+**Assistant Chat**:
+- `POST /api/assistant-chat` - Chat AI guida personale (message, currentPage, appState, language, history). RAG eFootball (info_rag.md), contesto personale on-demand (rosa, partite, tattica, allenatore).
+
 ## 📚 Documentazione
 
 **Documentazione principale**:
-- **`DOCUMENTAZIONE_MASTER_COMPLETA.md`** – Documentazione completa e aggiornata (26 Gennaio 2026)
+- **`DOCUMENTAZIONE_MASTER_COMPLETA.md`** – Documentazione completa e aggiornata (29 Gennaio 2026)
   - Panoramica, architettura, struttura progetto, DB schema, API, pagine, librerie, sicurezza, i18n, flussi
+- **`DOCUMENTAZIONE_RIFERIMENTO.md`** – Riferimento rapido: ogni pagina, API, componente, lib (per programmatore e per chi legge)
 
 **Documenti specializzati**:
 - **`DOCUMENTAZIONE_GUIDA_INTERATTIVA.md`** – Assistant Chat AI: architettura, prompt engineering, flussi
