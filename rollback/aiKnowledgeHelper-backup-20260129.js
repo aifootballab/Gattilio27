@@ -245,12 +245,12 @@ function calculateSuccessScore(profile, weeklyGoals, matches) {
     if (previousMatches.length >= 10) {
       // Calcola media gol subiti
       const recentGoalsConceded = recentMatches.reduce((sum, m) => {
-        const goals = m.team_stats?.goals_conceded || 0
+        const goals = m.team_stats?.goals_conceded || m.match_data?.team_stats?.goals_conceded || 0
         return sum + (typeof goals === 'number' ? goals : 0)
       }, 0) / 10
       
       const previousGoalsConceded = previousMatches.reduce((sum, m) => {
-        const goals = m.team_stats?.goals_conceded || 0
+        const goals = m.team_stats?.goals_conceded || m.match_data?.team_stats?.goals_conceded || 0
         return sum + (typeof goals === 'number' ? goals : 0)
       }, 0) / 10
       
@@ -323,7 +323,7 @@ export async function calculateAIKnowledgeScore(userId, supabaseUrl, serviceKey)
     // 4. Fetch Partite (ultime 30 per calcolo)
     const { data: matches, error: matchesError } = await admin
       .from('matches')
-      .select('id, match_date, team_stats, created_at')
+      .select('id, match_data, team_stats, created_at')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(30)

@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { validateToken, extractBearerToken } from '../../../lib/authHelper'
 import { callOpenAIWithRetry } from '../../../lib/openaiHelper'
 import { checkRateLimit, RATE_LIMIT_CONFIG } from '../../../lib/rateLimiter'
-import { getRelevantSectionsForContext } from '../../../lib/ragHelper'
+import { loadAttilaMemory } from '../../../lib/attilaMemoryHelper'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -672,15 +672,32 @@ Suggerisci di caricare le foto mancanti per un'analisi più precisa.`
   const userName = userProfile?.first_name || null
   const greeting = userName ? ` per ${userName}` : ''
   
-  // ✅ Conoscenza eFootball da RAG (info_rag) per analisi tattica – stesso sistema della chat
+  // ✅ Carica memoria Attila modulare per analisi tattica
   let attilaMemorySection = ''
   try {
-    const ragContent = getRelevantSectionsForContext('analyze-match', 12000)
-    if (ragContent && ragContent.length > 0) {
-      attilaMemorySection = `\n\n📌 MEMORIA ATTILA - eFootball (Conoscenza Tattica):\n${ragContent}\n\n`
+    const hasPlayerRatings = matchData.player_ratings && (
+      (matchData.player_ratings.cliente && Object.keys(matchData.player_ratings.cliente).length > 0) ||
+      (matchData.player_ratings.avversario && Object.keys(matchData.player_ratings.avversario).length > 0)
+    )
+    const hasTeamPlayingStyle = tacticalSettings?.team_playing_style || tacticalPatterns?.playing_style_usage
+    
+    const attilaContext = {
+      type: 'analyze-match',
+      hasPlayerRatings: !!hasPlayerRatings,
+      hasTeamPlayingStyle: !!hasTeamPlayingStyle,
+      needsDevelopmentAnalysis: false,
+      needsSetPiecesAnalysis: false,
+      needsMechanics: false
     }
-  } catch (ragError) {
-    console.error('[analyze-match] Error loading RAG knowledge:', ragError)
+    
+    const attilaMemoryContent = await loadAttilaMemory(attilaContext)
+    
+    if (attilaMemoryContent && attilaMemoryContent.length > 0) {
+      attilaMemorySection = `\n\n📌 MEMORIA ATTILA - eFootball (Conoscenza Tattica):\n${attilaMemoryContent}\n\n`
+    }
+  } catch (attilaError) {
+    // Fallback graceful: se memoria modulare fallisce, continua senza
+    console.error('[analyze-match] Error loading Attila memory:', attilaError)
   }
 
   return `Analizza i dati di questa partita di eFootball${greeting} e genera un riassunto motivazionale e decisionale dell'andamento.

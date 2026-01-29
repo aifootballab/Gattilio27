@@ -2,7 +2,7 @@
  * Helper per generazione contromisure tattiche
  */
 
-import { getRelevantSectionsForContext } from './ragHelper'
+import { loadAttilaMemory } from './attilaMemoryHelper'
 
 /**
  * Verifica se una posizione è tra quelle originali del giocatore
@@ -336,7 +336,16 @@ export async function generateCountermeasuresPrompt(
   
   // Carica memoria Attila modulare basata su contesto
   try {
-    const attilaMemoryContent = getRelevantSectionsForContext('countermeasures', 12000)
+    const attilaContext = {
+      type: 'countermeasures',
+      hasPlayerRatings: hasTitolariRiserve && (titolari.length > 0 || riserve.length > 0),
+      hasTeamPlayingStyle: !!teamPlayingStyle,
+      needsDevelopmentAnalysis: false,
+      needsSetPiecesAnalysis: false,
+      needsMechanics: false
+    }
+    
+    const attilaMemoryContent = await loadAttilaMemory(attilaContext)
     
     // Mantieni logica esistente per stili critici e connection (coerenza con codice esistente)
     if (hasTitolariRiserve && (titolari.length > 0 || riserve.length > 0)) {

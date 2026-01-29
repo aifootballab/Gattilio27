@@ -255,51 +255,6 @@ export function getRelevantSections(userMessage, maxChars = DEFAULT_MAX_CHARS) {
     .join('\n\n---\n\n')
 }
 
-/** Sezioni info_rag da includere per contesto "analyze-match" (strategie serie, analisi partita) */
-const ANALYZE_MATCH_SECTION_TITLES = [
-  'MODULI TATTICI', 'STILI DI GIOCO DEI GIOCATORI', 'STILI DI GIOCO SQUADRA',
-  'COMANDI AVANZATI', 'MECCANICHE DIFENSIVE AVANZATE', 'ISTRUZIONI INDIVIDUALI',
-  'CONSIGLI TECNICI AVANZATI', 'BEST PRACTICES E CONSIGLI PRATICI', 'DRIBBLING E SKILLS',
-  'CALCI PIAZZATI', 'RUOLI SPECIFICI E COMPORTAMENTI', 'SITUAZIONI DI GIOCO', 'MOVIMENTI COLLETTIVI',
-  'STATISTICHE GIOCATORI'
-]
-
-/** Sezioni info_rag da includere per contesto "countermeasures" (strategie serie, pre-partita) */
-const COUNTERMEASURES_SECTION_TITLES = [
-  'MODULI TATTICI', 'STILI DI GIOCO DEI GIOCATORI', 'STILI DI GIOCO SQUADRA',
-  'COMANDI AVANZATI', 'MECCANICHE DIFENSIVE AVANZATE', 'ISTRUZIONI INDIVIDUALI',
-  'CONSIGLI TECNICI AVANZATI', 'BEST PRACTICES E CONSIGLI PRATICI', 'DRIBBLING E SKILLS',
-  'CALCI PIAZZATI', 'RUOLI SPECIFICI E COMPORTAMENTI', 'SITUAZIONI DI GIOCO', 'MOVIMENTI COLLETTIVI',
-  'STATISTICHE GIOCATORI', 'ABILITÀ SPECIALI GIOCATORI'
-]
-
-/**
- * Restituisce sezioni info_rag per contesto analyze-match o countermeasures (strategie serie).
- * Non dipende da messaggio utente: usa elenco fisso di sezioni. Stesso RAG della chat, uso diverso.
- * @param {'analyze-match' | 'countermeasures'} contextType
- * @param {number} maxChars - Limite caratteri (default 12000)
- * @returns {string}
- */
-export function getRelevantSectionsForContext(contextType, maxChars = 12000) {
-  const titles = contextType === 'countermeasures' ? COUNTERMEASURES_SECTION_TITLES : ANALYZE_MATCH_SECTION_TITLES
-  const sections = getSections()
-  if (!sections || sections.length === 0) return ''
-
-  const byTitle = new Map(sections.map(s => [s.title, s]))
-  let total = 0
-  const selected = []
-  for (const title of titles) {
-    const s = byTitle.get(title)
-    if (!s) continue
-    if (total + s.content.length > maxChars && selected.length > 0) break
-    selected.push(s)
-    total += s.content.length
-  }
-
-  if (selected.length === 0) return ''
-  return selected.map(s => `## ${s.title}\n\n${s.content}`).join('\n\n---\n\n')
-}
-
 /**
  * Termini eFootball: se presenti nel messaggio, la domanda è classificata eFootball (priorità).
  * IT + EN per coerenza bilingue.
