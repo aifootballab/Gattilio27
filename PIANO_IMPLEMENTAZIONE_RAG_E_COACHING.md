@@ -2,7 +2,16 @@
 
 **Ruolo**: Project Manager Full-Stack  
 **Data**: 28 Gennaio 2026  
+**Ultimo aggiornamento**: 29 Gennaio 2026  
 **Obiettivo**: Decidere dove e come implementare `info_rag.md`, migliorare la chat di supporto in guida/coaching conversazionale, e valutare risposta a ~200 domande (simulazione) con analisi rischi.
+
+**Stato attuale**: `info_rag.md` completato (29/01/2026) con tutte le informazioni da `memoria_attila/`:
+- ✅ Statistiche Giocatori (complete)
+- ✅ Moduli Tattici (4/3/5 difensori)
+- ✅ Strategie Calci Piazzati (attacco/difesa)
+- ✅ Tipologie Giocatori e VG
+- ✅ Tutti gli stili di gioco mancanti
+- ✅ Coerenza terminologica con `memoria_attila/`
 
 ---
 
@@ -15,7 +24,7 @@
 | **analyze-match** | `loadAttilaMemory(attilaContext)` → moduli `memoria_attila/*.md` | Contesto: post-partita, voti, stile squadra. Moduli selettivi (es. 08_consigli_strategie, 01_statistiche_giocatori). |
 | **generate-countermeasures** | `loadAttilaMemory(attilaContext)` → stessa memoria modulare | Contesto: pre-partita, formazione avversario, istruzioni. |
 | **assistant-chat** (Guida Interattiva) | **Nessun RAG** | Solo prompt fisso: 6 funzionalità piattaforma + profilo utente + pagina corrente. Non usa `memoria_attila` né `info_rag`. |
-| **info_rag.md** | **Non collegato** | File ~1000 righe, pulito e coerente; non referenziato da nessuna API. |
+| **info_rag.md** | **Completato (29/01/2026)** | File ~1200 righe, completo con tutte le informazioni da `memoria_attila/`. Coerente terminologicamente. Pronto per integrazione RAG. Non ancora referenziato da nessuna API. |
 
 ### 1.2 Chat di supporto (Guida Interattiva)
 
@@ -148,6 +157,14 @@ Non serve un “secondo tipo di chat”; serve **un solo assistant che sappia qu
 ---
 
 ## 7. Passi operativi suggeriti
+
+**✅ COMPLETATO (29/01/2026)**: Completato `info_rag.md` con tutte le informazioni da `memoria_attila/`:
+- Statistiche Giocatori (complete)
+- Moduli Tattici (4/3/5 difensori)
+- Strategie Calci Piazzati (attacco/difesa)
+- Tipologie Giocatori e VG
+- Tutti gli stili di gioco mancanti
+- Coerenza terminologica verificata
 
 1. **Creare `SIMULAZIONE_200_DOMANDE.md`**  
    - 50 domande piattaforma + 150 eFootball, categorizzate.
