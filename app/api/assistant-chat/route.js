@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { callOpenAIWithRetry } from '@/lib/openaiHelper'
 import { checkRateLimit, RATE_LIMIT_CONFIG } from '@/lib/rateLimiter'
 import { validateToken, extractBearerToken } from '@/lib/authHelper'
+import { getRelevantSections, classifyQuestion } from '@/lib/ragHelper'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -40,9 +41,10 @@ async function buildAssistantContext(userId, currentPage, appState) {
 }
 
 /**
- * Costruisce prompt personalizzato e motivante
+ * Costruisce prompt personalizzato e motivante.
+ * @param {string} efootballKnowledge - Se presente, blocco RAG eFootball (opzionale).
  */
-function buildPersonalizedPrompt(userMessage, context, language = 'it') {
+function buildPersonalizedPrompt(userMessage, context, language = 'it', efootballKnowledge = '') {
   const { profile, currentPage, appState } = context || {}
   const firstName = profile?.first_name || 'amico'
   const teamName = profile?.team_name || 'il tuo team'
@@ -144,6 +146,13 @@ ${stateContext ? `- Stato: ${stateContext}` : ''}
 - Riferisciti SOLO alle funzionalità elencate sopra
 - Se non sei sicuro, di': "Non sono sicuro, ma posso guidarti su [funzionalità esistente]"
 - Mantieni coerenza: se dici "vai su X", assicurati che X esista davvero
+${efootballKnowledge ? `
+📚 KNOWLEDGE eFootball (usa SOLO questo per domande su meccaniche, tattica, ruoli, stili, build, difesa, attacco, calci piazzati - NON inventare):
+---
+${efootballKnowledge}
+---
+- Per domande su eFootball: rispondi basandoti SOLO sul blocco sopra. Se l'informazione non c'è, dì che non hai dati sufficienti per quella domanda.
+- Non inventare meccaniche o nomi non presenti nel knowledge.` : ''}
 
 📋 REGOLE:
 1. Rispondi SEMPRE in modo personale e amichevole (usa "${firstName}")
@@ -257,7 +266,8 @@ export async function POST(req) {
     }
     
     const { message, currentPage, appState, language = 'it' } = body
-    
+    const lang = (language === 'en' || language === 'it') ? language : 'it'
+
     if (!message || typeof message !== 'string' || message.trim().length === 0) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 })
     }
@@ -272,14 +282,24 @@ export async function POST(req) {
       }
     } catch (contextError) {
       console.error('[assistant-chat] Error building context:', contextError)
-      // Usa contesto vuoto se fallisce
       context = { profile: {}, currentPage: currentPage || '', appState: appState || {} }
     }
-    
-    // Costruisci prompt personalizzato
+
+    // RAG eFootball: se la domanda riguarda eFootball, carica sezioni rilevanti da info_rag
+    let efootballKnowledge = ''
+    if (classifyQuestion(message) === 'efootball') {
+      try {
+        efootballKnowledge = getRelevantSections(message, 18000)
+        if (efootballKnowledge) console.log('[assistant-chat] RAG eFootball: loaded sections')
+      } catch (ragError) {
+        console.error('[assistant-chat] RAG error (non-blocking):', ragError.message)
+      }
+    }
+
+    // Costruisci prompt personalizzato (con eventuale blocco RAG eFootball)
     let prompt
     try {
-      prompt = buildPersonalizedPrompt(message, context, language)
+      prompt = buildPersonalizedPrompt(message, context, lang, efootballKnowledge)
       if (!prompt || prompt.trim().length === 0) {
         throw new Error('Empty prompt generated')
       }
@@ -287,7 +307,7 @@ export async function POST(req) {
       console.error('[assistant-chat] Error building prompt:', promptError)
       throw new Error('Error building AI prompt')
     }
-    
+
     // Chiama OpenAI
     const apiKey = process.env.OPENAI_API_KEY
     if (!apiKey) {
@@ -308,13 +328,11 @@ export async function POST(req) {
 Rispondi sempre in modo empatico, motivante e incoraggiante. 
 Usa il nome del cliente quando possibile.
 
+Puoi rispondere su: (1) uso della piattaforma/app e (2) meccaniche eFootball, tattica, ruoli, stili, build, difesa, attacco, calci piazzati.
+
 ⚠️ REGOLE CRITICHE (FONDAMENTALI):
-- NON inventare funzionalità che non esistono nella piattaforma
-- Rispondi SOLO su funzionalità reali e documentate nel prompt
-- Se cliente chiede qualcosa che non esiste, sii onesto: "Questa funzionalità non è ancora disponibile, ma posso aiutarti con [funzionalità simile esistente]"
-- Mantieni coerenza: tutte le informazioni devono essere accurate e verificate
-- Se non sei sicuro di una funzionalità, ammettilo: "Non sono sicuro, ma posso guidarti su [funzionalità esistente]"
-- Riferisciti SOLO alle 6 funzionalità elencate nel prompt utente`
+- Piattaforma: NON inventare funzionalità che non esistono. Riferisciti SOLO alle 6 funzionalità elencate nel prompt. Se cliente chiede qualcosa che non esiste, sii onesto e suggerisci alternativa esistente.
+- eFootball: Se nel prompt è presente un blocco "KNOWLEDGE eFootball", usa SOLO quel blocco per rispondere su meccaniche/tattica/ruoli. Non inventare informazioni non presenti nel knowledge. Se l'informazione non c'è, dillo.`
         },
         {
           role: 'user',
@@ -357,7 +375,8 @@ Usa il nome del cliente quando possibile.
               const fallbackResponse = await callOpenAIWithRetry(apiKey, requestBody, 'assistant-chat')
               if (fallbackResponse && fallbackResponse.ok) {
                 const fallbackData = await fallbackResponse.json().catch(() => ({}))
-                const content = fallbackData.choices?.[0]?.message?.content || 'Mi dispiace, non ho capito. Puoi ripetere?'
+                const fallbackMsg = lang === 'en' ? "Sorry, I didn't get that. Can you repeat?" : 'Mi dispiace, non ho capito. Puoi ripetere?'
+                const content = fallbackData.choices?.[0]?.message?.content || fallbackMsg
                 return NextResponse.json({
                   response: content,
                   remaining: rateLimit.remaining,
@@ -386,10 +405,11 @@ Usa il nome del cliente quando possibile.
       throw new Error('Invalid response from OpenAI API')
     }
     
-    // Estrai contenuto con fallback sicuro
-    const content = data?.choices?.[0]?.message?.content || 
-                    data?.choices?.[0]?.content || 
-                    'Mi dispiace, non ho capito. Puoi ripetere?'
+    // Estrai contenuto con fallback sicuro (doppia lingua)
+    const fallbackReply = lang === 'en' ? "Sorry, I didn't get that. Can you repeat?" : 'Mi dispiace, non ho capito. Puoi ripetere?'
+    const content = data?.choices?.[0]?.message?.content ||
+                    data?.choices?.[0]?.content ||
+                    fallbackReply
     
     // Validazione base: verifica che la risposta non contenga riferimenti a funzionalità inventate
     // (il prompt già previene, ma aggiungiamo controllo extra)

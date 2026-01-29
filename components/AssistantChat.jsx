@@ -44,11 +44,11 @@ export default function AssistantChat() {
           const hasGreeted = localStorage.getItem('assistant_greeted')
           if (!hasGreeted && profile.first_name) {
             setTimeout(() => {
-              setMessages([{
-                role: 'assistant',
-                content: `Ciao ${profile.first_name}! 👋 Sono ${profile.ai_name || 'il tuo Coach AI'}. 
-                Sono qui per aiutarti e guidarti. Dimmi pure cosa ti serve! 💪`
-              }])
+              const aiName = profile.ai_name || (lang === 'en' ? 'your Coach AI' : 'il tuo Coach AI')
+              const greeting = lang === 'en'
+                ? `Hi ${profile.first_name}! 👋 I'm ${aiName}. I'm here to help and guide you. Just tell me what you need! 💪`
+                : `Ciao ${profile.first_name}! 👋 Sono ${aiName}. Sono qui per aiutarti e guidarti. Dimmi pure cosa ti serve! 💪`
+              setMessages([{ role: 'assistant', content: greeting }])
               localStorage.setItem('assistant_greeted', 'true')
             }, 500)
           }
@@ -132,10 +132,11 @@ export default function AssistantChat() {
         throw new Error('Invalid response format')
       }
       
-      // Aggiungi risposta AI
+      // Aggiungi risposta AI (fallback doppia lingua)
+      const fallbackNoResponse = lang === 'en' ? "Sorry, I didn't receive a valid response." : 'Mi dispiace, non ho ricevuto una risposta valida.'
       setMessages(prev => [...prev, { 
         role: 'assistant', 
-        content: data.response || 'Mi dispiace, non ho ricevuto una risposta valida.',
+        content: data.response || fallbackNoResponse,
         timestamp: new Date()
       }])
       
