@@ -12,6 +12,28 @@ import MissingDataModal from '@/components/MissingDataModal'
 import ConfirmModal from '@/components/ConfirmModal'
 import { safeJsonResponse } from '@/lib/fetchHelper'
 
+/** Modal conferma giocatore duplicato: componente separato per evitare ReferenceError in bundle (scope/closure). */
+function DuplicatePlayerConfirmModal({ state, t }) {
+  if (!state || !state.show) return null
+  return (
+    <ConfirmModal
+      show={state.show}
+      title={t('duplicatePlayerTitle') || 'Giocatore Duplicato'}
+      message={t('duplicateInFormationMessage', {
+        playerName: state.playerName || '',
+        playerAge: state.playerAge || '',
+        slotIndex: state.slotIndex || ''
+      }) || `Il giocatore "${state.playerName || ''}"${state.playerAge || ''} è già presente in formazione nello slot ${state.slotIndex || ''}.`}
+      details={t('duplicateInFormationDetails') || 'Vuoi sostituirlo con i nuovi dati?'}
+      variant="warning"
+      confirmLabel={t('replace') || 'Sostituisci'}
+      cancelLabel={t('cancel') || 'Annulla'}
+      onConfirm={state.onConfirm || (() => {})}
+      onCancel={state.onCancel || (() => {})}
+    />
+  )
+}
+
 export default function GestioneFormazionePage() {
   const { t } = useTranslation()
   const router = useRouter()
@@ -4654,24 +4676,8 @@ function FormationSelectorModal({ onSelect, onClose, loading }) {
         </div>
       </div>
 
-      {/* ConfirmModal per duplicato giocatore */}
-      {duplicateConfirmModal && duplicateConfirmModal.show && (
-        <ConfirmModal
-          show={duplicateConfirmModal.show}
-          title={t('duplicatePlayerTitle') || 'Giocatore Duplicato'}
-          message={t('duplicateInFormationMessage', {
-            playerName: duplicateConfirmModal.playerName || '',
-            playerAge: duplicateConfirmModal.playerAge || '',
-            slotIndex: duplicateConfirmModal.slotIndex || ''
-          }) || `Il giocatore "${duplicateConfirmModal.playerName || ''}"${duplicateConfirmModal.playerAge || ''} è già presente in formazione nello slot ${duplicateConfirmModal.slotIndex || ''}.`}
-          details={t('duplicateInFormationDetails') || 'Vuoi sostituirlo con i nuovi dati?'}
-          variant="warning"
-          confirmLabel={t('replace') || 'Sostituisci'}
-          cancelLabel={t('cancel') || 'Annulla'}
-          onConfirm={duplicateConfirmModal.onConfirm || (() => {})}
-          onCancel={duplicateConfirmModal.onCancel || (() => {})}
-        />
-      )}
+      {/* ConfirmModal per duplicato giocatore (componente dedicato per evitare ReferenceError in bundle) */}
+      <DuplicatePlayerConfirmModal state={duplicateConfirmModal} t={t} />
     </div>
   )
 }
