@@ -622,7 +622,20 @@ export default function GestioneFormazionePage() {
           const confirmMsg = t('duplicateReserveAlert')
             .replace('${playerName}', data.duplicate_player_name || t('thisPlayer'))
             .replace('${playerAge}', playerAgeStr)
-          if (window.confirm(confirmMsg)) {
+          // FIX RC-002: Sostituzione window.confirm con ConfirmModal (feature flag)
+          const confirmed = await showConfirmSafe({
+            fallback: () => window.confirm(confirmMsg),
+            modalConfig: {
+              title: t('duplicatePlayerTitle') || 'Giocatore Duplicato',
+              message: confirmMsg,
+              variant: 'warning',
+              confirmLabel: t('deleteAndProceed') || 'Elimina e Procedi',
+              cancelLabel: t('cancel') || 'Annulla'
+            },
+            setConfirmModal
+          })
+          
+          if (confirmed) {
             // Elimina duplicato riserva
             const deleteRes = await fetch('/api/supabase/delete-player', {
               method: 'DELETE',
