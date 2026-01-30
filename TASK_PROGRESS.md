@@ -41,7 +41,7 @@
 | RC-001 | Transazioni atomiche slot | Cursor | 🔄 | Eseguire SQL + modificare API route |
 | RC-002 | Sostituire window.confirm | Cursor | ⏳ | 9 occorrenze da sostituire |
 | RC-003 | Recovery sessione scaduta | Cursor | ⏳ | Implementare pattern recovery |
-| RC-004 | Blocco doppi click | Cursor | ⏳ | Aggiungere flag isProcessing |
+| RC-004 | Blocco doppi click | ✅ Verificato | ✅ | GIÀ IMPLEMENTATO - Tutti i handler hanno flag loading |
 | RC-005 | Mappatura errori completa | Cursor | 🔄 | Usare errorHelper nei componenti |
 
 ### Priorità 2 - Importante 🟡
@@ -73,7 +73,7 @@
 - [ ] RC-001: Transazioni atomiche slot giocatori
 - [ ] RC-002: Sostituire tutti window.confirm
 - [ ] RC-003: Recovery sessione scaduta
-- [ ] RC-004: Blocco doppio click operazioni
+- [x] RC-004: Blocco doppio click operazioni (GIÀ IMPLEMENTATO)
 - [ ] RC-005: Mappatura errori user-friendly (integrazione)
 - [ ] RM-001: Transazione save-match
 - [ ] RM-006: Gestione errori Supabase
