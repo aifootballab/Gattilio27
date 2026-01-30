@@ -440,7 +440,20 @@ export default function GestioneFormazionePage() {
         }
         errorMsg += `\n\n${t('deleteDuplicatesAndProceed')}`
         
-        if (!window.confirm(errorMsg)) {
+        // FIX RC-002: Sostituzione window.confirm con ConfirmModal (feature flag)
+        const confirmed = await showConfirmSafe({
+          fallback: () => window.confirm(errorMsg),
+          modalConfig: {
+            title: t('duplicatePlayerTitle') || 'Giocatore Duplicato',
+            message: errorMsg,
+            variant: 'warning',
+            confirmLabel: t('deleteAndProceed') || 'Elimina e Procedi',
+            cancelLabel: t('cancel') || 'Annulla'
+          },
+          setConfirmModal
+        })
+        
+        if (!confirmed) {
           setAssigning(false)
           return
         }
