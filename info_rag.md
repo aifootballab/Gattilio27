@@ -10,11 +10,11 @@ Database RAG per fornire consigli tattici basati su meccaniche di gioco, comport
 
 ## STILI DI GIOCO DEI GIOCATORI
 
-**Importante**: Gli stili di gioco (Ala prolifica, Collante, Box-to-Box, Cacciatore di gol, ecc.) sono **caratteristiche FISSE della card** in eFootball. **NON si possono potenziare, modificare o "migliorare"** dall'utente. Si può solo scegliere chi schierare, formazione, tattica e istruzioni individuali.
+**Importante**: Gli stili di gioco (Ala prolifica, Collante, Box-to-Box, Istinto di attacante, ecc.) sono **caratteristiche FISSE della card** in eFootball. **NON si possono potenziare, modificare o "migliorare"** dall'utente. Si può solo scegliere chi schierare, formazione, tattica e istruzioni individuali.
 
 ### Attaccanti
 
-**Cacciatore di Gol**
+**Istinto di attacante**
 - Posizionamento: Si posiziona sulla linea dei difensori avversari
 - Movimento: Scatta verso la porta appena si presenta un'opportunità
 - Utilizzo: Efficace per gioco veloce e contropiede
@@ -792,7 +792,7 @@ Le build fisiche dei giocatori sono fondamentali in eFootball 2026 e influenzano
 
 **Attaccanti Centrali**
 
-*Attaccante Veloce (Cacciatore di Gol)*
+*Attaccante Veloce (Istinto di attacante)*
 - Velocità: 90+ per scatti in profondità
 - Accelerazione: 90+ per anticipare difensori
 - Fisicità: 75-85

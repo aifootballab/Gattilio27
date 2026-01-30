@@ -34,7 +34,7 @@
 **Problema:** In `lib/ragHelper.js` la mappa `SECTION_KEYWORDS` deve contenere le parole che l’utente usa. Se “collante” non è tra le keyword della sezione “STILI DI GIOCO DEI GIOCATORI”, quella sezione potrebbe non essere recuperata.
 
 **Cosa fare:**
-- In `SECTION_KEYWORDS`, per la sezione **STILI DI GIOCO DEI GIOCATORI**, aggiungere esplicitamente: `'collante'`, `'orchestrator'`, `'opportunista'`, `'cacciatore gol'`, `'rapace area'`, `'fulcro'`, `'box-to-box'`, `'tra le linee'`, `'sviluppo'`, `'incontrista'`, `'onnipresente'`, `'giocatore chiave'`, `'difensore distruttore'`, `'frontale extra'`, e gli altri stili presenti in info_rag.
+- In `SECTION_KEYWORDS`, per la sezione **STILI DI GIOCO DEI GIOCATORI**, aggiungere esplicitamente: `'collante'`, `'orchestrator'`, `'opportunista'`, `'istinto di attacante', 'istinto attacante'`, `'rapace area'`, `'fulcro'`, `'box-to-box'`, `'tra le linee'`, `'sviluppo'`, `'incontrista'`, `'onnipresente'`, `'giocatore chiave'`, `'difensore distruttore'`, `'frontale extra'`, e gli altri stili presenti in info_rag.
 - Verificare che le altre sezioni (MECCANICHE DIFENSIVE, CALCI PIAZZATI, MODULI TATTICI, ecc.) abbiano keyword sufficienti per le 200 domande in SIMULAZIONE_200_DOMANDE.md.
 - (Opzionale) Se `getRelevantSections` restituisce vuoto per eFootball, fare un fallback: caricare almeno 1–2 sezioni “generiche” (es. STILI DI GIOCO + BEST PRACTICES) per non lasciare il modello senza knowledge.
 

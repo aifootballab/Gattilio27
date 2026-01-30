@@ -801,6 +801,7 @@ ISTRUZIONI PER L'ANALISI (COACH MOTIVAZIONALE - ENTERPRISE):
    d) Cosa cambiare per migliorare?
      ⚠️ IMPORTANTE: Se suggerisci un cambio stile di gioco, usa SOLO stili in cui l'allenatore ha competenza >= 70.
      NON suggerire stili con competenza < 50, l'allenatore non è competente.
+     Le competenze allenatore sono VINCOLANTI: non suggerire mai uno stile con competenza < 50; preferisci stili con competenza >= 70.
      ⚠️ NON inferire: competenze allenatore ≠ stile usato nel match. Suggerisci, non dire che lo userà.
    e) Quali giocatori della rosa potrebbero essere utili?
 

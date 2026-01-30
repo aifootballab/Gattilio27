@@ -74,7 +74,7 @@
 
 ### B1 – Attaccanti
 51. Cos’è un opportunista?
-52. Cosa fa il cacciatore di gol?
+52. Cosa fa il istinto di attacante?
 53. Cos’è il rapace d’area?
 54. Cosa fa il fulcro di gioco?
 55. Cos’è il classico n° 10?
@@ -84,7 +84,7 @@
 59. Cos’è “senza palla”? (stile di gioco)
 60. Quando serve un opportunista?
 61. Differenza tra rapace d’area e fulcro?
-62. Quando usare il cacciatore di gol?
+62. Quando usare il istinto di attacante?
 63. Cos’è un attaccante senza palla?
 64. What is a Fox in the Box? (rapace d’area)
 65. What does Creative Playmaker do?
