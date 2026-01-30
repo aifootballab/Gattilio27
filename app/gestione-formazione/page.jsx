@@ -1799,7 +1799,21 @@ export default function GestioneFormazionePage() {
         const confirmMsg = t('duplicateReserveReplaceAlert')
           .replace('${playerName}', playerData.player_name)
           .replace('${playerAge}', playerAgeStr)
-        if (!window.confirm(confirmMsg)) {
+        
+        // FIX RC-002: Sostituzione window.confirm con ConfirmModal (feature flag)
+        const confirmed = await showConfirmSafe({
+          fallback: () => window.confirm(confirmMsg),
+          modalConfig: {
+            title: t('duplicateReserveTitle') || 'Riserva Duplicata',
+            message: confirmMsg,
+            variant: 'warning',
+            confirmLabel: t('replace') || 'Sostituisci',
+            cancelLabel: t('cancel') || 'Annulla'
+          },
+          setConfirmModal
+        })
+        
+        if (!confirmed) {
           setUploadingReserve(false)
           return
         }
@@ -1849,7 +1863,21 @@ export default function GestioneFormazionePage() {
           const confirmMsg = t('duplicateReserveReplaceAlert')
             .replace('${playerName}', playerData.player_name)
             .replace('${playerAge}', playerAgeStr)
-          if (window.confirm(confirmMsg)) {
+          
+          // FIX RC-002: Sostituzione window.confirm con ConfirmModal (feature flag)
+          const confirmed = await showConfirmSafe({
+            fallback: () => window.confirm(confirmMsg),
+            modalConfig: {
+              title: t('duplicateReserveTitle') || 'Riserva Duplicata',
+              message: confirmMsg,
+              variant: 'warning',
+              confirmLabel: t('replace') || 'Sostituisci',
+              cancelLabel: t('cancel') || 'Annulla'
+            },
+            setConfirmModal
+          })
+          
+          if (confirmed) {
             // Elimina vecchio giocatore e riprova
             const deleteRes = await fetch('/api/supabase/delete-player', {
               method: 'DELETE',
