@@ -18,35 +18,16 @@
 | **UX/Usabilità** | ⚠️ Da migliorare | 4 | 8 | 12 |
 | **Codice** | ⚠️ Da migliorare | 1 | 5 | 8 |
 
-**Raccomandazione:** ⚠️ **GO-LIVE RIMANDATO** fino a risoluzione issue critiche rimanenti (stima: 2-3 giorni)
-
-**Issue già risolte:** RC-001, RC-004, RM-003  
-**Issue da completare:** RC-002, RC-003, RC-005
+**Raccomandazione:** ⚠️ **GO-LIVE RIMANDATO** fino a risoluzione issue critiche (stima: 3-5 giorni)
 
 ---
 
 ## 🔴 CRITICO - Bloccanti per Go-Live
 
-### ✅ RC-001: Race Condition Assegnazione Slot - RISOLTO
+### RC-001: Race Condition Assegnazione Slot
 **File:** `app/api/supabase/assign-player-to-slot/route.js`  
-**Linee:** 193-197  
-**Stato:** ✅ **RISOLTO**  
-**Data fix:** 2026-01-30
-
-**Verifica:** Il codice già utilizza la funzione RPC `atomic_slot_assignment` per l'assegnazione atomica:
-```javascript
-const { data: rpcResult, error: rpcError } = await admin.rpc('atomic_slot_assignment', {
-  p_user_id: userId,
-  p_slot_index: slot_index,
-  p_player_id: player_id
-})
-```
-
-**Nota:** La funzione SQL era già stata creata in una migrazione precedente. Il codice API già la utilizza correttamente.
-
----
-
-### RC-002: window.confirm() Bloccante UX  
+**Linee:** 66-115  
+**Severità:** 🔴 CRITICO  
 
 ```javascript
 // CODICE PROBLEMATICO
@@ -108,9 +89,8 @@ $$ LANGUAGE plpgsql;
 
 ### RC-002: window.confirm() Bloccante UX
 **File:** `app/gestione-formazione/page.jsx` (multiple)  
-**Occorrenze:** 7 volte (righe 402, 473, 559, 1443, 1524, 1698, 1748)  
+**Occorrenze:** 9 volte (righe 400, 471, 556, 887, 1212, 1369, 1450, 1623, 1673)  
 **Severità:** 🔴 CRITICO  
-**Componente pronto:** `components/ConfirmModal.jsx` ✅  
 
 **Problema:** 
 - Browser moderni bloccano `window.confirm()` in alcuni contesti
@@ -193,22 +173,50 @@ useEffect(() => {
 
 ---
 
-### ✅ RC-004: Doppio Click = Duplicati - RISOLTO
-**File:** `app/gestione-formazione/page.jsx` (righe 50, 53, 58, 61)  
-**Stato:** ✅ **RISOLTO**  
-**Data verifica:** 2026-01-30
+### RC-004: Doppio Click = Duplicati
+**File:** `app/match/new/page.jsx:702`, `app/gestione-formazione/page.jsx:1020`  
+**Severità:** 🔴 CRITICO  
 
-**Verifica:** I flag di loading sono già presenti e utilizzati:
+**Problema:** Nessun flag `isProcessing` blocca click multipli durante operazioni asincrone.
+
 ```javascript
-const [assigning, setAssigning] = useState(false)           // riga 50
-const [uploadingFormation, setUploadingFormation] = useState(false)  // riga 53
-const [uploadingPlayer, setUploadingPlayer] = useState(false)        // riga 58
-const [savingTacticalSettings, setSavingTacticalSettings] = useState(false)  // riga 61
+// match/new/page.jsx:702 - handleSaveMatch
+const handleSaveMatch = async () => {
+  // Nessun check se già in corso!
+  setSaving(true);  // Troppo tardi, doppio click già passato
+  // ... operazioni
+}
 ```
 
-I bottoni usano `disabled={assigning}` e `disabled={uploadingFormation}` (righe 1979, 3641).
+**Scenario:**
+1. Utente clicca "Salva Partita"
+2. Connessione lenta, nessun feedback immediato
+3. Utente clicca di nuovo pensando che non abbia funzionato
+4. Partita salvata 2 volte
 
-**Nessun fix necessario.**
+**Fix Suggerito:**
+```javascript
+const [isProcessing, setIsProcessing] = useState(false);
+
+const handleSaveMatch = async () => {
+  if (isProcessing) return;  // Blocca doppio click
+  
+  setIsProcessing(true);
+  try {
+    // ... operazioni
+  } finally {
+    setIsProcessing(false);
+  }
+};
+
+// UI:
+<Button 
+  disabled={isProcessing}
+  loading={isProcessing}
+>
+  {isProcessing ? 'Salvataggio...' : 'Salva Partita'}
+</Button>
+```
 
 ---
 
@@ -297,22 +305,22 @@ React.useEffect(() => {
 
 ---
 
-### ✅ RM-003: Mutazione Stato React - RISOLTO
-**File:** `app/match/new/page.jsx:270-275`  
-**Stato:** ✅ **RISOLTO**  
-**Data verifica:** 2026-01-30
+### RM-003: Mutazione Stato React
+**File:** `app/match/new/page.jsx:271`  
+**Severità:** 🟡 MEDIO  
 
-**Verifica:** Il codice già usa variabile locale invece di mutare lo stato:
 ```javascript
-// RM-003: non mutare stepData; usa variabile locale per il payload
-let teamStatsForPayload = stepData.team_stats || null
-if (teamStatsForPayload && teamStatsForPayload.result) {
-  const { result, ...statsWithoutResult } = teamStatsForPayload
-  teamStatsForPayload = statsWithoutResult
-}
+// Mutazione diretta - Anti-pattern React
+stepData.team_stats = statsWithoutResult
 ```
 
-**Nessun fix necessario.**
+**Fix:**
+```javascript
+setStepData(prev => ({
+  ...prev,
+  team_stats: statsWithoutResult
+}));
+```
 
 ---
 

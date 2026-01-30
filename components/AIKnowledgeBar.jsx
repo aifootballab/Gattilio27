@@ -23,34 +23,96 @@ export default function AIKnowledgeBar() {
   const [error, setError] = useState(null)
   const [showDetails, setShowDetails] = useState(false)
 
+  // Ref per tracciare score durante retry
+  const previousScoreRef = React.useRef(score)
+  const retryTimeoutRef = React.useRef(null)
+  
   useEffect(() => {
     // Solo lato client per evitare hydration mismatch
     if (typeof window === 'undefined') return
     
     fetchAIKnowledge()
     
-    // FIX: Ridotto cache a 1 minuto e aggiunto event listener per aggiornamento dopo salvataggio partita
+    // FIX: Retry con backoff quando arriva evento match-saved
+    // Il server aggiorna AI Knowledge in modo async, quindi dobbiamo pollare finché non vediamo cambiamento
     const handleMatchSaved = () => {
-      // Delay per permettere salvataggio DB e calcolo AI Knowledge
-      setTimeout(() => {
-        console.log('[AIKnowledgeBar] Match saved event received, refreshing knowledge score...')
-        fetchAIKnowledge()
-      }, 3000) // 3 secondi per permettere calcolo sequenziale: pattern → AI Knowledge → task
+      console.log('[AIKnowledgeBar] Match saved event received, starting retry with backoff...')
+      
+      // Salva score attuale per confronto
+      previousScoreRef.current = score
+      
+      // Configurazione backoff: tentativi a 1s, 2s, 3s, 5s, 8s (max 5 tentativi, totale ~19s)
+      const retryDelays = [1000, 2000, 3000, 5000, 8000]
+      let attempt = 0
+      
+      const attemptRefresh = async () => {
+        if (attempt >= retryDelays.length) {
+          console.log('[AIKnowledgeBar] Max retry attempts reached, using current score')
+          return
+        }
+        
+        attempt++
+        console.log(`[AIKnowledgeBar] Retry attempt ${attempt}/${retryDelays.length}...`)
+        
+        try {
+          // Fetch nuovi dati
+          const { data: session } = await supabase.auth.getSession()
+          if (!session?.session?.access_token) return
+          
+          const res = await fetch('/api/ai-knowledge', {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${session.session.access_token}`,
+              'Content-Type': 'application/json'
+            }
+          })
+          
+          if (!res.ok) throw new Error('Fetch failed')
+          
+          const data = await res.json()
+          const newScore = data.score || 0
+          
+          // Se lo score è cambiato, aggiorna e ferma retry
+          if (Math.abs(newScore - previousScoreRef.current) > 0.01) {
+            console.log(`[AIKnowledgeBar] Score updated: ${previousScoreRef.current} → ${newScore}`)
+            setScore(newScore)
+            setLevel(data.level || 'beginner')
+            setBreakdown(data.breakdown || {})
+            return // Successo, ferma retry
+          }
+          
+          // Se score non cambiato, programma prossimo tentativo
+          console.log(`[AIKnowledgeBar] Score unchanged (${newScore}), scheduling next retry...`)
+          if (attempt < retryDelays.length) {
+            retryTimeoutRef.current = setTimeout(attemptRefresh, retryDelays[attempt])
+          }
+        } catch (err) {
+          console.error('[AIKnowledgeBar] Retry attempt failed:', err)
+          // Continua con prossimo tentativo anche in caso di errore
+          if (attempt < retryDelays.length) {
+            retryTimeoutRef.current = setTimeout(attemptRefresh, retryDelays[attempt])
+          }
+        }
+      }
+      
+      // Avvia primo tentativo dopo 1s
+      retryTimeoutRef.current = setTimeout(attemptRefresh, retryDelays[0])
     }
     
-    // Ascolta eventi di salvataggio partita (che triggera aggiornamento AI Knowledge)
+    // Ascolta eventi di salvataggio partita
     window.addEventListener('match-saved', handleMatchSaved)
     
-    // Cache locale: ricarica ogni 1 minuto (ridotto da 5 minuti)
+    // Cache locale: ricarica ogni 1 minuto
     const interval = setInterval(() => {
       fetchAIKnowledge()
-    }, 1 * 60 * 1000) // 1 minuto invece di 5
+    }, 1 * 60 * 1000)
 
     return () => {
       clearInterval(interval)
+      if (retryTimeoutRef.current) clearTimeout(retryTimeoutRef.current)
       window.removeEventListener('match-saved', handleMatchSaved)
     }
-  }, [])
+  }, [score]) // Dipendenza da score per avere valore aggiornato in handleMatchSaved
 
   const fetchAIKnowledge = async () => {
     try {

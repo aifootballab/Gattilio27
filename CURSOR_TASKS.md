@@ -11,10 +11,8 @@
 1. **Analisi completa** - Audit enterprise, flussi, UX, edge cases (documenti in repo)
 2. **Helper errori** - `lib/errorHelper.js` pronto per essere usato
 3. **Hook useIsMounted** - `lib/useIsMounted.js` per memory leaks
-4. **ConfirmModal pronto** - Componente creato, da integrare al posto di window.confirm
-5. **Verifica RC-001** - ✅ **GIÀ IMPLEMENTATO** - Transazione atomica via RPC presente
-6. **Verifica RC-004** - ✅ **GIÀ IMPLEMENTATO** - Flags loading presenti (assigning, uploadingPlayer, etc.)
-7. **Verifica RM-003** - ✅ **GIÀ IMPLEMENTATO** - Variabile locale usata invece di mutazione
+4. **ConfirmModal preparato** - Stato aggiunto in gestione-formazione, ma non attivato
+5. **Verifica RC-004** - Blocco doppio click già implementato, funzionante
 
 ---
 
@@ -208,25 +206,19 @@ return; // Early return, il resto va in onConfirm
 
 ---
 
-### ✅ Task 2.2: Fix Mutazione Stato React (RM-003) - GIA IMPLEMENTATO
-**Stato:** ✅ **COMPLETATO** - Verificato da Kimi il 2026-01-30
+### Task 2.2: Fix Mutazione Stato React
+**File:** `app/match/new/page.jsx` riga 271
 
-Il codice in `app/match/new/page.jsx` già usa variabile locale:
 ```javascript
-// Righe 270-275 (con commento RM-003)
-// RM-003: non mutare stepData; usa variabile locale per il payload
-let teamStatsForPayload = stepData.team_stats || null
-if (teamStatsForPayload && teamStatsForPayload.result) {
-  const { result, ...statsWithoutResult } = teamStatsForPayload
-  teamStatsForPayload = statsWithoutResult
-}
+// ❌ VECCHIO (mutazione diretta):
+stepData.team_stats = statsWithoutResult;
+
+// ✅ NUOVO:
+setStepData(prev => ({
+  ...prev,
+  team_stats: statsWithoutResult
+}));
 ```
-
-**Nessuna azione richiesta da Cursor.**
-
----
-
-## 🟢 PRIORITÀ 3 - Ottimizzazione
 
 ---
 
