@@ -578,14 +578,13 @@ export default function MatchDetailPage() {
           }
 
           // Helper per estrarre testo bilingue (supporta formato {it, en} e retrocompatibilità)
+          // Stesso pattern di contromisure-live pickLang: stringa o { it, en } → sempre stringa (mai oggetto in JSX)
           const getBilingualText = (text) => {
-            if (!text) return ''
-            if (typeof text === 'string') return text // Retrocompatibilità: testo semplice
-            if (typeof text === 'object' && text.it && text.en) {
-              // Formato bilingue: estrai lingua corrente
+            if (text == null) return ''
+            if (typeof text === 'string') return text
+            if (typeof text === 'object' && (text.it !== undefined || text.en !== undefined))
               return text[lang] || text.it || text.en || ''
-            }
-            return String(text) // Fallback
+            return String(text)
           }
 
           // Helper per estrarre array bilingue
@@ -656,7 +655,7 @@ export default function MatchDetailPage() {
                           <strong style={{ color: 'var(--neon-blue)' }}>{t('keyHighlights') || 'Punti Chiave'}:</strong>
                           <ul style={{ marginTop: '8px', paddingLeft: '20px' }}>
                             {getBilingualArray(summaryData.analysis.key_highlights).map((highlight, idx) => (
-                              <li key={idx} style={{ marginBottom: '4px' }}>{highlight}</li>
+                              <li key={idx} style={{ marginBottom: '4px' }}>{getBilingualText(highlight)}</li>
                             ))}
                           </ul>
                         </div>
@@ -666,7 +665,7 @@ export default function MatchDetailPage() {
                           <strong style={{ color: 'var(--neon-orange)' }}>{t('strengths') || 'Punti di Forza'}:</strong>
                           <ul style={{ marginTop: '8px', paddingLeft: '20px' }}>
                             {getBilingualArray(summaryData.analysis.strengths).map((strength, idx) => (
-                              <li key={idx} style={{ marginBottom: '4px' }}>{strength}</li>
+                              <li key={idx} style={{ marginBottom: '4px' }}>{getBilingualText(strength)}</li>
                             ))}
                           </ul>
                         </div>
@@ -676,7 +675,7 @@ export default function MatchDetailPage() {
                           <strong style={{ color: 'var(--neon-blue)' }}>{t('weaknesses') || 'Punti Deboli'}:</strong>
                           <ul style={{ marginTop: '8px', paddingLeft: '20px' }}>
                             {getBilingualArray(summaryData.analysis.weaknesses).map((weakness, idx) => (
-                              <li key={idx} style={{ marginBottom: '4px' }}>{weakness}</li>
+                              <li key={idx} style={{ marginBottom: '4px' }}>{getBilingualText(weakness)}</li>
                             ))}
                           </ul>
                         </div>
@@ -941,7 +940,7 @@ export default function MatchDetailPage() {
                     </div>
                     <ul style={{ marginLeft: '24px' }}>
                       {warningsArray.map((warning, idx) => (
-                        <li key={idx} style={{ marginBottom: '4px', fontSize: 'clamp(13px, 3vw, 14px)' }}>{warning}</li>
+                        <li key={idx} style={{ marginBottom: '4px', fontSize: 'clamp(13px, 3vw, 14px)' }}>{getBilingualText(warning)}</li>
                       ))}
                     </ul>
                   </div>

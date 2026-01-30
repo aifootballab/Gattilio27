@@ -481,12 +481,12 @@ export default function CountermeasuresLivePage() {
                     gap: '8px'
                   }}>
                     <AlertCircle size={18} color="var(--neon-orange)" />
-                    <strong>{t('metaFormation') || 'Formazione Meta'}:</strong> {countermeasures.analysis.meta_type}
+                    <strong>{t('metaFormation') || 'Formazione Meta'}:</strong> {pickLang(countermeasures.analysis.meta_type, lang)}
                   </div>
                 )}
 
                 <div style={{ marginBottom: '16px', lineHeight: '1.7' }}>
-                  {countermeasures.analysis.opponent_formation_analysis}
+                  {pickLang(countermeasures.analysis.opponent_formation_analysis, lang)}
                 </div>
 
                 {countermeasures.analysis.strengths && countermeasures.analysis.strengths.length > 0 && (
@@ -494,7 +494,7 @@ export default function CountermeasuresLivePage() {
                     <strong style={{ color: 'var(--neon-orange)' }}>{t('formationStrengths') || 'Punti di Forza'}:</strong>
                     <ul style={{ marginTop: '8px', paddingLeft: '20px' }}>
                       {countermeasures.analysis.strengths.map((strength, idx) => (
-                        <li key={idx} style={{ marginBottom: '4px' }}>{strength}</li>
+                        <li key={idx} style={{ marginBottom: '4px' }}>{pickLang(strength, lang)}</li>
                       ))}
                     </ul>
                   </div>
@@ -505,7 +505,7 @@ export default function CountermeasuresLivePage() {
                     <strong style={{ color: 'var(--neon-blue)' }}>{t('formationWeaknesses') || 'Punti Deboli'}:</strong>
                     <ul style={{ marginTop: '8px', paddingLeft: '20px' }}>
                       {countermeasures.analysis.weaknesses.map((weakness, idx) => (
-                        <li key={idx} style={{ marginBottom: '4px' }}>{weakness}</li>
+                        <li key={idx} style={{ marginBottom: '4px' }}>{pickLang(weakness, lang)}</li>
                       ))}
                     </ul>
                   </div>
@@ -513,7 +513,7 @@ export default function CountermeasuresLivePage() {
 
                 {countermeasures.analysis.why_weaknesses && (
                   <div style={{ marginTop: '16px', padding: '12px', background: 'rgba(0, 212, 255, 0.1)', borderRadius: '8px', fontSize: 'clamp(13px, 3vw, 14px)' }}>
-                    <strong>{t('reason') || 'Motivazione'}:</strong> {countermeasures.analysis.why_weaknesses}
+                    <strong>{t('reason') || 'Motivazione'}:</strong> {pickLang(countermeasures.analysis.why_weaknesses, lang)}
                   </div>
                 )}
               </div>
@@ -615,10 +615,10 @@ export default function CountermeasuresLivePage() {
                           {adj.type === 'defensive_line' ? t('adjustDefensiveLine') :
                            adj.type === 'pressing' ? t('adjustPressing') :
                            adj.type === 'possession_strategy' ? t('adjustPossession') :
-                           t('changePlayingStyle')}: {adj.suggestion}
+                           t('changePlayingStyle')}: {pickLang(adj.suggestion, lang)}
                         </div>
                         <div style={{ fontSize: 'clamp(13px, 3vw, 14px)', lineHeight: '1.6', opacity: 0.9 }}>
-                          {adj.reason}
+                          {pickLang(adj.reason, lang)}
                         </div>
                       </div>
                     )

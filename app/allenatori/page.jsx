@@ -420,7 +420,7 @@ export default function AllenatoriPage() {
                       <div style={{ marginBottom: '12px', fontSize: '12px', opacity: 0.7 }}>
                         {Object.entries(coach.playing_style_competence).slice(0, 2).map(([style, value]) => (
                           <div key={style} style={{ marginBottom: '4px' }}>
-                            {t(style) || style.replace(/_/g, ' ')}: {value}
+                            {t(style) || style.replace(/_/g, ' ')}: {typeof value === 'object' ? '' : value}
                           </div>
                         ))}
                       </div>
@@ -731,7 +731,7 @@ export default function AllenatoriPage() {
                   {Object.entries(selectedCoach.playing_style_competence).map(([style, value]) => (
                     <div key={style} style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <span>{t(style) || style.replace(/_/g, ' ')}:</span>
-                      <strong>{value}</strong>
+                      <strong>{typeof value === 'object' ? '' : value}</strong>
                     </div>
                   ))}
                 </div>

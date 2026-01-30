@@ -1910,7 +1910,7 @@ export default function GestioneFormazionePage() {
             fontWeight: 600,
             flex: 1
           }}>
-            {toast.message}
+            {typeof toast.message === 'string' ? toast.message : (toast.message?.message ?? String(toast.message ?? ''))}
           </span>
           <button
             onClick={() => setToast(null)}
@@ -2088,7 +2088,7 @@ export default function GestioneFormazionePage() {
                 .slice(0, 3)
                 .map(([style, value]) => (
                   <span key={style} style={{ marginRight: '12px' }}>
-                    {t(style) || style.replace(/_/g, ' ')}: <strong>{value}</strong>
+                    {t(style) || style.replace(/_/g, ' ')}: <strong>{typeof value === 'object' ? '' : value}</strong>
                   </span>
                 ))}
             </div>
@@ -2123,7 +2123,7 @@ export default function GestioneFormazionePage() {
       {error && (
         <div className="error" style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <AlertCircle size={18} />
-          {error}
+          {typeof error === 'string' ? error : (error?.message ?? String(error ?? ''))}
         </div>
       )}
 
