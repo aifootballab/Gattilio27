@@ -1519,7 +1519,19 @@ export default function GestioneFormazionePage() {
         })
         alertMessage += `\n${t('cannotPlayTheseRoles')}\n${t('addCompetenceAndSave')}`
         
-        const confirmed = window.confirm(alertMessage)
+        // FIX RC-002: Sostituzione window.confirm con ConfirmModal (feature flag)
+        const confirmed = await showConfirmSafe({
+          fallback: () => window.confirm(alertMessage),
+          modalConfig: {
+            title: t('playersOutOfRoleTitle') || 'Giocatori Fuori Ruolo',
+            message: alertMessage,
+            variant: 'warning',
+            confirmLabel: t('proceedAnyway') || 'Procedi Comunque',
+            cancelLabel: t('cancel') || 'Annulla'
+          },
+          setConfirmModal
+        })
+        
         if (!confirmed) {
           setIsEditMode(false)
           setCustomPositions({})
