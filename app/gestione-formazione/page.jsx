@@ -67,6 +67,7 @@ export default function GestioneFormazionePage() {
   const [missingData, setMissingData] = React.useState({ required: [], optional: [] })
   const [manualDataInput, setManualDataInput] = React.useState({})
   const [duplicateConfirmModal, setDuplicateConfirmModal] = React.useState(null) // { show, playerName, playerAge, slotIndex, onConfirm }
+  const [confirmModal, setConfirmModal] = React.useState(null) // { show, title, message, onConfirm, onCancel, variant }
 
   // Funzione fetchData riutilizzabile (estratta da useEffect per essere chiamabile)
   const fetchData = React.useCallback(async () => {
@@ -2503,6 +2504,28 @@ export default function GestioneFormazionePage() {
 
       {/* ConfirmModal per duplicato giocatore (qui per scope: duplicateConfirmModal è stato di GestioneFormazionePage) */}
       <DuplicatePlayerConfirmModal state={duplicateConfirmModal} t={t} />
+
+      {/* ConfirmModal generico per sostituire window.confirm */}
+      {confirmModal && (
+        <ConfirmModal
+          show={confirmModal.show}
+          title={confirmModal.title}
+          message={confirmModal.message}
+          details={confirmModal.details}
+          confirmLabel={confirmModal.confirmLabel}
+          cancelLabel={confirmModal.cancelLabel}
+          variant={confirmModal.variant || 'warning'}
+          confirmVariant={confirmModal.confirmVariant || 'primary'}
+          onConfirm={() => {
+            confirmModal.onConfirm?.()
+            setConfirmModal(null)
+          }}
+          onCancel={() => {
+            confirmModal.onCancel?.()
+            setConfirmModal(null)
+          }}
+        />
+      )}
     </main>
   )
 }
