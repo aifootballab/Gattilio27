@@ -34,24 +34,26 @@
 
 ## 🔄 IN CORSO / DA COMPLETARE
 
+**📖 Documento guida per Cursor:** `CURSOR_TASKS.md`
+
 ### Priorità 1 - Bloccanti Go-Live 🔴
 
 | ID | Task | Assegnato | Stato | Note |
 |----|------|-----------|-------|------|
-| RC-001 | Transazioni atomiche slot | Cursor | 🔄 | Eseguire SQL + modificare API route |
-| RC-002 | Sostituire window.confirm | Cursor | ⏳ | 9 occorrenze da sostituire |
-| RC-003 | Recovery sessione scaduta | Cursor | ⏳ | Implementare pattern recovery |
-| RC-004 | Blocco doppi click | ✅ Verificato | ✅ | GIÀ IMPLEMENTATO - Tutti i handler hanno flag loading |
-| RC-005 | Mappatura errori completa | Cursor | 🔄 | Usare errorHelper nei componenti |
+| RC-001 | Transazioni atomiche slot | **Cursor** | 🔄 | **Vedi CURSOR_TASKS.md Task 1.1** - SQL + API route |
+| RC-002 | Sostituire window.confirm | **Cursor** | ⏳ | **Vedi CURSOR_TASKS.md Task 2.1** - Post-priority 1 |
+| RC-003 | Recovery sessione scaduta | **Cursor** | ⏳ | **Vedi CURSOR_TASKS.md Task 1.3** - Pattern recovery |
+| RC-004 | Blocco doppi click | ✅ Kimi | ✅ | **GIÀ IMPLEMENTATO - Verificato** |
+| RC-005 | Mappatura errori completa | **Cursor** | 🔄 | **Vedi CURSOR_TASKS.md Task 1.2** - Integrare errorHelper |
 
 ### Priorità 2 - Importante 🟡
 
 | ID | Task | Assegnato | Stato | Note |
 |----|------|-----------|-------|------|
-| RM-001 | Transazione save-match | Cursor | 🔄 | Dopo RC-001, stesso pattern |
+| RM-001 | Transazione save-match | **Cursor** | 🔄 | Dopo RC-001, stesso pattern SQL |
 | RM-002 | Fix memory leak timer | Kimi AI | ⏳ | Modifica useEffect toast |
-| RM-003 | Mutazione stato React | Cursor | ⏳ | `match/new/page.jsx:271` |
-| RM-004 | Validazione localStorage | Cursor | ⏳ | Aggiungere schema validation |
+| RM-003 | Mutazione stato React | **Cursor** | ⏳ | **Vedi CURSOR_TASKS.md Task 2.2** - `match/new/page.jsx:271` |
+| RM-004 | Validazione localStorage | **Cursor** | ⏳ | Schema validation |
 | RM-006 | Try/catch Supabase | Kimi AI | ⏳ | Aggiungere gestione errori |
 
 ### Priorità 3 - Ottimizzazione 🟢
