@@ -3804,27 +3804,27 @@ function UploadPlayerModal({ slot, images, onImagesChange, onUpload, onClose, up
   const imageTypes = [
     { 
       key: 'card', 
-      label: t('photoCard') || 'Carta Giocatore', 
-      description: t('photoCardDesc') || 'Fronte con nome e foto',
-      icon: '👤', 
-      color: '#3b82f6',
-      bgColor: 'rgba(59, 130, 246, 0.1)',
-      required: true
-    },
-    { 
-      key: 'stats', 
-      label: t('photoStats') || 'Statistiche', 
-      description: t('photoStatsDesc') || 'Retro con valori numerici',
+      label: t('photoStats') || 'Foto Statistiche', 
+      description: t('photoStatsDesc') || 'Carta con statistiche numeriche',
       icon: '📊', 
       color: '#22c55e',
       bgColor: 'rgba(34, 197, 94, 0.1)',
       required: true
     },
     { 
-      key: 'skills', 
-      label: t('photoSkills') || 'Abilità & Booster', 
-      description: t('photoSkillsDesc') || 'Skills e bonus (opzionale)',
+      key: 'stats', 
+      label: t('photoSkills') || 'Foto Abilità', 
+      description: t('photoSkillsDesc') || 'Abilità giocatore (Player Skills)',
       icon: '⭐', 
+      color: '#3b82f6',
+      bgColor: 'rgba(59, 130, 246, 0.1)',
+      required: true
+    },
+    { 
+      key: 'skills', 
+      label: t('photoBooster') || 'Foto Booster', 
+      description: t('photoBoosterDesc') || 'Booster e bonus speciali (opzionale)',
+      icon: '🚀', 
       color: '#f59e0b',
       bgColor: 'rgba(245, 158, 11, 0.1)',
       required: false
