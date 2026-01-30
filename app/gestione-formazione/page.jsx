@@ -13,6 +13,47 @@ import ConfirmModal from '@/components/ConfirmModal'
 import { safeJsonResponse } from '@/lib/fetchHelper'
 import { mapErrorToUserMessage } from '@/lib/errorHelper'
 
+// =====================================================
+// FEATURE FLAG - Sicurezza modifiche window.confirm
+// =====================================================
+// Imposta a true SOLO quando hai testato TUTTO su Vercel
+// MODALITÀ SICURA: false = usa window.confirm (sempre funzionante)
+const USE_CONFIRM_MODAL = false
+// =====================================================
+
+/**
+ * Helper per conferma sicura con feature flag
+ * Permette rollback istantaneo cambiando USE_CONFIRM_MODAL a false
+ * 
+ * @param {Object} options - Opzioni
+ * @param {Function} options.fallback - Funzione window.confirm originale
+ * @param {Object} options.modalConfig - Config per ConfirmModal (title, message, etc)
+ * @param {Function} options.setConfirmModal - Setter per stato ConfirmModal
+ * @returns {Promise<boolean>} - true se confermato, false se annullato
+ */
+async function showConfirmSafe({ fallback, modalConfig, setConfirmModal }) {
+  if (!USE_CONFIRM_MODAL) {
+    // MODALITÀ SICURA: usa window.confirm (vecchio metodo funzionante)
+    return fallback()
+  }
+  
+  // MODALITÀ NUOVA: usa ConfirmModal con Promise
+  return new Promise((resolve) => {
+    setConfirmModal({
+      show: true,
+      ...modalConfig,
+      onConfirm: () => {
+        setConfirmModal(null)
+        resolve(true)
+      },
+      onCancel: () => {
+        setConfirmModal(null)
+        resolve(false)
+      }
+    })
+  })
+}
+
 /** Modal conferma giocatore duplicato: componente separato per evitare ReferenceError in bundle (scope/closure). */
 function DuplicatePlayerConfirmModal({ state, t }) {
   if (!state || !state.show) return null
@@ -470,7 +511,19 @@ export default function GestioneFormazionePage() {
           .replace('${competence}', competenceLabel)
           .replace('${statsWarning}', statsWarning)
         
-        const confirmed = window.confirm(confirmMessage)
+        // FIX RC-002: Sostituzione window.confirm con ConfirmModal (feature flag)
+        const confirmed = await showConfirmSafe({
+          fallback: () => window.confirm(confirmMessage),
+          modalConfig: {
+            title: t('confirmPositionChangeTitle') || 'Conferma Cambio Posizione',
+            message: confirmMessage,
+            variant: 'warning',
+            confirmLabel: t('confirm') || 'Conferma',
+            cancelLabel: t('cancel') || 'Annulla'
+          },
+          setConfirmModal
+        })
+        
         if (!confirmed) {
           // Annulla, non spostare giocatore
           setAssigning(false)
