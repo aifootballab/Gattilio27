@@ -1612,7 +1612,20 @@ export default function GestioneFormazionePage() {
       if (!validation.valid) {
         // Messaggio semplificato senza dettagli specifici
         const warningMsg = `${t('formationValidationSimple')}\n\n${t('formationInvalidConfirm')}`
-        const confirmed = window.confirm(warningMsg)
+        
+        // FIX RC-002: Sostituzione window.confirm con ConfirmModal (feature flag)
+        const confirmed = await showConfirmSafe({
+          fallback: () => window.confirm(warningMsg),
+          modalConfig: {
+            title: t('formationValidationTitle') || 'Validazione Formazione',
+            message: warningMsg,
+            variant: 'warning',
+            confirmLabel: t('saveAnyway') || 'Salva Comunque',
+            cancelLabel: t('cancel') || 'Annulla'
+          },
+          setConfirmModal
+        })
+        
         if (!confirmed) {
           setError(t('formationValidationSimple'))
           showToast(t('saveCancelled'), 'error')
