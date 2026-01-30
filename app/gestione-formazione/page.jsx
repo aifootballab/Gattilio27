@@ -13,6 +13,47 @@ import ConfirmModal from '@/components/ConfirmModal'
 import { safeJsonResponse } from '@/lib/fetchHelper'
 import { mapErrorToUserMessage } from '@/lib/errorHelper'
 
+// =====================================================
+// FEATURE FLAG - Sicurezza modifiche window.confirm
+// =====================================================
+// Imposta a true SOLO quando hai testato TUTTO su Vercel
+// MODALITÀ SICURA: false = usa window.confirm (sempre funzionante)
+const USE_CONFIRM_MODAL = false
+// =====================================================
+
+/**
+ * Helper per conferma sicura con feature flag
+ * Permette rollback istantaneo cambiando USE_CONFIRM_MODAL a false
+ * 
+ * @param {Object} options - Opzioni
+ * @param {Function} options.fallback - Funzione window.confirm originale
+ * @param {Object} options.modalConfig - Config per ConfirmModal (title, message, etc)
+ * @param {Function} options.setConfirmModal - Setter per stato ConfirmModal
+ * @returns {Promise<boolean>} - true se confermato, false se annullato
+ */
+async function showConfirmSafe({ fallback, modalConfig, setConfirmModal }) {
+  if (!USE_CONFIRM_MODAL) {
+    // MODALITÀ SICURA: usa window.confirm (vecchio metodo funzionante)
+    return fallback()
+  }
+  
+  // MODALITÀ NUOVA: usa ConfirmModal con Promise
+  return new Promise((resolve) => {
+    setConfirmModal({
+      show: true,
+      ...modalConfig,
+      onConfirm: () => {
+        setConfirmModal(null)
+        resolve(true)
+      },
+      onCancel: () => {
+        setConfirmModal(null)
+        resolve(false)
+      }
+    })
+  })
+}
+
 /** Modal conferma giocatore duplicato: componente separato per evitare ReferenceError in bundle (scope/closure). */
 function DuplicatePlayerConfirmModal({ state, t }) {
   if (!state || !state.show) return null
@@ -399,7 +440,20 @@ export default function GestioneFormazionePage() {
         }
         errorMsg += `\n\n${t('deleteDuplicatesAndProceed')}`
         
-        if (!window.confirm(errorMsg)) {
+        // FIX RC-002: Sostituzione window.confirm con ConfirmModal (feature flag)
+        const confirmed = await showConfirmSafe({
+          fallback: () => window.confirm(errorMsg),
+          modalConfig: {
+            title: t('duplicatePlayerTitle') || 'Giocatore Duplicato',
+            message: errorMsg,
+            variant: 'warning',
+            confirmLabel: t('deleteAndProceed') || 'Elimina e Procedi',
+            cancelLabel: t('cancel') || 'Annulla'
+          },
+          setConfirmModal
+        })
+        
+        if (!confirmed) {
           setAssigning(false)
           return
         }
@@ -470,7 +524,19 @@ export default function GestioneFormazionePage() {
           .replace('${competence}', competenceLabel)
           .replace('${statsWarning}', statsWarning)
         
-        const confirmed = window.confirm(confirmMessage)
+        // FIX RC-002: Sostituzione window.confirm con ConfirmModal (feature flag)
+        const confirmed = await showConfirmSafe({
+          fallback: () => window.confirm(confirmMessage),
+          modalConfig: {
+            title: t('confirmPositionChangeTitle') || 'Conferma Cambio Posizione',
+            message: confirmMessage,
+            variant: 'warning',
+            confirmLabel: t('confirm') || 'Conferma',
+            cancelLabel: t('cancel') || 'Annulla'
+          },
+          setConfirmModal
+        })
+        
         if (!confirmed) {
           // Annulla, non spostare giocatore
           setAssigning(false)
@@ -556,7 +622,20 @@ export default function GestioneFormazionePage() {
           const confirmMsg = t('duplicateReserveAlert')
             .replace('${playerName}', data.duplicate_player_name || t('thisPlayer'))
             .replace('${playerAge}', playerAgeStr)
-          if (window.confirm(confirmMsg)) {
+          // FIX RC-002: Sostituzione window.confirm con ConfirmModal (feature flag)
+          const confirmed = await showConfirmSafe({
+            fallback: () => window.confirm(confirmMsg),
+            modalConfig: {
+              title: t('duplicatePlayerTitle') || 'Giocatore Duplicato',
+              message: confirmMsg,
+              variant: 'warning',
+              confirmLabel: t('deleteAndProceed') || 'Elimina e Procedi',
+              cancelLabel: t('cancel') || 'Annulla'
+            },
+            setConfirmModal
+          })
+          
+          if (confirmed) {
             // Elimina duplicato riserva
             const deleteRes = await fetch('/api/supabase/delete-player', {
               method: 'DELETE',
@@ -1440,7 +1519,19 @@ export default function GestioneFormazionePage() {
         })
         alertMessage += `\n${t('cannotPlayTheseRoles')}\n${t('addCompetenceAndSave')}`
         
-        const confirmed = window.confirm(alertMessage)
+        // FIX RC-002: Sostituzione window.confirm con ConfirmModal (feature flag)
+        const confirmed = await showConfirmSafe({
+          fallback: () => window.confirm(alertMessage),
+          modalConfig: {
+            title: t('playersOutOfRoleTitle') || 'Giocatori Fuori Ruolo',
+            message: alertMessage,
+            variant: 'warning',
+            confirmLabel: t('proceedAnyway') || 'Procedi Comunque',
+            cancelLabel: t('cancel') || 'Annulla'
+          },
+          setConfirmModal
+        })
+        
         if (!confirmed) {
           setIsEditMode(false)
           setCustomPositions({})
@@ -1521,7 +1612,20 @@ export default function GestioneFormazionePage() {
       if (!validation.valid) {
         // Messaggio semplificato senza dettagli specifici
         const warningMsg = `${t('formationValidationSimple')}\n\n${t('formationInvalidConfirm')}`
-        const confirmed = window.confirm(warningMsg)
+        
+        // FIX RC-002: Sostituzione window.confirm con ConfirmModal (feature flag)
+        const confirmed = await showConfirmSafe({
+          fallback: () => window.confirm(warningMsg),
+          modalConfig: {
+            title: t('formationValidationTitle') || 'Validazione Formazione',
+            message: warningMsg,
+            variant: 'warning',
+            confirmLabel: t('saveAnyway') || 'Salva Comunque',
+            cancelLabel: t('cancel') || 'Annulla'
+          },
+          setConfirmModal
+        })
+        
         if (!confirmed) {
           setError(t('formationValidationSimple'))
           showToast(t('saveCancelled'), 'error')
@@ -1695,7 +1799,21 @@ export default function GestioneFormazionePage() {
         const confirmMsg = t('duplicateReserveReplaceAlert')
           .replace('${playerName}', playerData.player_name)
           .replace('${playerAge}', playerAgeStr)
-        if (!window.confirm(confirmMsg)) {
+        
+        // FIX RC-002: Sostituzione window.confirm con ConfirmModal (feature flag)
+        const confirmed = await showConfirmSafe({
+          fallback: () => window.confirm(confirmMsg),
+          modalConfig: {
+            title: t('duplicateReserveTitle') || 'Riserva Duplicata',
+            message: confirmMsg,
+            variant: 'warning',
+            confirmLabel: t('replace') || 'Sostituisci',
+            cancelLabel: t('cancel') || 'Annulla'
+          },
+          setConfirmModal
+        })
+        
+        if (!confirmed) {
           setUploadingReserve(false)
           return
         }
@@ -1745,7 +1863,21 @@ export default function GestioneFormazionePage() {
           const confirmMsg = t('duplicateReserveReplaceAlert')
             .replace('${playerName}', playerData.player_name)
             .replace('${playerAge}', playerAgeStr)
-          if (window.confirm(confirmMsg)) {
+          
+          // FIX RC-002: Sostituzione window.confirm con ConfirmModal (feature flag)
+          const confirmed = await showConfirmSafe({
+            fallback: () => window.confirm(confirmMsg),
+            modalConfig: {
+              title: t('duplicateReserveTitle') || 'Riserva Duplicata',
+              message: confirmMsg,
+              variant: 'warning',
+              confirmLabel: t('replace') || 'Sostituisci',
+              cancelLabel: t('cancel') || 'Annulla'
+            },
+            setConfirmModal
+          })
+          
+          if (confirmed) {
             // Elimina vecchio giocatore e riprova
             const deleteRes = await fetch('/api/supabase/delete-player', {
               method: 'DELETE',
