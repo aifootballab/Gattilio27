@@ -269,6 +269,37 @@ setStepData(prev => ({
 
 ---
 
+## 📋 Riepilogo Handoff da Kimi
+
+### Cosa è stato consegnato:
+1. **Analisi completa**: Audit enterprise in `AUDIT_ENTERPRISE_GATTILIO27.md`
+2. **Helper pronti**:
+   - `lib/errorHelper.js` - Error mapping
+   - `lib/useIsMounted.js` - Memory leak prevention
+   - `components/ConfirmModal.jsx` - Modal replacement for window.confirm
+3. **Verifiche fatte**:
+   - RC-004 (Double-click blocking) ✅ GIÀ IMPLEMENTATO - nessuna modifica necessaria
+   - 9 occorrenze di window.confirm mappate
+   - Race condition in slot assignment identificata con soluzione SQL
+4. **Documentazione test**: `TEST_GUIDE_CLOUD.md` per testing su Vercel
+
+### Cosa deve fare Cursor:
+| Priorità | Task | Tempo stimato |
+|----------|------|---------------|
+| 🔴 P1 | RC-001: Transazioni atomiche slot | 45 min |
+| 🔴 P1 | RC-005: Integrare errorHelper nei componenti | 45 min |
+| 🔴 P1 | RC-003: Recovery sessione scaduta | 90 min |
+| 🟡 P2 | RC-002: Sostituire window.confirm | 60 min |
+| 🟡 P2 | RM-003: Fix mutazione stato | 15 min |
+
+### File chiave:
+- **Task list**: Questo file (`CURSOR_TASKS.md`)
+- **Progress tracking**: `TASK_PROGRESS.md`
+- **Audit completo**: `AUDIT_ENTERPRISE_GATTILIO27.md`
+- **Test guide**: `TEST_GUIDE_CLOUD.md`
+
+---
+
 ## ✅ Checklist Pre-Go-Live
 
 Prima di mettere in produzione, verifica:
