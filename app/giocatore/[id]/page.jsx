@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { useTranslation } from '@/lib/i18n'
 import LanguageSwitch from '@/components/LanguageSwitch'
 import { ArrowLeft, Upload, AlertCircle, CheckCircle2, RefreshCw, User, BarChart3, Zap, Gift, ChevronDown, ChevronUp, Award } from 'lucide-react'
+import { getPhotoTypeStyle } from '@/lib/playerPhotoTypes'
 
 export default function PlayerDetailPage() {
   const { t } = useTranslation()
@@ -405,7 +406,7 @@ export default function PlayerDetailPage() {
           )}
           {player.nationality && (
             <div>
-              <div style={{ fontSize: '12px', opacity: 0.7, marginBottom: '4px' }}>Nazionalità</div>
+              <div style={{ fontSize: '12px', opacity: 0.7, marginBottom: '4px' }}>{t('nationality')}</div>
               <div style={{ fontSize: '16px', fontWeight: 600 }}>{player.nationality}</div>
             </div>
           )}
@@ -525,16 +526,25 @@ export default function PlayerDetailPage() {
   )
 }
 
-// Componente Sezione Statistiche
+// Stile card unificato (stesso design del modal Upload in gestione-formazione)
+const SECTION_CARD_STYLE = (style) => ({
+  padding: '24px',
+  borderRadius: '12px',
+  border: `1px solid ${style.borderColor}`,
+  background: style.bgColor
+})
+
+// Componente Sezione Statistiche (design unificato: card = Statistiche, colore neon-blue)
 function StatsSection({ player, photoSlots, isExpanded, onToggle, onFileSelect, uploading }) {
   const { t } = useTranslation()
+  const style = getPhotoTypeStyle('card')
   if (!player) return null
   
   const baseStats = player.base_stats || {}
   const hasStats = photoSlots.statistiche && baseStats && Object.keys(baseStats).length > 0
 
   return (
-    <div className="card" style={{ padding: '24px' }}>
+    <div className="card" style={SECTION_CARD_STYLE(style)}>
       <div 
         style={{ 
           display: 'flex', 
@@ -546,8 +556,8 @@ function StatsSection({ player, photoSlots, isExpanded, onToggle, onFileSelect, 
         onClick={onToggle}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <BarChart3 size={24} color="var(--neon-blue)" />
-          <h2 style={{ fontSize: '20px', fontWeight: 700, margin: 0 }}>Statistiche</h2>
+          <BarChart3 size={24} color={style.color} />
+          <h2 style={{ fontSize: '20px', fontWeight: 700, margin: 0, color: style.color }}>{t('statsSection')}</h2>
           {photoSlots.statistiche && (
             <CheckCircle2 size={20} color="#22c55e" />
           )}
@@ -593,7 +603,7 @@ function StatsSection({ player, photoSlots, isExpanded, onToggle, onFileSelect, 
               {baseStats.defending && Object.keys(baseStats.defending).length > 0 && (
                 <div style={{ marginBottom: '20px' }}>
                   <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '12px', color: '#ef4444' }}>
-                    Difesa
+                    {t('defending')}
                   </h3>
                   <div style={{ 
                     display: 'grid', 
@@ -662,15 +672,15 @@ function StatsSection({ player, photoSlots, isExpanded, onToggle, onFileSelect, 
             </div>
           )}
 
-          {/* Pulsante Aggiorna (sempre visibile) */}
+          {/* Pulsante upload: stile unificato (stesso bordo/colore del modal Upload) */}
           <label style={{
             display: 'block',
             padding: '12px 16px',
-            border: '2px solid rgba(0, 212, 255, 0.3)',
+            border: `2px solid ${style.borderColor}`,
             borderRadius: '8px',
             textAlign: 'center',
             cursor: uploading ? 'not-allowed' : 'pointer',
-            background: 'rgba(0, 212, 255, 0.05)',
+            background: style.bgColor,
             opacity: uploading ? 0.6 : 1
           }}>
             <input
@@ -681,8 +691,8 @@ function StatsSection({ player, photoSlots, isExpanded, onToggle, onFileSelect, 
               disabled={uploading}
             />
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-              <Upload size={18} color="var(--neon-blue)" />
-              <span style={{ fontSize: '14px', fontWeight: 600 }}>
+              <Upload size={18} color={style.color} />
+              <span style={{ fontSize: '14px', fontWeight: 600, color: style.color }}>
                 {photoSlots.statistiche ? t('updateStats') : t('uploadStats')}
               </span>
             </div>
@@ -693,9 +703,10 @@ function StatsSection({ player, photoSlots, isExpanded, onToggle, onFileSelect, 
   )
 }
 
-// Componente Sezione Abilità
+// Componente Sezione Abilità (design unificato: stats = Abilità, colore neon-purple)
 function SkillsSection({ player, photoSlots, isExpanded, onToggle, onFileSelect, uploading }) {
   const { t } = useTranslation()
+  const style = getPhotoTypeStyle('stats')
   if (!player) return null
   
   const skills = player.skills || []
@@ -703,7 +714,7 @@ function SkillsSection({ player, photoSlots, isExpanded, onToggle, onFileSelect,
   const hasSkills = photoSlots.abilita && (skills.length > 0 || comSkills.length > 0)
 
   return (
-    <div className="card" style={{ padding: '24px' }}>
+    <div className="card" style={SECTION_CARD_STYLE(style)}>
       <div 
         style={{ 
           display: 'flex', 
@@ -715,8 +726,8 @@ function SkillsSection({ player, photoSlots, isExpanded, onToggle, onFileSelect,
         onClick={onToggle}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <Zap size={24} color="var(--neon-purple)" />
-          <h2 style={{ fontSize: '20px', fontWeight: 700, margin: 0 }}>Abilità</h2>
+          <Zap size={24} color={style.color} />
+          <h2 style={{ fontSize: '20px', fontWeight: 700, margin: 0, color: style.color }}>{t('skillsSection')}</h2>
           {photoSlots.abilita && (
             <CheckCircle2 size={20} color="#22c55e" />
           )}
@@ -732,7 +743,7 @@ function SkillsSection({ player, photoSlots, isExpanded, onToggle, onFileSelect,
               {skills.length > 0 && (
                 <div style={{ marginBottom: '20px' }}>
                   <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '12px', color: 'var(--neon-purple)' }}>
-                    Abilità Giocatore
+                    {t('playerSkills')}
                   </h3>
                   <div style={{ 
                     display: 'flex', 
@@ -760,7 +771,7 @@ function SkillsSection({ player, photoSlots, isExpanded, onToggle, onFileSelect,
               {comSkills.length > 0 && (
                 <div style={{ marginBottom: '20px' }}>
                   <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '12px', color: '#a855f7' }}>
-                    Abilità Aggiuntive
+                    {t('additionalSkills')}
                   </h3>
                   <div style={{ 
                     display: 'flex', 
@@ -797,15 +808,15 @@ function SkillsSection({ player, photoSlots, isExpanded, onToggle, onFileSelect,
             </div>
           )}
 
-          {/* Pulsante Aggiorna (sempre visibile) */}
+          {/* Pulsante upload: stile unificato */}
           <label style={{
             display: 'block',
             padding: '12px 16px',
-            border: '2px solid rgba(168, 85, 247, 0.3)',
+            border: `2px solid ${style.borderColor}`,
             borderRadius: '8px',
             textAlign: 'center',
             cursor: uploading ? 'not-allowed' : 'pointer',
-            background: 'rgba(168, 85, 247, 0.05)',
+            background: style.bgColor,
             opacity: uploading ? 0.6 : 1
           }}>
             <input
@@ -816,9 +827,9 @@ function SkillsSection({ player, photoSlots, isExpanded, onToggle, onFileSelect,
               disabled={uploading}
             />
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-              <Upload size={18} color="var(--neon-purple)" />
-              <span style={{ fontSize: '14px', fontWeight: 600 }}>
-                {photoSlots.abilita ? 'Aggiorna Abilità' : 'Carica Abilità'}
+              <Upload size={18} color={style.color} />
+              <span style={{ fontSize: '14px', fontWeight: 600, color: style.color }}>
+                {photoSlots.abilita ? t('updateSkills') : t('uploadSkills')}
               </span>
             </div>
           </label>
@@ -828,16 +839,17 @@ function SkillsSection({ player, photoSlots, isExpanded, onToggle, onFileSelect,
   )
 }
 
-// Componente Sezione Booster
+// Componente Sezione Booster (design unificato: skills = Booster, colore neon-orange)
 function BoostersSection({ player, photoSlots, isExpanded, onToggle, onFileSelect, uploading }) {
   const { t } = useTranslation()
+  const style = getPhotoTypeStyle('skills')
   if (!player) return null
   
   const boosters = player.available_boosters || []
   const hasBoosters = photoSlots.booster && Array.isArray(boosters) && boosters.length > 0
 
   return (
-    <div className="card" style={{ padding: '24px' }}>
+    <div className="card" style={SECTION_CARD_STYLE(style)}>
       <div 
         style={{ 
           display: 'flex', 
@@ -849,8 +861,8 @@ function BoostersSection({ player, photoSlots, isExpanded, onToggle, onFileSelec
         onClick={onToggle}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <Gift size={24} color="var(--neon-orange)" />
-          <h2 style={{ fontSize: '20px', fontWeight: 700, margin: 0 }}>Booster</h2>
+          <Gift size={24} color={style.color} />
+          <h2 style={{ fontSize: '20px', fontWeight: 700, margin: 0, color: style.color }}>{t('boostersSection')}</h2>
           {photoSlots.booster && (
             <CheckCircle2 size={20} color="#22c55e" />
           )}
@@ -876,7 +888,7 @@ function BoostersSection({ player, photoSlots, isExpanded, onToggle, onFileSelec
                     marginBottom: '8px',
                     color: 'var(--neon-orange)'
                   }}>
-                    {booster.name || `Booster ${idx + 1}`}
+                    {booster.name || `${t('boostersSection')} ${idx + 1}`}
                   </div>
                   {booster.effect && (
                     <div style={{ fontSize: '14px', marginBottom: '4px', opacity: 0.9 }}>
@@ -885,7 +897,7 @@ function BoostersSection({ player, photoSlots, isExpanded, onToggle, onFileSelec
                   )}
                   {booster.condition && (
                     <div style={{ fontSize: '13px', opacity: 0.7 }}>
-                      <strong>Condizione:</strong> {booster.condition}
+                      <strong>{t('condition')}:</strong> {booster.condition}
                     </div>
                   )}
                 </div>
@@ -900,19 +912,19 @@ function BoostersSection({ player, photoSlots, isExpanded, onToggle, onFileSelec
               textAlign: 'center',
               color: 'rgba(255, 255, 255, 0.6)'
             }}>
-              Nessun booster disponibile
+              {t('boostersNotAvailable')}
             </div>
           )}
 
-          {/* Pulsante Aggiorna (sempre visibile) */}
+          {/* Pulsante upload: stile unificato */}
           <label style={{
             display: 'block',
             padding: '12px 16px',
-            border: '2px solid rgba(255, 107, 53, 0.3)',
+            border: `2px solid ${style.borderColor}`,
             borderRadius: '8px',
             textAlign: 'center',
             cursor: uploading ? 'not-allowed' : 'pointer',
-            background: 'rgba(255, 107, 53, 0.05)',
+            background: style.bgColor,
             opacity: uploading ? 0.6 : 1
           }}>
             <input
@@ -923,8 +935,8 @@ function BoostersSection({ player, photoSlots, isExpanded, onToggle, onFileSelec
               disabled={uploading}
             />
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-              <Upload size={18} color="var(--neon-orange)" />
-              <span style={{ fontSize: '14px', fontWeight: 600 }}>
+              <Upload size={18} color={style.color} />
+              <span style={{ fontSize: '14px', fontWeight: 600, color: style.color }}>
                 {photoSlots.booster ? t('updateBoosters') : t('uploadBoosters')}
               </span>
             </div>

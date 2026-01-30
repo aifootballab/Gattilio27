@@ -12,6 +12,7 @@ import MissingDataModal from '@/components/MissingDataModal'
 import ConfirmModal from '@/components/ConfirmModal'
 import { safeJsonResponse } from '@/lib/fetchHelper'
 import { mapErrorToUserMessage } from '@/lib/errorHelper'
+import { PHOTO_TYPE_KEYS, getPhotoTypeConfig } from '@/lib/playerPhotoTypes'
 
 // =====================================================
 // FEATURE FLAG - Sicurezza modifiche window.confirm
@@ -3798,38 +3799,28 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
   )
 }
 
-// 🎨 ENTERPRISE Upload Player Modal - Design professionale con step indicator
+// Mappa chiave → componente icona Lucide (design unificato con pagina giocatore)
+const UPLOAD_MODAL_ICONS = { card: BarChart3, stats: Zap, skills: Gift }
+
+// 🎨 Upload Player Modal - Design unificato (stessi colori/icone della pagina giocatore)
 function UploadPlayerModal({ slot, images, onImagesChange, onUpload, onClose, uploading }) {
   const { t } = useTranslation()
-  const imageTypes = [
-    { 
-      key: 'card', 
-      label: t('photoStats') || 'Foto Statistiche', 
-      description: t('photoStatsDesc') || 'Carta con statistiche numeriche',
-      icon: '📊', 
-      color: '#22c55e',
-      bgColor: 'rgba(34, 197, 94, 0.1)',
-      required: true
-    },
-    { 
-      key: 'stats', 
-      label: t('photoSkills') || 'Foto Abilità', 
-      description: t('photoSkillsDesc') || 'Abilità giocatore (Player Skills)',
-      icon: '⭐', 
-      color: '#3b82f6',
-      bgColor: 'rgba(59, 130, 246, 0.1)',
-      required: true
-    },
-    { 
-      key: 'skills', 
-      label: t('photoBooster') || 'Foto Booster', 
-      description: t('photoBoosterDesc') || 'Booster e bonus speciali (opzionale)',
-      icon: '🚀', 
-      color: '#f59e0b',
-      bgColor: 'rgba(245, 158, 11, 0.1)',
-      required: false
-    }
-  ]
+  const labelByKey = {
+    card: t('photoStats') || 'Foto Statistiche',
+    stats: t('photoSkills') || 'Foto Abilità',
+    skills: t('photoBooster') || 'Foto Booster'
+  }
+  const descByKey = {
+    card: t('photoStatsDesc') || 'Carta con statistiche numeriche',
+    stats: t('photoSkillsDesc') || 'Abilità giocatore (Player Skills)',
+    skills: t('photoBoosterDesc') || 'Booster e bonus speciali (opzionale)'
+  }
+  const imageTypes = PHOTO_TYPE_KEYS.map(key => ({
+    ...getPhotoTypeConfig(key),
+    label: labelByKey[key],
+    description: descByKey[key],
+    Icon: UPLOAD_MODAL_ICONS[key]
+  }))
 
   const handleFileSelect = (e, type) => {
     const file = e.target.files?.[0]
@@ -3959,22 +3950,22 @@ function UploadPlayerModal({ slot, images, onImagesChange, onUpload, onClose, up
           {t('uploadPlayerInstructions') || 'Carica le immagini per estrarre automaticamente i dati del giocatore'}
         </div>
 
-        {/* 🎨 TOP PLAYERS STYLE: Upload Cards */}
+        {/* Design unificato: stesse card della pagina giocatore (icone Lucide, colori condivisi) */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
-          {imageTypes.map(({ key, label, description, icon, color, bgColor, required }) => {
+          {imageTypes.map(({ key, label, description, color, bgColor, borderColor, required, Icon }) => {
             const image = getImageForType(key)
             return (
               <div key={key} style={{ 
                 padding: '16px',
                 background: image ? bgColor : 'rgba(0, 212, 255, 0.05)',
-                border: `1px solid ${image ? color : 'rgba(0, 212, 255, 0.2)'}`,
+                border: `1px solid ${image ? borderColor : 'rgba(0, 212, 255, 0.2)'}`,
                 borderRadius: '12px',
                 cursor: 'pointer',
                 transition: 'all 0.3s ease'
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.transform = 'translateY(-2px)'
-                e.currentTarget.style.boxShadow = '0 0 20px rgba(0, 212, 255, 0.3)'
+                e.currentTarget.style.boxShadow = '0 0 20px rgba(0, 212, 255, 0.25)'
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = 'translateY(0)'
@@ -3985,7 +3976,7 @@ function UploadPlayerModal({ slot, images, onImagesChange, onUpload, onClose, up
                   <>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <span style={{ fontSize: '24px' }}>{icon}</span>
+                        {Icon && <Icon size={24} color={color} style={{ flexShrink: 0 }} />}
                         <span style={{ fontSize: '16px', fontWeight: 700, color: color }}>{label}</span>
                       </div>
                       <button
@@ -4039,17 +4030,20 @@ function UploadPlayerModal({ slot, images, onImagesChange, onUpload, onClose, up
                       disabled={uploading}
                     />
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div>
-                        <div style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px', color: 'var(--neon-blue)' }}>
-                          {label}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        {Icon && <Icon size={22} color={color} style={{ flexShrink: 0 }} />}
+                        <div>
+                          <div style={{ fontSize: '16px', fontWeight: 700, marginBottom: '4px', color: color }}>
+                            {label}
+                          </div>
+                          <div style={{ fontSize: '14px', opacity: 0.8 }}>{description}</div>
                         </div>
-                        <div style={{ fontSize: '14px', opacity: 0.8 }}>{description}</div>
                       </div>
                       <div style={{ 
-                        fontSize: '24px', 
+                        fontSize: '18px', 
                         fontWeight: 700, 
-                        color: required ? '#ef4444' : 'var(--neon-blue)',
-                        opacity: 0.3
+                        color: required ? '#ef4444' : color,
+                        opacity: 0.5
                       }}>
                         {required ? '!' : '+'}
                       </div>
