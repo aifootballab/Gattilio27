@@ -3798,13 +3798,37 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
   )
 }
 
-// Upload Player Modal Component (per caricare nuovo giocatore con 3 immagini)
+// 🎨 ENTERPRISE Upload Player Modal - Design professionale con step indicator
 function UploadPlayerModal({ slot, images, onImagesChange, onUpload, onClose, uploading }) {
   const { t } = useTranslation()
   const imageTypes = [
-    { key: 'card', label: 'Statistiche', icon: '👤', color: 'var(--neon-blue)' },
-    { key: 'stats', label: 'Abilità', icon: '📊', color: 'var(--neon-green)' },
-    { key: 'skills', label: 'Booster', icon: '⭐', color: 'var(--neon-orange)' }
+    { 
+      key: 'card', 
+      label: t('photoCard') || 'Carta Giocatore', 
+      description: t('photoCardDesc') || 'Fronte con nome e foto',
+      icon: '👤', 
+      color: '#3b82f6',
+      bgColor: 'rgba(59, 130, 246, 0.1)',
+      required: true
+    },
+    { 
+      key: 'stats', 
+      label: t('photoStats') || 'Statistiche', 
+      description: t('photoStatsDesc') || 'Retro con valori numerici',
+      icon: '📊', 
+      color: '#22c55e',
+      bgColor: 'rgba(34, 197, 94, 0.1)',
+      required: true
+    },
+    { 
+      key: 'skills', 
+      label: t('photoSkills') || 'Abilità & Booster', 
+      description: t('photoSkillsDesc') || 'Skills e bonus (opzionale)',
+      icon: '⭐', 
+      color: '#f59e0b',
+      bgColor: 'rgba(245, 158, 11, 0.1)',
+      required: false
+    }
   ]
 
   const handleFileSelect = (e, type) => {
@@ -3887,25 +3911,110 @@ function UploadPlayerModal({ slot, images, onImagesChange, onUpload, onClose, up
           </button>
         </div>
 
-        <div style={{ fontSize: '14px', opacity: 0.8, marginBottom: '24px' }}>
-          Carica fino a 3 immagini per completare il profilo del giocatore:
+        {/* 🎨 ENTERPRISE: Step indicator */}
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          gap: '8px', 
+          marginBottom: '24px' 
+        }}>
+          {imageTypes.map((type, idx) => {
+            const image = getImageForType(type.key)
+            const isComplete = !!image
+            return (
+              <div key={type.key} style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <div style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  background: isComplete ? type.color : 'rgba(255,255,255,0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '14px',
+                  fontWeight: 700,
+                  color: isComplete ? '#000' : 'rgba(255,255,255,0.5)',
+                  border: `2px solid ${isComplete ? type.color : 'rgba(255,255,255,0.2)'}`,
+                  transition: 'all 0.3s ease'
+                }}>
+                  {isComplete ? '✓' : idx + 1}
+                </div>
+                {idx < imageTypes.length - 1 && (
+                  <div style={{
+                    width: '40px',
+                    height: '2px',
+                    background: isComplete ? type.color : 'rgba(255,255,255,0.1)'
+                  }} />
+                )}
+              </div>
+            )
+          })}
         </div>
 
-        {/* Upload Sections */}
+        <div style={{ fontSize: '14px', opacity: 0.8, marginBottom: '24px', textAlign: 'center' }}>
+          {t('uploadPlayerInstructions') || 'Carica le immagini per estrarre automaticamente i dati del giocatore'}
+        </div>
+
+        {/* 🎨 ENTERPRISE: Upload Cards */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
-          {imageTypes.map(({ key, label, icon, color }) => {
+          {imageTypes.map(({ key, label, description, icon, color, bgColor, required }) => {
             const image = getImageForType(key)
             return (
               <div key={key} style={{ 
-                padding: '16px', 
-                background: 'rgba(0, 212, 255, 0.05)', 
-                borderRadius: '8px',
-                border: `1px solid ${image ? 'rgba(0, 212, 255, 0.3)' : 'rgba(255, 255, 255, 0.1)'}`
+                padding: '20px', 
+                background: image ? bgColor : 'rgba(255, 255, 255, 0.03)', 
+                borderRadius: '12px',
+                border: `2px solid ${image ? color : 'rgba(255, 255, 255, 0.1)'}`,
+                transition: 'all 0.3s ease'
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '20px' }}>{icon}</span>
-                    <span style={{ fontWeight: 600 }}>{label}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{
+                      width: '44px',
+                      height: '44px',
+                      borderRadius: '10px',
+                      background: color,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '22px'
+                    }}>
+                      {icon}
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {label}
+                        {required && (
+                          <span style={{
+                            fontSize: '10px',
+                            padding: '2px 6px',
+                            background: 'rgba(239, 68, 68, 0.2)',
+                            color: '#ef4444',
+                            borderRadius: '4px',
+                            fontWeight: 600
+                          }}>
+                            {t('required') || 'OBBLIGATORIO'}
+                          </span>
+                        )}
+                        {!required && (
+                          <span style={{
+                            fontSize: '10px',
+                            padding: '2px 6px',
+                            background: 'rgba(255, 255, 255, 0.1)',
+                            color: 'rgba(255, 255, 255, 0.6)',
+                            borderRadius: '4px',
+                            fontWeight: 600
+                          }}>
+                            {t('optional') || 'OPZIONALE'}
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: '13px', opacity: 0.7, marginTop: '4px' }}>{description}</div>
+                    </div>
                   </div>
                   {image && (
                     <button
@@ -3914,43 +4023,73 @@ function UploadPlayerModal({ slot, images, onImagesChange, onUpload, onClose, up
                         background: 'rgba(239, 68, 68, 0.2)',
                         border: '1px solid rgba(239, 68, 68, 0.4)',
                         color: '#ef4444',
-                        padding: '4px 8px',
-                        borderRadius: '4px',
+                        padding: '6px 12px',
+                        borderRadius: '6px',
                         cursor: 'pointer',
-                        fontSize: '12px'
+                        fontSize: '12px',
+                        fontWeight: 600
                       }}
                     >
                       {t('remove')}
                     </button>
                   )}
                 </div>
+                
                 {image ? (
-                  <div>
+                  <div style={{
+                    borderRadius: '10px',
+                    overflow: 'hidden',
+                    border: '1px solid rgba(255,255,255,0.1)'
+                  }}>
                     <img
                       src={image.dataUrl}
                       alt={label}
                       style={{
                         width: '100%',
-                        maxHeight: '200px',
-                        objectFit: 'contain',
-                        borderRadius: '8px',
-                        border: '1px solid rgba(255,255,255,0.1)'
+                        maxHeight: '180px',
+                        objectFit: 'cover'
                       }}
                     />
-                    <div style={{ fontSize: '12px', opacity: 0.7, marginTop: '8px' }}>
-                      {image.name}
+                    <div style={{ 
+                      padding: '10px 14px', 
+                      background: 'rgba(0,0,0,0.5)',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
+                    }}>
+                      <span style={{ fontSize: '13px', opacity: 0.8 }}>{image.name}</span>
+                      <span style={{ 
+                        fontSize: '11px', 
+                        padding: '2px 8px', 
+                        background: color,
+                        color: '#000',
+                        borderRadius: '4px',
+                        fontWeight: 700
+                      }}>
+                        {t('uploaded') || 'CARICATO'}
+                      </span>
                     </div>
                   </div>
                 ) : (
                   <label style={{
                     display: 'block',
-                    padding: '16px',
-                    border: '2px dashed rgba(0, 212, 255, 0.3)',
-                    borderRadius: '8px',
+                    padding: '28px 20px',
+                    border: `2px dashed ${required ? color : 'rgba(255, 255, 255, 0.2)'}`,
+                    borderRadius: '10px',
                     textAlign: 'center',
                     cursor: 'pointer',
-                    background: 'rgba(0, 212, 255, 0.05)'
-                  }}>
+                    background: 'rgba(0,0,0,0.2)',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
+                    e.currentTarget.style.borderStyle = 'solid'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(0,0,0,0.2)'
+                    e.currentTarget.style.borderStyle = 'dashed'
+                  }}
+                  >
                     <input
                       type="file"
                       accept="image/*"
@@ -3958,8 +4097,13 @@ function UploadPlayerModal({ slot, images, onImagesChange, onUpload, onClose, up
                       style={{ display: 'none' }}
                       disabled={uploading}
                     />
-                    <Upload size={24} style={{ marginBottom: '8px', color }} />
-                    <div style={{ fontSize: '14px' }}>Clicca per caricare {label ? label.toLowerCase() : key}</div>
+                    <Upload size={32} style={{ marginBottom: '12px', color }} />
+                    <div style={{ fontSize: '15px', fontWeight: 600, marginBottom: '4px' }}>
+                      {t('clickToUpload') || 'Clicca per caricare'}
+                    </div>
+                    <div style={{ fontSize: '12px', opacity: 0.6 }}>
+                      {t('dragDropOrClick') || 'o trascina qui'}
+                    </div>
                   </label>
                 )}
               </div>
@@ -3967,15 +4111,31 @@ function UploadPlayerModal({ slot, images, onImagesChange, onUpload, onClose, up
           })}
         </div>
 
-        {/* Actions */}
-        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+        {/* 🎨 ENTERPRISE: Actions con progress indicator */}
+        <div style={{ 
+          display: 'flex', 
+          gap: '12px', 
+          justifyContent: 'flex-end',
+          alignItems: 'center',
+          borderTop: '1px solid rgba(255,255,255,0.1)',
+          paddingTop: '20px'
+        }}>
+          <div style={{ marginRight: 'auto', fontSize: '13px', opacity: 0.7 }}>
+            {images.length === 0 ? (
+              t('noPhotosSelected') || 'Nessuna foto selezionata'
+            ) : (
+              <span style={{ color: 'var(--neon-green)' }}>
+                {images.length} {images.length === 1 ? (t('photoSelected') || 'foto selezionata') : (t('photosSelected') || 'foto selezionate')}
+              </span>
+            )}
+          </div>
           <button 
             onClick={onClose} 
             className="btn"
             disabled={uploading}
-            style={{ padding: '10px 20px' }}
+            style={{ padding: '12px 24px' }}
           >
-            Annulla
+            {t('cancel')}
           </button>
           {images.length > 0 && (
             <button 
@@ -3983,11 +4143,24 @@ function UploadPlayerModal({ slot, images, onImagesChange, onUpload, onClose, up
               className="btn primary"
               disabled={uploading}
               style={{ 
-                padding: '10px 20px',
-                opacity: uploading ? 0.6 : 1
+                padding: '12px 24px',
+                opacity: uploading ? 0.6 : 1,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
               }}
             >
-              {uploading ? 'Estrazione in corso...' : `Salva Giocatore (${images.length} foto)`}
+              {uploading ? (
+                <>
+                  <RefreshCw size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                  {t('extracting') || 'Estrazione dati...'}
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 size={16} />
+                  {t('savePlayer') || 'Salva Giocatore'}
+                </>
+              )}
             </button>
           )}
         </div>

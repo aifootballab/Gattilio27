@@ -1,26 +1,56 @@
 import React from 'react'
 import { useTranslation } from '@/lib/i18n'
+import { Shield, Target, Zap, User } from 'lucide-react'
 
-const POSITIONS = [
-  { id: 'PT', label: 'PT (Portiere)' },
-  { id: 'DC', label: 'DC (Difensore Centrale)' },
-  { id: 'TS', label: 'TS (Terzino Sinistro)' },
-  { id: 'TD', label: 'TD (Terzino Destro)' },
-  { id: 'CC', label: 'CC (Centrocampista Centrale)' },
-  { id: 'CMF', label: 'CMF (Centrocampista)' },
-  { id: 'MED', label: 'MED (Mediano)' },
-  { id: 'ESA', label: 'ESA (Esterno Sinistro Attacco)' },
-  { id: 'EDE', label: 'EDE (Esterno Destro Attacco)' },
-  { id: 'AMF', label: 'AMF (Trequartista)' },
-  { id: 'TRQ', label: 'TRQ (Trequartista)' },
-  { id: 'LWF', label: 'LWF (Ala Sinistra)' },
-  { id: 'RWF', label: 'RWF (Ala Destra)' },
-  { id: 'CLS', label: 'CLS (Centrocampista Laterale Sinistro)' },
-  { id: 'CLD', label: 'CLD (Centrocampista Laterale Destro)' },
-  { id: 'CF', label: 'CF (Centravanti)' },
-  { id: 'P', label: 'P (Punta)' },
-  { id: 'SP', label: 'SP (Seconda Punta)' },
-  { id: 'SS', label: 'SS (Attaccante)' }
+// 🎨 ENTERPRISE REDESIGN: Posizioni raggruppate per ruolo con icone
+const POSITION_GROUPS = [
+  {
+    id: 'goalkeeper',
+    icon: Shield,
+    color: '#fbbf24',
+    positions: [
+      { id: 'PT', labelIt: 'Portiere', labelEn: 'Goalkeeper' }
+    ]
+  },
+  {
+    id: 'defense',
+    icon: Shield,
+    color: '#22c55e',
+    positions: [
+      { id: 'DC', labelIt: 'Difensore Centrale', labelEn: 'Center Back' },
+      { id: 'TS', labelIt: 'Terzino Sinistro', labelEn: 'Left Back' },
+      { id: 'TD', labelIt: 'Terzino Destro', labelEn: 'Right Back' }
+    ]
+  },
+  {
+    id: 'midfield',
+    icon: Zap,
+    color: '#3b82f6',
+    positions: [
+      { id: 'CC', labelIt: 'Centrocampista', labelEn: 'Central Mid' },
+      { id: 'CMF', labelIt: 'Centrocampista', labelEn: 'CMF' },
+      { id: 'MED', labelIt: 'Mediano', labelEn: 'Defensive Mid' },
+      { id: 'CLS', labelIt: 'Esterno Sinistro', labelEn: 'Left Mid' },
+      { id: 'CLD', labelIt: 'Esterno Destro', labelEn: 'Right Mid' },
+      { id: 'TRQ', labelIt: 'Trequartista', labelEn: 'Attacking Mid' },
+      { id: 'AMF', labelIt: 'Trequartista', labelEn: 'AMF' }
+    ]
+  },
+  {
+    id: 'attack',
+    icon: Target,
+    color: '#ef4444',
+    positions: [
+      { id: 'LWF', labelIt: 'Ala Sinistra', labelEn: 'Left Winger' },
+      { id: 'RWF', labelIt: 'Ala Destra', labelEn: 'Right Winger' },
+      { id: 'ESA', labelIt: 'Esterno Sinistro', labelEn: 'Left Forward' },
+      { id: 'EDE', labelIt: 'Esterno Destro', labelEn: 'Right Forward' },
+      { id: 'CF', labelIt: 'Centravanti', labelEn: 'Striker' },
+      { id: 'P', labelIt: 'Punta', labelEn: 'Forward' },
+      { id: 'SP', labelIt: 'Seconda Punta', labelEn: 'Second Striker' },
+      { id: 'SS', labelIt: 'Attaccante', labelEn: 'Attacker' }
+    ]
+  }
 ]
 
 const COMPETENCE_LEVELS = [
@@ -131,77 +161,157 @@ export default function PositionSelectionModal({
           {t('positionSelectionDescription')}
         </p>
         
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-          gap: '12px',
-          marginBottom: '24px'
-        }}>
-          {POSITIONS.map(pos => {
-            const selected = selectedPositions.find(p => p.position === pos.id)
-            const isMain = pos.id === mainPosition
+        {/* 🎨 ENTERPRISE REDESIGN: Layout a gruppi con header colorati */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
+          {POSITION_GROUPS.map(group => {
+            const GroupIcon = group.icon
+            const selectedCount = group.positions.filter(p => 
+              selectedPositions.find(sp => sp.position === p.id)
+            ).length
             
             return (
-              <div 
-                key={pos.id} 
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '8px',
-                  padding: '12px',
-                  border: `1px solid ${selected ? 'var(--neon-blue, #00d4ff)' : 'var(--border-color, #333)'}`,
-                  borderRadius: '8px',
-                  backgroundColor: selected ? 'rgba(0, 212, 255, 0.1)' : 'transparent'
-                }}
-              >
-                <label style={{
+              <div key={group.id} style={{
+                border: `1px solid ${group.color}30`,
+                borderRadius: '12px',
+                overflow: 'hidden',
+                background: 'rgba(0,0,0,0.2)'
+              }}>
+                {/* Header gruppo */}
+                <div style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '8px',
-                  cursor: 'pointer',
-                  color: 'var(--text-primary, #fff)',
-                  fontSize: '14px'
+                  gap: '10px',
+                  padding: '12px 16px',
+                  background: `${group.color}15`,
+                  borderBottom: `1px solid ${group.color}30`
                 }}>
-                  <input
-                    type="checkbox"
-                    checked={!!selected}
-                    onChange={() => handleTogglePosition(pos.id)}
-                    style={{
-                      width: '18px',
-                      height: '18px',
-                      cursor: 'pointer'
-                    }}
-                  />
-                  <span style={{
-                    fontWeight: isMain ? '600' : '400',
-                    color: isMain ? 'var(--neon-blue, #00d4ff)' : 'var(--text-primary, #fff)'
+                  <GroupIcon size={20} color={group.color} />
+                  <span style={{ 
+                    fontWeight: 600, 
+                    color: group.color,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                    fontSize: '13px'
                   }}>
-                    {pos.label}
-                    {isMain && ` (${t('mainPosition')})`}
+                    {t(`positionGroup${group.id.charAt(0).toUpperCase() + group.id.slice(1)}`) || group.id}
                   </span>
-                </label>
+                  {selectedCount > 0 && (
+                    <span style={{
+                      marginLeft: 'auto',
+                      background: group.color,
+                      color: '#000',
+                      padding: '2px 8px',
+                      borderRadius: '10px',
+                      fontSize: '11px',
+                      fontWeight: 700
+                    }}>
+                      {selectedCount}
+                    </span>
+                  )}
+                </div>
                 
-                {selected && (
-                  <select
-                    value={getCompetenceForPosition(pos.id)}
-                    onChange={(e) => handleCompetenceChange(pos.id, e.target.value)}
-                    style={{
-                      padding: '6px 8px',
-                      borderRadius: '6px',
-                      border: '1px solid var(--border-color, #333)',
-                      backgroundColor: 'var(--bg-secondary, #2a2a2a)',
-                      color: 'var(--text-primary, #fff)',
-                      fontSize: '13px',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    {COMPETENCE_LEVELS.map(level => (
-                      <option key={level.value} value={level.value}>
-                        {t(`competence${level.value === 'Alta' ? 'High' : level.value === 'Intermedia' ? 'Medium' : 'Low'}`)}
-                      </option>
-                    ))}
-                  </select>
-                )}
+                {/* Posizioni del gruppo */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+                  gap: '8px',
+                  padding: '12px'
+                }}>
+                  {group.positions.map(pos => {
+                    const selected = selectedPositions.find(p => p.position === pos.id)
+                    const isMain = pos.id === mainPosition
+                    const label = t('lang') === 'it' ? pos.labelIt : pos.labelEn
+                    
+                    return (
+                      <div 
+                        key={pos.id}
+                        onClick={() => handleTogglePosition(pos.id)}
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '6px',
+                          padding: '10px',
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          border: `1.5px solid ${selected ? group.color : 'transparent'}`,
+                          background: selected ? `${group.color}20` : 'rgba(255,255,255,0.03)',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!selected) e.currentTarget.style.background = 'rgba(255,255,255,0.08)'
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!selected) e.currentTarget.style.background = 'rgba(255,255,255,0.03)'
+                        }}
+                      >
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px'
+                        }}>
+                          <div style={{
+                            width: '18px',
+                            height: '18px',
+                            borderRadius: '4px',
+                            border: `2px solid ${selected ? group.color : 'rgba(255,255,255,0.3)'}`,
+                            background: selected ? group.color : 'transparent',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '12px',
+                            fontWeight: 700,
+                            color: '#000'
+                          }}>
+                            {selected && '✓'}
+                          </div>
+                          <span style={{
+                            fontWeight: isMain ? 600 : 400,
+                            color: isMain ? group.color : 'var(--text-primary)',
+                            fontSize: '13px'
+                          }}>
+                            {pos.id}
+                            {isMain && <span style={{ opacity: 0.7, fontSize: '11px' }}> ★</span>}
+                          </span>
+                        </div>
+                        <span style={{
+                          fontSize: '11px',
+                          opacity: 0.7,
+                          paddingLeft: '26px'
+                        }}>
+                          {label}
+                        </span>
+                        
+                        {selected && (
+                          <select
+                            value={getCompetenceForPosition(pos.id)}
+                            onChange={(e) => {
+                              e.stopPropagation()
+                              handleCompetenceChange(pos.id, e.target.value)
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                            style={{
+                              marginTop: '4px',
+                              marginLeft: '26px',
+                              padding: '4px 8px',
+                              borderRadius: '6px',
+                              border: `1px solid ${group.color}50`,
+                              background: 'rgba(0,0,0,0.5)',
+                              color: 'var(--text-primary)',
+                              fontSize: '11px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            {COMPETENCE_LEVELS.map(level => (
+                              <option key={level.value} value={level.value}>
+                                {t(`competence${level.value === 'Alta' ? 'High' : level.value === 'Intermedia' ? 'Medium' : 'Low'}`)}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
               </div>
             )
           })}
