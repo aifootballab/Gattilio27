@@ -94,7 +94,7 @@ export async function POST(req) {
     // Validazione dimensione JSONB rimossa - Supabase gestisce automaticamente i limiti
 
     // ✅ VALIDAZIONE: players.position deve essere una posizione valida eFootball
-    const validPositions = ['PT', 'DC', 'TD', 'TS', 'CC', 'MED', 'P', 'SP', 'TRQ', 'CLD', 'CLS', 'EDA', 'ESA', 'CF']
+    const validPositions = ['PT', 'DC', 'TD', 'TS', 'CC', 'CMF', 'MED', 'P', 'SP', 'TRQ', 'AMF', 'CLD', 'CLS', 'EDA', 'EDE', 'ESA', 'CF', 'LWF', 'RWF', 'SS']
     const playerPosition = toText(player.position)
     
     // Stili di gioco comuni che NON sono posizioni (vanno in playing_style_id o role)
