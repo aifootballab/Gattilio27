@@ -11,6 +11,7 @@ import PositionSelectionModal from '@/components/PositionSelectionModal'
 import MissingDataModal from '@/components/MissingDataModal'
 import ConfirmModal from '@/components/ConfirmModal'
 import { safeJsonResponse } from '@/lib/fetchHelper'
+import { mapErrorToUserMessage } from '@/lib/errorHelper'
 
 /** Modal conferma giocatore duplicato: componente separato per evitare ReferenceError in bundle (scope/closure). */
 function DuplicatePlayerConfirmModal({ state, t }) {
@@ -508,8 +509,9 @@ export default function GestioneFormazionePage() {
       await fetchData()
     } catch (err) {
       console.error('[GestioneFormazione] Assign error:', err)
-      setError(err.message || 'Errore assegnazione giocatore')
-      showToast(err.message || t('errorAssigningPlayer'), 'error')
+      const { message } = mapErrorToUserMessage(err, t('errorAssigningPlayer'))
+      setError(message)
+      showToast(message, 'error')
     } finally {
       setAssigning(false)
       setShowAssignModal(false)
@@ -596,24 +598,19 @@ export default function GestioneFormazionePage() {
       await fetchData()
     } catch (err) {
       console.error('[GestioneFormazione] Remove error:', err)
-      setError(err.message || 'Errore rimozione giocatore')
-      showToast(err.message || t('errorMovingPlayer'), 'error')
+      const { message } = mapErrorToUserMessage(err, t('errorMovingPlayer'))
+      setError(message)
+      showToast(message, 'error')
     } finally {
       setAssigning(false)
     }
   }
 
   // Elimina definitivamente giocatore (sia titolare che riserva)
-  const handleDeletePlayer = async (playerId) => {
+  const handleDeletePlayerConfirm = async (playerId) => {
     if (!supabase) return
-
-    if (!confirm('Sei sicuro di voler eliminare definitivamente questo giocatore? Questa azione non può essere annullata.')) {
-      return
-    }
-
     setAssigning(true)
     setError(null)
-
     try {
       const { data: session } = await supabase.auth.getSession()
       if (!session?.session?.access_token) {
@@ -646,24 +643,36 @@ export default function GestioneFormazionePage() {
       await fetchData()
     } catch (err) {
       console.error('[GestioneFormazione] Delete player error:', err)
-      setError(err.message || 'Errore eliminazione giocatore')
-      showToast(err.message || t('errorDeletingPlayer'), 'error')
+      const { message } = mapErrorToUserMessage(err, t('errorDeletingPlayer'))
+      setError(message)
+      showToast(message, 'error')
     } finally {
       setAssigning(false)
     }
   }
 
-  // Elimina giocatore dalle riserve (cancellazione completa)
-  const handleDeleteReserve = async (playerId) => {
+  const handleDeletePlayer = (playerId) => {
     if (!supabase) return
+    setConfirmModal({
+      show: true,
+      title: t('confirm') || 'Conferma',
+      message: t('confirmDeletePlayer') || 'Sei sicuro di voler eliminare definitivamente questo giocatore? Questa azione non può essere annullata.',
+      confirmLabel: t('delete') || 'Elimina',
+      cancelLabel: t('cancel') || 'Annulla',
+      variant: 'danger',
+      onConfirm: () => {
+        setConfirmModal(null)
+        handleDeletePlayerConfirm(playerId)
+      },
+      onCancel: () => setConfirmModal(null)
+    })
+  }
 
-    if (!confirm('Sei sicuro di voler eliminare definitivamente questo giocatore dalle riserve?')) {
-      return
-    }
-
+  // Elimina giocatore dalle riserve (cancellazione completa)
+  const handleDeleteReserveConfirm = async (playerId) => {
+    if (!supabase) return
     setAssigning(true)
     setError(null)
-
     try {
       const { data: session } = await supabase.auth.getSession()
       if (!session?.session?.access_token) {
@@ -689,10 +698,29 @@ export default function GestioneFormazionePage() {
       await fetchData()
     } catch (err) {
       console.error('[GestioneFormazione] Delete reserve error:', err)
-      setError(err.message || 'Errore eliminazione giocatore')
+      const { message } = mapErrorToUserMessage(err, t('errorDeletingPlayer'))
+      setError(message)
+      showToast(message, 'error')
     } finally {
       setAssigning(false)
     }
+  }
+
+  const handleDeleteReserve = (playerId) => {
+    if (!supabase) return
+    setConfirmModal({
+      show: true,
+      title: t('confirm') || 'Conferma',
+      message: t('confirmDeleteReserve') || 'Sei sicuro di voler eliminare definitivamente questo giocatore dalle riserve?',
+      confirmLabel: t('delete') || 'Elimina',
+      cancelLabel: t('cancel') || 'Annulla',
+      variant: 'danger',
+      onConfirm: () => {
+        setConfirmModal(null)
+        handleDeleteReserveConfirm(playerId)
+      },
+      onCancel: () => setConfirmModal(null)
+    })
   }
 
   const handleUploadPhoto = () => {
@@ -885,20 +913,38 @@ export default function GestioneFormazionePage() {
       // Se ci sono solo campi OPZIONALI mancanti, mostra warning ma permette continuare
       if (missing.optional.length > 0) {
         const optionalFields = missing.optional.map(m => m.label).join(', ')
-        const shouldContinue = window.confirm(
-          `${t('missingOptionalData') || 'Alcuni dati opzionali non sono stati estratti'}: ${optionalFields}.\n\n${t('continueWithoutOptionalData') || 'Vuoi continuare comunque? Puoi aggiungerli dopo.'}`
-        )
-        if (!shouldContinue) {
-          setMissingData(missing)
-          setExtractedPlayerData({
-            ...playerData,
-            photo_slots: photoSlots,
-            slot_index: selectedSlot.slot_index
-          })
-          setShowMissingDataModal(true)
-          setUploadingPlayer(false)
-          return
-        }
+        const msg = `${t('missingOptionalData') || 'Alcuni dati opzionali non sono stati estratti'}: ${optionalFields}.\n\n${t('continueWithoutOptionalData') || 'Vuoi continuare comunque? Puoi aggiungerli dopo.'}`
+        setConfirmModal({
+          show: true,
+          title: t('confirm') || 'Conferma',
+          message: msg,
+          confirmLabel: t('continue') || 'Continua',
+          cancelLabel: t('cancel') || 'Annulla',
+          variant: 'warning',
+          onConfirm: () => {
+            setConfirmModal(null)
+            setShowPositionSelectionModal(true)
+            setExtractedPlayerData({
+              ...playerData,
+              photo_slots: photoSlots,
+              slot_index: selectedSlot.slot_index
+            })
+            setSelectedOriginalPositions([{ position: playerData.position || 'AMF', competence: 'Alta' }])
+            setUploadingPlayer(false)
+          },
+          onCancel: () => {
+            setConfirmModal(null)
+            setMissingData(missing)
+            setExtractedPlayerData({
+              ...playerData,
+              photo_slots: photoSlots,
+              slot_index: selectedSlot.slot_index
+            })
+            setShowMissingDataModal(true)
+            setUploadingPlayer(false)
+          }
+        })
+        return
       }
 
       // NUOVO: Dopo estrazione dati, mostra modal selezione posizioni
@@ -920,8 +966,9 @@ export default function GestioneFormazionePage() {
 
     } catch (err) {
       console.error('[GestioneFormazione] Upload player error:', err)
-      setError(err.message || 'Errore caricamento giocatore')
-      showToast(err.message || t('errorUploadingPhoto'), 'error')
+      const { message } = mapErrorToUserMessage(err, t('errorUploadingPhoto'))
+      setError(message)
+      showToast(message, 'error')
       setUploadingPlayer(false)
     }
   }
@@ -1046,8 +1093,9 @@ export default function GestioneFormazionePage() {
               await fetchData()
             } catch (err) {
               console.error('[GestioneFormazione] Confirm duplicate error:', err)
-              setError(err.message || 'Errore durante sostituzione giocatore')
-              showToast(err.message || t('errorUploadingPhoto'), 'error')
+              const { message } = mapErrorToUserMessage(err, t('errorUploadingPhoto'))
+              setError(message)
+              showToast(message, 'error')
             } finally {
               setUploadingPlayer(false)
             }
@@ -1093,8 +1141,9 @@ export default function GestioneFormazionePage() {
       await fetchData()
     } catch (err) {
       console.error('[GestioneFormazione] Save player with positions error:', err)
-      setError(err.message || 'Errore salvataggio giocatore')
-      showToast(err.message || t('errorUploadingPhoto'), 'error')
+      const { message } = mapErrorToUserMessage(err, t('errorUploadingPhoto'))
+      setError(message)
+      showToast(message, 'error')
     } finally {
       setUploadingPlayer(false)
     }
@@ -1210,17 +1259,41 @@ export default function GestioneFormazionePage() {
       if (!validation.valid) {
         // Messaggio semplificato senza dettagli specifici
         const warningMsg = `${t('formationValidationSimple')}\n\n${t('formationInvalidConfirm')}`
-        const confirmed = window.confirm(warningMsg)
-        if (!confirmed) {
-          setError(t('formationValidationSimple'))
-          showToast(t('saveCancelled'), 'error')
-          setUploadingFormation(false)
-          return
-        }
-        // Cliente conferma → procedi con salvataggio (warning ma non blocco)
-        showToast(t('formationSavedWithWarnings'), 'error')
+        setConfirmModal({
+          show: true,
+          title: t('confirm') || 'Conferma',
+          message: warningMsg,
+          confirmLabel: t('continue') || 'Continua',
+          cancelLabel: t('cancel') || 'Annulla',
+          variant: 'warning',
+          onConfirm: () => {
+            setConfirmModal(null)
+            showToast(t('formationSavedWithWarnings'), 'error')
+            doSelectManualFormation(formation, slotPositions)
+          },
+          onCancel: () => {
+            setConfirmModal(null)
+            setError(t('formationValidationSimple'))
+            showToast(t('saveCancelled'), 'error')
+            setUploadingFormation(false)
+          }
+        })
+        return
       }
 
+      await doSelectManualFormation(formation, slotPositions)
+    } catch (err) {
+      console.error('[GestioneFormazione] Manual formation error:', err)
+      const { message } = mapErrorToUserMessage(err, 'Errore salvataggio formazione')
+      setError(message)
+      showToast(message, 'error')
+    } finally {
+      setUploadingFormation(false)
+    }
+  }
+
+  const doSelectManualFormation = async (formation, slotPositions) => {
+    try {
       const { data: session } = await supabase.auth.getSession()
       if (!session?.session?.access_token) {
         throw new Error('Sessione scaduta')
@@ -1259,9 +1332,9 @@ export default function GestioneFormazionePage() {
       await fetchData()
     } catch (err) {
       console.error('[GestioneFormazione] Manual formation error:', err)
-      const errorMsg = err.message || 'Errore salvataggio formazione'
-      setError(errorMsg)
-      showToast(errorMsg, 'error')
+      const { message } = mapErrorToUserMessage(err, 'Errore salvataggio formazione')
+      setError(message)
+      showToast(message, 'error')
     } finally {
       setUploadingFormation(false)
     }
@@ -1470,8 +1543,9 @@ export default function GestioneFormazionePage() {
       showToast(t('positionsSavedSuccessfully') || 'Posizioni salvate con successo', 'success')
     } catch (err) {
       console.error('[GestioneFormazione] Save custom positions error:', err)
-      setError(err.message || 'Errore salvataggio posizioni')
-      showToast(err.message || t('errorSavingPositions') || 'Errore salvataggio posizioni', 'error')
+      const { message } = mapErrorToUserMessage(err, t('errorSavingPositions') || 'Errore salvataggio posizioni')
+      setError(message)
+      showToast(message, 'error')
     } finally {
       setUploadingFormation(false)
     }

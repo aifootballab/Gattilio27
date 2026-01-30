@@ -1,32 +1,31 @@
-# ✅ Audit Supabase (MCP) – 2026-01-28
+# ✅ Audit Supabase (MCP) – 2026-01-28 (aggiornato 30 gen 2026)
 
-**Metodo**: Query dirette via MCP (`execute_sql`) su schema `public`  
-**Obiettivo**: trovare incoerenze dati che impattano IA/UX (rosa, coach, impostazioni, task).
+**Metodo**: Query dirette via MCP (`execute_sql`, `list_tables`, `list_migrations`) su schema `public`  
+**Obiettivo**: trovare incoerenze dati che impattano IA/UX (rosa, coach, impostazioni, task).  
+**Ultimo aggiornamento**: 30 gen 2026 – integrazione stato correzioni e audit completo.
 
 ---
 
 ## 1) Problema critico: `individual_instructions` con `player_id` orfani
 
-Query (estrazione di `player_id` da `team_tactical_settings.individual_instructions` e join su `players`):
-- Risultato: trovati `player_id` presenti in `individual_instructions` ma **inesistenti** in `players` per lo stesso `user_id`.
+**Stato: ✅ CORRETTO (2026-01-28)**
 
-Esempio reale (utente `a2aaec95-1e8a-402f-8ff4-19711dfd2390`):
-- `attacco_1` → `43a2cbe4-4898-4b47-abff-9e3040984426` (orfano)
-- `attacco_2` → `b588bf63-17a7-4d79-8acf-19df0ae3fa7e` (orfano)
-- `difesa_1` → `43a2cbe4-4898-4b47-abff-9e3040984426` (orfano)
-- `difesa_2` → `b588bf63-17a7-4d79-8acf-19df0ae3fa7e` (orfano)
+Query originale: `player_id` in `team_tactical_settings.individual_instructions` inesistenti in `players` per lo stesso `user_id`.
 
-**Impatto**:
-- UI può mostrare istruzioni “rotte”
-- IA può basarsi su istruzioni che non corrispondono a giocatori reali
+Esempio reale (utente `a2aaec95-1e8a-402f-8ff4-19711dfd2390`): 4 istruzioni orfane (attacco_1/2, difesa_1/2).
 
-**Fix consigliato**:
-- Normalizzare/validare in salvataggio: prima di salvare `individual_instructions`, verificare che ogni `player_id` esista per quell’utente.
-- Tool di riparazione: endpoint/azione “Riallinea istruzioni” che rimuove o sostituisce player_id non validi.
+**Fix applicati:**
+- Trigger `trigger_cleanup_individual_instructions` (AFTER DELETE su `players`) → funzione `cleanup_orphan_individual_instructions()`: rimuove automaticamente riferimenti al giocatore eliminato da `individual_instructions`.
+- Funzione una tantum `fix_orphan_individual_instructions()` eseguita: 4 orfani rimossi, 0 rimanenti.
+- Cleanup esplicito in `app/api/supabase/delete-player/route.js` prima di eliminare il giocatore.
+
+**Riferimenti:** `RISULTATI_MIGRAZIONI_SUPABASE_2026-01-28.md`, `migrations/fix_individual_instructions_cleanup.sql`, `migrations/fix_orphan_individual_instructions.sql`.
 
 ---
 
 ## 2) Problema dati: `players.position` usato per contenere “stili”
+
+**Stato: ⚠️ PREVENZIONE ATTIVA; 3 GIOCATORI ESISTENTI DA CORREZIONE MANUALE (OPZIONALE)**
 
 Query: giocatori con `players.position` uguale a un nome in `playing_styles.name`.
 
@@ -35,49 +34,56 @@ Risultati trovati (esempi):
 - A. Pirlo → `position = "Tra le linee"` (stile, non posizione)
 - Kylian Mbappé → `position = "Opportunista"` (stile, non posizione)
 
-**Impatto**:
-- Suggerimenti IA e UI formazione possono diventare incoerenti
-- Match di logiche basate su posizione (PT/DC/TS/TD/CC/MED/P/SP/TRQ/CLD/CLS) si rompe
+**Fix applicati:**
+- Validazione in `app/api/supabase/save-player/route.js`: `validPositions` (PT, DC, TD, TS, CC, CMF, MED, P, SP, TRQ, AMF, CLD, CLS, EDA, EDE, ESA, CF, LWF, RWF, SS). Se `position` è uno stile riconosciuto o non valida: **warning in log**, salvataggio non bloccato (retrocompatibilità).
+- Report per correzione dati esistenti: `migrations/report_players_position_styles.sql` (già eseguito; 3 giocatori identificati).
 
-**Fix consigliato**:
-- Definire e validare un set di posizioni consentite
-- Spostare “stile” su `playing_style_id` (già esiste) e usare `role` per etichette tipo Collante/Giocatore chiave
+**Correzione manuale opzionale:** usare `original_positions` o `suggested_position` dal report; spostare stile in `role` o `playing_style_id`.
 
 ---
 
 ## 3) `team_playing_style` mancante (null) in `team_tactical_settings`
 
-Query: conteggio record con `team_playing_style` null.
+**Stato: ✅ ACCETTATO (gestito in codice)**
 
-Risultato:
-- Esiste almeno 1 utente con `team_playing_style` null (es. `a2aaec95-1e8a-402f-8ff4-19711dfd2390`)
+Esiste almeno 1 utente con `team_playing_style` null.
 
-**Impatto**:
-- IA non può usare “stile squadra” come contesto
-- Moduli Attila condizionali su team_playing_style possono non caricarsi
-
-**Fix consigliato**:
-- UI: CTA chiara “Imposta stile squadra”
-- Backend: fallback sicuro (non inferire stile)
+**Comportamento:** UI e backend gestiscono null (fallback sicuro); nessun fix dati automatico. CHECK su colonna: valori ammessi `possesso_palla`, `contropiede_veloce`, `contrattacco`, `vie_laterali`, `passaggio_lungo`.
 
 ---
 
 ## 4) Integrità `playing_style_id`
 
-Query: `players.playing_style_id` non null ma senza match in `playing_styles`.
+**Stato: ✅ OK**
 
-Risultato:
-- Nessun caso trovato (OK).
+Query: `players.playing_style_id` non null ma senza match in `playing_styles`.  
+Risultato: nessun caso trovato.
+
+---
+
+## 5) Aggiornamento 30 gen 2026 – Migrazioni e funzioni
+
+**Migrazioni registrate (list_migrations):** 52 migrazioni. Ultima:
+- **atomic_slot_assignment** (versione `20260130160300`) – RC-001: assegnazione atomica slot per evitare race condition. Funzione chiamata da `app/api/supabase/assign-player-to-slot/route.js` via `admin.rpc('atomic_slot_assignment', ...)`.
+
+**Trigger su `players` (verificati via MCP):**
+- `trigger_cleanup_individual_instructions` → `cleanup_orphan_individual_instructions`
+- `update_players_updated_at` → `update_updated_at_column`
+
+**Dati (query 30 gen 2026):**
+- **players:** 113 righe; 0 con `slot_index` fuori 0–10; 92 con `original_positions` valorizzato.
+- **matches:** 27 | **weekly_goals:** 31 | **formation_layout:** 12 | **team_tactical_settings:** 5
 
 ---
 
 ## ✅ Conclusione
 
-**Problemi reali trovati (da correggere)**:
-1. `individual_instructions` con `player_id` orfani (critico)
-2. `players.position` contiene stili (critico)
-3. `team_playing_style` null per almeno 1 utente (medio)
+| Problema | Stato | Note |
+|----------|--------|------|
+| `individual_instructions` con `player_id` orfani | ✅ Corretto | Trigger + fix una tantum + cleanup in delete-player |
+| `players.position` con stili | ⚠️ Prevenzione attiva | Validazione in save-player; 3 giocatori da correzione manuale opzionale |
+| `team_playing_style` null | ✅ Accettato | Gestito in UI/backend |
+| `playing_style_id` orfani | ✅ Nessun caso | |
+| Schema / migrazioni / trigger | ✅ Allineati | atomic_slot_assignment in list_migrations; trigger cleanup attivi |
 
-**Problemi NON trovati**:
-- `playing_style_id` orfani (OK)
-
+**Documentazione completa:** `DOCUMENTAZIONE_SUPABASE_PER_KIMI_2026-01-30.md` (audit completo tabelle, trigger, funzioni, migrazioni).

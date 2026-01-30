@@ -103,15 +103,7 @@ export async function PATCH(req) {
           }
         }
       }
-      
-      // Libera vecchio slot (torna riserva)
-      await admin
-        .from('players')
-        .update({ 
-          slot_index: null,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', existingPlayerInSlot.id)
+      // RC-001: libera vecchio slot fatto atomicamente in RPC sotto (non qui)
     }
 
     // Assegna nuovo giocatore
@@ -197,30 +189,33 @@ export async function PATCH(req) {
         }
       }
 
-      // NUOVO: Adatta position automaticamente allo slot
-      const updateData = {
-        slot_index: slot_index,
-        position: slotPosition || player.position,  // Adatta automaticamente allo slot (se disponibile)
-        updated_at: new Date().toISOString()
-      }
+      // RC-001: Assegnazione atomica (libera slot esistente + assegna player_id in un colpo)
+      const { data: rpcResult, error: rpcError } = await admin.rpc('atomic_slot_assignment', {
+        p_user_id: userId,
+        p_slot_index: slot_index,
+        p_player_id: player_id
+      })
 
-      // Se original_positions è NULL o vuoto, salvalo (prima volta)
-      if ((!player.original_positions || player.original_positions.length === 0) && player.position) {
-        updateData.original_positions = [{ position: player.position, competence: "Alta" }]
-      }
-
-      // UPDATE: Assegna slot e adatta position
-      const { error: updateError } = await admin
-        .from('players')
-        .update(updateData)
-        .eq('id', player_id)
-
-      if (updateError) {
+      if (rpcError) {
         return NextResponse.json(
-          { error: `Failed to assign player: ${updateError.message}` },
+          { error: rpcError.message || 'Errore assegnazione slot' },
           { status: 500 }
         )
       }
+
+      // Adatta position e original_positions allo slot (dopo assegnazione atomica)
+      const positionUpdate = {
+        position: slotPosition || player.position,
+        updated_at: new Date().toISOString()
+      }
+      if ((!player.original_positions || player.original_positions.length === 0) && player.position) {
+        positionUpdate.original_positions = [{ position: player.position, competence: 'Alta' }]
+      }
+      await admin
+        .from('players')
+        .update(positionUpdate)
+        .eq('id', player_id)
+        .eq('user_id', userId)
 
       return NextResponse.json({
         success: true,

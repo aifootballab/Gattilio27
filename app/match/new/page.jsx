@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { useTranslation } from '@/lib/i18n'
 import LanguageSwitch from '@/components/LanguageSwitch'
 import { ArrowLeft, Upload, AlertCircle, CheckCircle2, RefreshCw, X, SkipForward, Save, Camera, Trophy } from 'lucide-react'
+import { mapErrorToUserMessage } from '@/lib/errorHelper'
 
 // STEPS sarà definito dentro il componente per avere accesso a t()
 
@@ -266,9 +267,11 @@ export default function NewMatchPage() {
       }
       
       // Rimuovi result da team_stats se presente (non fa parte delle statistiche)
-      if (stepData.team_stats && stepData.team_stats.result) {
-        const { result, ...statsWithoutResult } = stepData.team_stats
-        stepData.team_stats = statsWithoutResult
+      // RM-003: non mutare stepData; usa variabile locale per il payload
+      let teamStatsForPayload = stepData.team_stats || null
+      if (teamStatsForPayload && teamStatsForPayload.result) {
+        const { result, ...statsWithoutResult } = teamStatsForPayload
+        teamStatsForPayload = statsWithoutResult
       }
 
       // Prepara dati match
@@ -277,7 +280,7 @@ export default function NewMatchPage() {
         opponent_name: opponentName.trim() || null,
         is_home: isHome, // Campo Casa/Fuori Casa
         player_ratings: stepData.player_ratings || null,
-        team_stats: stepData.team_stats || null,
+        team_stats: teamStatsForPayload,
         attack_areas: stepData.attack_areas || null,
         ball_recovery_zones: stepData.ball_recovery_zones || null,
         formation_played: stepData.formation_style?.formation_played || null,
@@ -323,7 +326,8 @@ export default function NewMatchPage() {
       }, 2000)
     } catch (err) {
       console.error('[NewMatch] Save error:', err)
-      setError(err.message || t('saveMatchError'))
+      const { message } = mapErrorToUserMessage(err, t('saveMatchError'))
+      setError(message)
     } finally {
       setSaving(false)
     }

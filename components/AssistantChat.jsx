@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useTranslation } from '@/lib/i18n'
 import { supabase } from '@/lib/supabaseClient'
 import { Brain, X, Send, Sparkles } from 'lucide-react'
+import { mapErrorToUserMessage } from '@/lib/errorHelper'
 
 export default function AssistantChat() {
   const { t, lang } = useTranslation()
@@ -148,10 +149,10 @@ export default function AssistantChat() {
       
     } catch (error) {
       console.error('[AssistantChat] Error:', error)
-      const errorText = error.message || (lang === 'en' ? 'Please try again in a moment!' : 'Riprova tra un attimo!')
+      const { message: friendlyMsg } = mapErrorToUserMessage(error, lang === 'en' ? 'Please try again in a moment!' : 'Riprova tra un attimo!')
       const errorMsg = lang === 'en'
-        ? `Sorry, something went wrong. ${errorText} 😔`
-        : `Mi dispiace, c'è stato un errore. ${errorText} 😔`
+        ? `Sorry, something went wrong. ${friendlyMsg} 😔`
+        : `Mi dispiace, c'è stato un errore. ${friendlyMsg} 😔`
       setMessages(prev => [...prev, { role: 'assistant', content: errorMsg }])
     } finally {
       setLoading(false)
