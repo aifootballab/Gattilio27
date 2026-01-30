@@ -102,7 +102,7 @@ export default function GuidaPage() {
       steps: [
         t('guideDashboardStep1') || 'Visualizza statistiche squadra (titolari, riserve, totale)',
         t('guideDashboardStep2') || 'Consulta i top 3 giocatori per rating',
-        t('guideDashboardStep3') || 'Accedi alle ultime partite con un click',
+        t('guideDashboardStep3'),
         t('guideDashboardStep4') || 'Naviga rapidamente alle altre sezioni'
       ]
     },

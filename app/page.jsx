@@ -544,7 +544,7 @@ export default function DashboardPage() {
             >
               <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <BookOpen size={18} />
-                {t('guideLink') || 'Guida Completa'}
+                {t('guideLink')}
               </span>
               <ArrowRight size={18} />
             </button>
@@ -769,7 +769,7 @@ export default function DashboardPage() {
                   day: '2-digit', 
                   month: '2-digit',
                   year: 'numeric'
-                }) : 'Data non disponibile'
+                }) : t('dateNotAvailable')
                 const timeStr = matchDate ? matchDate.toLocaleTimeString('it-IT', { 
                   hour: '2-digit', 
                   minute: '2-digit' 
@@ -904,13 +904,13 @@ export default function DashboardPage() {
                           {dateStr} {timeStr && `• ${timeStr}`}
                         </div>
                         <div style={{ fontSize: '14px', fontWeight: 600 }}>
-                          Risultato: <span style={{ color: 'var(--neon-blue)' }}>{displayResult}</span>
+                          {t('result')}: <span style={{ color: 'var(--neon-blue)' }}>{displayResult}</span>
                         </div>
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px', flexShrink: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <span className={`completeness-badge ${isComplete ? 'complete' : 'incomplete'}`}>
-                            {isComplete ? '✓ Completa' : `${match.photos_uploaded || 0}/5`}
+                            {isComplete ? t('matchComplete') : `${match.photos_uploaded || 0}/5`}
                           </span>
                           <button
                             onClick={(e) => handleDeleteMatch(match.id, e)}

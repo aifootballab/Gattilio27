@@ -126,7 +126,7 @@ export default function GestioneFormazionePage() {
       const { data: session, error: sessionError } = await supabase.auth.getSession()
       
       if (sessionError || !session?.session) {
-        setError('Sessione scaduta. Reindirizzamento al login...')
+        setError(t('sessionExpiredRedirect'))
         setTimeout(() => router.push('/login'), 1000)
         return
       }
@@ -138,7 +138,7 @@ export default function GestioneFormazionePage() {
         .maybeSingle()
 
       if (layoutError && layoutError.code !== 'PGRST116') { // PGRST116 = no rows
-        throw new Error(layoutError.message || 'Errore caricamento layout')
+        throw new Error(layoutError.message || t('errorLoadingLayout'))
       }
 
       if (layoutData) {
@@ -230,7 +230,7 @@ export default function GestioneFormazionePage() {
       }
     } catch (err) {
       console.error('[GestioneFormazione] Error:', err)
-      setError(err.message || 'Errore caricamento dati')
+      setError(err.message || t('errorLoadingData'))
     } finally {
       setLoading(false)
     }
@@ -395,7 +395,7 @@ export default function GestioneFormazionePage() {
       // CONTROLLI INCROCIATI: verifica duplicati sia in campo che in riserve
       const playerToAssign = riserve.find(p => p.id === playerId)
       if (!playerToAssign) {
-        throw new Error('Giocatore non trovato nelle riserve')
+        throw new Error(t('playerNotFoundInReserves'))
       }
       
       const playerName = String(playerToAssign.player_name || '').trim().toLowerCase()
@@ -477,7 +477,7 @@ export default function GestioneFormazionePage() {
             })
             if (!deleteRes.ok) {
               const deleteData = await deleteRes.json()
-              throw new Error(deleteData.error || `Errore eliminazione duplicato riserva: ${dup.player_name}`)
+              throw new Error(deleteData.error || `${t('errorDeletingDuplicateReserve')}: ${dup.player_name}`)
             }
           }
         }
@@ -658,13 +658,13 @@ export default function GestioneFormazionePage() {
               })
               const retryData = await safeJsonResponse(retryRes, 'Errore rimozione dopo eliminazione duplicato')
             } else {
-              throw new Error('Errore eliminazione giocatore duplicato riserva')
+              throw new Error(t('errorDeletingDuplicateReserve'))
             }
           } else {
-            throw new Error('Operazione annullata: giocatore già presente nelle riserve')
+            throw new Error(t('operationCancelledDuplicateReserve'))
           }
         } else {
-          throw new Error(data.error || 'Errore rimozione')
+          throw new Error(data.error || t('errorRemoving'))
         }
       }
 
@@ -914,7 +914,7 @@ export default function GestioneFormazionePage() {
             // Se entrambi hanno nome+età, devono corrispondere
             if (currentName && existingName && currentAge && existingAge) {
               if (currentName !== existingName || currentAge !== existingAge) {
-                throw new Error(`Le immagini appartengono a giocatori diversi: "${playerData.player_name}" (${existingAge}) vs "${extractData.player.player_name}" (${currentAge}). Verifica le immagini.`)
+                throw new Error(`${t('imagesDifferentPlayers')}: "${playerData.player_name}" (${existingAge}) vs "${extractData.player.player_name}" (${currentAge})`)
               }
             }
             
@@ -960,7 +960,7 @@ export default function GestioneFormazionePage() {
             throw new Error('Quota OpenAI esaurita. Controlla il tuo piano e i dettagli di fatturazione su https://platform.openai.com/account/billing')
           }
           // Altrimenti mostra il primo errore specifico
-          throw new Error(`Errore estrazione dati: ${errors[0]}`)
+          throw new Error(`${t('errorExtractionDataList')}: ${errors[0]}`)
         }
         throw new Error('Errore: dati giocatore non estratti. Verifica le immagini e riprova.')
       }
@@ -1130,7 +1130,7 @@ export default function GestioneFormazionePage() {
                 })
                 if (!deleteRes.ok) {
                   const deleteData = await deleteRes.json()
-                  throw new Error(deleteData.error || 'Errore eliminazione giocatore duplicato riserva')
+                  throw new Error(deleteData.error || t('errorDeletingDuplicateReserve'))
                 }
               }
               
@@ -1645,7 +1645,7 @@ export default function GestioneFormazionePage() {
       
       setIsEditMode(false)
       setCustomPositions({})
-      showToast(t('positionsSavedSuccessfully') || 'Posizioni salvate con successo', 'success')
+      showToast(t('positionsSavedSuccessfully'), 'success')
     } catch (err) {
       console.error('[GestioneFormazione] Save custom positions error:', err)
       const { message } = mapErrorToUserMessage(err, t('errorSavingPositions') || 'Errore salvataggio posizioni')
@@ -1716,7 +1716,7 @@ export default function GestioneFormazionePage() {
             // Se entrambi hanno nome+età, devono corrispondere
             if (currentName && existingName && currentAge && existingAge) {
               if (currentName !== existingName || currentAge !== existingAge) {
-                throw new Error(`Le immagini appartengono a giocatori diversi: "${playerData.player_name}" (${existingAge}) vs "${extractData.player.player_name}" (${currentAge}). Verifica le immagini.`)
+                throw new Error(`${t('imagesDifferentPlayers')}: "${playerData.player_name}" (${existingAge}) vs "${extractData.player.player_name}" (${currentAge})`)
               }
             }
             
@@ -1762,7 +1762,7 @@ export default function GestioneFormazionePage() {
             throw new Error('Quota OpenAI esaurita. Controlla il tuo piano e i dettagli di fatturazione su https://platform.openai.com/account/billing')
           }
           // Altrimenti mostra il primo errore specifico
-          throw new Error(`Errore estrazione dati: ${errors[0]}`)
+          throw new Error(`${t('errorExtractionDataList')}: ${errors[0]}`)
         }
         throw new Error('Errore: dati giocatore non estratti. Verifica le immagini e riprova.')
       }
@@ -1829,7 +1829,7 @@ export default function GestioneFormazionePage() {
         })
         if (!deleteRes.ok) {
           const deleteData = await deleteRes.json()
-          throw new Error(deleteData.error || 'Errore eliminazione giocatore duplicato')
+          throw new Error(deleteData.error || t('errorDeletingDuplicateReserveReplace'))
         }
       }
 
@@ -1854,7 +1854,7 @@ export default function GestioneFormazionePage() {
       try {
         saveData = await saveRes.json()
       } catch (jsonError) {
-        throw new Error(`Errore server: ${saveRes.status} ${saveRes.statusText}`)
+        throw new Error(`${t('error')}: ${saveRes.status} ${saveRes.statusText}`)
       }
       
       if (!saveRes.ok) {
@@ -1906,13 +1906,13 @@ export default function GestioneFormazionePage() {
               })
               const retryData = await safeJsonResponse(retryRes, 'Errore salvataggio giocatore dopo sostituzione')
             } else {
-              throw new Error('Errore eliminazione giocatore duplicato')
+              throw new Error(t('errorDeletingDuplicateReserveReplace'))
             }
           } else {
             return // Utente ha annullato
           }
         } else {
-          throw new Error(saveData.error || 'Errore salvataggio giocatore')
+          throw new Error(saveData.error || t('errorSavingPlayerGeneric'))
         }
       }
 
@@ -1923,7 +1923,7 @@ export default function GestioneFormazionePage() {
       await fetchData()
     } catch (err) {
       console.error('[GestioneFormazione] Upload reserve error:', err)
-      setError(err.message || 'Errore caricamento riserva')
+      setError(err.message || t('errorLoadingReserve'))
     } finally {
       setUploadingReserve(false)
     }
@@ -2140,7 +2140,7 @@ export default function GestioneFormazionePage() {
                   onClick={() => {
                     setIsEditMode(false)
                     setCustomPositions({})
-                    showToast(t('changesCancelled') || 'Modifiche annullate', 'success')
+                    showToast(t('changesCancelled'), 'success')
                   }}
                   className="btn"
                   style={{
@@ -2570,7 +2570,7 @@ export default function GestioneFormazionePage() {
             border: '1px dashed rgba(168, 85, 247, 0.3)'
           }}>
             <div style={{ fontSize: '14px', opacity: 0.7, marginBottom: '12px' }}>
-              Nessuna riserva. Carica giocatori per aggiungerli alle riserve.
+              {t('noReservesUploadPlayers')}
             </div>
             <button
               onClick={() => setShowUploadReserveModal(true)}
