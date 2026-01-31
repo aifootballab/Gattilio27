@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { useTranslation } from '@/lib/i18n'
 import LanguageSwitch from '@/components/LanguageSwitch'
 import AIKnowledgeBar from '@/components/AIKnowledgeBar'
+import CreditsBar from '@/components/CreditsBar'
 import TaskWidget from '@/components/TaskWidget'
 import { safeJsonResponse } from '@/lib/fetchHelper'
 import { 
@@ -353,6 +354,11 @@ export default function DashboardPage() {
       {/* AI Knowledge Bar */}
       <div data-tour-id="tour-dashboard-ai">
         <AIKnowledgeBar />
+      </div>
+
+      {/* Credits Bar (utilizzo crediti AI / abbonamento) */}
+      <div data-tour-id="tour-dashboard-credits">
+        <CreditsBar />
       </div>
 
       {/* Task Widget (Obiettivi Settimanali) */}

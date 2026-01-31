@@ -4,6 +4,7 @@ import { validateToken, extractBearerToken } from '../../../lib/authHelper'
 import { callOpenAIWithRetry } from '../../../lib/openaiHelper'
 import { checkRateLimit, RATE_LIMIT_CONFIG } from '../../../lib/rateLimiter'
 import { getRelevantSectionsForContext } from '../../../lib/ragHelper'
+import { recordUsage } from '@/lib/creditService'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -1226,6 +1227,12 @@ export async function POST(req) {
         return w
       })
       structuredSummary.warnings = { it: warningsIt, en: warningsEn }
+    }
+
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    if (serviceKey && supabaseUrl) {
+      const admin = createClient(supabaseUrl, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } })
+      await recordUsage(admin, userId, 4, 'analyze-match')
     }
 
     return NextResponse.json({
