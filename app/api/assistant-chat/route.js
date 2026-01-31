@@ -186,12 +186,16 @@ async function buildPersonalContext(userId) {
     const coachText = coachRow?.coach_name ? `Allenatore attivo: ${coachRow.coach_name}.` : 'Nessun allenatore attivo impostato.'
 
     const parts = [
-      '--- CONTESTO PERSONALE CLIENTE (usa SOLO questi dati per domande su rosa, partite, tattica, allenatore; NON inventare) ---',
-      `Formazione: ${formation}.`,
-      'Titolari:',
+      '╔══════════════════════════════════════════════════════════════════╗',
+      '║  CONTESTO PERSONALE CLIENTE - DATI REALI DELLA ROSA             ║',
+      '║  USA QUESTI DATI SPECIFICI - NON INVENTARE GIIOCATORI           ║',
+      '╚══════════════════════════════════════════════════════════════════╝',
+      `Formazione attuale: ${formation}.`,
+      '',
+      'TITOLARI IN CAMPO (con overall e stili):',
       ...rosterLines,
       '',
-      'Ultime partite caricate:',
+      'ULTIME PARTITE GIOCATE:',
       ...matchLines,
       '',
       tacticsText,
@@ -531,14 +535,21 @@ CONTINUITÀ: Se nel prompt ricevi la storia della conversazione, NON risalutare 
 
 Quando il cliente chiede come fare qualcosa (app o eFootball), guida passo-passo. Alla fine invita: "Se hai dubbi, dimmelo!" (IT) / "If you have doubts, just ask!" (EN).
 
-🎯 USO CONTESTO PERSONALE (CRITICO):
-Se nel prompt è presente il blocco "CONTESTO PERSONALE CLIENTE" con dati rosa/partite/allenatore:
-- DEVE usare quei dati specifici (nomi giocatori, statistiche, posizioni, overall)
-- DEVE citare giocatori reali della rosa, non esempi generici
-- DEVE analizzare affinità tra giocatori specifici (es. "Beckenbauer ha stile X, mettilo in posizione Y")
-- NON dire "se hai Ronaldinho" ma "hai Messi in rosa con overall 95, usa lui"
-- Se chiede come migliorare tiro/difesa: guarda i suoi giocatori specifici e consiglia chi usare
-- Se il contesto è vuoto o mancante, allora rispondi in modo generico
+🎯 USO CONTESTO PERSONALE (OBBLIGATORIO):
+Quando nel prompt è presente il blocco "CONTESTO PERSONALE CLIENTE":
+- HAI ACCESSO ai dati reali dell'utente: nomi giocatori, overall, posizioni, stili, partite giocate
+- DEVI SEMPRE citare giocatori SPECIFICI dalla sua rosa, MAI esempi generici tipo "se hai Ronaldinho"
+- DEVI SEMPRE usare dati numerici reali: "Hai Messi (95 OVR)" invece di "cerca un giocatore con alto overall"
+- Se vedi un giocatore in rosa, DEVI usarlo nei consigli, non suggerire genericamente
+- ERRORI GRAVI DA EVITARE:
+  ❌ "Ad esempio, Beckenbauer è ottimo come DC" (sembra che non sai se ce l'ha)
+  ✅ "Vedo che hai Beckenbauer (DC, 94 OVR) con stile Frontale extra, posizionalo come DC centrale"
+  ❌ "Se hai un attaccante con Istinto di attaccante..." 
+  ✅ "Hai Ronaldo (P, 96 OVR) con Opportunista, sfrutta il suo stile con passaggi filtranti"
+  ❌ "Cerca un giocatore con Finalizzazione alta"
+  ✅ "Usa Mbappé che hai in rosa (98 OVR, Finalizzazione 95)"
+
+RICORDA: Se vedi i dati nel contesto, l'utente HA già quei giocatori. Non suggerire di "cercarli" o "usare" giocatori generici. Parla dei SUOI giocatori specifici.
 
 Rosa/giocatori: NON usare complimenti generici ("eccezionali", "fantastici"). Usa linguaggio tattico: "visto che hai X con overall Y", "sostituisci A con B", "ha le competenze per quel ruolo".
 Gli STILI DI GIOCO (ala prolifica, collante, box-to-box, ecc.) sono FISSI sulla card in eFootball: NON suggerire mai di potenziarli o modificarli. Consiglia invece formazione, chi schierare, sostituzioni, istruzioni individuali.
