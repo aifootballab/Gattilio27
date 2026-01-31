@@ -1,8 +1,8 @@
 # Sistema crediti AI – Documentazione completa
 
-**Data:** 2026-01-31  
+**Data:** 2026-01-31 (aggiornato 2026-01-30)  
 **Stato:** Implementato e funzionante.  
-**Riferimenti:** `docs/COSTI_API_E_PRICING_CREDITI.md`, `docs/AUDIT_CREDITI_SICUREZZA_E_FLUSSO.md`.
+**Riferimenti:** `docs/COSTI_API_E_PRICING_CREDITI.md`, `docs/AUDIT_CREDITI_SICUREZZA_E_FLUSSO.md`, `docs/AUDIT_ENTERPRISE_CREDITI_PERCHÉ_SOLO_5.md`.
 
 ---
 
@@ -73,10 +73,11 @@
 
 ### 2.4 Frontend: `components/CreditsBar.jsx`
 
-- Legge **GET /api/credits/usage** con Bearer (session).
-- Fetch con **cache: 'no-store'** per evitare risposte stale.
+- Chiama **POST /api/credits/usage** con Bearer (session) e body `{}` per evitare cache HTTP (le risposte POST non vengono cachate come le GET).
+- Fetch con **cache: 'no-store'**.
 - Mostra: periodo (formattato), crediti usati / inclusi, barra progresso, eventuale overage e hint.
-- **Refresh:** (1) al mount, (2) polling ogni **45 secondi**, (3) quando il tab diventa visibile (`visibilitychange`), (4) quando arriva l’evento **`credits-consumed`** (dispatch dopo ogni operazione che consuma crediti: chat, analyze-match, extract-player, extract-coach, extract-formation, generate-countermeasures, extract-match-data).
+- **Refresh:** (1) al mount, (2) polling ogni **45 secondi**, (3) quando il tab diventa visibile (`visibilitychange`), (4) quando arriva l’evento **`credits-consumed`** (dispatch dopo ogni operazione che consuma crediti).
+- **Montaggio:** in `app/layout.tsx` (sempre nel DOM quando c’è sessione); se nessuna sessione ritorna `null` (login).
 - i18n: chiavi `creditsTitle`, `creditsSubtitle`, `creditsUsed`, `creditsIncluded`, ecc. in `lib/i18n.js`.
 
 ---
@@ -91,5 +92,10 @@
 ## 4. Note operative
 
 - **matches.credits_used** – colonna sulla tabella match: numero di foto caricate per quel match (metadata). **Non** è il sistema crediti mensili; nessun conflitto con `user_credit_usage`.
+- **Scrittura:** `recordUsage` fa **sempre la somma** (update `credits_used = existing.credits_used + credits`). **Lettura:** `getCurrentUsage` legge **solo il valore salvato** (nessuna somma in lettura).
+- Per dettagli sicurezza e audit: `docs/AUDIT_CREDITI_SICUREZZA_E_FLUSSO.md`.
+- Per costi e pesi: `docs/COSTI_API_E_PRICING_CREDITI.md`.
+- Per audit “perché si vede solo 5” e fix (POST, currentPeriodOnly): `docs/AUDIT_ENTERPRISE_CREDITI_PERCHÉ_SOLO_5.md`.
+quel match (metadata). **Non** è il sistema crediti mensili; nessun conflitto con `user_credit_usage`.
 - Per dettagli sicurezza e audit: `docs/AUDIT_CREDITI_SICUREZZA_E_FLUSSO.md`.
 - Per costi e pesi: `docs/COSTI_API_E_PRICING_CREDITI.md`.

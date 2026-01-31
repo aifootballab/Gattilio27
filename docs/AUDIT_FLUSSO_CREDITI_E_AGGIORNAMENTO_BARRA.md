@@ -28,7 +28,7 @@
 | extract-formation | 3 | `await recordUsage(admin, userId, 3, 'extract-formation')` | Dopo OpenAI, prima di `return` ✓ |
 | analyze-match | 4 | `await recordUsage(admin, userId, 4, 'analyze-match')` | Dopo OpenAI, prima di `return` ✓ |
 
-In tutte le route la risposta viene inviata **dopo** `await recordUsage(...)`, quindi il DB è aggiornato prima che il client riceva 200. Il refetch GET /api/credits/usage dopo `credits-consumed` vede il valore aggiornato.
+In tutte le route la risposta viene inviata **dopo** `await recordUsage(...)`, quindi il DB è aggiornato prima che il client riceva 200. Il refetch **POST** /api/credits/usage dopo `credits-consumed` vede il valore aggiornato (POST evita cache HTTP).
 
 ---
 
@@ -69,6 +69,8 @@ Tutte le chiamate che consumano crediti fanno `window.dispatchEvent(new CustomEv
 1. Utente su una qualunque pagina (match, giocatore, contromisure, dashboard, …) chiama un’API che consuma crediti.
 2. Backend: OpenAI + `await recordUsage(...)` → scrittura su `user_credit_usage` (Supabase) → `return NextResponse.json(...)`.
 3. Frontend: riceve 200 → fa `window.dispatchEvent(new CustomEvent('credits-consumed'))`.
-4. CreditsBar (in layout) riceve l’evento → `fetchUsage()` → GET /api/credits/usage → `setData(payload)` → la barra mostra il nuovo valore.
+4. CreditsBar (in layout) riceve l’evento → `fetchUsage()` → **POST** /api/credits/usage → `setData(payload)` → la barra mostra il nuovo valore.
 
-Riferimenti: `docs/SISTEMA_CREDITI_AI.md`, `docs/AUDIT_CREDITI_UX_5_SU_200.md`.
+**Lettura crediti:** l’API chiama `getCurrentUsage(admin, userId, { currentPeriodOnly: true })` → solo mese corrente (0 se nessuna riga). Nessun fallback al mese precedente, così la barra non mostra valori “vecchi”.
+
+Riferimenti: `docs/SISTEMA_CREDITI_AI.md`, `docs/AUDIT_ENTERPRISE_CREDITI_PERCHÉ_SOLO_5.md`.

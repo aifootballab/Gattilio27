@@ -49,7 +49,7 @@
 | getCurrentPeriodKey()    | YYYY-MM (UTC), es. `2026-01` | Coerente con period_key TEXT e commenti migration (YYYY-MM). |
 | getPreviousPeriodKey()   | YYYY-MM mese precedente (UTC) | Usato per fallback lettura; stesso formato period_key. |
 | recordUsage(admin, userId, credits, op) | Upsert su user_credit_usage: select by user_id + period_key; insert (user_id, period_key, credits_used, credits_included) o update (credits_used, updated_at) | Nomi colonne e tipi allineati alla tabella. |
-| getCurrentUsage(admin, userId) | { period_key, credits_used, credits_included, overage } | Select credits_used, credits_included, period_key; valori convertiti con Number()/String(); fallback 0 e CREDITS_INCLUDED_DEFAULT. |
+| getCurrentUsage(admin, userId, opts) | { period_key, credits_used, credits_included, overage } | Select credits_used, credits_included, period_key; con **opts.currentPeriodOnly: true** (usato dall’API) solo periodo corrente (0 se nessuna riga); senza opzione fallback al mese precedente. Valori convertiti con Number()/String(). |
 
 ---
 

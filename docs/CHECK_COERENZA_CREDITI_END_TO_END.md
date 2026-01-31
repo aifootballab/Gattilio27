@@ -22,7 +22,7 @@ Risultato: **credits_used = 18**, period_key = 2026-01. Quindi il DB è corretto
 
 ## 2. Causa individuata: cache HTTP
 
-- **Backend:** GET /api/credits/usage usa `userId` da token (validateToken) e legge da `user_credit_usage` con `getCurrentUsage(admin, userId)`. Nessun cache lato server nel codice.
+- **Backend:** GET e POST /api/credits/usage usano `userId` da token (validateToken) e leggono da `user_credit_usage` con `getCurrentUsage(admin, userId, { currentPeriodOnly: true })`. Nessun cache lato server nel codice.
 - **Risposta:** Se la richiesta fosse sempre “fresca”, l’API restituirebbe 18 per attiliomazzetti@gmail.it.
 - **Conclusione:** Il valore 5 è quasi certamente una **risposta in cache** (browser, CDN o altro) da un momento in cui l’utente aveva 5 crediti.
 
@@ -30,31 +30,27 @@ Risultato: **credits_used = 18**, period_key = 2026-01. Quindi il DB è corretto
 
 ## 3. Fix applicati
 
-1. **CreditsBar – cache-busting**  
-   La fetch verso GET /api/credits/usage ora usa un query param variabile:  
-   `/api/credits/usage?_=${Date.now()}`  
-   così ogni richiesta ha URL diverso e non viene riusata una risposta in cache.
+1. **CreditsBar – POST invece di GET**  
+   La fetch verso /api/credits/usage ora usa **POST** (body `{}`), così le risposte non vengono cachate (le GET sono cachabili, le POST no). Nessun riuso di risposta in cache.
 
-2. **API credits/usage – header anti-cache**  
-   Aggiunti/rafforzati header sulla risposta:
-   - `Cache-Control: no-store, no-cache, private, max-age=0, must-revalidate`
-   - `Pragma: no-cache`
-   - `Expires: 0`
-   - `Vary: Authorization`  
-   così intermediari e browser non devono cachare per utenti diversi.
+2. **API credits/usage – solo periodo corrente**  
+   L’API chiama `getCurrentUsage(admin, userId, { currentPeriodOnly: true })`: legge **solo** il mese corrente (UTC); se nessuna riga restituisce 0 (nessun fallback al mese precedente). La barra non mostra più valori “vecchi” (es. 5 del mese prima).
 
-3. **creditService – tipi espliciti**  
-   In `getCurrentUsage`, i valori letti da Supabase sono convertiti esplicitamente in numero con `Number()` e `Number.isFinite()`; `period_key` in stringa. Coerenza tra DB (integer) e risposta JSON.
+3. **API credits/usage – header anti-cache**  
+   Header sulla risposta: `Cache-Control: no-store`, `Pragma: no-cache`, `Expires: 0`, `Vary: Authorization`.
+
+4. **creditService – tipi espliciti**  
+   In `getCurrentUsage`, i valori letti da Supabase sono convertiti con `Number()` e `Number.isFinite()`; `period_key` in stringa.
 
 ---
 
 ## 4. Flusso end-to-end (dopo i fix)
 
-1. **Frontend:** CreditsBar chiama `GET /api/credits/usage?_=<timestamp>` con `Authorization: Bearer <token>`, `cache: 'no-store'`.
-2. **API:** Estrae token → validateToken → `userId` → getCurrentUsage(admin, userId) → query Supabase su `user_credit_usage` (user_id + period_key UTC corrente, con fallback mese precedente) → risposta JSON con crediti e header no-cache.
+1. **Frontend:** CreditsBar chiama **POST** /api/credits/usage con `Authorization: Bearer <token>`, body `{}`, `cache: 'no-store'`.
+2. **API:** Estrae token → validateToken → `userId` → getCurrentUsage(admin, userId, **{ currentPeriodOnly: true }**) → query Supabase **solo** periodo corrente (user_id + period_key UTC); se nessuna riga restituisce 0 → risposta JSON con crediti e header no-cache.
 3. **Frontend:** setData(payload) → la barra mostra `credits_used` / `credits_included` dalla risposta.
 
-Con cache-busting e header no-cache, ogni caricamento/refetch dovrebbe mostrare il valore aggiornato da Supabase (es. 18 per attiliomazzetti@gmail.it).
+Con POST (no cache GET) e solo periodo corrente, la barra mostra il valore aggiornato del mese corrente (es. 18 per attiliomazzetti@gmail.it).
 
 ---
 

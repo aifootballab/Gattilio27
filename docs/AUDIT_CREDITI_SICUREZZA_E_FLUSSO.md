@@ -7,11 +7,11 @@
 
 ## 1. Sicurezza endpoint
 
-### GET /api/credits/usage
+### GET e POST /api/credits/usage
 - **Auth:** Bearer obbligatorio; `extractBearerToken` + `validateToken` (Supabase `auth.getUser(token)`).
 - **401** se token assente o invalido.
 - **userId:** Sempre da `userData.user.id` (token), mai da body/query.
-- **Lettura:** Backend usa service role; `getCurrentUsage(admin, userId)` legge il periodo corrente (YYYY-MM in UTC); se nessuna riga (es. primo giorno mese nuovo), fallback al mese precedente così la barra non mostra 0.
+- **Lettura:** Backend usa service role; `getCurrentUsage(admin, userId, { currentPeriodOnly: true })` legge **solo** il periodo corrente (YYYY-MM in UTC); se nessuna riga restituisce 0 (nessun fallback al mese precedente). Il frontend usa **POST** per evitare cache HTTP su GET.
 - **Esito:** Nessun endpoint espone lettura/scrittura crediti di altri utenti.
 
 ### Scrittura crediti (recordUsage)
@@ -38,7 +38,7 @@
 
 - **assistant-chat:** `userId` da token → dopo risposta OpenAI → `recordUsage(admin, userId, 1, 'assistant-chat')`.
 - **analyze-match:** `userId` da token → dopo risposta OpenAI → `recordUsage(admin, userId, 4, 'analyze-match')`.
-- **credits/usage:** `userId` da token → `getCurrentUsage(admin, userId)` → risposta con solo dati di quell’utente.
+- **credits/usage:** `userId` da token → `getCurrentUsage(admin, userId, { currentPeriodOnly: true })` → risposta con solo dati di quell’utente (solo mese corrente).
 - **Coerenza:** Nessun uso di `userId` da body; nessun endpoint che accetta `user_id` per leggere/scrivere crediti altrui.
 
 Le route OpenAI `extract-player`, `extract-coach`, `extract-match-data`, `generate-countermeasures`, `extract-formation` chiamano tutte `recordUsage` dopo successo (pesi: 2, 2, 2 per sezione, 3, 3).
@@ -68,4 +68,4 @@ Le route OpenAI `extract-player`, `extract-coach`, `extract-match-data`, `genera
 
 **Route e pesi:** assistant-chat 1, extract-player 2, extract-coach 2, extract-match-data 2 (per sezione), generate-countermeasures 3, extract-formation 3, analyze-match 4.
 
-**Doc completa (Supabase + codice):** `docs/SISTEMA_CREDITI_AI.md`. Period key in UTC; getCurrentUsage con fallback mese precedente.
+**Doc completa (Supabase + codice):** `docs/SISTEMA_CREDITI_AI.md`. Period key in UTC; getCurrentUsage con opzione `currentPeriodOnly: true` per la barra (solo mese corrente); CreditsBar usa POST /api/credits/usage.

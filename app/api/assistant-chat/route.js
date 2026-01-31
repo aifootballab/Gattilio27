@@ -189,12 +189,17 @@ async function buildPersonalContext(userId) {
     const parts = [
       '╔══════════════════════════════════════════════════════════════════╗',
       '║  CONTESTO PERSONALE CLIENTE - DATI REALI DELLA ROSA             ║',
-      '║  USA QUESTI DATI SPECIFICI - NON INVENTARE GIOCATORI            ║',
+      '║  USA QUESTI DATI - NON INVENTARE GIOCATORI - RISPETTA POSIZIONI  ║',
       '╚══════════════════════════════════════════════════════════════════╝',
       `Formazione attuale: ${formation}.`,
       '',
-      'TITOLARI IN CAMPO (con overall e stili):',
-      ...rosterLines,
+      'REGOLA POSIZIONI: position = ruolo del giocatore (P=punta, MED/CC=centrocampista, DC=difensore centrale, TS/TD=ala, ecc.). NON suggerire MAI un giocatore in un ruolo diverso dalla sua position (es. NON dire "Pedri punta" se position=MED).',
+      '',
+      'TITOLARI IN CAMPO (slot 0-10):',
+      ...rosterLines.slice(0, rosterLines.findIndex(l => l === 'Riserve:') + 1),
+      ...rosterLines.slice(rosterLines.findIndex(l => l === 'Riserve:') + 1),
+      '',
+      'LE RISERVE sono in panchina: usale per sostituzioni. Consiglia solo giocatori di questo elenco e solo per ruoli compatibili con la loro position.',
       '',
       'ULTIME PARTITE GIOCATE:',
       ...matchLines,
@@ -275,11 +280,14 @@ ${commonProblems.length > 0 ? `- Problemi comuni: ${commonProblems.join(', ')}` 
 ${pageContext ? `- Situazione: ${pageContext}` : ''}
 ${stateContext ? `- Stato: ${stateContext}` : ''}
 ${personalContextSummary ? `
-📊 CONTESTO PERSONALE CLIENTE (rosa, partite caricate, tattica, allenatore - usa SOLO questi dati per domande personali, NON inventare):
+📊 CONTESTO PERSONALE CLIENTE (rosa, partite caricate, tattica, allenatore - DATI REALI):
 ---
 ${personalContextSummary}
 ---
-- Per domande su rosa, partite, risultati, tattica, allenatore: rispondi basandoti SOLO sul blocco sopra. Se un dato non c'è, dillo.
+- Hai QUESTI dati sulla squadra del cliente. USA SEMPRE questo blocco per domande su rosa, formazione, partite, tattica, allenatore, "cosa cambiare", "consigli sulla squadra", "formazione meta", "consiglio tecnico". Rispondi come un coach che CONOSCE la rosa: dai consigli specifici (nomi, ruoli, stili, sostituzioni) basandoti sui dati sopra. NON dire "non vedo dettagli" o "carica la rosa": i dati ci sono.
+- ENTERPRISE - POSIZIONI (OBBLIGATORIO): Nel blocco ogni giocatore ha "position" (P, MED, CC, DC, TS, TD, ecc.). NON suggerire MAI un giocatore in un ruolo diverso dalla sua position: es. se position=MED è centrocampista, NON dire "mettilo punta" o "Pedri punta". P=punta/attaccante; MED/CC/CCB/TRQ/ESA=centrocampista; DC/TD/TS=difensore/terzino. Rispetta sempre la position.
+- ENTERPRISE - RISERVE (OBBLIGATORIO): Le riserve sono elencate DOPO la riga "Riserve:" nel blocco. LEGGI ANCHE LE RISERVE: sono in panchina e vanno usate per sostituzioni. Quando consigli un cambio o "chi metto", considera sia titolari che riserve; per la punta suggerisci solo giocatori con position P/TS/TD (attaccanti), per il centrocampo solo MED/CC/CCB/TRQ/ESA, per la difesa solo DC/TD/TS.
+- Se il cliente chiede "cosa cambiare della mia squadra": analizza titolari E riserve (dopo "Riserve:"), formazione, partite; suggerisci cambi concreti rispettando le position (non centrocampisti in attacco, non attaccanti in difesa).
 - Profilazione: completa (3/3) = card+stats+skills caricate; parziale (2/3) o incompleta (0-1/3) altrimenti.
 - Competenze posizione: da original_positions (es. DC Alta, MED Intermedia).` : ''}
 
@@ -370,13 +378,13 @@ ${efootballKnowledge}
 8. Se cliente chiede "come faccio X?", guida passo-passo e invita: "Se hai dubbi, dimmelo!"
 9. ⚠️ NON inventare funzionalità - usa SOLO quelle elencate sopra
 10. ⚠️ Se cliente chiede qualcosa che non esiste, sii onesto e suggerisci alternativa esistente
+11. Interpreta typo dal contesto (es. "sguarda" = squadra, "Atillo" = Attilio): non correggere pedantemente, rispondi al senso.
 
-⚽ ROSA / GIOCATORI (linguaggio tattico, niente generico):
-- NON dire "sono giocatori eccezionali", "fantastici", "ottimi" in modo generico.
-- Usa linguaggio da coach: "sono buildati correttamente", "ha le competenze per quel ruolo", "profilazione completa".
-- Quando consigli sostituzioni o affinità, sii specifico: "Visto le caratteristiche di [Nome] ti consiglio di sostituire con la riserva [Nome] per affinità/stile", "per quella posizione De Jong dà più copertura".
-- Consiglia in base a dati reali (posizione, stile, competenze, profilazione) dal CONTESTO PERSONALE se presente.
-- ⚠️ NON suggerire MAI di "potenziare" o "migliorare" lo stile di gioco (es. ala prolifica, collante): in eFootball sono FISSI sulla card, non si modificano. Puoi consigliare formazione, chi schierare, sostituzioni, istruzioni individuali.
+⚽ ROSA / GIOCATORI (linguaggio tattico, enterprise):
+- Usa SOLO i giocatori elencati nel blocco CONTESTO PERSONALE (titolari + riserve dopo "Riserve:"). NON inventare nomi. Per sostituzioni considera SEMPRE anche le riserve (panchina).
+- RISPETTA LA POSITION: ogni giocatore ha un ruolo (P, MED, DC, TS, TD, ecc.). NON suggerire mai un centrocampista (MED, CC, CCB, TRQ, ESA) come punta/attaccante; NON suggerire un attaccante (P, TS, TD, ED, ES) come mediano. Es: se nel blocco c\'è "Pedri (MED, ...)" NON dire "Pedri punta".
+- Usa linguaggio da coach: "buildati correttamente", "competenze per quel ruolo", "profilazione completa". Quando consigli sostituzioni, cita nomi dal blocco e ruoli compatibili con la loro position.
+- ⚠️ NON suggerire MAI di "potenziare" o "migliorare" lo stile di gioco: in eFootball sono FISSI sulla card. Puoi consigliare formazione, chi schierare, sostituzioni (usando titolari e riserve dal blocco), istruzioni individuali.
 
 💬 ESEMPI TONO (COERENTI CON FUNZIONALITÀ REALI):
 
