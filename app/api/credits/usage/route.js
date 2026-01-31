@@ -47,19 +47,29 @@ export async function GET(req) {
     })
 
     const usage = await getCurrentUsage(admin, userId)
+    const creditsUsed = Number(usage.credits_used)
+    const creditsIncluded = Number(usage.credits_included) || 200
+    const used = Number.isFinite(creditsUsed) ? creditsUsed : 0
+    const included = Number.isFinite(creditsIncluded) ? creditsIncluded : 200
     const percentUsed =
-      usage.credits_included > 0
-        ? Math.round((usage.credits_used / usage.credits_included) * 100)
-        : 0
+      included > 0 ? Math.round((used / included) * 100) : 0
 
-    return NextResponse.json({
-      period_key: usage.period_key,
-      credits_used: usage.credits_used,
-      credits_included: usage.credits_included,
-      overage: usage.overage,
-      percent_used: Math.min(100, percentUsed),
-      percent_used_raw: percentUsed
-    })
+    return NextResponse.json(
+      {
+        period_key: usage.period_key,
+        credits_used: used,
+        credits_included: included,
+        overage: Math.max(0, used - included),
+        percent_used: Math.min(100, percentUsed),
+        percent_used_raw: percentUsed
+      },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, private, max-age=0',
+          Pragma: 'no-cache'
+        }
+      }
+    )
   } catch (err) {
     console.error('[credits/usage] Error:', err)
     return NextResponse.json({ error: 'Error loading usage' }, { status: 500 })
