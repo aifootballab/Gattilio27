@@ -343,6 +343,7 @@ Suggerisci di caricare le foto mancanti per un'analisi più precisa.`
     availableDataText += `- Usa solo i dati forniti sopra. Se non vedi dati su goals/assists/azioni, NON menzionarli.\n`
     availableDataText += `- Esempi SBAGLIATI da evitare: "Neymar ha fatto dribbling", "Messi ha creato occasioni", "ha dominato con le sue azioni".\n`
     availableDataText += `- Esempi CORRETTI: "Neymar ha performato bene (rating 8.5)", "Messi ha avuto una buona performance (rating 8.5)".\n`
+    availableDataText += `\n🎮 CONTESTO VIDEOGIOCO: I giocatori sono CARD DIGITALI di eFootball, non persone reali. NON parlare di "esperienza", "carriera", "crescita" dei giocatori. Le statistiche sono FISSE sulla card.\n`
   } else {
     availableDataText += '- Pagelle Giocatori: Non disponibile\n'
   }

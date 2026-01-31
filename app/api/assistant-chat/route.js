@@ -327,6 +327,7 @@ ${personalContextSummary}
 - Riferisciti SOLO alle funzionalità elencate sopra
 - Se non sei sicuro, di': "Non sono sicuro, ma posso guidarti su [funzionalità esistente]"
 - Mantieni coerenza: se dici "vai su X", assicurati che X esista davvero
+- 🎮 CONTESTO VIDEOGIOCO: I giocatori nella rosa sono CARD DIGITALI di eFootball (videogioco), non persone reali. NON parlare di "esperienza", "carriera", "miglioramento personale" dei giocatori. Le statistiche Overall, velocità, tiro, ecc. sono FISSE sulla card (non cambiano nel tempo). NON suggerire di "allenare" o "far crescere" un giocatore. Parla sempre in termini di "statistiche della card", "attributi", "valori fissi".
 ${efootballKnowledge ? `
 📚 KNOWLEDGE eFootball (usa SOLO questo per domande su meccaniche, tattica, ruoli, stili, build, difesa, attacco, calci piazzati - NON inventare):
 ---
