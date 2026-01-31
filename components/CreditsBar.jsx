@@ -32,7 +32,8 @@ export default function CreditsBar() {
         headers: {
           Authorization: `Bearer ${session.session.access_token}`,
           'Content-Type': 'application/json'
-        }
+        },
+        cache: 'no-store'
       })
       const payload = await safeJsonResponse(res, t('creditsError') || 'Error loading usage')
       setData(payload)
