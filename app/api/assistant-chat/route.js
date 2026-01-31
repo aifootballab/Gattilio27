@@ -16,6 +16,47 @@ const MAX_HISTORY_CONTENT_LENGTH = 2000
 /** Limite riassunto contesto personale (rosa, partite, tattica, allenatore) */
 const MAX_PERSONAL_CONTEXT_CHARS = 3500
 
+/** Limiti validazione input (sicurezza e token) */
+const MAX_MESSAGE_LENGTH = 4000
+const MAX_CURRENT_PAGE_LENGTH = 500
+
+/** Messaggi errore API in doppia lingua (IT/EN) */
+const API_ERRORS = {
+  AUTH_REQUIRED: { it: 'Autenticazione richiesta.', en: 'Authentication required' },
+  AUTH_INVALID: { it: 'Autenticazione non valida o scaduta.', en: 'Invalid or expired authentication' },
+  BODY_INVALID: { it: 'Corpo della richiesta non valido.', en: 'Invalid request body.' },
+  MESSAGE_REQUIRED: { it: 'Il messaggio è obbligatorio.', en: 'Message is required.' },
+  MESSAGE_TOO_LONG: { it: 'Messaggio troppo lungo. Riduci il testo.', en: 'Message too long. Please shorten it.' },
+  RATE_LIMIT: { it: 'Troppe richieste. Riprova tra poco.', en: 'Rate limit exceeded. Please try again later.' },
+  CONFIG_MISSING: { it: 'Configurazione mancante.', en: 'Supabase configuration missing.' },
+  OPENAI_KEY_MISSING: { it: 'Chiave API OpenAI non configurata.', en: 'OpenAI API key not configured.' },
+  OPENAI_ERROR: { it: 'Errore nel servizio di risposta. Riprova.', en: 'Error calling AI service. Please try again.' },
+  GENERIC_ERROR: { it: 'Errore durante la generazione della risposta.', en: 'Error generating response.' }
+}
+
+/**
+ * Lingua preferita da richiesta (header Accept-Language). Usato quando il body non è ancora parsato (401, 429).
+ * @param {Request} req
+ * @returns {'it'|'en'}
+ */
+function getPreferredLanguageFromRequest(req) {
+  const accept = req?.headers?.get?.('accept-language') || ''
+  if (accept.toLowerCase().startsWith('it') || accept.includes('it')) return 'it'
+  return 'en'
+}
+
+/**
+ * Messaggio errore API in lingua (IT o EN).
+ * @param {string} key - Chiave in API_ERRORS (es. 'AUTH_REQUIRED', 'MESSAGE_REQUIRED')
+ * @param {'it'|'en'} lang
+ * @returns {string}
+ */
+function getApiError(key, lang) {
+  const entry = API_ERRORS[key]
+  if (!entry) return API_ERRORS.GENERIC_ERROR[lang]
+  return entry[lang] ?? entry.en
+}
+
 /**
  * Normalizza e valida history conversazione (enterprise: limiti e sanitizzazione).
  * @param {unknown} raw - Array da body (può essere undefined o non-array)
@@ -177,14 +218,24 @@ async function buildPersonalContext(userId) {
     const numInstructions = Array.isArray(indInstr) ? indInstr.length : (indInstr && typeof indInstr === 'object' ? Object.keys(indInstr).length : 0)
     const tacticsText = `Stile squadra: ${teamStyle}. Istruzioni individuali: ${numInstructions} attive.`
 
-    // Allenatore attivo
+    // Allenatore attivo (con competenze stili per intreccio dati)
     const { data: coachRow } = await admin
       .from('coaches')
-      .select('coach_name')
+      .select('coach_name, playing_style_competence')
       .eq('user_id', userId)
       .eq('is_active', true)
       .maybeSingle()
-    const coachText = coachRow?.coach_name ? `Allenatore attivo: ${coachRow.coach_name}.` : 'Nessun allenatore attivo impostato.'
+    let coachText = coachRow?.coach_name ? `Allenatore attivo: ${coachRow.coach_name}.` : 'Nessun allenatore attivo impostato.'
+    if (coachRow?.playing_style_competence && typeof coachRow.playing_style_competence === 'object') {
+      const entries = Object.entries(coachRow.playing_style_competence)
+        .map(([style, val]) => ({ style, val: parseInt(val, 10) || 0 }))
+        .filter(({ val }) => !Number.isNaN(val))
+        .sort((a, b) => b.val - a.val)
+        .slice(0, 8)
+      if (entries.length > 0) {
+        coachText += ` Competenze stili (solo >= 70 consigliabili): ${entries.map(({ style, val }) => `${style} ${val}`).join(', ')}.`
+      }
+    }
 
     const parts = [
       '╔══════════════════════════════════════════════════════════════════╗',
@@ -285,11 +336,17 @@ ${personalContextSummary ? `
 ${personalContextSummary}
 ---
 - Hai QUESTI dati sulla squadra del cliente. USA SEMPRE questo blocco per domande su rosa, formazione, partite, tattica, allenatore, "cosa cambiare", "consigli sulla squadra", "formazione meta", "consiglio tecnico". Rispondi come un coach che CONOSCE la rosa: dai consigli specifici (nomi, ruoli, stili, sostituzioni) basandoti sui dati sopra. NON dire "non vedo dettagli" o "carica la rosa": i dati ci sono.
+- ENTERPRISE - INTRECCIARE TUTTI I DATI (OBBLIGATORIO): Quando rispondi su squadra, formazione, sostituzioni, tattica, "cosa cambiare", consigli tecnici: considera INSIEME tutte le sezioni del blocco sopra (formazione attuale, titolari, riserve, ultime partite con risultati e formazione usata, stile squadra, istruzioni individuali, allenatore e competenze stili). NON basare la risposta su una sola sezione: incrocia formazione + rosa + partite + tattica + allenatore, poi formula la raccomandazione. Es: se le partite recenti sono perse con 4-3-3, incrocia con titolari/riserve e competenze allenatore prima di suggerire un cambio; se chiede "chi metto in panchina" considera chi è in campo, chi in riserva, position e stili. Ragionamento: usa tutti i dati disponibili, poi rispondi in max 3 punti + "In sintesi: ...".
 - ENTERPRISE - POSIZIONI (OBBLIGATORIO): Nel blocco ogni giocatore ha "position" (P, MED, CC, DC, TS, TD, ecc.). NON suggerire MAI un giocatore in un ruolo diverso dalla sua position: es. se position=MED è centrocampista, NON dire "mettilo punta" o "Pedri punta". P=punta/attaccante; MED/CC/CCB/TRQ/ESA=centrocampista; DC/TD/TS=difensore/terzino. Rispetta sempre la position.
 - ENTERPRISE - RISERVE (OBBLIGATORIO): Le riserve sono elencate DOPO la riga "Riserve:" nel blocco. LEGGI ANCHE LE RISERVE: sono in panchina e vanno usate per sostituzioni. Quando consigli un cambio o "chi metto", considera sia titolari che riserve; per la punta suggerisci solo giocatori con position P/TS/TD (attaccanti), per il centrocampo solo MED/CC/CCB/TRQ/ESA, per la difesa solo DC/TD/TS.
 - Se il cliente chiede "cosa cambiare della mia squadra": analizza titolari E riserve (dopo "Riserve:"), formazione, partite; suggerisci cambi concreti rispettando le position (non centrocampisti in attacco, non attaccanti in difesa).
 - Profilazione: completa (3/3) = card+stats+skills caricate; parziale (2/3) o incompleta (0-1/3) altrimenti.
-- Competenze posizione: da original_positions (es. DC Alta, MED Intermedia).` : ''}
+- Competenze posizione: da original_positions (es. DC Alta, MED Intermedia).
+- ENTERPRISE - TONO COACH (OBBLIGATORIO quando hai questi dati):
+  • NON usare mai quando puoi essere diretto: "forse", "potresti considerare", "non sono sicuro", "in teoria", "un'opzione potrebbe essere", "dipende", "in alternativa" (evita hedging).
+  • PREFERISCI: "Consiglio...", "In base alla rosa...", "Fai così: 1... 2... 3...", "La scelta è...", "Metti X, togli Y."
+  • Se nel blocco sopra c'è la risposta: rispondi con una raccomandazione operativa in massimo 3 punti; non usare "forse"/"potresti" quando puoi dire chiaramente cosa fare.
+  • Per domande su rosa, formazione, sostituzioni, tattica: concludi SEMPRE con "In sintesi: [azione concreta]" (es. "In sintesi: metti X titolare, Y in panchina, prova 4-3-3.").` : ''}
 
 📱 FUNZIONALITÀ DISPONIBILI NELLA PIATTAFORMA (SOLO QUESTE - NON INVENTARE ALTRO):
 
@@ -370,7 +427,7 @@ ${efootballKnowledge}
 📋 REGOLE:
 1. Rispondi in modo personale e amichevole (usa "${firstName}" quando appropriato)
 2. Usa emoji con parsimonia (max 1-2 per messaggio)
-3. Guida passo-passo quando serve; sii decisa e concreta
+3. Sii decisa e concreta: quando hai i dati (rosa, partite, formazione), dai 1-3 punti operativi e concludi con "In sintesi: [azione concreta]". Evita "forse", "potresti" quando puoi essere diretto.
 4. Motiva con frasi concrete, non generiche
 5. Se cliente è frustrato, sii empatico e diretto
 6. Rispondi in ${language === 'it' ? 'italiano' : 'inglese'}
@@ -384,6 +441,7 @@ ${efootballKnowledge}
 - Usa SOLO i giocatori elencati nel blocco CONTESTO PERSONALE (titolari + riserve dopo "Riserve:"). NON inventare nomi. Per sostituzioni considera SEMPRE anche le riserve (panchina).
 - RISPETTA LA POSITION: ogni giocatore ha un ruolo (P, MED, DC, TS, TD, ecc.). NON suggerire mai un centrocampista (MED, CC, CCB, TRQ, ESA) come punta/attaccante; NON suggerire un attaccante (P, TS, TD, ED, ES) come mediano. Es: se nel blocco c\'è "Pedri (MED, ...)" NON dire "Pedri punta".
 - Usa linguaggio da coach: "buildati correttamente", "competenze per quel ruolo", "profilazione completa". Quando consigli sostituzioni, cita nomi dal blocco e ruoli compatibili con la loro position.
+- TONO DECISO: evita "forse", "potresti", "un'opzione potrebbe essere"; preferisci "Consiglio...", "Fai così:", "In sintesi:". Concludi con azione concreta (max 3 punti).
 - ⚠️ NON suggerire MAI di "potenziare" o "migliorare" lo stile di gioco: in eFootball sono FISSI sulla card. Puoi consigliare formazione, chi schierare, sostituzioni (usando titolari e riserve dal blocco), istruzioni individuali.
 
 💬 ESEMPI TONO (COERENTI CON FUNZIONALITÀ REALI):
@@ -462,33 +520,30 @@ export async function POST(req) {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
     
+    const reqLang = getPreferredLanguageFromRequest(req)
     if (!supabaseUrl || !anonKey) {
-      return NextResponse.json({ error: 'Supabase configuration missing' }, { status: 500 })
+      return NextResponse.json({ error: getApiError('CONFIG_MISSING', reqLang) }, { status: 500 })
     }
     
     const token = extractBearerToken(req)
     if (!token) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      return NextResponse.json({ error: getApiError('AUTH_REQUIRED', reqLang) }, { status: 401 })
     }
     
     const { userData, error: authError } = await validateToken(token, supabaseUrl, anonKey)
     if (authError || !userData?.user?.id) {
-      return NextResponse.json({ error: 'Invalid authentication' }, { status: 401 })
+      return NextResponse.json({ error: getApiError('AUTH_INVALID', reqLang) }, { status: 401 })
     }
     
     const userId = userData.user.id
     
-    // Rate limiting
-    const rateLimitConfig = RATE_LIMIT_CONFIG['/api/assistant-chat'] || {
-      maxRequests: 30,
-      windowMs: 60000
-    }
-    
+    // Rate limiting (config in lib/rateLimiter.js, coerente con altri endpoint)
+    const rateLimitConfig = RATE_LIMIT_CONFIG['/api/assistant-chat']
     const rateLimit = await checkRateLimit(
       userId,
       '/api/assistant-chat',
-      rateLimitConfig.maxRequests,
-      rateLimitConfig.windowMs
+      rateLimitConfig?.maxRequests ?? 30,
+      rateLimitConfig?.windowMs ?? 60000
     )
     
     if (!rateLimit.allowed) {
@@ -500,9 +555,9 @@ export async function POST(req) {
         { 
           status: 429,
           headers: {
-            'X-RateLimit-Limit': rateLimitConfig.maxRequests.toString(),
-            'X-RateLimit-Remaining': rateLimit.remaining.toString(),
-            'X-RateLimit-Reset': rateLimit.resetAt.toString()
+            'X-RateLimit-Limit': String(rateLimitConfig?.maxRequests ?? 30),
+            'X-RateLimit-Remaining': String(rateLimit.remaining),
+            'X-RateLimit-Reset': String(rateLimit.resetAt)
           }
         }
       )
@@ -513,22 +568,33 @@ export async function POST(req) {
     try {
       body = await req.json()
     } catch (parseError) {
-      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
+      return NextResponse.json({ error: getApiError('BODY_INVALID', reqLang) }, { status: 400 })
     }
     
-    const { message, currentPage, appState, language = 'it', history: rawHistory } = body
+    const { message: rawMessage, currentPage, appState, language = 'it', history: rawHistory } = body
     const lang = (language === 'en' || language === 'it') ? language : 'it'
 
-    if (!message || typeof message !== 'string' || message.trim().length === 0) {
-      return NextResponse.json({ error: 'Message is required' }, { status: 400 })
+    if (!rawMessage || typeof rawMessage !== 'string') {
+      return NextResponse.json({ error: getApiError('MESSAGE_REQUIRED', lang) }, { status: 400 })
     }
+    const message = rawMessage.trim()
+    if (message.length === 0) {
+      return NextResponse.json({ error: getApiError('MESSAGE_REQUIRED', lang) }, { status: 400 })
+    }
+    if (message.length > MAX_MESSAGE_LENGTH) {
+      return NextResponse.json({ error: getApiError('MESSAGE_TOO_LONG', lang) }, { status: 400 })
+    }
+
+    const safeCurrentPage = typeof currentPage === 'string' && currentPage.length > MAX_CURRENT_PAGE_LENGTH
+      ? currentPage.slice(0, MAX_CURRENT_PAGE_LENGTH)
+      : (currentPage || '')
 
     const history = normalizeHistory(rawHistory)
     
     // Costruisci contesto personale
     let context
     try {
-      context = await buildAssistantContext(userId, currentPage, appState)
+      context = await buildAssistantContext(userId, safeCurrentPage, appState)
       if (!context) {
         console.warn('[assistant-chat] Context building returned null, using empty context')
         context = { profile: {}, currentPage: currentPage || '', appState: appState || {} }
@@ -575,7 +641,7 @@ export async function POST(req) {
     // Chiama OpenAI
     const apiKey = process.env.OPENAI_API_KEY
     if (!apiKey) {
-      return NextResponse.json({ error: 'OpenAI API key not configured' }, { status: 500 })
+      return NextResponse.json({ error: getApiError('OPENAI_KEY_MISSING', lang) }, { status: 500 })
     }
     
     // Usa il modello migliore disponibile
@@ -584,6 +650,7 @@ export async function POST(req) {
     const model = 'gpt-4o' // Modello stabile e disponibile
     
     const systemContent = `Sei un coach AI personale e amichevole per eFootball. Siamo i coach migliori: non sbagliamo. Rispondi in modo empatico, motivante e DECISO. Dai consigli concreti, non vaghi. Usa il nome del cliente quando appropriato.
+LINGUA: Rispondi SEMPRE in ${lang === 'it' ? 'italiano' : 'inglese'} (la richiesta indica la lingua del cliente).
 
 PRIMA DI OGNI RISPOSTA - CHECKLIST:
 1. Funzionalità app: sto citando solo una delle 9 funzionalità reali (Dashboard, Gestione Formazione, Aggiungi Partita, Dettaglio Partita, Dettaglio Giocatore, Impostazioni Profilo, Contromisure Live, Allenatori, Guida)? Se no → "Questa funzionalità non è disponibile, posso aiutarti con [alternativa]".
@@ -706,16 +773,20 @@ Piattaforma: solo le 9 funzionalità e path reali (/, /gestione-formazione, /mat
       await recordUsage(admin, userId, 1, 'assistant-chat')
     }
 
-    return NextResponse.json({
-      response: content,
-      remaining: rateLimit.remaining,
-      resetAt: rateLimit.resetAt
-    })
+    return NextResponse.json(
+      {
+        response: content,
+        remaining: rateLimit.remaining,
+        resetAt: rateLimit.resetAt
+      },
+      { headers: { 'Content-Language': lang } }
+    )
     
   } catch (error) {
     console.error('[assistant-chat] Error:', error)
+    const errLang = getPreferredLanguageFromRequest(req)
     return NextResponse.json(
-      { error: error.message || 'Error generating response' },
+      { error: getApiError('GENERIC_ERROR', errLang) },
       { status: 500 }
     )
   }
