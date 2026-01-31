@@ -32,12 +32,13 @@ export default function CreditsBar() {
         setLoading(false)
         return
       }
-      const res = await fetch(`/api/credits/usage?_=${Date.now()}`, {
-        method: 'GET',
+      const res = await fetch('/api/credits/usage', {
+        method: 'POST',
         headers: {
           Authorization: `Bearer ${session.session.access_token}`,
           'Content-Type': 'application/json'
         },
+        body: JSON.stringify({}),
         cache: 'no-store'
       })
       const payload = await safeJsonResponse(res, t('creditsError') || 'Error loading usage')
