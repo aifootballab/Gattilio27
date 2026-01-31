@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 import { validateToken, extractBearerToken } from '../../../lib/authHelper'
 import { checkRateLimit, RATE_LIMIT_CONFIG } from '../../../lib/rateLimiter'
 import { callOpenAIWithRetry, parseOpenAIResponse } from '../../../lib/openaiHelper'
+import { recordUsage } from '@/lib/creditService'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -281,6 +283,12 @@ Restituisci SOLO JSON valido, senza altro testo.`
         { error: 'Failed to parse OpenAI response as JSON' },
         { status: 500 }
       )
+    }
+
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    if (serviceKey && supabaseUrl) {
+      const admin = createClient(supabaseUrl, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } })
+      await recordUsage(admin, userId, 3, 'extract-formation')
     }
 
     return NextResponse.json({

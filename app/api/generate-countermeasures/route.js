@@ -4,6 +4,7 @@ import { validateToken, extractBearerToken } from '../../../lib/authHelper'
 import { callOpenAIWithRetry } from '../../../lib/openaiHelper'
 import { checkRateLimit, RATE_LIMIT_CONFIG } from '../../../lib/rateLimiter'
 import { generateCountermeasuresPrompt, validateCountermeasuresOutput } from '../../../lib/countermeasuresHelper'
+import { recordUsage } from '@/lib/creditService'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -593,6 +594,8 @@ export async function POST(req) {
     if (Array.isArray(countermeasures.warnings)) {
       countermeasures.warnings = countermeasures.warnings.map(toBilingual)
     }
+
+    await recordUsage(admin, userId, 3, 'generate-countermeasures')
 
     // 14. Restituisci contromisure (formato bilingue)
     return NextResponse.json({

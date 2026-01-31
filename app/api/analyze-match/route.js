@@ -1229,7 +1229,6 @@ export async function POST(req) {
       structuredSummary.warnings = { it: warningsIt, en: warningsEn }
     }
 
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
     if (serviceKey && supabaseUrl) {
       const admin = createClient(supabaseUrl, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } })
       await recordUsage(admin, userId, 4, 'analyze-match')
