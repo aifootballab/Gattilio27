@@ -60,9 +60,11 @@ export default function CreditsBar() {
     window.addEventListener('credits-consumed', onCreditsConsumed)
     let authUnsub = null
     if (supabase?.auth?.onAuthStateChange) {
-      const { data } = supabase.auth.onAuthStateChange('SIGNED_IN', () => {
-        setNoSession(false)
-        fetchUsage()
+      const { data } = supabase.auth.onAuthStateChange((event, session) => {
+        if (event === 'SIGNED_IN' && session) {
+          setNoSession(false)
+          fetchUsage()
+        }
       })
       authUnsub = data?.subscription
     }
