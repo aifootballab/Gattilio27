@@ -120,24 +120,24 @@ export async function GET(req) {
     try {
       const result = await calculateAIKnowledgeScore(userId, supabaseUrl, serviceKey)
 
-      // Salva nel database (async, non blocca response)
-      admin
-        .from('user_profiles')
-        .update({
-          ai_knowledge_score: result.score,
-          ai_knowledge_level: result.level,
-          ai_knowledge_breakdown: result.breakdown,
-          ai_knowledge_last_calculated: new Date().toISOString()
-        })
-        .eq('user_id', userId)
-        .then(({ error }) => {
-          if (error) {
-            console.error('[AIKnowledge API] Error updating score:', error)
-          }
-        })
-        .catch(err => {
-          console.error('[AIKnowledge API] Error updating score (async):', err)
-        })
+      // Salva nel database (await per evitare errori di connessione chiusa)
+      try {
+        const { error: updateError } = await admin
+          .from('user_profiles')
+          .update({
+            ai_knowledge_score: result.score,
+            ai_knowledge_level: result.level,
+            ai_knowledge_breakdown: result.breakdown,
+            ai_knowledge_last_calculated: new Date().toISOString()
+          })
+          .eq('user_id', userId)
+        
+        if (updateError) {
+          console.error('[AIKnowledge API] Error updating score:', updateError)
+        }
+      } catch (updateErr) {
+        console.error('[AIKnowledge API] Error updating score (catch):', updateErr)
+      }
 
       return NextResponse.json({
         score: result.score,
