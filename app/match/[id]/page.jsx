@@ -558,7 +558,7 @@ export default function MatchDetailPage() {
                 summaryData = JSON.parse(match.ai_summary)
                 // Verifica che sia un oggetto valido con struttura corretta
                 if (!summaryData || typeof summaryData !== 'object') {
-                  throw new Error('Invalid JSON structure')
+                  throw new Error(t('invalidJsonStructure'))
                 }
               } catch (e) {
                 // Se non è JSON valido, è testo semplice (retrocompatibilità)

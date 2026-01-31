@@ -69,7 +69,7 @@ export default function ImpostazioniProfiloPage() {
           .maybeSingle()
 
         if (profileError && profileError.code !== 'PGRST116') { // PGRST116 = not found (ok)
-          throw new Error(profileError.message || 'Errore caricamento profilo')
+          throw new Error(profileError.message || t('errorProfileLoad'))
         }
 
         if (profileData) {
@@ -125,7 +125,7 @@ export default function ImpostazioniProfiloPage() {
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || 'Unable to save profile')
+        throw new Error(errorData.error || t('errorProfileSave'))
       }
 
       const data = await response.json()
@@ -135,7 +135,7 @@ export default function ImpostazioniProfiloPage() {
           profile_completion_score: data.profile.profile_completion_score,
           profile_completion_level: data.profile.profile_completion_level
         })
-        setSuccess(`${sectionName} salvato con successo!`)
+        setSuccess(`${sectionName} ${t('profileSectionSaved')}`)
         setTimeout(() => setSuccess(null), 3000)
       }
     } catch (err) {

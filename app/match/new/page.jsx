@@ -95,13 +95,13 @@ export default function NewMatchPage() {
   const handleImageSelect = (section) => (e) => {
     const file = e.target.files?.[0]
     if (!file || !file.type.startsWith('image/')) {
-      setError('Seleziona un file immagine valido')
+      setError(t('selectValidImage'))
       return
     }
 
     // Validazione dimensione (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
-      setError('L\'immagine è troppo grande (max 10MB)')
+      setError(t('imageTooLarge'))
       return
     }
 

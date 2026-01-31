@@ -53,11 +53,11 @@ export default function PlayerDetailPage() {
           .single()
 
         if (queryError) {
-          throw new Error(queryError.message || 'Giocatore non trovato')
+          throw new Error(queryError.message || t('playerNotFound'))
         }
 
         if (!data) {
-          throw new Error('Giocatore non trovato')
+          throw new Error(t('playerNotFound'))
         }
 
         setPlayer(data)
@@ -76,14 +76,14 @@ export default function PlayerDetailPage() {
         }
       } catch (err) {
         console.error('[PlayerDetail] Error:', err)
-        setError(err.message || 'Errore caricamento giocatore')
+        setError(err.message || t('errorLoadingPlayer'))
       } finally {
         setLoading(false)
       }
     }
 
     fetchPlayer()
-  }, [playerId, router])
+  }, [playerId, router, t])
 
   const handleFileSelect = (e, type) => {
     const files = Array.from(e.target.files)
@@ -117,7 +117,7 @@ export default function PlayerDetailPage() {
   // Funzione per aggiornare il giocatore con i dati estratti
   const performUpdate = async (extractedPlayerData, type) => {
     if (!player) {
-      setError('Giocatore non trovato')
+      setError(t('playerNotFound'))
       return
     }
     
@@ -163,7 +163,7 @@ export default function PlayerDetailPage() {
         .eq('id', playerId)
 
       if (updateError) {
-        throw new Error(updateError.message || 'Errore aggiornamento giocatore')
+        throw new Error(updateError.message || t('errorUpdatingPlayer'))
       }
 
       // Ricarica dati giocatore
@@ -183,7 +183,7 @@ export default function PlayerDetailPage() {
       }, 3000)
     } catch (err) {
       console.error('[PlayerDetail] Update error:', err)
-      setError(err.message || 'Errore aggiornamento giocatore')
+      setError(err.message || t('errorUpdatingPlayer'))
     } finally {
       setUploading(false)
     }
@@ -191,7 +191,7 @@ export default function PlayerDetailPage() {
 
   const handleUploadAndUpdate = async () => {
     if (images.length === 0 || !uploadType || !player) {
-      setError('Seleziona un\'immagine')
+      setError(t('selectOneImage'))
       return
     }
 
@@ -201,7 +201,7 @@ export default function PlayerDetailPage() {
     try {
       const { data: session } = await supabase.auth.getSession()
       if (!session?.session?.access_token) {
-        throw new Error('Sessione scaduta')
+        throw new Error(t('sessionExpired'))
       }
 
       const token = session.session.access_token
@@ -219,16 +219,16 @@ export default function PlayerDetailPage() {
 
       const extractData = await extractRes.json()
       if (!extractRes.ok) {
-        const errorMsg = extractData.error || 'Errore estrazione dati'
+        const errorMsg = extractData.error || t('errorExtractingData')
         // Se c'è un errore di quota OpenAI, mostralo chiaramente
         if (errorMsg.includes('quota') || errorMsg.includes('billing')) {
-          throw new Error('Quota OpenAI esaurita. Controlla il tuo piano e i dettagli di fatturazione su https://platform.openai.com/account/billing')
+          throw new Error(t('openAQuotaError'))
         }
         throw new Error(errorMsg)
       }
 
       if (!extractData.player) {
-        throw new Error('Impossibile estrarre dati dall\'immagine')
+        throw new Error(t('unableToExtractData'))
       }
 
       // 2. VALIDAZIONE: Confronta nome + squadra + ruolo (o età)
@@ -279,7 +279,7 @@ export default function PlayerDetailPage() {
       setUploading(false)
     } catch (err) {
       console.error('[PlayerDetail] Upload error:', err)
-      setError(err.message || 'Errore caricamento foto')
+      setError(err.message || t('errorUploadingPhoto'))
       setUploading(false)
     }
   }

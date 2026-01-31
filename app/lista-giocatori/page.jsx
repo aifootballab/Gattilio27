@@ -2,19 +2,20 @@
 
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
+import { useTranslation } from '@/lib/i18n'
 
 export default function ListaGiocatoriPage() {
   const router = useRouter()
-  
+  const { t } = useTranslation()
+
   useEffect(() => {
-    // Redirect a gestione-formazione (lista visibile lì: campo + riserve)
     router.push('/gestione-formazione')
   }, [router])
-  
+
   return (
     <div style={{ padding: '40px', textAlign: 'center' }}>
       <div className="neon-text" style={{ fontSize: '24px', marginBottom: '20px' }}>
-        Reindirizzamento a Gestione Formazione...
+        {t('redirectToFormation')}
       </div>
     </div>
   )
