@@ -32,7 +32,7 @@ export default function CreditsBar() {
         setLoading(false)
         return
       }
-      const res = await fetch('/api/credits/usage', {
+      const res = await fetch(`/api/credits/usage?_=${Date.now()}`, {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${session.session.access_token}`,
