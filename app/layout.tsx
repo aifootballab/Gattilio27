@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 import LanguageProviderWrapper from '@/components/LanguageProviderWrapper'
 import AssistantChat from '@/components/AssistantChat'
+import CreditsBar from '@/components/CreditsBar'
 import GuideTour from '@/components/GuideTour'
 
 export const metadata: Metadata = {
@@ -20,6 +21,8 @@ export default function RootLayout({
         <LanguageProviderWrapper>
           {/* Custom Background Layer - QUI PUOI INSERIRE IL TUO SFONDO */}
           <div className="custom-background" />
+          {/* Barra crediti: sempre montata per ascoltare credits-consumed e aggiornarsi subito dopo ogni API */}
+          <CreditsBar />
           {children}
           {/* Tour contestuale (Mostrami come) - coerente UX, responsive, bilingue */}
           <GuideTour />

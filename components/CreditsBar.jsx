@@ -17,16 +17,20 @@ export default function CreditsBar() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [noSession, setNoSession] = useState(false)
 
   const fetchUsage = useCallback(async () => {
     try {
       setError(null)
+      setNoSession(false)
       if (!supabase) {
         throw new Error('Supabase client not initialized')
       }
       const { data: session } = await supabase.auth.getSession()
       if (!session?.session?.access_token) {
-        throw new Error(t('sessionExpired') || 'Session expired')
+        setNoSession(true)
+        setLoading(false)
+        return
       }
       const res = await fetch('/api/credits/usage', {
         method: 'GET',
@@ -54,10 +58,19 @@ export default function CreditsBar() {
     const onCreditsConsumed = () => fetchUsage()
     document.addEventListener('visibilitychange', onVisibility)
     window.addEventListener('credits-consumed', onCreditsConsumed)
+    let authUnsub = null
+    if (supabase?.auth?.onAuthStateChange) {
+      const { data } = supabase.auth.onAuthStateChange('SIGNED_IN', () => {
+        setNoSession(false)
+        fetchUsage()
+      })
+      authUnsub = data?.subscription
+    }
     return () => {
       clearInterval(interval)
       document.removeEventListener('visibilitychange', onVisibility)
       window.removeEventListener('credits-consumed', onCreditsConsumed)
+      authUnsub?.unsubscribe?.()
     }
   }, [fetchUsage])
 
@@ -76,6 +89,8 @@ export default function CreditsBar() {
     if (percentUsed >= 75) return '#ffaa00'
     return '#00ff88'
   }
+
+  if (noSession) return null
 
   if (loading) {
     return (
@@ -125,6 +140,7 @@ export default function CreditsBar() {
 
   return (
     <div
+      data-tour-id="tour-dashboard-credits"
       style={{
         backgroundColor: '#1a1a1a',
         borderRadius: '12px',

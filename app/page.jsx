@@ -356,10 +356,7 @@ export default function DashboardPage() {
         <AIKnowledgeBar />
       </div>
 
-      {/* Credits Bar (utilizzo crediti AI / abbonamento) */}
-      <div data-tour-id="tour-dashboard-credits">
-        <CreditsBar />
-      </div>
+      {/* Credits Bar: montata in layout per aggiornamento immediato dopo ogni API (credits-consumed) */}
 
       {/* Task Widget (Obiettivi Settimanali) */}
       <div data-tour-id="tour-dashboard-task">
