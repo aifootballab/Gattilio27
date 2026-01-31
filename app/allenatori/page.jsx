@@ -152,6 +152,7 @@ export default function AllenatoriPage() {
           errors.push(errorMsg)
           continue
         }
+        if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('credits-consumed'))
 
         if (extractData.coach) {
           // Prima immagine = dati base

@@ -899,6 +899,7 @@ export default function GestioneFormazionePage() {
           errors.push(errorMsg)
           continue
         }
+        if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('credits-consumed'))
 
         if (extractData.player) {
           // Merge dati (prima immagine = dati base)
@@ -1701,6 +1702,7 @@ export default function GestioneFormazionePage() {
           errors.push(errorMsg)
           continue
         }
+        if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('credits-consumed'))
 
         if (extractData.player) {
           // Merge dati (prima immagine = dati base)

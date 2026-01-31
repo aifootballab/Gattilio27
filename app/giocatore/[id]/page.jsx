@@ -230,6 +230,7 @@ export default function PlayerDetailPage() {
       if (!extractData.player) {
         throw new Error(t('unableToExtractData'))
       }
+      if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('credits-consumed'))
 
       // 2. VALIDAZIONE: Confronta nome + squadra + ruolo (o età)
       const normalize = (value) => {

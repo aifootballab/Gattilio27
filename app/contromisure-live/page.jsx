@@ -94,7 +94,8 @@ export default function CountermeasuresLivePage() {
       }
 
       const extractData = await extractRes.json()
-      
+      if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('credits-consumed'))
+
       // Salva formazione avversaria in Supabase
       const saveRes = await fetch('/api/supabase/save-opponent-formation', {
         method: 'POST',
@@ -169,6 +170,7 @@ export default function CountermeasuresLivePage() {
       // La risposta API ha struttura: { success: true, countermeasures: {...}, model_used: '...' }
       if (generateData.success && generateData.countermeasures) {
         setCountermeasures(generateData.countermeasures)
+        if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('credits-consumed'))
       } else {
         throw new Error(t('errorGeneratingCountermeasures') || 'Errore generazione contromisure')
       }

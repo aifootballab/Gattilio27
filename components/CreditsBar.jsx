@@ -8,6 +8,7 @@ import { Zap, RefreshCw, AlertCircle, Info } from 'lucide-react'
 
 /**
  * Barra crediti AI – utilizzo mensile (inclusi + overage).
+ * Legge GET /api/credits/usage (Bearer). Doc: docs/SISTEMA_CREDITI_AI.md
  * Design enterprise, orientato al cliente: chiarezza su usati/inclusi e periodo.
  * Stile coerente con AIKnowledgeBar (card scura, bordo, neon).
  */
@@ -48,8 +49,16 @@ export default function CreditsBar() {
   useEffect(() => {
     if (typeof window === 'undefined') return
     fetchUsage()
-    const interval = setInterval(fetchUsage, 2 * 60 * 1000)
-    return () => clearInterval(interval)
+    const interval = setInterval(fetchUsage, 45 * 1000)
+    const onVisibility = () => { if (document.visibilityState === 'visible') fetchUsage() }
+    const onCreditsConsumed = () => fetchUsage()
+    document.addEventListener('visibilitychange', onVisibility)
+    window.addEventListener('credits-consumed', onCreditsConsumed)
+    return () => {
+      clearInterval(interval)
+      document.removeEventListener('visibilitychange', onVisibility)
+      window.removeEventListener('credits-consumed', onCreditsConsumed)
+    }
   }, [fetchUsage])
 
   const formatPeriod = (periodKey) => {

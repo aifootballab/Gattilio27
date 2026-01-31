@@ -165,6 +165,7 @@ export default function NewMatchPage() {
         
         throw new Error(errorMsg)
       }
+      if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('credits-consumed'))
 
       // Salva dati estratti
       setStepData(prev => ({

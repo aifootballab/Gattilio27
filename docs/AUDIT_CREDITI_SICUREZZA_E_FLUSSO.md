@@ -11,7 +11,7 @@
 - **Auth:** Bearer obbligatorio; `extractBearerToken` + `validateToken` (Supabase `auth.getUser(token)`).
 - **401** se token assente o invalido.
 - **userId:** Sempre da `userData.user.id` (token), mai da body/query.
-- **Lettura:** Backend usa service role; legge solo la riga `user_credit_usage` per quel `userId` e `period_key` corrente.
+- **Lettura:** Backend usa service role; `getCurrentUsage(admin, userId)` legge il periodo corrente (YYYY-MM in UTC); se nessuna riga (es. primo giorno mese nuovo), fallback al mese precedente così la barra non mostra 0.
 - **Esito:** Nessun endpoint espone lettura/scrittura crediti di altri utenti.
 
 ### Scrittura crediti (recordUsage)
@@ -67,3 +67,5 @@ Le route OpenAI `extract-player`, `extract-coach`, `extract-match-data`, `genera
 | Coerenza             | OK – tutte le 7 route OpenAI instrumentate con recordUsage |
 
 **Route e pesi:** assistant-chat 1, extract-player 2, extract-coach 2, extract-match-data 2 (per sezione), generate-countermeasures 3, extract-formation 3, analyze-match 4.
+
+**Doc completa (Supabase + codice):** `docs/SISTEMA_CREDITI_AI.md`. Period key in UTC; getCurrentUsage con fallback mese precedente.

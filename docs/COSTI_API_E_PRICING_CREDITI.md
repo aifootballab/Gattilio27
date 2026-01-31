@@ -107,3 +107,13 @@ Per “capire” senza Stripe, in ogni route sotto puoi:
 - `app/api/extract-player/route.js` – dopo `callOpenAIWithRetry` OK → 2 crediti.
 
 Nessuna integrazione Stripe in questa fase: solo log + (opzionale) scrittura su Supabase per sommare crediti per user/periodo e vedere totali in test.
+
+---
+
+## 7. Implementazione (stato attuale)
+
+- **Tabella Supabase:** `user_credit_usage` (user_id, period_key YYYY-MM UTC, credits_used, credits_included). Migrazione: `migrations/create_user_credit_usage.sql`. RLS: SELECT solo propri record; INSERT/UPDATE solo service role.
+- **Servizio:** `lib/creditService.js` – `getCurrentPeriodKey()` (UTC), `recordUsage()`, `getCurrentUsage()` (con fallback al mese precedente se periodo corrente senza riga).
+- **API:** GET `/api/credits/usage` – Bearer obbligatorio; restituisce period_key, credits_used, credits_included, overage, percent_used.
+- **UI:** `components/CreditsBar.jsx` in dashboard; fetch con cache: 'no-store'; i18n in `lib/i18n.js`.
+- **Documentazione completa:** `docs/SISTEMA_CREDITI_AI.md`.

@@ -142,6 +142,7 @@ export default function MatchDetailPage() {
       }
 
       const extractData = await extractRes.json()
+      if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('credits-consumed'))
 
       // 2. Aggiorna match
       const updateRes = await fetch('/api/supabase/update-match', {
@@ -239,6 +240,7 @@ export default function MatchDetailPage() {
       if (!summary) {
         throw new Error(t('noSummaryGenerated'))
       }
+      if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('credits-consumed'))
 
       // Salva riassunto nel match
       const updateRes = await fetch('/api/supabase/update-match', {

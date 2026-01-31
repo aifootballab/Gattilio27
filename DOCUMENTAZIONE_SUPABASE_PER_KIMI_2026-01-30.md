@@ -37,6 +37,7 @@ Totale **52 migrazioni**. Ultime in ordine:
 |----------------|-------------------------------|
 | 20260127165114 | fix_weekly_goals_duplicates   |
 | **20260130160300** | **atomic_slot_assignment** (Cursor 30 gen) |
+| **20260131154640** | **create_user_credit_usage** (tabella crediti AI, RLS, trigger updated_at) |
 
 Le migrazioni per trigger cleanup e fix orphan (`fix_individual_instructions_cleanup`, `fix_orphan_individual_instructions`) **non** compaiono in `list_migrations`: sono state applicate a mano (SQL/execute_sql) in precedenza. Trigger e funzioni sono comunque presenti e attivi.
 
@@ -59,6 +60,7 @@ Tutte con **RLS abilitato**.
 | **team_tactical_patterns**     | 6     | PK `id`, UNIQUE `user_id`. FK `user_id` → auth.users |
 | **ai_tasks**                   | 0     | PK `id`. FK `user_id`. CHECK task_type, priority, status, effectiveness_status |
 | **user_ai_knowledge**          | 0     | PK `id`, UNIQUE `user_id`. FK `user_id` → auth.users. CHECK knowledge_score 0–100, knowledge_level |
+| **user_credit_usage**         | (var) | PK `id`. UNIQUE(user_id, period_key). FK `user_id` → auth.users. Crediti consumati per utente/periodo (YYYY-MM UTC). RLS: SELECT propri; INSERT/UPDATE solo service role. |
 | **matches**                    | 27    | PK `id`. FK `user_id`, `opponent_formation_id` → opponent_formations. CHECK photos_uploaded 0–5, data_completeness, credits_used >= 0 |
 | **weekly_goals**               | 31    | PK `id`. FK `user_id` → auth.users. CHECK goal_type, difficulty, status, created_by |
 
@@ -87,6 +89,7 @@ Tutte con **RLS abilitato**.
 | user_ai_knowledge       | trigger_calculate_knowledge_score       | calculate_ai_knowledge_score           |
 | user_profiles           | trigger_calculate_profile_completion    | calculate_profile_completion_score     |
 | user_profiles           | trigger_set_initial_division            | set_initial_division                   |
+| user_credit_usage      | trigger_user_credit_usage_updated_at    | update_user_credit_usage_updated_at   |
 | weekly_goals            | trigger_update_weekly_goals_updated_at  | update_weekly_goals_updated_at         |
 
 ---
@@ -106,6 +109,7 @@ Tutte con **RLS abilitato**.
 | update_opponent_formations_updated_at  | (trigger)                    | updated_at |
 | update_team_tactical_settings_updated_at | (trigger)                  | updated_at |
 | update_updated_at_column               | (trigger)                    | players.updated_at |
+| update_user_credit_usage_updated_at   | (trigger)                    | user_credit_usage.updated_at |
 | update_weekly_goals_updated_at        | (trigger)                    | updated_at |
 
 ---

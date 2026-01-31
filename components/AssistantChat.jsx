@@ -146,7 +146,8 @@ export default function AssistantChat() {
         content: data.response || fallbackNoResponse,
         timestamp: new Date()
       }])
-      
+      if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('credits-consumed'))
+
     } catch (error) {
       console.error('[AssistantChat] Error:', error)
       const { message: friendlyMsg } = mapErrorToUserMessage(error, lang === 'en' ? 'Please try again in a moment!' : 'Riprova tra un attimo!')

@@ -9,7 +9,8 @@ export const dynamic = 'force-dynamic'
 /**
  * GET /api/credits/usage
  *
- * Restituisce l'utilizzo crediti del periodo corrente per l'utente autenticato.
+ * Restituisce l'utilizzo crediti del periodo corrente (o ultimo con dati) per l'utente autenticato.
+ * Doc: docs/SISTEMA_CREDITI_AI.md
  *
  * Response:
  * {
