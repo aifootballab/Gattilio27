@@ -14,15 +14,15 @@ export default function AssistantChat() {
   const [loading, setLoading] = useState(false)
   const [userProfile, setUserProfile] = useState(null)
   const [currentPage, setCurrentPage] = useState('')
+  const [lastSuggestions, setLastSuggestions] = useState([]) // 3 suggerimenti cliccabili dopo ogni risposta
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
   
-  // Quick actions (domande comuni)
-  const quickActions = [
-    { text: t('howToAddMatch') || 'Come carico una partita?', icon: '⚽' },
-    { text: t('howToManageFormation') || 'Come gestisco la formazione?', icon: '🎯' },
-    { text: t('whereAmI') || 'Dove sono?', icon: '📍' },
-    { text: t('whatCanYouDo') || 'Cosa puoi fare?', icon: '💡' }
+  // Tre domande cliccabili all'apertura chat (prima volta)
+  const initialSuggestions = [
+    t('howToAddMatch') || 'Come carico una partita?',
+    t('howToManageFormation') || 'Come gestisco la formazione?',
+    (lang === 'en' ? 'What\'s my difficulty in matches?' : 'Qual è la mia difficoltà nelle partite?')
   ]
   
   // Carica profilo utente al mount
@@ -85,6 +85,7 @@ export default function AssistantChat() {
     const userMessage = messageText.trim()
     setInput('')
     setLoading(true)
+    setLastSuggestions([]) // nascondi suggerimenti precedenti mentre carica
     
     // Aggiungi messaggio utente
     setMessages(prev => [...prev, { role: 'user', content: userMessage }])
@@ -335,17 +336,17 @@ export default function AssistantChat() {
         <div ref={messagesEndRef} />
       </div>
       
-      {/* Quick Actions */}
+      {/* Suggerimenti: 3 domande cliccabili (iniziali o dopo ogni risposta) */}
       {messages.length === 0 && (
         <div style={{ padding: '12px 16px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
           <div style={{ fontSize: '12px', opacity: 0.7, marginBottom: '8px' }}>
-            💡 Suggerimenti rapidi:
+            💡 {lang === 'en' ? 'Suggested questions:' : 'Domande suggerite:'}
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-            {quickActions.map((action, idx) => (
+            {initialSuggestions.map((text, idx) => (
               <button
                 key={idx}
-                onClick={() => handleQuickAction(action.text)}
+                onClick={() => handleQuickAction(text)}
                 style={{
                   padding: '6px 12px',
                   background: 'rgba(0, 212, 255, 0.1)',
@@ -365,7 +366,42 @@ export default function AssistantChat() {
                   e.currentTarget.style.transform = 'scale(1)'
                 }}
               >
-                {action.icon} {action.text}
+                {text}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      {messages.length > 0 && lastSuggestions.length > 0 && (
+        <div style={{ padding: '12px 16px', borderTop: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.3)' }}>
+          <div style={{ fontSize: '12px', opacity: 0.7, marginBottom: '8px' }}>
+            💡 {lang === 'en' ? 'Follow-up:' : 'Altre domande:'}
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+            {lastSuggestions.map((text, idx) => (
+              <button
+                key={idx}
+                onClick={() => handleQuickAction(text)}
+                style={{
+                  padding: '6px 12px',
+                  background: 'rgba(0, 212, 255, 0.1)',
+                  border: '1px solid var(--neon-blue)',
+                  borderRadius: '20px',
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  color: 'white'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(0, 212, 255, 0.2)'
+                  e.currentTarget.style.transform = 'scale(1.05)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(0, 212, 255, 0.1)'
+                  e.currentTarget.style.transform = 'scale(1)'
+                }}
+              >
+                {text}
               </button>
             ))}
           </div>

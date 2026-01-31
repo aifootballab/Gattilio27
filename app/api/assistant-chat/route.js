@@ -58,6 +58,31 @@ function getApiError(key, lang) {
 }
 
 /**
+ * Estrae dal contenuto AI il blocco SUGGERIMENTI (3 domande cliccabili) e restituisce testo pulito + array.
+ * Formato atteso in coda: "---\nSUGGERIMENTI:\n1. ...\n2. ...\n3. ..."
+ * @param {string} content - Testo completo risposta AI
+ * @returns {{ cleanContent: string, suggestions: string[] }}
+ */
+function parseSuggestionsFromContent(content) {
+  if (!content || typeof content !== 'string') return { cleanContent: (content || '').trim(), suggestions: [] }
+  const normalized = content.trim()
+  const suggMarker = 'SUGGERIMENTI:'
+  const idx = normalized.indexOf(suggMarker)
+  if (idx === -1) return { cleanContent: normalized, suggestions: [] }
+  const blockStart = normalized.lastIndexOf('---', idx)
+  const head = blockStart >= 0 ? normalized.slice(0, blockStart).trim() : normalized.slice(0, idx).trim()
+  const tail = normalized.slice(idx + suggMarker.length).trim()
+  const lines = tail.split(/\n/).map(l => l.trim()).filter(Boolean)
+  const suggestions = []
+  for (const line of lines) {
+    const m = line.match(/^\s*[123][.)]\s*(.+)$/)
+    if (m) suggestions.push(m[1].trim())
+    if (suggestions.length >= 3) break
+  }
+  return { cleanContent: head, suggestions: suggestions.slice(0, 3) }
+}
+
+/**
  * Normalizza e valida history conversazione (enterprise: limiti e sanitizzazione).
  * @param {unknown} raw - Array da body (può essere undefined o non-array)
  * @returns {{ role: 'user'|'assistant', content: string }[]}
@@ -511,7 +536,15 @@ F) LINGUAGGIO:
 DOMANDA CLIENTE:
 "${userMessage}"
 
-Rispondi come ${aiName}, in modo personale, amichevole e motivante, usando il nome "${firstName}":`
+Rispondi come ${aiName}, in modo personale, amichevole e motivante, usando il nome "${firstName}".
+
+OBBLIGATORIO - TRE SUGGERIMENTI CLICCABILI: Alla fine della risposta aggiungi SEMPRE un blocco su nuove righe con esattamente questo formato (sostituisci con 3 domande concrete in base al contesto, per guidare il cliente al passo successivo):
+---
+SUGGERIMENTI:
+1. [prima domanda breve e cliccabile]
+2. [seconda domanda breve e cliccabile]
+3. [terza domanda breve e cliccabile]
+Esempi: "Qual è la mia difficoltà nelle partite?", "Consigli sulla formazione", "Chi mettere in panchina?", "Come carico una partita?", "Analizza la mia ultima partita". Non numerare nel testo della risposta; il blocco SUGGERIMENTI va in coda.`
 }
 
 export async function POST(req) {
@@ -522,17 +555,26 @@ export async function POST(req) {
     
     const reqLang = getPreferredLanguageFromRequest(req)
     if (!supabaseUrl || !anonKey) {
-      return NextResponse.json({ error: getApiError('CONFIG_MISSING', reqLang) }, { status: 500 })
+      return NextResponse.json(
+        { error: getApiError('CONFIG_MISSING', reqLang) },
+        { status: 500, headers: { 'Content-Language': reqLang } }
+      )
     }
     
     const token = extractBearerToken(req)
     if (!token) {
-      return NextResponse.json({ error: getApiError('AUTH_REQUIRED', reqLang) }, { status: 401 })
+      return NextResponse.json(
+        { error: getApiError('AUTH_REQUIRED', reqLang) },
+        { status: 401, headers: { 'Content-Language': reqLang } }
+      )
     }
     
     const { userData, error: authError } = await validateToken(token, supabaseUrl, anonKey)
     if (authError || !userData?.user?.id) {
-      return NextResponse.json({ error: getApiError('AUTH_INVALID', reqLang) }, { status: 401 })
+      return NextResponse.json(
+        { error: getApiError('AUTH_INVALID', reqLang) },
+        { status: 401, headers: { 'Content-Language': reqLang } }
+      )
     }
     
     const userId = userData.user.id
@@ -549,12 +591,13 @@ export async function POST(req) {
     if (!rateLimit.allowed) {
       return NextResponse.json(
         { 
-          error: 'Rate limit exceeded. Please try again later.', 
+          error: getApiError('RATE_LIMIT', reqLang), 
           resetAt: rateLimit.resetAt 
         },
         { 
           status: 429,
           headers: {
+            'Content-Language': reqLang,
             'X-RateLimit-Limit': String(rateLimitConfig?.maxRequests ?? 30),
             'X-RateLimit-Remaining': String(rateLimit.remaining),
             'X-RateLimit-Reset': String(rateLimit.resetAt)
@@ -568,40 +611,62 @@ export async function POST(req) {
     try {
       body = await req.json()
     } catch (parseError) {
-      return NextResponse.json({ error: getApiError('BODY_INVALID', reqLang) }, { status: 400 })
+      return NextResponse.json(
+        { error: getApiError('BODY_INVALID', reqLang) },
+        { status: 400, headers: { 'Content-Language': reqLang } }
+      )
     }
     
     const { message: rawMessage, currentPage, appState, language = 'it', history: rawHistory } = body
     const lang = (language === 'en' || language === 'it') ? language : 'it'
 
     if (!rawMessage || typeof rawMessage !== 'string') {
-      return NextResponse.json({ error: getApiError('MESSAGE_REQUIRED', lang) }, { status: 400 })
+      return NextResponse.json(
+        { error: getApiError('MESSAGE_REQUIRED', lang) },
+        { status: 400, headers: { 'Content-Language': lang } }
+      )
     }
     const message = rawMessage.trim()
     if (message.length === 0) {
-      return NextResponse.json({ error: getApiError('MESSAGE_REQUIRED', lang) }, { status: 400 })
+      return NextResponse.json(
+        { error: getApiError('MESSAGE_REQUIRED', lang) },
+        { status: 400, headers: { 'Content-Language': lang } }
+      )
     }
     if (message.length > MAX_MESSAGE_LENGTH) {
-      return NextResponse.json({ error: getApiError('MESSAGE_TOO_LONG', lang) }, { status: 400 })
+      return NextResponse.json(
+        { error: getApiError('MESSAGE_TOO_LONG', lang) },
+        { status: 400, headers: { 'Content-Language': lang } }
+      )
     }
 
     const safeCurrentPage = typeof currentPage === 'string' && currentPage.length > MAX_CURRENT_PAGE_LENGTH
       ? currentPage.slice(0, MAX_CURRENT_PAGE_LENGTH)
       : (currentPage || '')
 
+    // appState: solo chiavi ammesse (sicurezza, evita payload enormi)
+    const allowedAppStateKeys = ['completingMatch', 'viewingMatch', 'managingFormation', 'viewingDashboard']
+    const safeAppState = appState && typeof appState === 'object'
+      ? Object.fromEntries(
+          allowedAppStateKeys
+            .filter(k => Object.prototype.hasOwnProperty.call(appState, k))
+            .map(k => [k, !!appState[k]])
+        )
+      : {}
+
     const history = normalizeHistory(rawHistory)
     
     // Costruisci contesto personale
     let context
     try {
-      context = await buildAssistantContext(userId, safeCurrentPage, appState)
+      context = await buildAssistantContext(userId, safeCurrentPage, safeAppState)
       if (!context) {
         console.warn('[assistant-chat] Context building returned null, using empty context')
-        context = { profile: {}, currentPage: currentPage || '', appState: appState || {} }
+        context = { profile: {}, currentPage: currentPage || '', appState: safeAppState }
       }
     } catch (contextError) {
       console.error('[assistant-chat] Error building context:', contextError)
-      context = { profile: {}, currentPage: currentPage || '', appState: appState || {} }
+      context = { profile: {}, currentPage: currentPage || '', appState: safeAppState }
     }
 
     // RAG eFootball: se la domanda riguarda eFootball, carica sezioni rilevanti da info_rag
@@ -641,7 +706,10 @@ export async function POST(req) {
     // Chiama OpenAI
     const apiKey = process.env.OPENAI_API_KEY
     if (!apiKey) {
-      return NextResponse.json({ error: getApiError('OPENAI_KEY_MISSING', lang) }, { status: 500 })
+      return NextResponse.json(
+        { error: getApiError('OPENAI_KEY_MISSING', lang) },
+        { status: 500, headers: { 'Content-Language': lang } }
+      )
     }
     
     // Usa il modello migliore disponibile
@@ -722,9 +790,11 @@ Piattaforma: solo le 9 funzionalità e path reali (/, /gestione-formazione, /mat
               if (fallbackResponse && fallbackResponse.ok) {
                 const fallbackData = await fallbackResponse.json().catch(() => ({}))
                 const fallbackMsg = lang === 'en' ? "Sorry, I didn't get that. Can you repeat?" : 'Mi dispiace, non ho capito. Puoi ripetere?'
-                const content = fallbackData.choices?.[0]?.message?.content || fallbackMsg
+                const raw = fallbackData.choices?.[0]?.message?.content || fallbackMsg
+                const { cleanContent: fc, suggestions: fs } = parseSuggestionsFromContent(raw)
                 return NextResponse.json({
-                  response: content,
+                  response: fc,
+                  suggestions: Array.isArray(fs) ? fs : [],
                   remaining: rateLimit.remaining,
                   resetAt: rateLimit.resetAt
                 })
@@ -753,16 +823,16 @@ Piattaforma: solo le 9 funzionalità e path reali (/, /gestione-formazione, /mat
     
     // Estrai contenuto con fallback sicuro (doppia lingua)
     const fallbackReply = lang === 'en' ? "Sorry, I didn't get that. Can you repeat?" : 'Mi dispiace, non ho capito. Puoi ripetere?'
-    const content = data?.choices?.[0]?.message?.content ||
-                    data?.choices?.[0]?.content ||
-                    fallbackReply
+    const rawContent = data?.choices?.[0]?.message?.content ||
+                       data?.choices?.[0]?.content ||
+                       fallbackReply
+
+    // Estrai 3 suggerimenti cliccabili dal blocco SUGGERIMENTI (se presente) e pulisci il testo mostrato
+    const { cleanContent, suggestions } = parseSuggestionsFromContent(rawContent)
     
     // Validazione base: verifica che la risposta non contenga riferimenti a funzionalità inventate
-    // (il prompt già previene, ma aggiungiamo controllo extra)
-    // Per ora solo logging, in futuro possiamo aggiungere filtri più sofisticati
-    if (content.toLowerCase().includes('funzionalità non disponibile') || 
-        content.toLowerCase().includes('non è ancora disponibile')) {
-      // OK: AI è onesta su funzionalità inesistente (comportamento corretto)
+    if (cleanContent.toLowerCase().includes('funzionalità non disponibile') || 
+        cleanContent.toLowerCase().includes('non è ancora disponibile')) {
       console.log('[assistant-chat] AI ha ammesso funzionalità non disponibile - comportamento corretto')
     }
 
@@ -775,7 +845,8 @@ Piattaforma: solo le 9 funzionalità e path reali (/, /gestione-formazione, /mat
 
     return NextResponse.json(
       {
-        response: content,
+        response: cleanContent,
+        suggestions: Array.isArray(suggestions) ? suggestions : [],
         remaining: rateLimit.remaining,
         resetAt: rateLimit.resetAt
       },
@@ -787,7 +858,7 @@ Piattaforma: solo le 9 funzionalità e path reali (/, /gestione-formazione, /mat
     const errLang = getPreferredLanguageFromRequest(req)
     return NextResponse.json(
       { error: getApiError('GENERIC_ERROR', errLang) },
-      { status: 500 }
+      { status: 500, headers: { 'Content-Language': errLang } }
     )
   }
 }
