@@ -57,26 +57,46 @@ function getApiError(key, lang) {
   return entry[lang] ?? entry.en
 }
 
+/** Suggerimenti di fallback quando l'AI non restituisce il blocco SUGGERIMENTI (sempre 3 domande cliccabili). */
+function getDefaultSuggestions(lang) {
+  if (lang === 'en') {
+    return [
+      'What\'s my difficulty in matches?',
+      'How do I manage my formation?',
+      'How do I add a match?'
+    ]
+  }
+  return [
+    'Qual è la mia difficoltà nelle partite?',
+    'Come gestisco la formazione?',
+    'Come carico una partita?'
+  ]
+}
+
 /**
  * Estrae dal contenuto AI il blocco SUGGERIMENTI (3 domande cliccabili) e restituisce testo pulito + array.
- * Formato atteso in coda: "---\nSUGGERIMENTI:\n1. ...\n2. ...\n3. ..."
+ * Parser robusto: accetta SUGGERIMENTI:/Suggerimenti:, con "---" opzionale, numerazione 1. 1) - ecc.
  * @param {string} content - Testo completo risposta AI
  * @returns {{ cleanContent: string, suggestions: string[] }}
  */
 function parseSuggestionsFromContent(content) {
   if (!content || typeof content !== 'string') return { cleanContent: (content || '').trim(), suggestions: [] }
   const normalized = content.trim()
-  const suggMarker = 'SUGGERIMENTI:'
-  const idx = normalized.indexOf(suggMarker)
-  if (idx === -1) return { cleanContent: normalized, suggestions: [] }
-  const blockStart = normalized.lastIndexOf('---', idx)
-  const head = blockStart >= 0 ? normalized.slice(0, blockStart).trim() : normalized.slice(0, idx).trim()
-  const tail = normalized.slice(idx + suggMarker.length).trim()
+  const suggMarkerMatch = normalized.match(/\b(SUGGERIMENTI|Suggerimenti)\s*:?\s*/i)
+  const idx = suggMarkerMatch ? normalized.indexOf(suggMarkerMatch[0]) + suggMarkerMatch[0].length : -1
+  if (idx <= 0) return { cleanContent: normalized, suggestions: [] }
+  const beforeMarker = normalized.slice(0, idx - (suggMarkerMatch ? suggMarkerMatch[0].length : 0)).trim()
+  const blockStart = Math.max(beforeMarker.lastIndexOf('---'), beforeMarker.lastIndexOf('\n\n'))
+  const head = blockStart >= 0 ? beforeMarker.slice(0, blockStart).trim() : beforeMarker
+  const tail = normalized.slice(idx).trim()
   const lines = tail.split(/\n/).map(l => l.trim()).filter(Boolean)
   const suggestions = []
   for (const line of lines) {
-    const m = line.match(/^\s*[123][.)]\s*(.+)$/)
-    if (m) suggestions.push(m[1].trim())
+    const m = line.match(/^\s*[123][.)]\s*(.+)$/) || line.match(/^\s*[-•]\s*(.+)$/)
+    if (m) {
+      const text = m[1].trim()
+      if (text.length > 2 && text.length < 120) suggestions.push(text)
+    }
     if (suggestions.length >= 3) break
   }
   return { cleanContent: head, suggestions: suggestions.slice(0, 3) }
@@ -332,7 +352,16 @@ function buildPersonalizedPrompt(userMessage, context, language = 'it', efootbal
     stateContext = 'Sta visualizzando una partita.'
   }
   
-  return `Sei ${aiName}, un coach AI personale e amichevole per eFootball. 
+  const domandaBreve = userMessage.length > 80 ? userMessage.slice(0, 80).trim() + '…' : userMessage
+  const pagina = (context && context.currentPage) ? String(context.currentPage) : ''
+  const contestoAttuale = [
+    pageContext ? pageContext.replace(/^Il cliente\s+/, '').replace(/\.$/, '') : (pagina || 'Dashboard'),
+    `Domanda: "${domandaBreve}"`
+  ].join(' | ')
+
+  return `CONTESTO ATTUALE (usa sempre per rispondere): ${contestoAttuale}
+
+Sei ${aiName}, un coach AI personale e amichevole per eFootball. 
 Il tuo obiettivo è essere un COMPAGNO DI VIAGGIO, non solo un assistente tecnico.
 
 🎯 PERSONALITÀ:
@@ -523,10 +552,10 @@ D) OGNI RISPOSTA OPERATIVA (come fare X):
 - Deve contenere almeno UN passo concreto e verificabile (es. "Vai su Aggiungi Partita nella dashboard", "Clicca sullo slot poi Assegna Giocatore").
 - Quando indichi dove andare, usa SOLO path reali: / (dashboard), /gestione-formazione, /match/new, /contromisure-live, /allenatori, /guida, /impostazioni-profilo.
 
-E) STILI PER RUOLO - RIFERIMENTO RAPIDO:
-- Attaccanti/punte: Istinto di attacante, Opportunista, Ala prolifica, Rapace d'area, Fulcro, Specialista cross, ecc. (NON Collante, Box-to-Box).
-- Centrocampisti: Collante, Box-to-Box, Tra le linee, Regista creativo, Classico 10, ecc. (NON Istinto attacante per ruoli difensivi).
-- Difensori: Difensore distruttore, Frontale extra, Terzino offensivo/difensivo, ecc.
+E) STILI PER RUOLO - RIFERIMENTO RAPIDO (nomi ufficiali eFootball):
+- Attaccanti/punte: Opportunista (nome ufficiale; se chiedono "Cacciatore di gol" o Poacher rispondi "Opportunista"), Istinto di attacante, Ala prolifica, Rapace d'area, Fulcro, Specialista cross (NON Collante, Box-to-Box).
+- Centrocampisti: Classico n° 10 (non "trequartista classico"), Collante, Box-to-Box, Tra le linee, Sviluppo, Regista creativo, Giocatore chiave (NON Istinto attacante per ruoli difensivi).
+- Difensori: Difensore distruttore, Frontale extra, Terzino offensivo/difensivo/mattatore.
 
 F) LINGUAGGIO:
 - Rispondi SEMPRE in ${language === 'it' ? 'italiano' : 'inglese'}. Breve: 4-6 frasi per guide passo-passo, 3-4 per risposte semplici. Max 1-2 emoji.
@@ -720,6 +749,15 @@ export async function POST(req) {
     const systemContent = `Sei un coach AI personale e amichevole per eFootball. Siamo i coach migliori: non sbagliamo. Rispondi in modo empatico, motivante e DECISO. Dai consigli concreti, non vaghi. Usa il nome del cliente quando appropriato.
 LINGUA: Rispondi SEMPRE in ${lang === 'it' ? 'italiano' : 'inglese'} (la richiesta indica la lingua del cliente).
 
+CONTESTO: Il messaggio utente inizia con "CONTESTO ATTUALE" (pagina dove si trova il cliente + domanda). Usa SEMPRE quel contesto per ancorare la risposta e non confondere l'argomento.
+
+OBBLIGATORIO - SUGGERIMENTI: Alla FINE di ogni risposta aggiungi SEMPRE un blocco su nuove righe con esattamente:
+SUGGERIMENTI:
+1. [prima domanda breve]
+2. [seconda domanda breve]
+3. [terza domanda breve]
+Senza questo blocco l'utente non vede i 3 pulsanti cliccabili. Le 3 domande devono essere pertinenti al contesto e al passo successivo per il cliente.
+
 PRIMA DI OGNI RISPOSTA - CHECKLIST:
 1. Funzionalità app: sto citando solo una delle 9 funzionalità reali (Dashboard, Gestione Formazione, Aggiungi Partita, Dettaglio Partita, Dettaglio Giocatore, Impostazioni Profilo, Contromisure Live, Allenatori, Guida)? Se no → "Questa funzionalità non è disponibile, posso aiutarti con [alternativa]".
 2. Rosa/partite/tattica: ho il blocco CONTESTO PERSONALE nel prompt? Se no → non inventare; invita a caricare i dati.
@@ -792,9 +830,10 @@ Piattaforma: solo le 9 funzionalità e path reali (/, /gestione-formazione, /mat
                 const fallbackMsg = lang === 'en' ? "Sorry, I didn't get that. Can you repeat?" : 'Mi dispiace, non ho capito. Puoi ripetere?'
                 const raw = fallbackData.choices?.[0]?.message?.content || fallbackMsg
                 const { cleanContent: fc, suggestions: fs } = parseSuggestionsFromContent(raw)
+                const finalSuggestions = (Array.isArray(fs) && fs.length > 0) ? fs : getDefaultSuggestions(lang)
                 return NextResponse.json({
                   response: fc,
-                  suggestions: Array.isArray(fs) ? fs : [],
+                  suggestions: finalSuggestions,
                   remaining: rateLimit.remaining,
                   resetAt: rateLimit.resetAt
                 })
@@ -843,10 +882,11 @@ Piattaforma: solo le 9 funzionalità e path reali (/, /gestione-formazione, /mat
       await recordUsage(admin, userId, 1, 'assistant-chat')
     }
 
+    const finalSuggestions = (Array.isArray(suggestions) && suggestions.length > 0) ? suggestions : getDefaultSuggestions(lang)
     return NextResponse.json(
       {
         response: cleanContent,
-        suggestions: Array.isArray(suggestions) ? suggestions : [],
+        suggestions: finalSuggestions,
         remaining: rateLimit.remaining,
         resetAt: rateLimit.resetAt
       },

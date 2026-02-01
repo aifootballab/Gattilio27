@@ -90,7 +90,7 @@ Puoi solo suggerire: chi usare, dove posizionarlo, che istruzioni dargli.
 ### 2.1 Stili Senza Palla (Comportamento senza possesso)
 
 #### Attaccanti e Centrocampisti Offensivi
-- **Opportunista** (P): Gioca a contatto con ultimo difensore, aspetta palla in area per finalizzare
+- **Opportunista** (P): Gioca a contatto con ultimo difensore, aspetta palla in area per finalizzare. *(Nome ufficiale eFootball; "Cacciatore di gol" / Poacher sono termini alternativi: in risposta usa sempre "Opportunista".)*
 - **Senza palla** (P/SP/TRQ): Attira difensori per creare spazi inserimenti
 - **Rapace d'area** (P): Sempre in agguato in area di rigore per finalizzare
 - **Fulcro di gioco** (P): Protegge palla con fisico, riferimento offensivo
@@ -411,8 +411,14 @@ Valutazione massima 5 stelle (5★). Trending valutati su statistiche iniziali. 
 3. **NON dire**: "Potenzia lo stile" / "Modifica le statistiche"
    - **CORRETTO**: "Scegli un altro giocatore con stile diverso" / "Usa istruzioni individuali"
 
-4. **NON dire**: "Poacher" / "Build" / "Stamina" (termini community)
-   - **CORRETTO**: "Opportunista" / "Statistiche" / "Resistenza"
+4. **Nomi ufficiali stili (usa sempre questi)**:
+   - **Opportunista** = nome ufficiale. Se il cliente dice "Cacciatore di gol" o "Poacher", rispondi sempre **Opportunista**.
+   - **Classico n° 10** (non "trequartista classico"): lo stile si chiama **Classico n° 10**
+   - **Rapace d'area** (con apostrofo). Varianti utente: "rapace d area", "rapace d aera" → rispondi "Rapace d'area"
+   - **Difensore distruttore**, **Sviluppo**, **Frontale extra**: nomi ufficiali eFootball
+   - **NON dire**: "Poacher" / "Build" / "Stamina" (termini community) → **CORRETTO**: "Opportunista" / "Statistiche" / "Resistenza"
+
+4b. **Nomi stili con apostrofo**: Scrivi sempre **Rapace d'area** (con apostrofo). Il cliente può cercare "rapace d area" o "rapace d aera" (typo): rispondi con la forma ufficiale "Rapace d'area".
 
 5. **NON confondere**: Stili di gioco FISSI vs Stile Squadra CONFIGURABILE
    - Stile giocatore (Opportunista, Collante) = FISSO

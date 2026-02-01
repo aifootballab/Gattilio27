@@ -147,6 +147,7 @@ export default function AssistantChat() {
         content: data.response || fallbackNoResponse,
         timestamp: new Date()
       }])
+      setLastSuggestions(Array.isArray(data.suggestions) ? data.suggestions : [])
       if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('credits-consumed'))
 
     } catch (error) {
