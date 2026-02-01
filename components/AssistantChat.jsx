@@ -286,6 +286,15 @@ export default function AssistantChat() {
             </div>
           </div>
         )}
+        {/* Mostra suggerimenti iniziali anche dopo il saluto (nessun messaggio utente ancora) — no typing */}
+        {(() => {
+          const hasOnlyGreeting = messages.length === 1 && messages[0]?.role === 'assistant'
+          return hasOnlyGreeting && (
+            <div style={{ fontSize: '12px', opacity: 0.7, padding: '4px 0', textAlign: 'center' }}>
+              {lang === 'en' ? 'Ask something or use the suggestions below' : 'Fammi una domanda o usa i suggerimenti qui sotto'}
+            </div>
+          )
+        })()}
         
         {messages.map((msg, idx) => (
           <div
@@ -339,8 +348,11 @@ export default function AssistantChat() {
         <div ref={messagesEndRef} />
       </div>
       
-      {/* Suggerimenti: riquadro collassabile (UX enterprise: colori e bordi coerenti con globals.css) */}
-      {messages.length === 0 && (
+      {/* Suggerimenti: riquadro collassabile. Mostrati all'apertura (0 messaggi) e dopo il saluto iniziale (1 messaggio = solo assistant), senza typing */}
+      {(() => {
+        const showInitialSuggestions = messages.length === 0 || (messages.length === 1 && messages[0]?.role === 'assistant')
+        return showInitialSuggestions
+      })() && (
         <div style={{ borderTop: '1px solid rgba(0, 212, 255, 0.2)', background: 'rgba(0, 0, 0, 0.3)' }}>
           <button
             type="button"
@@ -403,7 +415,7 @@ export default function AssistantChat() {
           )}
         </div>
       )}
-      {messages.length > 0 && lastSuggestions.length > 0 && (
+      {messages.length >= 2 && lastSuggestions.length > 0 && (
         <div style={{ borderTop: '1px solid rgba(0, 212, 255, 0.2)', background: 'rgba(0, 0, 0, 0.3)' }}>
           <button
             type="button"
