@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useTranslation } from '@/lib/i18n'
 import { supabase } from '@/lib/supabaseClient'
-import { Brain, X, Send, Sparkles } from 'lucide-react'
+import { Brain, X, Send, Sparkles, ChevronDown, ChevronUp } from 'lucide-react'
 import { mapErrorToUserMessage } from '@/lib/errorHelper'
 
 export default function AssistantChat() {
@@ -15,6 +15,7 @@ export default function AssistantChat() {
   const [userProfile, setUserProfile] = useState(null)
   const [currentPage, setCurrentPage] = useState('')
   const [lastSuggestions, setLastSuggestions] = useState([]) // 3 suggerimenti cliccabili dopo ogni risposta
+  const [suggestionsExpanded, setSuggestionsExpanded] = useState(false) // riquadro suggerimenti collassato = più spazio chat
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
   
@@ -148,6 +149,7 @@ export default function AssistantChat() {
         timestamp: new Date()
       }])
       setLastSuggestions(Array.isArray(data.suggestions) ? data.suggestions : [])
+      setSuggestionsExpanded(false) // nuove risposta = suggerimenti collassati per non restringere la chat
       if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('credits-consumed'))
 
     } catch (error) {
@@ -337,83 +339,139 @@ export default function AssistantChat() {
         <div ref={messagesEndRef} />
       </div>
       
-      {/* Suggerimenti: 3 domande cliccabili (iniziali o dopo ogni risposta) */}
+      {/* Suggerimenti: riquadro collassabile (UX enterprise: colori e bordi coerenti con globals.css) */}
       {messages.length === 0 && (
-        <div style={{ padding: '12px 16px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-          <div style={{ fontSize: '12px', opacity: 0.7, marginBottom: '8px' }}>
-            💡 {lang === 'en' ? 'Suggested questions:' : 'Domande suggerite:'}
-          </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-            {initialSuggestions.map((text, idx) => (
-              <button
-                key={idx}
-                onClick={() => handleQuickAction(text)}
-                style={{
-                  padding: '6px 12px',
-                  background: 'rgba(0, 212, 255, 0.1)',
-                  border: '1px solid var(--neon-blue)',
-                  borderRadius: '20px',
-                  fontSize: '12px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  color: 'white'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(0, 212, 255, 0.2)'
-                  e.currentTarget.style.transform = 'scale(1.05)'
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'rgba(0, 212, 255, 0.1)'
-                  e.currentTarget.style.transform = 'scale(1)'
-                }}
-              >
-                {text}
-              </button>
-            ))}
-          </div>
+        <div style={{ borderTop: '1px solid rgba(0, 212, 255, 0.2)', background: 'rgba(0, 0, 0, 0.3)' }}>
+          <button
+            type="button"
+            onClick={() => setSuggestionsExpanded(s => !s)}
+            aria-expanded={suggestionsExpanded}
+            aria-label={lang === 'en' ? 'Show or hide suggested questions' : 'Mostra o nascondi domande suggerite'}
+            style={{
+              width: '100%',
+              padding: '8px 12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '8px',
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              color: 'var(--neon-blue)',
+              fontSize: '12px',
+              transition: 'background 0.2s'
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0, 212, 255, 0.08)' }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+            onFocus={(e) => { e.currentTarget.style.outline = '2px solid var(--neon-blue)'; e.currentTarget.style.outlineOffset = '2px' }}
+            onBlur={(e) => { e.currentTarget.style.outline = 'none' }}
+          >
+            <span>💡 {lang === 'en' ? 'Suggested questions (3)' : 'Domande suggerite (3)'}</span>
+            {suggestionsExpanded ? <ChevronUp size={16} color="var(--neon-blue)" /> : <ChevronDown size={16} color="var(--neon-blue)" />}
+          </button>
+          {suggestionsExpanded && (
+            <div style={{ padding: '8px 12px 12px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+              {initialSuggestions.map((text, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => handleQuickAction(text)}
+                  style={{
+                    padding: '6px 12px',
+                    background: 'rgba(0, 212, 255, 0.1)',
+                    border: '1px solid var(--neon-blue)',
+                    borderRadius: '20px',
+                    fontSize: '12px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    color: 'white',
+                    maxWidth: '100%'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(0, 212, 255, 0.2)'
+                    e.currentTarget.style.boxShadow = 'var(--glow-blue)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(0, 212, 255, 0.1)'
+                    e.currentTarget.style.boxShadow = 'none'
+                  }}
+                >
+                  {text}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
       {messages.length > 0 && lastSuggestions.length > 0 && (
-        <div style={{ padding: '12px 16px', borderTop: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.3)' }}>
-          <div style={{ fontSize: '12px', opacity: 0.7, marginBottom: '8px' }}>
-            💡 {lang === 'en' ? 'Follow-up:' : 'Altre domande:'}
-          </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-            {lastSuggestions.map((text, idx) => (
-              <button
-                key={idx}
-                onClick={() => handleQuickAction(text)}
-                style={{
-                  padding: '6px 12px',
-                  background: 'rgba(0, 212, 255, 0.1)',
-                  border: '1px solid var(--neon-blue)',
-                  borderRadius: '20px',
-                  fontSize: '12px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  color: 'white'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(0, 212, 255, 0.2)'
-                  e.currentTarget.style.transform = 'scale(1.05)'
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'rgba(0, 212, 255, 0.1)'
-                  e.currentTarget.style.transform = 'scale(1)'
-                }}
-              >
-                {text}
-              </button>
-            ))}
-          </div>
+        <div style={{ borderTop: '1px solid rgba(0, 212, 255, 0.2)', background: 'rgba(0, 0, 0, 0.3)' }}>
+          <button
+            type="button"
+            onClick={() => setSuggestionsExpanded(s => !s)}
+            aria-expanded={suggestionsExpanded}
+            aria-label={lang === 'en' ? 'Show or hide follow-up questions' : 'Mostra o nascondi altre domande'}
+            style={{
+              width: '100%',
+              padding: '8px 12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '8px',
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              color: 'var(--neon-blue)',
+              fontSize: '12px',
+              transition: 'background 0.2s'
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0, 212, 255, 0.08)' }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+            onFocus={(e) => { e.currentTarget.style.outline = '2px solid var(--neon-blue)'; e.currentTarget.style.outlineOffset = '2px' }}
+            onBlur={(e) => { e.currentTarget.style.outline = 'none' }}
+          >
+            <span>💡 {lang === 'en' ? 'Follow-up (3)' : 'Altre domande (3)'}</span>
+            {suggestionsExpanded ? <ChevronUp size={16} color="var(--neon-blue)" /> : <ChevronDown size={16} color="var(--neon-blue)" />}
+          </button>
+          {suggestionsExpanded && (
+            <div style={{ padding: '8px 12px 12px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+              {lastSuggestions.map((text, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => handleQuickAction(text)}
+                  style={{
+                    padding: '6px 12px',
+                    background: 'rgba(0, 212, 255, 0.1)',
+                    border: '1px solid var(--neon-blue)',
+                    borderRadius: '20px',
+                    fontSize: '12px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    color: 'white',
+                    maxWidth: '100%'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(0, 212, 255, 0.2)'
+                    e.currentTarget.style.boxShadow = 'var(--glow-blue)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(0, 212, 255, 0.1)'
+                    e.currentTarget.style.boxShadow = 'none'
+                  }}
+                >
+                  {text}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
       
-      {/* Input */}
+      {/* Input (bordo coerente con area messaggi e suggerimenti) */}
       <div
         style={{
           padding: '16px',
-          borderTop: '1px solid rgba(255,255,255,0.1)',
+          borderTop: '1px solid rgba(0, 212, 255, 0.2)',
           display: 'flex',
           gap: '8px',
           background: 'rgba(0, 0, 0, 0.5)'

@@ -567,13 +567,19 @@ DOMANDA CLIENTE:
 
 Rispondi come ${aiName}, in modo personale, amichevole e motivante, usando il nome "${firstName}".
 
-OBBLIGATORIO - TRE SUGGERIMENTI CLICCABILI: Alla fine della risposta aggiungi SEMPRE un blocco su nuove righe con esattamente questo formato (sostituisci con 3 domande concrete in base al contesto, per guidare il cliente al passo successivo):
+OBBLIGATORIO - TRE SUGGERIMENTI SULLO STESSO ARGOMENTO:
+Le 3 domande in coda devono restare TUTTE sullo STESSO argomento della tua risposta e della conversazione. Nessuna deve cambiare tema.
+- (a) Una che approfondisce qualcosa di ciò che hai appena detto
+- (b) Una sul passo successivo pratico (cosa fare dopo, stesso tema)
+- (c) Una ancora sullo stesso tema (variante o dettaglio collegato)
+VIETATO: proporre una domanda sulla formazione, una su "come carico una partita" e una su "qual è la mia difficoltà" insieme (sono tre argomenti diversi). OBBLIGATORIO: se parli di formazione → le 3 domande sono tutte su formazione/rosa/modulo/sostituzioni; se parli di partita → le 3 su partita/analisi/wizard/riassunto; se parli di stili → le 3 su stili/ruoli/allenatore. Un solo argomento per risposta.
+Formato obbligatorio in coda:
 ---
 SUGGERIMENTI:
-1. [prima domanda breve e cliccabile]
-2. [seconda domanda breve e cliccabile]
-3. [terza domanda breve e cliccabile]
-Esempi: "Qual è la mia difficoltà nelle partite?", "Consigli sulla formazione", "Chi mettere in panchina?", "Come carico una partita?", "Analizza la mia ultima partita". Non numerare nel testo della risposta; il blocco SUGGERIMENTI va in coda.`
+1. [domanda 1, stesso argomento]
+2. [domanda 2, stesso argomento]
+3. [domanda 3, stesso argomento]
+Non numerare nel testo della risposta; il blocco SUGGERIMENTI va solo in coda.`
 }
 
 export async function POST(req) {
@@ -751,12 +757,12 @@ LINGUA: Rispondi SEMPRE in ${lang === 'it' ? 'italiano' : 'inglese'} (la richies
 
 CONTESTO: Il messaggio utente inizia con "CONTESTO ATTUALE" (pagina dove si trova il cliente + domanda). Usa SEMPRE quel contesto per ancorare la risposta e non confondere l'argomento.
 
-OBBLIGATORIO - SUGGERIMENTI: Alla FINE di ogni risposta aggiungi SEMPRE un blocco su nuove righe con esattamente:
-SUGGERIMENTI:
-1. [prima domanda breve]
-2. [seconda domanda breve]
-3. [terza domanda breve]
-Senza questo blocco l'utente non vede i 3 pulsanti cliccabili. Le 3 domande devono essere pertinenti al contesto e al passo successivo per il cliente.
+OBBLIGATORIO - SUGGERIMENTI SULLO STESSO ARGOMENTO: Alla FINE di ogni risposta aggiungi SEMPRE il blocco SUGGERIMENTI con 3 domande. Regola fondamentale:
+- TUTTE E 3 le domande devono restare sullo STESSO argomento della risposta. VIETATO mescolare: una su formazione, una su partita, una su difficoltà (tre temi diversi). Una sola risposta = un solo tema = tre domande su quel tema.
+- Se parli di formazione → le 3 domande sono tutte su formazione/rosa/modulo/sostituzioni (es. "Chi metto in panchina?", "Quale modulo con questa rosa?", "Come vedo le competenze delle riserve?").
+- Se parli di partita → le 3 su partita/wizard/analisi (es. "Come estraggo le pagelle?", "Cosa fare se manca uno step?", "Dove vedo il riassunto?").
+- Se parli di stili/ruoli → le 3 su stili/allenatore/competenze. Un solo argomento per risposta.
+Formato: su nuove righe, SUGGERIMENTI: poi 1. ... 2. ... 3. ... Senza questo blocco l'utente non vede i pulsanti.
 
 PRIMA DI OGNI RISPOSTA - CHECKLIST:
 1. Funzionalità app: sto citando solo una delle 9 funzionalità reali (Dashboard, Gestione Formazione, Aggiungi Partita, Dettaglio Partita, Dettaglio Giocatore, Impostazioni Profilo, Contromisure Live, Allenatori, Guida)? Se no → "Questa funzionalità non è disponibile, posso aiutarti con [alternativa]".
