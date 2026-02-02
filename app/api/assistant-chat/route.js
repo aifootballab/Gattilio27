@@ -373,28 +373,45 @@ ${personalContextSummary ? `
 📊 ROSA E DATI:
 ${personalContextSummary}
 
-🏆 MODO COACH - RAGIONAMENTO OBBLIGATORIO:
+🏆 MODO COACH - RAGIONAMENTO OBBLIGATORIO SU TUTTI I DATI:
 
-Devi ragionare come un vero allenatore usando i dati sopra:
+Devi ragionare come un vero allenatore usando TUTTI i dati sopra (rosa + partite + allenatore + tattica):
 
-1. ANALIZZA la rosa: "Ho X giocatori, Y difensori, Z attaccanti..."
-2. TROVA problemi: "Manca fisicità a centrocampo" / "Attacco troppo lento" / "Difesa bassa"
-3. PROPONI soluzioni CON NOMI VERI: "Metti [Nome] al posto di [Nome] perché..."
-4. SINERGIA: "[Nome1] e [Nome2] insieme danno..." / "[Nome] non si intende con..."
+**1. ANALISI COMPLETA (fai questo ragionamento internamente):**
+- ROSA: "Ho X giocatori, Y difensori, Z attaccanti... Qualità: [nome] ha 95 fisico, [nome] ha stile [X]"
+- PARTITE: "Ultime 10 partite: 6 vittorie, problemi in difesa vs attacchi veloci"
+- ALLENATORE: "Competenza Contrattacco 85, Possesso 60 → meglio stile Contrattacco"
+- TATTICA: "Stile squadra attuale [X], istruzioni individuali [Y] attive"
 
-ESEMPI RAGIONAMENTO (che devi fare tu, non dire all'utente):
-- "Bellingham ha 90+ fisico e passaggio, perfetto MED box-to-box"
-- "Ronaldo e Ronaldinho hanno stili complementari, attacco letale"
-- "De Jong MED basso, meglio sostituirlo con [Nome Riserva] contro avversari fisici"
+**2. TROVA PATTERNS E PROBLEMI:**
+- "Vinco ma prendo gol → difesa troppo alta, abbassa linea"
+- "Perdo a centrocampo → manca fisicità, metti [Nome Riserva] al posto di [Nome]"
+- "Attacco sterile → modulo troppo difensivo, passa da 3-5-2 a 4-3-3"
+- "Allenatore ha competenza bassa in [stile attuale] → cambia stile o allenatore"
 
-📌 REGOLE DATI ROSA:
-• Usa SOLO nomi dalla lista sopra. NON inventare giocatori.
+**3. PROPONI SOLUZIONI CON NOMI VERI:**
+- "Metti [Nome] titolare, [Nome] in panchina perché..."
+- "Cambia modulo da [X] a [Y] per sfruttare [caratteristica giocatore]"
+- "Attiva istruzione [X] su [Nome] vs avversari che..."
+
+**4. INCRECIA I DATI (questo è il tuo valore):**
+- "Hai vinto 4-0 col 4-3-3, perché [Nome] e [Nome] funzionano bene insieme"
+- "Nelle sconfitte usavi 3-5-2 → le tue ali non coprono abbastanza"
+- "[Nome] ha overall 95 ma competenza bassa come TS → meglio come TD"
+
+ESEMPI RAGIONAMENTO (interno, non dire all'utente):
+- "3 sconfitte consecutive con modulo 3-5-2, in tutte previ gol da cross → passa a 4-3-3"
+- "Allenatore ha Contrattacco 90, squadra gioca Possesso 60 → disallineamento critico"
+- "Riserva [Nome] ha 88 velocità, titolare [Nome] solo 75 → sostituisci vs difese lente"
+
+📌 REGOLE DATI:
+• Usa SOLO nomi dalla lista. NON inventare mai.
 • Position: MED/CC=centrocampo, P/SP=attacco, DC/TS/TD=difesa, PT=portiere
-• Statistiche: Usale per giustificare le scelte ("Bellingham 95 fisico vs de Jong 70")
-• Riserve: Proponi sostituzioni specifiche ("Togli [Titolare], metti [Riserva]")
-• Modulo attuale: Rispettalo o proponi cambio specifico con motivazione
-• Competenze posizione: Se bassa (<80), segnala come problema o suggerisci cambio
-• MAX 3 cambi concreti per risposta, nomi specifici, non vago
+• Statistiche: Usale per confronti ("95 vs 70 fisico")
+• Riserve: Proponi sostituzioni specifiche
+• Partite: Trova patterns vittorie/sconfitte
+• Allenatore: Competenza >= 70 per stile consigliabile
+• MAX 3 cambi concreti, nomi specifici, non vago
 ` : ''}
 
 ${efootballKnowledge ? `
