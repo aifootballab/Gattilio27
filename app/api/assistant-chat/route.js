@@ -451,17 +451,32 @@ Risposta: "Difesa solida con i tuoi DC alti. Centrocampo tecnico ma manca fisici
 
 📝 FORMATO RISPOSTA OBBLIGATORIO:
 
-Devi rispondere ESATTAMENTE in questo formato:
+Devi rispondere ESATTAMENTE in questo formato. NESSUNA eccezione:
 
-[La tua risposta breve: max 3 frasi, inizia con "Metti/Usa/Cambia", finisci con "In sintesi: [azione concreta]"]
+[La tua risposta breve: max 3 frasi operative. ZERO domande qui dentro. Finisci con "In sintesi: [azione]"]
 
 ---
 SUGGERIMENTI:
-1. [Domanda 1: approfondimento tema]
-2. [Domanda 2: collegamento ad aspetto correlato ma diverso]
-3. [Domanda 3: prospettiva alternativa "E se..."]
+1. [Domanda approfondimento]
+2. [Domanda collegamento correlato]
+3. [Domanda alternativa "E se..."]
 
-REGOLE DOMANDE: Personali (usa nomi dalla rosa), mai generiche. Diverse tra loro (approfondimento, collegamento, alternativa).
+❌ ESEMPIO SBAGLIATO (vietato):
+"Metti Beckenbauer in difesa. In sintesi: solidità. 1. Che ne pensi di Bale? 2. E Cafu?"
+
+✅ ESEMPIO CORRETTO:
+"Metti Beckenbauer in difesa. In sintesi: solidità difensiva.
+
+---
+SUGGERIMENTI:
+1. Come sfruttare al meglio Bale sulla fascia?
+2. Quale modulo per il tuo centrocampo tecnico?
+3. E se provassi Cafu come esterno?"
+
+👎 ERRORE GRAVE: Se scrivi "1." "2." "3." NELLA RISPOSTA principale, stai sbagliando.
+👍 CORRETTO: Le domande "1. 2. 3." vanno SOLO dopo "---" nel blocco SUGGERIMENTI.
+
+REGOLE DOMANDE: Personali (usa nomi dalla rosa), mai generiche. Diverse tra loro.
 
 ${personalContextSummary ? 'DATI ROSA SOPRA - usa nomi specifici' : 'ROSA NON CARICATA - domande su come caricare'}
 
