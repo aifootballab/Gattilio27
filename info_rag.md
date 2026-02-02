@@ -92,8 +92,10 @@ Puoi solo suggerire: chi usare, dove posizionarlo, che istruzioni dargli.
 
 #### Attaccanti e Centrocampisti Offensivi
 - **Opportunista** (P): Gioca a contatto con ultimo difensore, aspetta palla in area per finalizzare. *(Nome ufficiale eFootball; "Cacciatore di gol" / Poacher sono termini alternativi: in risposta usa sempre "Opportunista".)*
-- **Senza palla** (P/SP/TRQ): Attira difensori per creare spazi inserimenti
-- **Rapace d'area** (P): Sempre in agguato in area di rigore per finalizzare
+- **Punta avanzata** (P/SP): Punta che si inserisce in profondità, corre negli spazi per creare occasioni. *(Adv. Striker)*
+- **Senza palla** (P/SP/TRQ): Attira difensori per creare spazi inserimenti. *(Dummy Runner)*
+- **Rapace d'area** (P): Sempre in agguato in area di rigore per finalizzare. *(Fox in the Box)*
+- **Punta arretrata** (P/SP/TRQ): Arretra in mezzo al campo per impostare, contribuisce alla costruzione. *(Deep-Lying Forward)*
 - **Fulcro di gioco** (P): Protegge palla con fisico, riferimento offensivo
 - **Specialista di cross** (EDA/ESA/CLD/CLS): Resta sulla fascia per crossare
 - **Classico n° 10** (SP/TRQ): Playmaker, avvia attacchi, minimizza sforzo difensivo
@@ -103,9 +105,10 @@ Puoi solo suggerire: chi usare, dove posizionarlo, che istruzioni dargli.
 
 #### Centrocampisti e Difensori
 - **Tra le linee** (CC/MED): Rimane arretrato, pronto a lanciare azioni offensive
-- **Sviluppo** (CC/MED/DC): Arretra per impostare azione con lanci lunghi
-- **Frontale extra** (DC): Partecipa a manovra offensiva, si sovrappone
+- **Sviluppo** (CC/MED/DC): Arretra per impostare azione con lanci lunghi. *(Orchestrator, Build Up)*
+- **Frontale extra** (DC): Partecipa a manovra offensiva, si sovrappone. *(Extra Frontman)*
 - **Incontrista** (CC/MED/DC): Respinge attacchi con pressing aggressivo
+- **Box-to-Box** (CC/MED): Corre da area a area, partecipa in fase difensiva e offensiva
 - **Onnipresente** (CLD/CLS/CC/MED): Corre su tutto il campo, copre ogni zona
 - **Collante** (MED): Centrocampista arretrato davanti difesa, utile difesa/attacco
 - **Giocatore chiave** (SP/TRQ/CLD/CLS/CC): Fiuto del gol, sempre proiettato avanti
@@ -420,9 +423,10 @@ Valutazione massima 5 stelle (5★). Trending valutati su statistiche iniziali. 
 
 4. **Nomi ufficiali stili (usa sempre questi)**:
    - **Opportunista** = nome ufficiale. Se il cliente dice "Cacciatore di gol" o "Poacher", rispondi sempre **Opportunista**.
+   - **Punta avanzata** (non "Adv. Striker" in risposta IT). **Punta arretrata** (Deep-Lying Forward).
    - **Classico n° 10** (non "trequartista classico"): lo stile si chiama **Classico n° 10**
    - **Rapace d'area** (con apostrofo). Varianti utente: "rapace d area", "rapace d aera" → rispondi "Rapace d'area"
-   - **Difensore distruttore**, **Sviluppo**, **Frontale extra**: nomi ufficiali eFootball
+   - **Sviluppo**, **Frontale extra**, **Incontrista**: nomi ufficiali eFootball. NON usare "Costruttore" o "Difensore distruttore" (traduzioni errate). **Box-to-Box** e **Onnipresente** sono stili distinti.
    - **NON dire**: "Poacher" / "Build" / "Stamina" (termini community) → **CORRETTO**: "Opportunista" / "Statistiche" / "Resistenza"
 
 4b. **Nomi stili con apostrofo**: Scrivi sempre **Rapace d'area** (con apostrofo). Il cliente può cercare "rapace d area" o "rapace d aera" (typo): rispondi con la forma ufficiale "Rapace d'area".

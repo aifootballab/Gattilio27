@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { useTranslation } from '@/lib/i18n'
 import { supabase } from '@/lib/supabaseClient'
 import { Brain, X, Send, Sparkles, ChevronDown, ChevronUp } from 'lucide-react'
@@ -19,12 +19,24 @@ export default function AssistantChat() {
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
   
-  // Tre domande cliccabili all'apertura chat (prima volta)
-  const initialSuggestions = [
-    t('howToAddMatch') || 'Come carico una partita?',
-    t('howToManageFormation') || 'Come gestisco la formazione?',
-    (lang === 'en' ? 'What\'s my difficulty in matches?' : 'Qual è la mia difficoltà nelle partite?')
-  ]
+  // Suggerimenti contestuali alla pagina (domande coerenti con il perimetro: formazione, rosa, partite, meccaniche, app)
+  const initialSuggestions = useMemo(() => {
+    const page = (currentPage || '').toLowerCase()
+    if (lang === 'en') {
+      if (page.includes('gestione-formazione')) return ['Which formation for my roster?', 'How do I load players from screenshots?', 'What individual instructions for my starters?']
+      if (page.includes('match/new')) return ['How does the match upload wizard work?', 'What do I need for post-match analysis?', 'Where do I find ratings in the screenshot?']
+      if (page.includes('match/') && !page.includes('new')) return ['Why did I lose this match?', 'What changes for the next one?', 'How do I read the AI analysis?']
+      if (page.includes('contromisure')) return ['How do I prepare before the match?', 'Which formation against 4-3-3?', 'What countermeasures for high pressing?']
+      if (page.includes('allenatori')) return ['How do I choose the active coach?', 'What skills for my playstyle?', 'Does the coach affect formation?']
+      return [t('howToAddMatch') || 'How do I add a match?', t('howToManageFormation') || 'How do I manage the formation?', "What's my difficulty in matches?"]
+    }
+    if (page.includes('gestione-formazione')) return ['Quale modulo per la mia rosa?', 'Come carico i giocatori da screenshot?', 'Quali istruzioni individuali per i miei titolari?']
+    if (page.includes('match/new')) return ['Come funziona il wizard per caricare una partita?', "Cosa serve per l'analisi post-partita?", 'Dove trovo le pagelle nello screenshot?']
+    if (page.includes('match/') && !page.includes('new')) return ['Perché ho perso questa partita?', 'Quali cambi fare per la prossima?', "Come leggo l'analisi AI?"]
+    if (page.includes('contromisure')) return ['Come preparo la squadra prima della partita?', 'Quale formazione contro il 4-3-3?', 'Quali contromisure per il pressing alto?']
+    if (page.includes('allenatori')) return ['Come scelgo l\'allenatore attivo?', 'Quali competenze servono per il mio stile?', "L'allenatore influenza la formazione?"]
+    return [t('howToAddMatch') || 'Come carico una partita?', t('howToManageFormation') || 'Come gestisco la formazione?', 'Qual è la mia difficoltà nelle partite?']
+  }, [currentPage, lang, t])
   
   // Carica profilo utente al mount
   useEffect(() => {
