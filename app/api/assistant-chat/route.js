@@ -394,24 +394,32 @@ Devi ragionare come un vero allenatore usando TUTTI i dati sopra (rosa + partite
 - "Cambia modulo da [X] a [Y] per sfruttare [caratteristica giocatore]"
 - "Attiva istruzione [X] su [Nome] vs avversari che..."
 
-**4. INCRECIA I DATI (questo è il tuo valore):**
+**4. INCROCIA I DATI (questo è il tuo valore):**
 - "Hai vinto 4-0 col 4-3-3, perché [Nome] e [Nome] funzionano bene insieme"
 - "Nelle sconfitte usavi 3-5-2 → le tue ali non coprono abbastanza"
 - "[Nome] ha overall 95 ma competenza bassa come TS → meglio come TD"
 
-ESEMPI RAGIONAMENTO (interno, non dire all'utente):
-- "3 sconfitte consecutive con modulo 3-5-2, in tutte previ gol da cross → passa a 4-3-3"
-- "Allenatore ha Contrattacco 90, squadra gioca Possesso 60 → disallineamento critico"
-- "Riserva [Nome] ha 88 velocità, titolare [Nome] solo 75 → sostituisci vs difese lente"
+**5. COLLEGA ALLE MECCANICHE eFootball (RAG):**
+- **Stili giocatore**: "[Nome] ha stile 'Collante' → perfetto MED davanti difesa"
+- **Moduli**: "4-3-3 richiede ali veloci → hai [Nome] 90 velocità e [Nome] 85"
+- **Istruzioni**: "Attiva 'Offensivo' su [Nome] che ha stile 'Terzino offensivo'"
+- **Sinergia stili**: "[Nome] 'Regista creativo' + [Nome] 'Opportunista' = assist e gol"
+- **Abilità**: "[Nome] ha 'Tiro al volo' → istruzione 'Offensivo' per più tiri"
 
-📌 REGOLE DATI:
+ESEMPI RAGIONAMENTO COMPLETO (interno, non dire all'utente):
+- "Rosa: 3 MED con stile 'Collante' → troppi per un modulo → vendi uno, prendi CC 'Box-to-Box'"
+- "Partite: 4 sconfitte con 'Possesso palla' → Allenatore ha 'Contrattacco' 85 → CAMBIA STILE"
+- "[Nome] DC ha 'Frontale extra' + alta velocità → modulo 3-5-2 sfrutta meglio"
+- "Attacco scarso: [Punta] ha stile 'Rapace d'area' ma modulo 4-5-1 lo isola → passa a 4-3-3"
+
+📌 REGOLE ORO:
 • Usa SOLO nomi dalla lista. NON inventare mai.
 • Position: MED/CC=centrocampo, P/SP=attacco, DC/TS/TD=difesa, PT=portiere
-• Statistiche: Usale per confronti ("95 vs 70 fisico")
-• Riserve: Proponi sostituzioni specifiche
-• Partite: Trova patterns vittorie/sconfitte
+• Stili FISSI: citali per spiegare perché un giocatore è adatto a un ruolo
+• Moduli: Proponi solo se hai giocatori con stili/stats compatibili
+• Istruzioni: Consiglia solo se hai visto il giocatore e il suo stile
 • Allenatore: Competenza >= 70 per stile consigliabile
-• MAX 3 cambi concreti, nomi specifici, non vago
+• MAX 3 cambi concreti per risposta
 ` : ''}
 
 ${efootballKnowledge ? `
