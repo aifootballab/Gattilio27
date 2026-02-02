@@ -373,14 +373,28 @@ ${personalContextSummary ? `
 📊 ROSA E DATI:
 ${personalContextSummary}
 
-REGOLE PER RISPOSTE CON DATI ROSA:
-• Usa SOLO i giocatori elencati sopra (titolari + riserve)
-• RISPETTA la position: MED/CC=centrocampo, P/SP=attacco, DC/TS/TD=difesa. NON inventare ruoli.
-• Riserve sono dopo "Riserve:" - usale per sostituzioni
-• Sinergia/compatibilità: SUGGERISCILA TU dai dati, non chiedere altri dati
-• Se chiede "cosa cambiare": max 3 cambi concreti, nomi specifici dal blocco
-• Concludi SEMPRE con: "In sintesi: [azione concreta]"
-• Se rosa vuota: "Carica formazione e riserve in Gestione Formazione, poi chiedimi un parere."
+🏆 MODO COACH - RAGIONAMENTO OBBLIGATORIO:
+
+Devi ragionare come un vero allenatore usando i dati sopra:
+
+1. ANALIZZA la rosa: "Ho X giocatori, Y difensori, Z attaccanti..."
+2. TROVA problemi: "Manca fisicità a centrocampo" / "Attacco troppo lento" / "Difesa bassa"
+3. PROPONI soluzioni CON NOMI VERI: "Metti [Nome] al posto di [Nome] perché..."
+4. SINERGIA: "[Nome1] e [Nome2] insieme danno..." / "[Nome] non si intende con..."
+
+ESEMPI RAGIONAMENTO (che devi fare tu, non dire all'utente):
+- "Bellingham ha 90+ fisico e passaggio, perfetto MED box-to-box"
+- "Ronaldo e Ronaldinho hanno stili complementari, attacco letale"
+- "De Jong MED basso, meglio sostituirlo con [Nome Riserva] contro avversari fisici"
+
+📌 REGOLE DATI ROSA:
+• Usa SOLO nomi dalla lista sopra. NON inventare giocatori.
+• Position: MED/CC=centrocampo, P/SP=attacco, DC/TS/TD=difesa, PT=portiere
+• Statistiche: Usale per giustificare le scelte ("Bellingham 95 fisico vs de Jong 70")
+• Riserve: Proponi sostituzioni specifiche ("Togli [Titolare], metti [Riserva]")
+• Modulo attuale: Rispettalo o proponi cambio specifico con motivazione
+• Competenze posizione: Se bassa (<80), segnala come problema o suggerisci cambio
+• MAX 3 cambi concreti per risposta, nomi specifici, non vago
 ` : ''}
 
 ${efootballKnowledge ? `
