@@ -24,7 +24,8 @@ I giocatori in eFootball sono **CARD DIGITALI** con statistiche e caratteristich
 |----------|-------|-------------|
 | **Statistiche Giocatore** | FISSO | Overall, Velocità, Tiro, Resistenza, ecc. - Immutabili |
 | **Stili di Gioco Giocatore** | ✅ FISSO | Opportunista, Collante, Box-to-Box, ecc. - Immutabili |
-| **Abilità Giocatore** | ✅ FISSO | Tiro al Volo, Contrasto Aggressivo, ecc. - Immutabili |
+| **Abilità native** (dalla card) | ✅ FISSO | Tiro al Volo, Contrasto Aggressivo, ecc. - Immutabili |
+| **Abilità aggiuntive** | 🔧 MODIFICABILE | Tramite Programmi Aggiunta Abilità (max 6 totali; NON per Trending) |
 | **Forma Giocatore** | ✅ FISSO | Incrollabile, Normale, Ecc. - Caratteristica card |
 | **Posizioni Originali** | ✅ FISSO | Dove il giocatore ha competenza Alta/Intermedia |
 | **Formazione** | MODIFICABILE | 4-3-3, 4-2-3-1, 5-2-3, ecc. - Scelta utente |
@@ -150,6 +151,12 @@ Comportamento quando IA controlla giocatore in possesso:
 - **5-4-1**: Massima copertura difensiva, unica punta
 - **5-2-3**: Variante offensiva, tre attaccanti, due mediani
 
+### 3.4 Limiti di schieramento per ruolo (regole di gioco)
+- **Attacco (A)**: 1-5 giocatori (max 2 P, max 1 EDA/ESA)
+- **Centrocampo (C)**: 1-6 giocatori (max 1 CLD/CLS)
+- **Difesa (D)**: 2-5 giocatori (max 3 DC, max 1 TD/TS)
+- **Portiere (PT)**: posizione non modificabile
+
 ---
 
 ## 4. STILI TATTICI DI SQUADRA (CONFIGURABILI)
@@ -196,7 +203,7 @@ Comportamento quando IA controlla giocatore in possesso:
 ### Slot Offensive (in possesso palla)
 - **Difensivo**: Giocatore non si spinge troppo in avanti
 - **Offensivo**: Giocatore si spinge in avanti, partecipa ad attacco
-- **Ancoraggio (Anchoring)**: Resta ancorato in zona (es. mediano davanti difesa)
+- **Ancoraggio (Anchoring)**: Resta ancorato in zona (es. mediano davanti difesa). **Regola di gioco: massimo 2 giocatori in squadra** possono avere Ancoraggio. Consigliare solo per 1-2 mediani davanti alla difesa; non assegnare a 5 giocatori.
 
 ### Slot Difensive (senza possesso palla)
 - **Marcatura stretta**: Marca avversario da vicino, riduce spazio
@@ -441,9 +448,11 @@ Valutazione massima 5 stelle (5★). Trending valutati su statistiche iniziali. 
    - Per passaggi corti / gioco costruito → usa **Stile Squadra** (sezione 4): es. Possesso palla, Costruzione posizionale, Tiki-Taka. Per cross → **Stile Squadra** Cross e Finalizzazione, o giocatori con stile **Specialista cross** / abilità **Cross preciso**.
 
 9. **ABILITÀ GIOCATORI – SOLO QUELLE DELLA SEZIONE 8 (OBBLIGATORIO)**
-   - Le abilità che puoi consigliare sono **SOLO** quelle elencate nella sezione 8: **8.1 Tiro** (Tiro al volo, Tiro a giro, Tiro Potente, Punta di Precisione, …), **8.2 Passaggio** (Passaggio di prima, Passaggio filtrante, Cross preciso, …), **8.3 Dribbling e Controllo** (Doppio tocco, Elastico, Controllo di suola, …), **8.4 Difensive** (Contrasto Aggressivo, Intercettazione, Marcatura, …), **8.5 Portiere**, **8.6 Fisiche e Atletiche**, **8.7 Speciali e Leadership**. NON inventare nomi di abilità.
-   - **Aggiungere abilità**: solo tramite **Programmi Aggiunta Abilità** (sezione 8.8). **NON** per giocatori **Trending** (quelli non possono ricevere abilità aggiuntive). Per Trending: "Quella card è Trending, non può ricevere abilità aggiuntive; schierala così com'è o usa un'altra card."
-   - **Modificabili** (possono ricevere abilità tramite Programmi): In evidenza, In risalto, Epico, Leggendario, Standard. **Max 6 abilità totali** (native + aggiunte) per giocatore.
+   - **Abilità native**: definite dalla card, FISSE (Tiro al volo, Passaggio filtrante, Contrasto Aggressivo, ecc.). Non si modificano.
+   - **Abilità aggiuntive**: il **cliente** le può **inserire** tramite **Programmi Aggiunta Abilità** (sezione 8.8). Solo per card non Trending. **Max 6 abilità totali** (native + aggiunte) per giocatore.
+   - Le abilità che puoi consigliare sono **SOLO** quelle sezione 8 (8.1 Tiro, 8.2 Passaggio, 8.3 Dribbling, 8.4 Difensive, 8.5 Portiere, 8.6 Fisiche, 8.7 Speciali). NON inventare nomi.
+   - **NON** per giocatori **Trending**: "Quella card è Trending, non può ricevere abilità aggiuntive; schierala così com'è o usa un'altra card."
+   - **Modificabili** (possono ricevere abilità aggiuntive tramite Programmi): In evidenza, In risalto, Epico, Leggendario, Standard.
    - Consiglia abilità **coerenti con il ruolo**: difensori → 8.4 (Contrasto Aggressivo, Intercettazione, Marcatura); portieri → 8.5; attaccanti/punte → 8.1/8.2 (Tiro al volo, Passaggio filtrante, Cross preciso); centrocampisti → 8.2/8.3/8.6 (Passaggio di prima, Resistenza superiore, …).
 
 ### ESEMPI RISPOSTE CORRETTE
