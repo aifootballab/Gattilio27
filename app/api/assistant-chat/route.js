@@ -449,59 +449,29 @@ Risposta: "Difesa solida con i tuoi DC alti. Centrocampo tecnico ma manca fisici
 ⚽ LINGUAGGIO COACH:
 "buildato", "competenza posizione", "profilazione", "slot", "titolare/riserva"
 
-DOMANDA: "${userMessage}"
+📝 FORMATO RISPOSTA OBBLIGATORIO:
 
-Rispondi come ${aiName} in ${language === 'it' ? 'italiano' : 'inglese'}. Max 3 frasi + In sintesi.
+Devi rispondere ESATTAMENTE in questo formato:
+
+[La tua risposta breve: max 3 frasi, inizia con "Metti/Usa/Cambia", finisci con "In sintesi: [azione concreta]"]
 
 ---
-SUGGERIMENTI (3 domande che esplorano diversi angoli):
+SUGGERIMENTI:
+1. [Domanda 1: approfondimento tema]
+2. [Domanda 2: collegamento ad aspetto correlato ma diverso]
+3. [Domanda 3: prospettiva alternativa "E se..."]
 
-🎯 REGOLA PER LE DOMANDE SUGGERITE:
-Le 3 domande devono essere PERSONALIZZATE sui dati del cliente (rosa, partite, tattica), NON generiche.
+REGOLE DOMANDE: Personali (usa nomi dalla rosa), mai generiche. Diverse tra loro (approfondimento, collegamento, alternativa).
 
-STRUTTURA OBBLIGATORIA:
-1. DOMANDA A: Approfondimento sul tema appena trattato (stesso argomento)
-2. DOMANDA B: Collegamento a un aspetto CORRELATO ma DIVERSO (es: da modulo → a giocatori specifici della rosa; da tattica → a partite recenti; da singolo giocatore → a sinergia con compagni)
-3. DOMANDA C: Prospettiva alternativa o "E se..." (sfida, cambio di approccio, ipotesi diversa)
+${personalContextSummary ? 'DATI ROSA SOPRA - usa nomi specifici' : 'ROSA NON CARICATA - domande su come caricare'}
 
-${personalContextSummary ? `
-📊 USA I DATI ROSA PER PERSONALIZZARE:
-Titolari elencati sopra → cita nomi specifici nelle domande
-Riserve elencate → suggerisci sostituzioni concrete
-Partite caricate → collega a risultati recenti
-Allenatore → collega a competenze stili
-` : '\n📊 SE NON HAI DATI ROSA: domande su come caricarli\n'}
+ISTRUZIONI INDIVIDUALI - Non suggerire se non sei sicuro.
 
-🚫 VIETATO:
-• Domande generiche: "Che ne pensi del mio centrocampo?" (troppo vaga)
-• Tre domande sullo stesso identico argomento (tutte su modulo, o tutte su stili)
-• Domande che ignorano completamente i dati disponibili
+DOMANDA CLIENTE: "${userMessage}"
 
-✅ ESEMPI CORRETTI (con dati rosa):
+Rispondi come ${aiName} in ${language === 'it' ? 'italiano' : 'inglese'}. Segui il formato sopra.
 
-Se hai parlato di MODULO 4-3-3:
-1. "Passo alla difesa: i miei DC hanno abbastanza fisicità per questo modulo?" ← collega a giocatori specifici
-2. "Vedo che hai Messi SP. Conviene metterlo al centro o spostarlo sulla fascia?" ← nome specifico dalla rosa
-3. "E se provassi 4-2-3-1 per dare più copertura a centrocampo?" ← prospettiva alternativa
-
-Se hai parlato di SOSTITUZIONI:
-1. "Chi altro dovrei valutare in panchina per il centrocampo?" ← approfondimento
-2. "La mia difesa ha tenuto nelle ultime partite o serve rinforzo?" ← collega a partite recenti
-3. "E se inverto le ali? La mia ESA destra può giocare a sinistra?" ← ipotesi diversa
-
-ISTRUZIONI INDIVIDUALI - REGOLA FERREA:
-• NON suggerire istruzioni "a caso"
-• Ogni istruzione deve essere COERENTE con:
-  - Ruolo del giocatore (non tutte le istruzioni esistono per tutti i ruoli)
-  - Stile di gioco del giocatore
-  - Posizione in campo
-• Se non sei SICURO che un'istruzione esista per quel ruolo, NON proporla
-• Preferibile: NON menzionare istruzioni individuali se non hai certezza al 100%
-
-DOMANDE:
-1. 
-2. 
-3. `
+`
 }
 
 export async function POST(req) {
