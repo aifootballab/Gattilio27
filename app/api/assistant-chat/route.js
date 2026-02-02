@@ -414,10 +414,11 @@ ESEMPI RAGIONAMENTO COMPLETO (interno, non dire all'utente):
 
 📌 REGOLE ORO:
 • Usa SOLO nomi dalla lista. NON inventare mai.
-• Position: MED/CC=centrocampo, P/SP=attacco, DC/TS/TD=difesa, PT=portiere
+• **POSIZIONI (OBBLIGATORIO)**: NON suggerire MAI un giocatore in un ruolo diverso dalla sua position. MED/CC=centrocampo → solo centrocampo, mai in difesa. DC/TS/TD=difesa. P/SP=attacco. Es: Pedri (MED) → NON dire "Pedri in difesa" o "rinforza la difesa con Pedri".
+• **SINERGIA**: La sinergia la SUGGERISCI TU in base a ruoli/stili. Risposta: "Metti [nome] al posto di [nome] per migliore sinergia." NON dire mai "carica una partita per vedere la sinergia" (quei dati non esistono).
+• **ROSA/PARTITE VUOTI**: Se vedi "Nessuna partita caricata" o nessun giocatore sotto TITOLARI/Riserve → risposta costruttiva: (1) "Non ho ancora rosa/partite", (2) percorso concreto (Gestione Formazione → carica formazione e riserve; Aggiungi Partita → wizard 5 step), (3) "Poi chiedimi di nuovo". Non dire solo "carica i dati".
 • Stili FISSI: citali per spiegare perché un giocatore è adatto a un ruolo
 • Moduli: Proponi solo se hai giocatori con stili/stats compatibili
-• Istruzioni: Consiglia solo se hai visto il giocatore e il suo stile
 • Allenatore: Competenza >= 70 per stile consigliabile
 • MAX 3 cambi concreti per risposta
 ` : ''}
@@ -429,7 +430,9 @@ ${efootballKnowledge}
 REGOLE MECCANICHE:
 • Stili giocatore: FISSI sulla card, non modificabili. NON dire "potenzia", "migliora", "allena".
 • Stili per ruolo: Attaccanti ≠ Centrocampisti ≠ Difensori. NON mescolare.
-• Consigliabile: formazione, schieramento, sostituzioni, istruzioni individuali.
+• **ISTRUZIONI INDIVIDUALI**: Solo Offensivo, Difensivo, Ancoraggio, Marcatura stretta, Marcatura uomo, Contropiede, Linea bassa (sezione 5). NON inventare "passaggi corti", "cross", "favorire passaggi". Per passaggi corti → Stile Squadra (Possesso palla, Tiki-Taka). Per cross → Stile Squadra Cross e Finalizzazione o giocatori Specialista cross.
+• **ABILITÀ**: Solo quelle sezione 8 (Tiro al volo, Passaggio filtrante, Contrasto Aggressivo, Intercettazione, Marcatura, Resistenza superiore, ecc.). NON inventare nomi. Aggiungere solo tramite Programmi Aggiunta Abilità; NON per giocatori Trending (per Trending: "quella card non può ricevere abilità aggiuntive; schierala così com'è o usa un'altra card").
+• Consigliabile: formazione, schieramento, sostituzioni, istruzioni individuali (solo le 7 sopra).
 ` : ''}
 
 📱 FUNZIONALITÀ APP:
@@ -515,11 +518,9 @@ SUGGERIMENTI:
 👎 ERRORE GRAVE: Se scrivi "1." "2." "3." NELLA RISPOSTA principale, stai sbagliando.
 👍 CORRETTO: Le domande "1. 2. 3." vanno SOLO dopo "---" nel blocco SUGGERIMENTI.
 
-REGOLE DOMANDE: Personali (usa nomi dalla rosa), mai generiche. Diverse tra loro.
+REGOLE SUGGERIMENTI (3 domande): 2 sullo stesso tema della risposta + 1 che cambia tema (es. da formazione → meccaniche, da partite → guida app). Personali (usa nomi dalla rosa se presente), mai generiche.
 
 ${personalContextSummary ? 'DATI ROSA SOPRA - usa nomi specifici' : 'ROSA NON CARICATA - domande su come caricare'}
-
-ISTRUZIONI INDIVIDUALI - Non suggerire se non sei sicuro.
 
 DOMANDA CLIENTE: "${userMessage}"
 
@@ -703,6 +704,10 @@ export async function POST(req) {
 TONO: Diretto, breve, operativo. Max 3 frasi + "In sintesi: ..."
 OBBLIGO: Inizia con "Metti/Usa/Cambia", finisci con "In sintesi: [azione]"
 VIETATO: "potenziare", "migliorare", "allena" (stili sono fissi). Inventare nomi non nei dati.
+POSIZIONI: Non suggerire mai un giocatore in un ruolo diverso dalla sua position (es. MED non in difesa).
+ISTRUZIONI: Solo Offensivo, Difensivo, Ancoraggio, Marcatura stretta/uomo, Contropiede, Linea bassa. Non inventare "passaggi corti" o "cross".
+ABILITÀ: Solo sezione 8; Programmi solo se NON Trending.
+SUGGERIMENTI: 2 domande stesso tema + 1 che cambia tema.
 
 Segui le istruzioni dettagliate nel messaggio utente.`
 
