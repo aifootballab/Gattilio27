@@ -1,9 +1,9 @@
 # 📚 Indice Documentazione - eFootball AI Coach
 
-**Ultimo aggiornamento**: 2026-01-29
+**Ultimo aggiornamento**: 2026-02-02
 
 Questo indice elenca **solo i documenti mantenuti** e coerenti con il codice attuale.  
-I documenti storici/temporanei (piani, check “completato”, fix deploy, pre-implementazione) sono stati rimossi per evitare confusione: restano recuperabili via Git history.
+Mappatura **codice ↔ documentazione**: vedi **`docs/AUDIT_ENTERPRISE_2026.md`**.
 
 ---
 
@@ -13,51 +13,91 @@ I documenti storici/temporanei (piani, check “completato”, fix deploy, pre-i
 - **Quando usarlo**: overview prodotto, setup, lista endpoint principali.
 
 ### **2) `DOCUMENTAZIONE_MASTER_COMPLETA.md`**
-- **Quando usarlo**: reference tecnica “ampia” (architettura + DB + API + flussi). Aggiornata 29 gen 2026: Assistant Chat, contesto personale, stili fissi, RAG, lib/ragHelper.
+- **Quando usarlo**: reference tecnica “ampia” (architettura + DB + API + flussi).
 
 ### **3) `DOCUMENTAZIONE_RIFERIMENTO.md`**
 - **Quando usarlo**: riferimento rapido per programmatore (ogni pagina, API, componente, lib) e per chi legge (cosa fa ogni schermata). Contesto e glossario.
 
 ---
 
+## 🤖 Assistant Chat, RAG e prompt
+
+### **4) `DOCUMENTAZIONE_GUIDA_INTERATTIVA.md`**
+- **Quando usarlo**: Assistant Chat (architettura, flusso, `route.js`, `AssistantChat.jsx`).
+
+### **5) `info_rag.md`**
+- **Quando usarlo**: contenuto RAG eFootball (usato da `lib/ragHelper.js`). Modifiche qui si riflettono nelle risposte IA.
+
+### **6) `PIANO_INTEGRAZIONE_RAG_E_PROMPT.md`**
+- **Quando usarlo**: cosa va in RAG vs prompt, checklist integrazioni, gestione system/user.
+
+### **7) `COERENZA_FOCUS_BILINGUE_E_RISPOSTA_IA.md`**
+- **Quando usarlo**: focus prodotto, bilingue IT/EN, come deve rispondere l’IA, cosa non deve dire.
+
+### **8) `CHIAREZZA_GIOCATORI_E_DOCUMENTAZIONE.md`**
+- **Quando usarlo**: regola “solo rosa cliente” (l’IA cita solo i giocatori caricati dall’utente).
+
+### **9) `INTEGRAZIONE_ROSA_CHAT_PERSONALIZZATA.md`**
+- **Quando usarlo**: contesto personale (rosa, partite, tattica, allenatore) caricato on-demand in chat.
+
+### **10) `MEMORIA_ATTILA_BRAINSTORM.md`** e **`CONTENUTI_INTERNET_DA_INTEGRARE.md`**
+- **Quando usarlo**: memoria brainstorm e backlog contenuti (non usati a runtime dall’API).
+
+---
+
 ## 🧠 Barra Conoscenza IA
 
-### **4) `PROGETTAZIONE_BARRA_CONOSCENZA_IA.md`**
+### **11) `PROGETTAZIONE_BARRA_CONOSCENZA_IA.md`**
 - **Quando usarlo**: come viene calcolata e aggiornata la barra in produzione.
-- **Nota**: include i comportamenti reali (pattern da `team_tactical_patterns`, aggiornamento sequenziale dopo save/update match, cache 5 min).
 
 ---
 
 ## ✅ Task / Obiettivi Settimanali
 
-### **5) `DOCUMENTAZIONE_TASK_SISTEMA.md`**
+### **12) `DOCUMENTAZIONE_TASK_SISTEMA.md`**
 - **Quando usarlo**: reference completa (DB, API, helper, troubleshooting).
 
-### **5) `GUIDA_SVILUPPATORI_TASK.md`**
+### **13) `GUIDA_SVILUPPATORI_TASK.md`**
 - **Quando usarlo**: quick-start e guida pratica per estendere il sistema task.
 
 ---
 
-## 🧩 UX: formazione / drag-drop / assistente
+## 🧩 UX: formazione / drag-drop / gestione rosa
 
-### **7) `DOCUMENTAZIONE_DRAG_DROP.md`**
+### **14) `DOCUMENTAZIONE_DRAG_DROP.md`**
 - **Quando usarlo**: drag & drop posizioni, salvataggio layout, edge cases.
 
-### **8) `DOCUMENTAZIONE_GUIDA_INTERATTIVA.md`**
-- **Quando usarlo**: Assistant Chat (prompting, auth, rate limit, flusso UX).
+### **15) `docs/GESTIONE_ROSA_FUNZIONI.md`**
+- **Quando usarlo**: documentazione gestione formazione divisa per funzione (fetchData, handleSlotClick, handleAssignFromReserve, upload, ecc.). Ogni funzione con API, input, stato.
 
 ---
 
-## 🔌 Supabase / sicurezza
+## 🔌 Supabase / sicurezza / crediti / design
 
-### **9) `VERIFICA_ENTERPRISE_SUPABASE.md`**
+### **16) `VERIFICA_ENTERPRISE_SUPABASE.md`**
 - **Quando usarlo**: audit sicurezza/coerenza Supabase (RLS, pattern auth, service role).
 
+### **17) Documenti in `docs/`**
+- **`docs/SISTEMA_CREDITI_AI.md`** – Sistema crediti e barra.
+- **`docs/COSTI_API_E_PRICING_CREDITI.md`** – Costi API e pricing.
+- **`docs/DESIGN_UNIFICATO_FOTO_GIOCATORE.md`** – Design foto giocatore.
+- **`docs/CHECK_COERENZA_CREDITI_END_TO_END.md`** – Check coerenza crediti.
+- **`docs/AUDIT_ENTERPRISE_2026.md`** – Audit doc, verifica API↔codice, mappatura.
+- **`docs/PALETTI_IA_COERENZA.md`** – Paletti IA (chat, analyze-match, contromisure).
+- **`docs/INTEGRAZIONI_RAG_MANCANTI_DETTAGLIO.md`** – Integrazioni RAG da completare.
+- **`docs/VERIFICA_STILI_EFOOTBALL.md`** – Verifica stili di gioco vs fonti.
+
 ---
 
-## 📝 Convenzioni (snelle)
+## 🧪 Test
 
-- **Fonte di verità**: `README.md` + `DOCUMENTAZIONE_MASTER_COMPLETA.md` + `DOCUMENTAZIONE_RIFERIMENTO.md` (riferimento rapido pagine/API/componenti/lib)
-- **Doc feature**: un solo documento “attivo” per feature (no piani duplicati)
-- **Documenti storici**: non mantenuti; usare Git history se serve
+### **18) `TEST_GUIDE_CLOUD.md`**, **`TEST_CHAT_ASSISTANT.md`**
+- **Quando usarlo**: guide per test cloud e chat assistant.
 
+---
+
+## 📝 Convenzioni
+
+- **Fonte di verità**: `README.md` + `DOCUMENTAZIONE_MASTER_COMPLETA.md` + `DOCUMENTAZIONE_RIFERIMENTO.md`.
+- **Codice ↔ doc**: un solo documento “attivo” per feature; vedi **`docs/AUDIT_ENTERPRISE_2026.md`** per la mappatura completa.
+- **Documenti storici**: non mantenuti; usare Git history se serve.

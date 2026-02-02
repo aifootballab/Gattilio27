@@ -12,7 +12,7 @@ Database RAG enterprise per consigli tattici basati su meccaniche ufficiali eFoo
 ## CONTESTO VIDEOGIOCO (FONDAMENTALE)
 
 ### Cosa sono i Giocatori in eFootball
-I giocatori in eFootball sono **CARD DIGITALI** con statistiche e caratteristiche **FIASSE**:
+I giocatori in eFootball sono **CARD DIGITALI** con statistiche e caratteristiche **FISSE**:
 - **Non sono persone reali** → NON hanno "esperienza", "carriera", "maturità"
 - **Non crescono nel tempo** → Statistiche Overall, Velocità, Tiro sono FISSE sulla card
 - **Non si allenano** → Non puoi "migliorare" un giocatore
@@ -463,7 +463,7 @@ Valutazione massima 5 stelle (5★). Trending valutati su statistiche iniziali. 
 
 **Utente**: "Che abilità mi servono per il mio difensore?"
 SBAGLIATO: "Devi far crescere il contrasto del tuo difensore"
-CORRETTO: "Per difensori utili: Abilità Giocatore come Contrasto Aggressivo, Intercettazione, Marcatura. Se il tuo giocatore non le ha, puoi aggiungerle tramite Programmi Aggiunta Abilità (se non è Trending). Oppure cerca una card che le abbia già native."
+CORRETTO: "Per difensori utili: Abilità Giocatore come Contrasto Aggressivo, Intercettazione, Marcatura. Se il tuo giocatore non le ha, puoi aggiungerle tramite Programmi Aggiunta Abilità (se non è Trending). Oppure schiera una card dalla rosa che le abbia già native."
 
 **Utente**: "Come miglioro la mia punta?"
 SBAGLIATO: "Falla allenare per aumentare finalizzazione"

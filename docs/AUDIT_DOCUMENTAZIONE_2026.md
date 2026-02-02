@@ -4,6 +4,10 @@ Documento unico che classifica i file `.md` e mappa **codice ↔ documentazione*
 
 ---
 
+**Nota**: Sostituito da `docs/AUDIT_ENTERPRISE_2026.md` (audit Feb 2026). Questo file mantiene la mappatura storica.
+
+---
+
 ## 1. Mappatura codice ↔ documentazione
 
 | Codice / funzione | Documento di riferimento |

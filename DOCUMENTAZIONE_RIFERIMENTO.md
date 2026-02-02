@@ -64,14 +64,15 @@ Documento unico di riferimento rapido: **per il programmatore** (file, funzioni,
 | POST | `/api/supabase/delete-match` | match_id | success/error |
 | POST | `/api/supabase/save-profile` | profilo | success/error |
 | POST | `/api/supabase/save-formation-layout` | formation, slot_positions | success/error |
-| POST | `/api/supabase/assign-player-to-slot` | player_id, slot_index | success/error |
-| POST | `/api/supabase/remove-player-from-slot` | player_id | success/error |
-| POST | `/api/supabase/delete-player` | player_id | success/error |
+| PATCH | `/api/supabase/assign-player-to-slot` | player_id, slot_index | success/error |
+| PATCH | `/api/supabase/remove-player-from-slot` | player_id | success/error |
+| DELETE | `/api/supabase/delete-player` | player_id (body) | success/error |
 | POST | `/api/supabase/save-coach` | dati allenatore | success/error |
 | POST | `/api/supabase/set-active-coach` | coach_id | success/error |
 | POST | `/api/supabase/save-tactical-settings` | team_playing_style, individual_instructions | success/error |
 | POST | `/api/supabase/save-opponent-formation` | dati formazione avversaria | success/error |
 | POST | `/api/admin/recalculate-patterns` | (admin) | ricalcolo pattern tattici |
+| GET | `/api/credits/usage` | (Bearer) | usage crediti utente |
 
 ---
 
@@ -126,14 +127,20 @@ Documento unico di riferimento rapido: **per il programmatore** (file, funzioni,
 
 ---
 
-## 7. Dove trovare cosa
+## 7. Dove trovare cosa (codice ↔ documentazione)
 
+- **Indice e mappatura codice ↔ doc**: `INDICE_DOCUMENTAZIONE.md`, `docs/AUDIT_DOCUMENTAZIONE_2026.md`
 - **Architettura e flussi completi**: `DOCUMENTAZIONE_MASTER_COMPLETA.md`
 - **Setup e overview**: `README.md`
-- **Indice documenti**: `INDICE_DOCUMENTAZIONE.md`
-- **Chat e contesto personale**: `INTEGRAZIONE_ROSA_CHAT_PERSONALIZZATA.md`, `COSA_FARE_CHAT_GUIDA.md`
-- **Knowledge eFootball (per RAG)**: `info_rag.md`
+- **Assistant Chat (route, prompt, flusso)**: `DOCUMENTAZIONE_GUIDA_INTERATTIVA.md`
+- **Contesto personale in chat**: `INTEGRAZIONE_ROSA_CHAT_PERSONALIZZATA.md`
+- **RAG eFootball (contenuto)**: `info_rag.md` (usato da `lib/ragHelper.js`)
+- **RAG vs prompt, checklist**: `PIANO_INTEGRAZIONE_RAG_E_PROMPT.md`
+- **Focus prodotto, bilingue, risposta IA**: `COERENZA_FOCUS_BILINGUE_E_RISPOSTA_IA.md`
+- **Solo rosa cliente**: `CHIAREZZA_GIOCATORI_E_DOCUMENTAZIONE.md`
 - **Task/obiettivi**: `DOCUMENTAZIONE_TASK_SISTEMA.md`, `GUIDA_SVILUPPATORI_TASK.md`
 - **Drag & drop formazione**: `DOCUMENTAZIONE_DRAG_DROP.md`
+- **Gestione rosa (per funzione)**: `docs/GESTIONE_ROSA_FUNZIONI.md`
 - **Barra conoscenza IA**: `PROGETTAZIONE_BARRA_CONOSCENZA_IA.md`
 - **Sicurezza Supabase**: `VERIFICA_ENTERPRISE_SUPABASE.md`
+- **Crediti e design**: `docs/SISTEMA_CREDITI_AI.md`, `docs/COSTI_API_E_PRICING_CREDITI.md`, `docs/DESIGN_UNIFICATO_FOTO_GIOCATORE.md`

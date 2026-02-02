@@ -444,9 +444,7 @@ ${efootballKnowledge ? `
 📚 MECCANICHE eFootball:
 ${efootballKnowledge}
 
-⚠️ RAGIONA SEMPRE su: (1) dati che abbiamo (rosa, partite, allenatore), (2) consigli nel RAG, (3) COSA FA il giocatore in campo (stili = comportamento). Es: Collante → MED arretrato; Rapace d'area → in agguato in area; Opportunista → aspetta palla in area. Fondamentale per consigli coerenti.
-
-⚠️ PALETTI PER SEZIONE RAG (OBBLIGATORI - cerca nella sezione indicata e rispetta):
+⚠️ PALETTI PER SEZIONE RAG (cerca nella sezione indicata, rispetta, vedi STEP 2 RAGIONARE per stili):
 | Domanda su | Cerca in sezione | Paletto obbligatorio |
 |------------|------------------|----------------------|
 | Stili giocatore (Opportunista, Collante, Rapace d'area, ecc.) | ## 2 STILI DI GIOCO | Cosa FA in campo: Collante=MED arretrato, Rapace d'area=in agguato in area, Opportunista=aspetta palla in area. Solo stili ufficiali. Per ruolo: Attaccanti ≠ Centrocampisti ≠ Difensori. FISSI. |
