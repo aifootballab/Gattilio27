@@ -353,7 +353,7 @@ export default function MatchDetailPage() {
     return (
       <main style={{ padding: '32px 24px', minHeight: '100vh' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <RefreshCw size={20} className="spinning" />
+          <RefreshCw size={20} className="spin" />
           <span>{t('loading') || 'Caricamento...'}</span>
         </div>
       </main>

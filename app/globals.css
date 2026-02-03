@@ -396,61 +396,6 @@ body > * {
   color: var(--neon-purple);
 }
 
-/* Progress Bars with Glow */
-.progress-glow {
-  height: 8px;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 4px;
-  overflow: hidden;
-  position: relative;
-}
-
-.progress-glow::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-  background: linear-gradient(90deg, var(--neon-blue), var(--neon-cyan));
-  box-shadow: 0 0 10px rgba(0, 212, 255, 0.6);
-  transition: width 0.3s ease;
-}
-
-/* Player Card Futuristic */
-.player-card-futuristic {
-  background: linear-gradient(135deg, rgba(10, 14, 39, 0.9), rgba(26, 26, 62, 0.9));
-  border: 2px solid var(--neon-blue);
-  border-radius: 20px;
-  padding: 24px;
-  position: relative;
-  overflow: hidden;
-  backdrop-filter: blur(20px);
-  box-shadow: var(--glow-blue);
-  transition: all 0.4s ease;
-}
-
-.player-card-futuristic::before {
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(circle, rgba(0, 212, 255, 0.1) 0%, transparent 70%);
-  animation: pulse 4s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 0.3; transform: scale(1); }
-  50% { opacity: 0.6; transform: scale(1.1); }
-}
-
-.player-card-futuristic:hover {
-  transform: translateY(-8px) scale(1.02);
-  box-shadow: 0 0 40px rgba(0, 212, 255, 0.6), 0 0 80px rgba(0, 212, 255, 0.3);
-  border-color: var(--neon-cyan);
-}
-
 /* Completeness Badge */
 .completeness-badge {
   display: inline-flex;
@@ -798,10 +743,4 @@ body > * {
 
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 107, 53, 0.7);
-}
-
-/* Autocomplete Input Animation */
-@keyframes spin {
-  0% { transform: translateY(-50%) rotate(0deg); }
-  100% { transform: translateY(-50%) rotate(360deg); }
 }
