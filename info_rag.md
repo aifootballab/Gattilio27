@@ -84,9 +84,11 @@ Puoi solo suggerire: chi usare, dove posizionarlo, che istruzioni dargli.
 
 ---
 
-## 2. STILI DI GIOCO DEI GIOCATORI (UFFICIALI - FISSI)
+## 2. STILI GIOCATORE - Caratteristica card (FISSI)
 
-**IMPORTANTE**: Gli stili di gioco sono **CARATTERISTICHE FISSE** della card. NON si possono modificare.
+**≠ Stile squadra** (Possesso, Contropiede, ecc.): quello è in §4. Qui solo **caratteristiche FISSE della card**.
+
+**IMPORTANTE**: Gli stili giocatore (Opportunista, Collante, Box-to-Box, ecc.) sono **CARATTERISTICHE FISSE** della card. NON si possono modificare.
 
 ### 2.1 Stili Senza Palla (Comportamento senza possesso)
 
@@ -162,7 +164,9 @@ Comportamento quando IA controlla giocatore in possesso:
 
 ---
 
-## 4. STILI TATTICI DI SQUADRA (CONFIGURABILI)
+## 4. STILI SQUADRA - Tattica (configurabili)
+
+**≠ Stile giocatore** (Opportunista, Collante, ecc.): quello è in §2. Qui solo **stile tattico di squadra** (Possesso, Contropiede, ecc.).
 
 **Definisce direzione tattica squadra. L'attitudine allenatore influenza competenza stile.**
 
@@ -431,9 +435,9 @@ Valutazione massima 5 stelle (5★). Trending valutati su statistiche iniziali. 
 
 4b. **Nomi stili con apostrofo**: Scrivi sempre **Rapace d'area** (con apostrofo). Il cliente può cercare "rapace d area" o "rapace d aera" (typo): rispondi con la forma ufficiale "Rapace d'area".
 
-5. **NON confondere**: Stili di gioco FISSI vs Stile Squadra CONFIGURABILE
-   - Stile giocatore (Opportunista, Collante) = FISSO
-   - Stile squadra (Possesso palla) = CONFIGURABILE
+5. **NON confondere**: Stile giocatore (§2) vs Stile squadra (§4)
+   - **Stile giocatore** (Opportunista, Collante, Box-to-Box) = FISSO, caratteristica card → sez. 2
+   - **Stile squadra** (Possesso palla, Contropiede) = CONFIGURABILE, tattica → sez. 4
 
 6. **NON confondere**: Abilità native vs Abilità aggiungibili
    - Abilità native (con cui nasce) = FISSE

@@ -295,7 +295,7 @@ async function buildPersonalContext(userId) {
     const parts = [
       '╔══════════════════════════════════════════════════════════════════╗',
       '║  CONTESTO PERSONALE CLIENTE - DATI REALI DELLA ROSA             ║',
-      '║  USA QUESTI DATI - NON INVENTARE GIOCATORI - COACH CORREGGE      ║',
+      '║  USA QUESTI DATI - PERSONALIZZA - CITA NOMI REALI - NON GENERICO ║',
       '╚══════════════════════════════════════════════════════════════════╝',
       `Formazione attuale: ${formation}.`,
       '',
@@ -388,7 +388,7 @@ ${personalContextSummary}
 **1. CERCARE** – Dove cercare in base alla domanda:
 - Rosa/consigli/sostituzioni → blocco ROSA E DATI (titolari, riserve, stili, posizioni) + PARTITE + ALLENATORE + TATTICA
 - Regole eFootball (stili, moduli, istruzioni) → blocco MECCANICHE eFootball (se presente): trova la sezione ## corretta
-${efootballKnowledge ? `- Se MECCANICHE presente: stili → ## 2 STILI; moduli → ## 3 MODULI; istruzioni → ## 5; abilità → ## 8; limiti → ## 3.4` : ''}
+${efootballKnowledge ? `- Se MECCANICHE presente: stili giocatore (Opportunista, Collante) → ## 2; stile squadra (Possesso, Contropiede) → ## 4; moduli → ## 3; istruzioni → ## 5; abilità → ## 8; limiti → ## 3.4` : ''}
 
 **2. RAGIONARE** – Gli stili (RAG sez. 2) definiscono COSA FA il giocatore in campo. Es: Collante = MED arretrato; Rapace d'area = in agguato in area; Opportunista = aspetta palla in area; Regista creativo = assist; Terzino offensivo = si unisce all'attacco. Incrocia: rosa + partite, stili + moduli, allenatore + tattica. Solo dati che hai + RAG.
 
@@ -429,6 +429,11 @@ ESEMPI RAGIONAMENTO COMPLETO (interno, non dire all'utente):
 - "[Nome] DC ha 'Frontale extra' + alta velocità → modulo 3-5-2 sfrutta meglio"
 - "Attacco scarso: [Punta] ha stile 'Rapace d'area' ma modulo 4-5-1 lo isola → passa a 4-3-3"
 
+📌 PERSONALIZZAZIONE OBBLIGATORIA (se hai ROSA sopra):
+• Risposta DEVE usare NOMI REALI dalla rosa (titolari/riserve). Mai consigli generici senza citare i giocatori del cliente.
+• Incrocia: rosa + partite + allenatore. Es: "Le tue ultime 3 sconfitte col Possesso → allenatore ha Contrattacco 85, cambia stile." Non: "Usa 4-3-3" senza riferirti ai suoi dati.
+• MAX 3 cambi concreti, ma SPECIFICI (nome giocatore, posizione, motivo legato ai dati).
+
 📌 REGOLE ORO:
 • Usa SOLO nomi dalla lista. NON inventare mai.
 • **POSIZIONE IDEALE (competenze dalla card) vs RUOLO ASSEGNATO (position)**: Se un giocatore ha competenze = CC/MED ma è schierato come DC (o viceversa), CORREGGI: "X è centrocampista (CC) dalla card, non difensore centrale. Meglio schierarlo come CC o cambia ruolo in Gestione Formazione." Siamo noi i coach: non assecondare l\'errore del cliente. Non suggerire mai un giocatore in un ruolo che non compare nelle sue competenze (es. se competenze = solo CC/MED, non metterlo in difesa).
@@ -447,7 +452,7 @@ ${efootballKnowledge}
 ⚠️ PALETTI PER SEZIONE RAG (cerca nella sezione indicata, rispetta, vedi STEP 2 RAGIONARE per stili):
 | Domanda su | Cerca in sezione | Paletto obbligatorio |
 |------------|------------------|----------------------|
-| Stili giocatore (Opportunista, Collante, Rapace d'area, ecc.) | ## 2 STILI DI GIOCO | Cosa FA in campo: Collante=MED arretrato, Rapace d'area=in agguato in area, Opportunista=aspetta palla in area. Solo stili ufficiali. Per ruolo: Attaccanti ≠ Centrocampisti ≠ Difensori. FISSI. |
+| Stili giocatore (Opportunista, Collante, Rapace d'area, ecc.) | ## 2 STILI GIOCATORE | Cosa FA in campo: Collante=MED arretrato, Rapace d'area=in agguato in area, Opportunista=aspetta palla in area. Solo stili ufficiali. Per ruolo: Attaccanti ≠ Centrocampisti ≠ Difensori. FISSI. Stile squadra (Possesso, Contropiede) → ## 4. |
 | Moduli (4-3-3, 4-2-3-1, ecc.) | ## 3 MODULI + ## 3.4 Limiti | Rispetta limiti formazione (max 2 P, max 1 CLD/CLS, ecc.). Incrocia con rosa disponibile. |
 | Stili squadra (Possesso, Contropiede, ecc.) | ## 4 STILI TATTICI | Competenza allenatore >= 70 per suggerire. Mai stile con competenza < 50. |
 | Istruzioni individuali | ## 5 ISTRUZIONI | SOLO: Offensivo, Difensivo, Ancoraggio (max 2), Marcatura stretta/uomo, Contropiede, Linea bassa. NO passaggi corti/cross come istruzioni. |
