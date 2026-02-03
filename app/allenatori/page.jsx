@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { useTranslation } from '@/lib/i18n'
 import LanguageSwitch from '@/components/LanguageSwitch'
 import ConfirmModal from '@/components/ConfirmModal'
-import { ArrowLeft, Upload, AlertCircle, CheckCircle2, X, Trash2, Star, User, Info, Plus } from 'lucide-react'
+import { ArrowLeft, Upload, AlertCircle, CheckCircle2, X, Trash2, Star, Info, Plus } from 'lucide-react'
 
 export default function AllenatoriPage() {
   const { t } = useTranslation()
@@ -813,9 +813,9 @@ export default function AllenatoriPage() {
       {deleteConfirmModal && deleteConfirmModal.show && (
         <ConfirmModal
           show={deleteConfirmModal.show}
-          title={t('confirmDeleteCoachTitle') || 'Conferma Eliminazione'}
-          message={t('confirmDeleteCoachMessage', { coachName: deleteConfirmModal.coachName || '' }) || `Sei sicuro di voler eliminare ${deleteConfirmModal.coachName || ''}?`}
-          details={t('confirmDeleteCoachDetails') || 'Questa azione non può essere annullata.'}
+          title={t('confirmDeleteCoachTitle')}
+          message={deleteConfirmModal.coachName ? `${t('confirmDeleteCoachMessage')} ${deleteConfirmModal.coachName}?` : t('confirmDeleteCoach')}
+          details={t('confirmDeleteCoachDetails')}
           variant="error"
           confirmVariant="danger"
           confirmLabel={t('delete') || 'Elimina'}
