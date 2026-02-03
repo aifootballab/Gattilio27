@@ -14,4 +14,4 @@ Tutti richiedono Bearer token. Rate limit su endpoint critici.
 ## Altri
 - ai-knowledge, tasks/list, tasks/generate, credits/usage, admin/recalculate-patterns
 
-Doc: docs/GUIDA_VALIDAZIONE_PROGRAMMATORE.md
+Doc: docs/GUIDA_VALIDAZIONE_PROGRAMMATORE.md, docs/VERIFICA_SUPABASE_END_TO_END.md

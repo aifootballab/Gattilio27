@@ -8,7 +8,7 @@ import { Zap, RefreshCw, AlertCircle, Info } from 'lucide-react'
 
 /**
  * Barra crediti AI – utilizzo mensile (inclusi + overage).
- * Legge GET /api/credits/usage (Bearer). Doc: docs/SISTEMA_CREDITI_AI.md
+ * Legge POST /api/credits/usage (Bearer). Doc: docs/SISTEMA_CREDITI_AI.md
  * Design enterprise, orientato al cliente: chiarezza su usati/inclusi e periodo.
  * Stile coerente con AIKnowledgeBar (card scura, bordo, neon).
  */

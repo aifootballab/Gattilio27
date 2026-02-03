@@ -26,11 +26,8 @@ export default function CountermeasuresLivePage() {
   const [generating, setGenerating] = React.useState(false)
   const [countermeasures, setCountermeasures] = React.useState(null)
   const [error, setError] = React.useState(null)
-  const [selectedSuggestions, setSelectedSuggestions] = React.useState(new Set())
-  const [applying, setApplying] = React.useState(false)
   const [expandedSections, setExpandedSections] = React.useState({
     analysis: true,
-    formation: false,
     tactical: false,
     players: false,
     instructions: false
@@ -179,50 +176,6 @@ export default function CountermeasuresLivePage() {
       setError(err.message || t('errorGeneratingCountermeasures'))
     } finally {
       setGenerating(false)
-    }
-  }
-
-  const toggleSuggestion = (suggestionId) => {
-    setSelectedSuggestions(prev => {
-      const newSet = new Set(prev)
-      if (newSet.has(suggestionId)) {
-        newSet.delete(suggestionId)
-      } else {
-        newSet.add(suggestionId)
-      }
-      return newSet
-    })
-  }
-
-  const handleApplySuggestions = async () => {
-    if (selectedSuggestions.size === 0) {
-      setError(t('selectSuggestionsToApply') || 'Seleziona almeno un suggerimento')
-      return
-    }
-
-    setApplying(true)
-    setError(null)
-
-    try {
-      const { data: session } = await supabase.auth.getSession()
-      if (!session?.session?.access_token) {
-        throw new Error(t('tokenNotAvailable'))
-      }
-
-      const token = session.session.access_token
-
-      // Applica suggerimenti selezionati
-      // TODO: Implementare logica applicazione
-      // Per ora solo simulazione
-      
-      // Dopo applicazione, mostra successo
-      alert(t('suggestionsApplied') || 'Suggerimenti applicati con successo')
-      setSelectedSuggestions(new Set())
-    } catch (err) {
-      console.error('[CountermeasuresLive] Apply error:', err)
-      setError(err.message || t('errorApplyingSuggestions'))
-    } finally {
-      setApplying(false)
     }
   }
 
@@ -545,27 +498,17 @@ export default function CountermeasuresLivePage() {
 
               {expandedSections.tactical && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  {countermeasures.countermeasures.formation_adjustments?.map((adj, idx) => {
-                    const suggestionId = `formation_${idx}`
-                    return (
+                  {countermeasures.countermeasures.formation_adjustments?.map((adj, idx) => (
                       <div 
                         key={idx}
                         style={{
                           padding: 'clamp(12px, 3vw, 16px)',
-                          background: selectedSuggestions.has(suggestionId) ? 'rgba(255, 165, 0, 0.2)' : 'rgba(255, 165, 0, 0.1)',
+                          background: 'rgba(255, 165, 0, 0.1)',
                           border: `1px solid ${getPriorityColor(adj.priority)}`,
-                          borderRadius: '8px',
-                          cursor: 'pointer'
+                          borderRadius: '8px'
                         }}
-                        onClick={() => toggleSuggestion(suggestionId)}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                          <input
-                            type="checkbox"
-                            checked={selectedSuggestions.has(suggestionId)}
-                            onChange={() => toggleSuggestion(suggestionId)}
-                            onClick={(e) => e.stopPropagation()}
-                          />
                           <span style={{ 
                             fontSize: 'clamp(11px, 2vw, 12px)', 
                             color: getPriorityColor(adj.priority),
@@ -584,27 +527,17 @@ export default function CountermeasuresLivePage() {
                     )
                   })}
 
-                  {countermeasures.countermeasures.tactical_adjustments?.map((adj, idx) => {
-                    const suggestionId = `tactical_${idx}`
-                    return (
+                  {countermeasures.countermeasures.tactical_adjustments?.map((adj, idx) => (
                       <div 
                         key={idx}
                         style={{
                           padding: 'clamp(12px, 3vw, 16px)',
-                          background: selectedSuggestions.has(suggestionId) ? 'rgba(0, 212, 255, 0.2)' : 'rgba(0, 212, 255, 0.1)',
+                          background: 'rgba(0, 212, 255, 0.1)',
                           border: `1px solid ${getPriorityColor(adj.priority)}`,
-                          borderRadius: '8px',
-                          cursor: 'pointer'
+                          borderRadius: '8px'
                         }}
-                        onClick={() => toggleSuggestion(suggestionId)}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                          <input
-                            type="checkbox"
-                            checked={selectedSuggestions.has(suggestionId)}
-                            onChange={() => toggleSuggestion(suggestionId)}
-                            onClick={(e) => e.stopPropagation()}
-                          />
                           <span style={{ 
                             fontSize: 'clamp(11px, 2vw, 12px)', 
                             color: getPriorityColor(adj.priority),
@@ -623,8 +556,7 @@ export default function CountermeasuresLivePage() {
                           {pickLang(adj.reason, lang)}
                         </div>
                       </div>
-                    )
-                  })}
+                    ))}
                 </div>
               )}
             </div>
@@ -652,27 +584,17 @@ export default function CountermeasuresLivePage() {
 
               {expandedSections.players && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  {countermeasures.countermeasures.player_suggestions.map((suggestion, idx) => {
-                    const suggestionId = `player_${idx}`
-                    return (
+                  {countermeasures.countermeasures.player_suggestions.map((suggestion, idx) => (
                       <div 
                         key={idx}
                         style={{
                           padding: 'clamp(12px, 3vw, 16px)',
-                          background: selectedSuggestions.has(suggestionId) ? 'rgba(0, 212, 255, 0.2)' : 'rgba(0, 212, 255, 0.1)',
+                          background: 'rgba(0, 212, 255, 0.1)',
                           border: `1px solid ${getPriorityColor(suggestion.priority)}`,
-                          borderRadius: '8px',
-                          cursor: 'pointer'
+                          borderRadius: '8px'
                         }}
-                        onClick={() => toggleSuggestion(suggestionId)}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                          <input
-                            type="checkbox"
-                            checked={selectedSuggestions.has(suggestionId)}
-                            onChange={() => toggleSuggestion(suggestionId)}
-                            onClick={(e) => e.stopPropagation()}
-                          />
                           <span style={{ 
                             fontSize: 'clamp(11px, 2vw, 12px)', 
                             color: getPriorityColor(suggestion.priority),
@@ -688,8 +610,7 @@ export default function CountermeasuresLivePage() {
                           {pickLang(suggestion.reason, lang)}
                         </div>
                       </div>
-                    )
-                  })}
+                    ))}
                 </div>
               )}
             </div>
@@ -717,27 +638,17 @@ export default function CountermeasuresLivePage() {
 
               {expandedSections.instructions && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  {countermeasures.countermeasures.individual_instructions.map((instruction, idx) => {
-                    const suggestionId = `instruction_${idx}`
-                    return (
+                  {countermeasures.countermeasures.individual_instructions.map((instruction, idx) => (
                       <div 
                         key={idx}
                         style={{
                           padding: 'clamp(10px, 2.5vw, 12px)',
-                          background: selectedSuggestions.has(suggestionId) ? 'rgba(0, 212, 255, 0.15)' : 'rgba(0, 212, 255, 0.05)',
+                          background: 'rgba(0, 212, 255, 0.05)',
                           border: '1px solid rgba(0, 212, 255, 0.3)',
-                          borderRadius: '8px',
-                          cursor: 'pointer'
+                          borderRadius: '8px'
                         }}
-                        onClick={() => toggleSuggestion(suggestionId)}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                          <input
-                            type="checkbox"
-                            checked={selectedSuggestions.has(suggestionId)}
-                            onChange={() => toggleSuggestion(suggestionId)}
-                            onClick={(e) => e.stopPropagation()}
-                          />
                           <span style={{ fontSize: 'clamp(13px, 3vw, 14px)', fontWeight: 600 }}>
                             {instruction.slot}: {pickLang(instruction.instruction, lang)}
                           </span>
@@ -746,8 +657,7 @@ export default function CountermeasuresLivePage() {
                           {pickLang(instruction.reason, lang)}
                         </div>
                       </div>
-                    )
-                  })}
+                    ))}
                 </div>
               )}
             </div>
@@ -795,27 +705,6 @@ export default function CountermeasuresLivePage() {
             </span>
           </div>
 
-          {/* Pulsante Applica Selezionati */}
-          {selectedSuggestions.size > 0 && (
-            <button
-              onClick={handleApplySuggestions}
-              className="btn primary"
-              disabled={applying}
-              style={{ width: '100%', marginTop: '24px' }}
-            >
-              {applying ? (
-                <>
-                  <RefreshCw size={18} style={{ animation: 'spin 1s linear infinite' }} />
-                  {t('applying') || 'Applicazione...'}
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 size={18} />
-                  {t('applySelected')} ({selectedSuggestions.size})
-                </>
-              )}
-            </button>
-          )}
         </>
       )}
 

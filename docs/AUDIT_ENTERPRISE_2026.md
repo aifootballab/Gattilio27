@@ -35,7 +35,26 @@
 | credits/usage | `/api/credits/usage` | ✅ Esiste (non in doc) |
 | admin/recalculate-patterns | `/api/admin/recalculate-patterns` | ✅ Esiste |
 
-**Azione**: `credits/usage` – endpoint per usage crediti; aggiungere a DOCUMENTAZIONE_RIFERIMENTO se necessario.
+**Azione**: `credits/usage` – documentato in DOCUMENTAZIONE_RIFERIMENTO e SISTEMA_CREDITI_AI.
+
+---
+
+## 1.1 Audit cartella app/api/ (3 feb 2026)
+
+| Verifica | Stato |
+|----------|-------|
+| Tutte le API chiamate dal frontend esistono | ✅ |
+| Auth (validateToken/extractBearerToken) su route protette | ✅ |
+| Rate limiting configurato (rateLimiter.js) | ✅ |
+| CreditsBar usa POST (non GET) per /api/credits/usage | ✅ (fix commento) |
+| tasks/generate non chiamato da frontend | OK – endpoint test/manuale |
+
+---
+
+## 1.2 Verifica Supabase End-to-End
+
+Vedi **`docs/VERIFICA_SUPABASE_END_TO_END.md`** – mappatura API → tabelle → migrazioni.  
+Tabelle senza migrazione in `migrations/`: `formation_layout`, `players`, `opponent_formations`, `playing_styles`, `team_tactical_patterns` – verosimilmente create da setup Supabase iniziale. Consigliato verificare in Supabase Dashboard.
 
 ---
 
@@ -69,6 +88,7 @@
 | docs/PALETTI_IA_COERENZA.md | ✅ | Paletti IA |
 | docs/INTEGRAZIONI_RAG_MANCANTI_DETTAGLIO.md | ✅ | Integrazioni RAG |
 | docs/VERIFICA_STILI_EFOOTBALL.md | ✅ | Stili eFootball |
+| docs/VERIFICA_SUPABASE_END_TO_END.md | ✅ | API → tabelle Supabase → migrazioni |
 
 ---
 
@@ -88,6 +108,7 @@ Rimossi 54+ documenti obsoleti (audit one-off, piani superseduti, migrazioni com
 | `components/AssistantChat.jsx` | `DOCUMENTAZIONE_GUIDA_INTERATTIVA.md` |
 | Sistema crediti/economia | `docs/SISTEMA_CREDITI_AI.md`, `docs/COSTI_API_E_PRICING_CREDITI.md`, `docs/VALUTAZIONE_ECONOMICA_PIATTAFORMA.md` |
 | Validazione completa (cartelle, file, flusso) | `docs/GUIDA_VALIDAZIONE_PROGRAMMATORE.md` |
+| Coerenza Supabase end-to-end | `docs/VERIFICA_SUPABASE_END_TO_END.md` |
 | Cartelle app, api, components, lib | README.md in ciascuna cartella |
 
 ## 5. Gestione Rosa – Documentazione per funzione

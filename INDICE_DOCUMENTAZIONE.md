@@ -95,6 +95,7 @@ Mappatura **codice ↔ documentazione**: vedi **`docs/AUDIT_ENTERPRISE_2026.md`*
 - **`docs/AUDIT_ALLINEAMENTO_SUPABASE_ISTRUZIONI_PALETTI.md`** – Allineamento Supabase, istruzioni, paletti IA.
 - **`docs/AUDIT_ENTERPRISE_IA_PROMPTI_2026.md`** – Audit enterprise prompt e RAG.
 - **`docs/AUDIT_CODICE_MORTO_E_DOCUMENTI.md`** – Codice morto e documenti inutili/ridondanti.
+- **`docs/VERIFICA_SUPABASE_END_TO_END.md`** – Coerenza API → tabelle Supabase → migrazioni.
 
 ---
 
