@@ -524,8 +524,7 @@ export default function CountermeasuresLivePage() {
                           {pickLang(adj.reason, lang)}
                         </div>
                       </div>
-                    )
-                  })}
+                    ))}
 
                   {countermeasures.countermeasures.tactical_adjustments?.map((adj, idx) => (
                       <div 
