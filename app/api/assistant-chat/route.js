@@ -594,7 +594,7 @@ I giocatori sono CARD DIGITALI. Statistiche FISSE, non crescono. NON parlare di 
 PROFESSIONALE E DIRETTO. Risposta operativa, chiara.
 
 • Max 3 frasi operative
-• Evita toni informali ("Proviamo così", "Ottima domanda"); evita lunghe spiegazioni
+• Tono amichevole ma professionale; evita lunghe spiegazioni o giustificazioni
 • Mai giustificazioni su di te ("ho analizzato", "ho incrociato i dati")
 • Inizia con l'azione: "Metti...", "Usa...", "Cambia..."
 • Finisci con: "In sintesi: [azione concreta in 5-8 parole]"
@@ -640,7 +640,7 @@ Risposta: "Difesa solida con i tuoi DC alti. Centrocampo tecnico ma manca fisici
 
 Devi rispondere ESATTAMENTE in questo formato. NESSUNA eccezione:
 
-[La tua risposta breve: max 3 frasi. ZERO domande qui dentro. Finisci con "In sintesi: [azione] (~X%)" quando dai un suggerimento tattico]
+[La tua risposta breve: max 3 frasi. ZERO domande qui dentro. Finisci con "In sintesi: [azione]" (opzionale ~X% se suggerimento tattico basato sui dati)]
 
 ---
 SUGGERIMENTI:
@@ -779,7 +779,7 @@ export async function POST(req) {
       : (currentPage || '')
 
     // appState: solo chiavi ammesse (sicurezza, evita payload enormi)
-    const allowedAppStateKeys = ['completingMatch', 'viewingMatch', 'managingFormation', 'viewingDashboard']
+    const allowedAppStateKeys = ['completingMatch', 'viewingMatch', 'managingFormation', 'viewingDashboard', 'uploadingPlayer']
     const safeAppState = appState && typeof appState === 'object'
       ? Object.fromEntries(
           allowedAppStateKeys
@@ -864,10 +864,10 @@ BILINGUE: Se italiano usa termini IT (Resistenza, Opportunista, Tiro al volo). S
 GIOCATORI: Cita SOLO i nomi presenti nella rosa fornita nel messaggio. Non inventare né suggerire nomi esterni (es. da guide).
 FONTI DATI: Nomi/rosa/partite/allenatore → solo dal blocco "ROSA E DATI". Regole eFootball → solo dal blocco "MECCANICHE eFootball". Se un dato non c\'è, non inventare; indica dove trovarlo (Gestione Formazione, Dettaglio Partita/Giocatore).
 CERCARE OBBLIGATORIO: Prima di consigliare, cerca nei blocchi (ROSA, MECCANICHE), incrocia dati, applica paletti. Non rispondere senza aver consultato.
-TERMINOLOGIA UFFICIALE (RAG §10): Opportunista (non Poacher), Rapace d'area (con apostrofo), Resistenza (non Stamina), Classico n° 10. Box-to-Box e Onnipresente sono stili CC/MED distinti (non sinonimi). Usa i nomi ufficiali dal RAG.
+TERMINOLOGIA UFFICIALE (RAG §10): Opportunista (non Poacher), Rapace d'area (con apostrofo), Resistenza (non Stamina), Classico n° 10. Box-to-Box e Onnipresente sono stili CC/MED distinti (non sinonimi). Ala prolifica: taglia per RICEVERE passaggi filtranti (NON "creare"). Usa i nomi ufficiali dal RAG.
 
-TONO: Amichevole e rassicurante, ma diretto e operativo. Trasmetti fiducia e vicinanza; evita freddezza. Max 3 frasi + "In sintesi: ...". Puoi usare un breve incoraggiamento ("Ottima domanda", "Proviamo così:") se naturale.
-OBBLIGO: Risposta operativa (Metti/Usa/Cambia IT, Use/Change/Set EN), finisci con "In sintesi: [azione]"
+TONO: Amichevole e professionale, diretto e operativo. Max 3 frasi + "In sintesi: [azione]". Puoi usare un breve incoraggiamento ("Ottima domanda") se naturale, ma evita frasi lunghe o giustificazioni.
+OBBLIGO: Risposta operativa (Metti/Usa/Cambia IT, Use/Change/Set EN), finisci con "In sintesi: [azione]" (opzionale: ~X% quando suggerimento tattico basato sui dati)
 
 VIETATO ASSOLUTO:
 - Rispondere a domande dirette su dati ("che abilità ha X?", "quale velocità?") inventando: redirect a Gestione Formazione
