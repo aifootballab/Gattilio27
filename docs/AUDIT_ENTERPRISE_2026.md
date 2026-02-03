@@ -111,6 +111,18 @@ Rimossi 54+ documenti obsoleti (audit one-off, piani superseduti, migrazioni com
 | Coerenza Supabase end-to-end | `docs/VERIFICA_SUPABASE_END_TO_END.md` |
 | Cartelle app, api, components, lib | README.md in ciascuna cartella |
 
+## 4.1 Audit components/ (3 feb 2026)
+
+| Fix | File | Dettaglio |
+|-----|------|-----------|
+| Bug lingua etichette | PositionSelectionModal.jsx | t('lang') → lang da useTranslation |
+| Bug navigazione | AssistantChat.jsx | usePathname() al posto di popstate |
+| i18n breakdown | AIKnowledgeBar.jsx, lib/i18n.js | Profilo, Rosa, Partite ecc. tradotte |
+| i18n gruppi posizioni | lib/i18n.js | positionGroupGoalkeeper, Defense, Midfield, Attack |
+| Fix shadowing | TaskWidget.jsx | filter(t =>) → filter(task =>) |
+
+Rollback: `rollback/FIX_COMPONENTS_2026-02-03/README.md`
+
 ## 5. Gestione Rosa – Documentazione per funzione
 
 Vedi `docs/GESTIONE_ROSA_FUNZIONI.md` – ogni funzione della pagina `gestione-formazione/page.jsx` documentata separatamente.

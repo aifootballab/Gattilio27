@@ -68,7 +68,7 @@ export default function PositionSelectionModal({
   onConfirm,
   onCancel
 }) {
-  const { t } = useTranslation()
+  const { t, lang } = useTranslation()
 
   const handleTogglePosition = (positionId) => {
     const exists = selectedPositions.find(p => p.position === positionId)
@@ -220,7 +220,7 @@ export default function PositionSelectionModal({
                   {group.positions.map(pos => {
                     const selected = selectedPositions.find(p => p.position === pos.id)
                     const isMain = pos.id === mainPosition
-                    const label = t('lang') === 'it' ? pos.labelIt : pos.labelEn
+                    const label = lang === 'it' ? pos.labelIt : pos.labelEn
                     
                     return (
                       <div 

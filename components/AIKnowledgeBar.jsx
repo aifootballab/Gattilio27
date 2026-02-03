@@ -317,13 +317,13 @@ export default function AIKnowledgeBar() {
           flexDirection: 'column',
           gap: '4px'
         }}>
-          <div>Profilo: {Math.round(breakdown.profile || 0)}/20</div>
-          <div>Rosa: {Math.round(breakdown.roster || 0)}/25</div>
-          <div>Partite: {Math.round(breakdown.matches || 0)}/30</div>
-          <div>Pattern: {Math.round(breakdown.patterns || 0)}/15</div>
-          <div>Allenatore: {Math.round(breakdown.coach || 0)}/10</div>
-          <div>Utilizzo: {Math.round(breakdown.usage || 0)}/10</div>
-          <div>Successi: {Math.round(breakdown.success || 0)}/15</div>
+          <div>{t('aiKnowledgeProfile')}: {Math.round(breakdown.profile || 0)}/20</div>
+          <div>{t('aiKnowledgeRoster')}: {Math.round(breakdown.roster || 0)}/25</div>
+          <div>{t('aiKnowledgeMatches')}: {Math.round(breakdown.matches || 0)}/30</div>
+          <div>{t('aiKnowledgePatterns')}: {Math.round(breakdown.patterns || 0)}/15</div>
+          <div>{t('aiKnowledgeCoach')}: {Math.round(breakdown.coach || 0)}/10</div>
+          <div>{t('aiKnowledgeUsage')}: {Math.round(breakdown.usage || 0)}/10</div>
+          <div>{t('aiKnowledgeSuccess')}: {Math.round(breakdown.success || 0)}/15</div>
         </div>
       </details>
 

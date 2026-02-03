@@ -1,19 +1,21 @@
 'use client'
 
 import React, { useState, useEffect, useRef, useMemo } from 'react'
+import { usePathname } from 'next/navigation'
 import { useTranslation } from '@/lib/i18n'
 import { supabase } from '@/lib/supabaseClient'
 import { Brain, X, Send, Sparkles, ChevronDown, ChevronUp } from 'lucide-react'
 import { mapErrorToUserMessage } from '@/lib/errorHelper'
 
 export default function AssistantChat() {
+  const pathname = usePathname()
+  const currentPage = pathname || ''
   const { t, lang } = useTranslation()
   const [isOpen, setIsOpen] = useState(false)
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [userProfile, setUserProfile] = useState(null)
-  const [currentPage, setCurrentPage] = useState('')
   const [lastSuggestions, setLastSuggestions] = useState([]) // 3 suggerimenti cliccabili dopo ogni risposta
   const [suggestionsExpanded, setSuggestionsExpanded] = useState(false) // riquadro suggerimenti collassato = più spazio chat
   const messagesEndRef = useRef(null)
@@ -73,18 +75,6 @@ export default function AssistantChat() {
     }
     
     loadProfile()
-    
-    // Rileva pagina corrente
-    if (typeof window !== 'undefined') {
-      setCurrentPage(window.location.pathname)
-      
-      // Aggiorna quando cambia pagina
-      const handleRouteChange = () => {
-        setCurrentPage(window.location.pathname)
-      }
-      window.addEventListener('popstate', handleRouteChange)
-      return () => window.removeEventListener('popstate', handleRouteChange)
-    }
   }, [])
   
   // Auto-scroll a ultimo messaggio

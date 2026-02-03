@@ -124,7 +124,7 @@ export default function TaskWidget() {
     )
   }
 
-  const activeTasksCount = tasks.filter(t => t.status === 'active').length
+  const activeTasksCount = tasks.filter(task => task.status === 'active').length
 
   return (
     <div style={{
