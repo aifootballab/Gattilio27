@@ -91,7 +91,7 @@ Definiscono il comportamento del giocatore in campo senza palla. Per attivare un
 #### Centrocampisti e Difensori
 
 - **Tra le linee** (CC/MED): Rimane arretrato, pronto a lanciare azioni offensive. Centrocampista che gioca tra difesa e attacco.
-- **Sviluppo** (CC/MED/DC): Arretra per impostare l'azione con lanci lunghi. Difensore che imposta da dietro.
+- **Sviluppo** (DC): Difensore che arretra per impostare l'azione con lanci lunghi. Solo DC (Build Up).
 - **Frontale extra** (DC): Difensore che partecipa alla manovra offensiva e si sovrappone in fase offensiva.
 - **Incontrista** (CC/MED/DC): Giocatore che respinge gli attacchi avversari con pressing aggressivo.
 - **Onnipresente** (CLD/CLS/CC/MED): Corre instancabilmente su tutto il campo, copre ogni zona.
@@ -294,20 +294,6 @@ Definisce la direzione tattica della squadra. L'attitudine dell'allenatore influ
 - **Leader**: Abilità giocatore che può ispirare i compagni di squadra e ridurre l'impatto negativo della fatica sulle prestazioni quando la squadra in generale inizia a stancarsi. Se ti capita di perdere partite a causa di rimonte nel secondo tempo, prova a sostituire il tuo Capitano con un giocatore che abbia l'abilità Leader. Puoi cambiare il Capitano da [Schema di gioco] > Squadra > [Ruoli in partita].
 - **Doppio tocco speciale**: I giocatori con le 3 Abilità giocatore "Doppio tocco", "Elastico" e "Controllo di suola" saranno in grado di eseguire Doppio tocco con un movimento diverso rispetto agli altri.
 
-### 7.4 Sistema Machine Learning e Decisionale
-
-- Classificazione automatica eventi: errore manuale vs intervento CPU.
-- Database eventi per apprendimento e miglioramento continuo.
-- Modelli predittivi tattici (Reinforcement Learning) per ottimizzare strategie future.
-- Sistema di feedback cliente per evoluzione modello.
-
-### 7.5 Sistema Report Avanzato
-
-- Report visivi dettagliati con grafici, screenshot eventi e heatmap.
-- Confronto storico prestazioni giocatore e community benchmark.
-- Monitoraggio continuo efficacia sistema.
-
----
 
 ## 8. CONSIGLI E STRATEGIE
 

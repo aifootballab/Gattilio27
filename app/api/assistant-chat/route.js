@@ -165,13 +165,63 @@ async function buildAssistantContext(userId, currentPage, appState) {
   }
 }
 
+/** Label contesto bilingue (IT/EN) - usate dall'IA per interpretare dati */
+const CONTEXT_LABELS = {
+  it: {
+    formationNotSet: 'non impostata',
+    reserves: 'Riserve',
+    noMatches: 'Nessuna partita caricata.',
+    starters: 'TITOLARI IN CAMPO (slot 0-10):',
+    reservesNote: 'LE RISERVE sono in panchina: usale per sostituzioni. Consiglia solo giocatori di questo elenco e solo per ruoli compatibili con la loro position.',
+    lastMatches: 'ULTIME PARTITE GIOCATE:',
+    patternMatches: 'Pattern partite',
+    partite: 'partite',
+    vittorie: 'vittorie',
+    recurringIssues: 'Problemi ricorrenti',
+    skillsTitolari: 'SKILLS TITOLARI (per consigli abilità):',
+    activeCoach: 'Allenatore attivo',
+    coachNotSet: 'Nessun allenatore attivo impostato.',
+    competenceHint: 'Competenze stili (solo >= 70 consigliabili):',
+    boxTitle: 'CONTESTO PERSONALE CLIENTE - DATI REALI DELLA ROSA',
+    boxSubtitle: 'USA QUESTI DATI - PERSONALIZZA - CITA NOMI REALI - NON GENERICO',
+    positionNote: 'POSIZIONE: per ogni giocatore vedi "position" (ruolo assegnato in formazione) e "competenze" (posizioni ideali dalla card, es. CC Alta, MED Intermedia). Se position è diverso dalle competenze (es. competenze=CC Alta ma position=DC), CORREGGI: "X è centrocampista (CC) dalla card, non DC. Meglio schierarlo come CC o cambiare ruolo in Gestione Formazione." Siamo noi i coach: non assecondare l\'errore del cliente.',
+    teamStyle: 'Stile squadra',
+    individualInstructions: 'Istruzioni individuali',
+    instructionsActive: 'attive',
+  },
+  en: {
+    formationNotSet: 'not set',
+    reserves: 'Reserves',
+    noMatches: 'No matches loaded.',
+    starters: 'STARTERS (slot 0-10):',
+    reservesNote: 'RESERVES are on the bench: use them for substitutions. Only recommend players from this list and only for roles compatible with their position.',
+    lastMatches: 'LAST MATCHES PLAYED:',
+    patternMatches: 'Match patterns',
+    partite: 'matches',
+    vittorie: 'wins',
+    recurringIssues: 'Recurring issues',
+    skillsTitolari: 'STARTER SKILLS (for ability advice):',
+    activeCoach: 'Active coach',
+    coachNotSet: 'No active coach set.',
+    competenceHint: 'Style competences (only >= 70 advisable):',
+    boxTitle: 'PERSONAL CLIENT CONTEXT - REAL ROSA DATA',
+    boxSubtitle: 'USE THIS DATA - PERSONALIZE - CITE REAL NAMES - NOT GENERIC',
+    positionNote: 'POSITION: for each player see "position" (assigned role) and "competenze" (ideal positions from card, e.g. CM High, DM Intermediate). If position differs from competenze (e.g. competenze=CM High but position=CB), CORRECT: "X is midfielder (CM) from card, not CB. Better field him as CM or change role in Formation Manager." We are the coaches: do not indulge client errors.',
+    teamStyle: 'Team style',
+    individualInstructions: 'Individual instructions',
+    instructionsActive: 'active',
+  }
+}
+
 /**
  * Costruisce riassunto contesto personale cliente (formazione, rosa, partite, tattica, allenatore).
  * Usato quando needsPersonalContext(message) è true. Non blocca: in errore restituisce ''.
  * @param {string} userId - user_id da token
+ * @param {'it'|'en'} lang - lingua per label (default 'it')
  * @returns {Promise<string>} Testo compatto (max MAX_PERSONAL_CONTEXT_CHARS) o ''
  */
-async function buildPersonalContext(userId) {
+async function buildPersonalContext(userId, lang = 'it') {
+  const L = CONTEXT_LABELS[lang === 'en' ? 'en' : 'it']
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!serviceKey || !supabaseUrl) return ''
@@ -187,12 +237,12 @@ async function buildPersonalContext(userId) {
       .select('formation, slot_positions')
       .eq('user_id', userId)
       .maybeSingle()
-    const formation = formationRow?.formation || 'non impostata'
+    const formation = formationRow?.formation || L.formationNotSet
 
-    // Players (titolari + riserve)
+    // Players (titolari + riserve) - include skills per consigli abilità
     const { data: playersData, error: playersError } = await admin
       .from('players')
-      .select('id, player_name, position, overall_rating, playing_style_id, slot_index, photo_slots, base_stats, original_positions')
+      .select('id, player_name, position, overall_rating, playing_style_id, slot_index, photo_slots, base_stats, original_positions, card_type, skills, com_skills')
       .eq('user_id', userId)
       .order('slot_index', { ascending: true, nullsFirst: false })
       .limit(50)
@@ -238,7 +288,8 @@ async function buildPersonalContext(userId) {
       const comp = getCompetenze(p.original_positions)
       rosterLines.push(`  ${p.player_name || '?'} (${p.position || '?'}, ${styleName}, ${p.overall_rating ?? '-'}, profilazione: ${prof}, competenze: ${comp})`)
     }
-    rosterLines.push('Riserve:')
+    const reservesHeader = L.reserves + ':'
+    rosterLines.push(reservesHeader)
     for (const p of riserve.slice(0, 15)) {
       const styleName = (p.playing_style_id && stylesLookup[p.playing_style_id]) || '-'
       const prof = getProfilazione(p.photo_slots)
@@ -256,7 +307,7 @@ async function buildPersonalContext(userId) {
       .limit(10)
     const matches = matchesData || []
     const matchLines = matches.length === 0
-      ? ['Nessuna partita caricata.']
+      ? [L.noMatches]
       : matches.map(m => {
           const d = m.match_date ? (typeof m.match_date === 'string' ? m.match_date.slice(0, 10) : String(m.match_date).slice(0, 10)) : '?'
           return `  ${d} vs ${m.opponent_name || '?'} ${m.result || '-'} (formazione: ${m.formation_played || '-'}, stile: ${m.playing_style_played || '-'})`
@@ -268,10 +319,10 @@ async function buildPersonalContext(userId) {
       .select('team_playing_style, individual_instructions')
       .eq('user_id', userId)
       .maybeSingle()
-    const teamStyle = tacticalRow?.team_playing_style || 'non impostato'
+    const teamStyle = tacticalRow?.team_playing_style || L.formationNotSet
     const indInstr = tacticalRow?.individual_instructions
     const numInstructions = Array.isArray(indInstr) ? indInstr.length : (indInstr && typeof indInstr === 'object' ? Object.keys(indInstr).length : 0)
-    const tacticsText = `Stile squadra: ${teamStyle}. Istruzioni individuali: ${numInstructions} attive.`
+    const tacticsText = `${L.teamStyle}: ${teamStyle}. ${L.individualInstructions}: ${numInstructions} ${L.instructionsActive}.`
 
     // Allenatore attivo (con competenze stili per intreccio dati)
     const { data: coachRow } = await admin
@@ -280,7 +331,7 @@ async function buildPersonalContext(userId) {
       .eq('user_id', userId)
       .eq('is_active', true)
       .maybeSingle()
-    let coachText = coachRow?.coach_name ? `Allenatore attivo: ${coachRow.coach_name}.` : 'Nessun allenatore attivo impostato.'
+    let coachText = coachRow?.coach_name ? `${L.activeCoach}: ${coachRow.coach_name}.` : L.coachNotSet
     if (coachRow?.playing_style_competence && typeof coachRow.playing_style_competence === 'object') {
       const entries = Object.entries(coachRow.playing_style_competence)
         .map(([style, val]) => ({ style, val: parseInt(val, 10) || 0 }))
@@ -288,30 +339,71 @@ async function buildPersonalContext(userId) {
         .sort((a, b) => b.val - a.val)
         .slice(0, 8)
       if (entries.length > 0) {
-        coachText += ` Competenze stili (solo >= 70 consigliabili): ${entries.map(({ style, val }) => `${style} ${val}`).join(', ')}.`
+        coachText += ` ${L.competenceHint} ${entries.map(({ style, val }) => `${style} ${val}`).join(', ')}.`
+      }
+    }
+
+    // Pattern tattici (formation_usage, recurring_issues) - per intreccio consigli formazione/problemi
+    let patternText = ''
+    const { data: patternsRow } = await admin
+      .from('team_tactical_patterns')
+      .select('formation_usage, playing_style_usage, recurring_issues')
+      .eq('user_id', userId)
+      .maybeSingle()
+    if (patternsRow) {
+      const formUsage = patternsRow.formation_usage && typeof patternsRow.formation_usage === 'object' && Object.keys(patternsRow.formation_usage).length > 0
+      const issues = Array.isArray(patternsRow.recurring_issues) && patternsRow.recurring_issues.length > 0
+      if (formUsage) {
+        const top = Object.entries(patternsRow.formation_usage)
+          .sort((a, b) => (b[1]?.matches || 0) - (a[1]?.matches || 0))
+          .slice(0, 2)
+        patternText = top.map(([f, d]) => {
+          const m = d?.matches || 0
+          const wr = d?.win_rate != null ? Math.round(d.win_rate * 100) : '-'
+          return `${f}: ${m} ${L.partite} (${wr}% ${L.vittorie})`
+        }).join('; ')
+        patternText = `${L.patternMatches}: ${patternText}.`
+      }
+      if (issues) {
+        const issueList = patternsRow.recurring_issues.slice(0, 3).map(i => i?.issue || i).filter(Boolean).join(', ')
+        patternText += (patternText ? ' ' : '') + `${L.recurringIssues}: ${issueList}.`
+      }
+    }
+
+    // Skills sintesi (max 5 per titolare) - per consigli abilità
+    const skillsLines = []
+    const hasAnySkills = titolari.some(p => (Array.isArray(p.skills) && p.skills.length > 0) || (Array.isArray(p.com_skills) && p.com_skills.length > 0))
+    if (hasAnySkills) {
+      skillsLines.push('', L.skillsTitolari)
+      for (const p of titolari.slice(0, 11)) {
+        const all = [...(Array.isArray(p.skills) ? p.skills : []), ...(Array.isArray(p.com_skills) ? p.com_skills : [])].slice(0, 5)
+        if (all.length > 0) {
+          skillsLines.push(`  ${p.player_name || '?'}: ${all.join(', ')}`)
+        }
       }
     }
 
     const parts = [
       '╔══════════════════════════════════════════════════════════════════╗',
-      '║  CONTESTO PERSONALE CLIENTE - DATI REALI DELLA ROSA             ║',
-      '║  USA QUESTI DATI - PERSONALIZZA - CITA NOMI REALI - NON GENERICO ║',
+      `║  ${L.boxTitle}                                                       ║`,
+      `║  ${L.boxSubtitle}                                                    ║`,
       '╚══════════════════════════════════════════════════════════════════╝',
       `Formazione attuale: ${formation}.`,
       '',
-      'POSIZIONE: per ogni giocatore vedi "position" (ruolo assegnato in formazione) e "competenze" (posizioni ideali dalla card, es. CC Alta, MED Intermedia). Se position è diverso dalle competenze (es. competenze=CC Alta ma position=DC), CORREGGI: "X è centrocampista (CC) dalla card, non DC. Meglio schierarlo come CC o cambiare ruolo in Gestione Formazione." Siamo noi i coach: non assecondare l\'errore del cliente.',
+      L.positionNote,
       '',
-      'TITOLARI IN CAMPO (slot 0-10):',
-      ...rosterLines.slice(0, rosterLines.findIndex(l => l === 'Riserve:') + 1),
-      ...rosterLines.slice(rosterLines.findIndex(l => l === 'Riserve:') + 1),
+      L.starters,
+      ...rosterLines.slice(0, rosterLines.findIndex(l => l === reservesHeader) + 1),
+      ...rosterLines.slice(rosterLines.findIndex(l => l === reservesHeader) + 1),
       '',
-      'LE RISERVE sono in panchina: usale per sostituzioni. Consiglia solo giocatori di questo elenco e solo per ruoli compatibili con la loro position.',
+      L.reservesNote,
       '',
-      'ULTIME PARTITE GIOCATE:',
+      L.lastMatches,
       ...matchLines,
       '',
       tacticsText,
-      coachText
+      coachText,
+      ...(patternText ? ['', patternText] : [])
     ]
     let summary = parts.join('\n')
     if (summary.length > MAX_PERSONAL_CONTEXT_CHARS) {
@@ -420,6 +512,10 @@ ${efootballKnowledge ? `- Se MECCANICHE presente: stili giocatore (Opportunista,
 - "Nelle sconfitte usavi 3-5-2 → le tue ali non coprono abbastanza"
 - "[Nome] ha overall 95 ma competenza bassa come TS → meglio come TD"
 
+**4b. SE HAI PATTERN PARTITE (formation_usage, problemi ricorrenti):**
+- Usa formation_usage per consigliare formazione: "4-3-3 è la tua migliore (X partite, Y% vittorie)"
+- Usa problemi ricorrenti come priorità: se "centrocampo debole" → priorità sostituzioni/ modulo che rafforza il centro
+
 **5. COLLEGA STILI E MECCANICHE (RAG sez. 2):**
 Stile → comportamento in campo → consiglio. Es: [Nome] Collante → MED davanti difesa; [Nome] Regista creativo + [Nome] Opportunista → sinergia assist/gol; 4-3-3 → ali veloci.
 
@@ -438,6 +534,7 @@ ESEMPI RAGIONAMENTO COMPLETO (interno, non dire all'utente):
 • Usa SOLO nomi dalla lista. NON inventare mai.
 • **POSIZIONE IDEALE (competenze dalla card) vs RUOLO ASSEGNATO (position)**: Se un giocatore ha competenze = CC/MED ma è schierato come DC (o viceversa), CORREGGI: "X è centrocampista (CC) dalla card, non difensore centrale. Meglio schierarlo come CC o cambia ruolo in Gestione Formazione." Siamo noi i coach: non assecondare l\'errore del cliente. Non suggerire mai un giocatore in un ruolo che non compare nelle sue competenze (es. se competenze = solo CC/MED, non metterlo in difesa).
 • **SINERGIA**: La sinergia la SUGGERISCI TU in base a ruoli/stili. Risposta: "Metti [nome] al posto di [nome] per migliore sinergia." NON dire mai "carica una partita per vedere la sinergia" (quei dati non esistono).
+• **card_type (Trending/Epico/POTW/In evidenza/ecc.)**: Lo SAI dai dati rosa ("card: X"). NON dire "se non è Trending": di' direttamente "Messi è Trending, non può ricevere abilità aggiuntive" oppure "Pedri è Epico, puoi aggiungere abilità tramite Programmi".
 • **ROSA/PARTITE VUOTI**: Se vedi "Nessuna partita caricata" o nessun giocatore sotto TITOLARI/Riserve → risposta costruttiva: (1) "Non ho ancora rosa/partite", (2) percorso concreto (Gestione Formazione → carica formazione e riserve; Aggiungi Partita → wizard 5 step), (3) "Poi chiedimi di nuovo". Non dire solo "carica i dati".
 • Stili FISSI: citali per spiegare perché un giocatore è adatto (stile → comportamento in campo → consiglio). Terminologia ufficiale.
 • Moduli: Proponi solo se hai giocatori compatibili (stili + stats)
@@ -454,8 +551,8 @@ ${efootballKnowledge}
 |------------|------------------|----------------------|
 | Stili giocatore (Opportunista, Collante, Rapace d'area, ecc.) | ## 2 STILI GIOCATORE | Cosa FA in campo: Collante=MED arretrato, Rapace d'area=in agguato in area, Opportunista=aspetta palla in area. Solo stili ufficiali. Per ruolo: Attaccanti ≠ Centrocampisti ≠ Difensori. FISSI. Stile squadra (Possesso, Contropiede) → ## 4. |
 | Moduli (4-3-3, 4-2-3-1, ecc.) | ## 3 MODULI + ## 3.4 Limiti | Rispetta limiti formazione (max 2 P, max 1 CLD/CLS, ecc.). Incrocia con rosa disponibile. |
-| Stili squadra (Possesso, Contropiede, ecc.) | ## 4 STILI TATTICI | Competenza allenatore >= 70 per suggerire. Mai stile con competenza < 50. |
-| Istruzioni individuali | ## 5 ISTRUZIONI | SOLO: Offensivo, Difensivo, Ancoraggio (max 2), Marcatura stretta/uomo, Contropiede, Linea bassa. NO passaggi corti/cross come istruzioni. |
+| Stili squadra (Possesso, Contropiede, ecc.) | ## 4 STILI TATTICI | Configurabili in app SOLO 5: Possesso palla, Contropiede veloce, Contrattacco, Passaggio lungo, Vie laterali. NON suggerire Pressing Alto, Gegenpressing, Tiki-Taka ecc. come stile da impostare. Competenza allenatore >= 70 per suggerire. |
+| Istruzioni individuali | ## 5 ISTRUZIONI | SOLO: Offensivo, Difensivo, Ancoraggio (max 2), Marcatura stretta/uomo, Contropiede, Linea bassa. Linea bassa: non a difensori. Contropiede (slot difesa): solo CC/attaccanti. NO passaggi corti/cross come istruzioni. |
 | Abilità giocatori | ## 8 ABILITÀ | Solo nomi sez. 8. Native=fisse. Aggiuntive=Programmi (NON Trending). Max 6 totali. |
 | Statistiche | ## 1 STATISTICHE | FISSE. Resistenza non Stamina. No "allenare/migliorare". |
 | Qualsiasi | ## 10 NOTE CRITICHE | Errori comuni, esempi corretti, terminologia. SEMPRE rispettare. |
@@ -721,7 +818,7 @@ export async function POST(req) {
     let personalContextSummary = ''
     if (needsPersonalContext(message)) {
       try {
-        personalContextSummary = await buildPersonalContext(userId)
+        personalContextSummary = await buildPersonalContext(userId, lang)
         if (personalContextSummary) console.log('[assistant-chat] Personal context loaded')
       } catch (pcError) {
         console.error('[assistant-chat] buildPersonalContext error (non-blocking):', pcError?.message)
@@ -783,7 +880,8 @@ VIETATO ASSOLUTO:
 - Consigli su azioni durante la partita in corso
 
 POSIZIONI: Solo ruoli coerenti con position/competenze. MED non in difesa.
-ISTRUZIONI: Solo Offensivo, Difensivo, Ancoraggio (max 2), Marcatura stretta/uomo, Contropiede, Linea bassa.
+STILI SQUADRA: Configurabili SOLO 5 (Possesso palla, Contropiede veloce, Contrattacco, Passaggio lungo, Vie laterali). NON Pressing Alto/Gegenpressing/Tiki-Taka come stile da impostare.
+ISTRUZIONI: Solo Offensivo, Difensivo, Ancoraggio (max 2), Marcatura stretta/uomo, Contropiede, Linea bassa. Linea bassa: non a difensori. Contropiede (slot difesa): solo CC/attaccanti.
 ABILITÀ: Native=card; aggiuntive=Programmi (solo se NON Trending). Solo sezione 8.
 
 SUGGERIMENTI (3 domande): SOLO domande su consigli e strategie tattici. NO domande dirette su dati ("che abilità ha X?", "quale overall?"). Es: formazione, modulo, sostituzioni, istruzioni, stile. Nella stessa lingua della risposta.

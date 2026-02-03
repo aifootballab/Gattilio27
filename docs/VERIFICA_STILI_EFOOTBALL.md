@@ -21,9 +21,9 @@
 | Hole Player | Giocatore chiave | ✅ |
 | Box-to-Box | Box-to-Box | ✅ |
 | The Destroyer (EN) | Incontrista | ✅ *(termine EN non usato in gioco IT)* |
-| Orchestrator | Sviluppo | ✅ |
+| Orchestrator | Stile CC/MED (regista) – diverso da Sviluppo; Tra le linee per CC/MED | ✅ |
 | Anchor Man | Collante | ✅ |
-| Build Up | Sviluppo (CC/MED/DC) | ✅ |
+| Build Up | Sviluppo (solo DC) | ✅ |
 | Extra Frontman | Frontale extra | ✅ |
 | Offensive Fullback | Terzino offensivo | ✅ |
 | Defensive Fullback | Terzino difensivo | ✅ |
