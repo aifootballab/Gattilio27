@@ -8,7 +8,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { Mail, Lock, LogIn, UserPlus, AlertCircle } from 'lucide-react'
 
 export default function LoginPage() {
-  const { t, lang, changeLanguage } = useTranslation()
+  const { t } = useTranslation()
   const router = useRouter()
   
   const [mode, setMode] = React.useState('login') // 'login' | 'signup'
