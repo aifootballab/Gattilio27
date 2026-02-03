@@ -1,6 +1,6 @@
 # Audit Enterprise Documentazione – Febbraio 2026
 
-**Data**: 2 Febbraio 2026  
+**Data**: 3 Febbraio 2026  
 **Obiettivo**: Verifica coerenza documenti ↔ codice, rimozione obsoleti, documentazione gestione rosa per funzione.
 
 ---
@@ -83,9 +83,12 @@ Rimossi 54+ documenti obsoleti (audit one-off, piani superseduti, migrazioni com
 | Codice | Documento |
 |--------|-----------|
 | `app/gestione-formazione/page.jsx` | `docs/GESTIONE_ROSA_FUNZIONI.md` (per funzione) |
-| `app/api/assistant-chat/route.js` | `DOCUMENTAZIONE_GUIDA_INTERATTIVA.md`, `docs/PALETTI_IA_COERENZA.md` |
+| `app/api/assistant-chat/route.js` | `DOCUMENTAZIONE_GUIDA_INTERATTIVA.md`, `docs/PALETTI_IA_COERENZA.md`, `docs/ANALISI_PROMPT_ASSISTANT_CHAT.md` |
 | `lib/ragHelper.js` | `info_rag.md`, `PIANO_INTEGRAZIONE_RAG_E_PROMPT.md` |
 | `components/AssistantChat.jsx` | `DOCUMENTAZIONE_GUIDA_INTERATTIVA.md` |
+| Sistema crediti/economia | `docs/SISTEMA_CREDITI_AI.md`, `docs/COSTI_API_E_PRICING_CREDITI.md`, `docs/VALUTAZIONE_ECONOMICA_PIATTAFORMA.md` |
+| Validazione completa (cartelle, file, flusso) | `docs/GUIDA_VALIDAZIONE_PROGRAMMATORE.md` |
+| Cartelle app, api, components, lib | README.md in ciascuna cartella |
 
 ## 5. Gestione Rosa – Documentazione per funzione
 

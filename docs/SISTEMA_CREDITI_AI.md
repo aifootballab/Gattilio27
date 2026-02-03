@@ -1,8 +1,8 @@
 # Sistema crediti AI – Documentazione completa
 
-**Data:** 2026-01-31 (aggiornato 2026-01-30)  
+**Data:** 2026-02-03  
 **Stato:** Implementato e funzionante.  
-**Riferimenti:** `docs/COSTI_API_E_PRICING_CREDITI.md`, `docs/AUDIT_CREDITI_SICUREZZA_E_FLUSSO.md`, `docs/AUDIT_ENTERPRISE_CREDITI_PERCHÉ_SOLO_5.md`.
+**Riferimenti:** `docs/COSTI_API_E_PRICING_CREDITI.md`, `docs/VALUTAZIONE_ECONOMICA_PIATTAFORMA.md`.
 
 ---
 

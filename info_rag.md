@@ -110,7 +110,7 @@ Valori di riferimento per costruzione squadra. Le statistiche restano FISSE sull
 - **Specialista di cross** (EDA/ESA/CLD/CLS): Resta sulla fascia per crossare
 - **Classico n° 10** (SP/TRQ): Playmaker, avvia attacchi con passaggi intelligenti, minimizza sforzo difensivo. **Quando serve**: gioco lento e ragionato, possesso palla, controllo partita. **Perché**: gestisce il ritmo, meno coinvolto in fase difensiva.
 - **Regista creativo** (SP/EDA/ESA/TRQ/CLD/CLS): Si muove liberamente in fase offensiva, cerca spazi per ricevere palla e creare occasioni. **Quando serve**: imprevedibilità offensiva, disorganizzare la difesa avversaria. **Perché**: movimenti intelligenti di smarcamento.
-- **Ala prolifica** (EDA/ESA): Si posiziona sulla fascia e taglia verso il centro per passaggi filtranti; efficace in 1v1. *(Prolific Winger)*
+- **Ala prolifica** (EDA/ESA): Si posiziona sulla fascia e taglia verso il centro per **ricevere** passaggi filtranti; efficace in 1v1. *(Prolific Winger)*
 - **Taglio al centro**: Tende a tagliare verso interno per ricevere passaggi. **Quando serve**: esterni che convergono per tiri a giro o passaggi filtranti.
 
 #### Centrocampisti e Difensori
@@ -505,6 +505,8 @@ Valutazione massima 5 stelle (5★). Trending valutati su statistiche iniziali. 
    - **NON dire**: "Poacher" / "Build" / "Stamina" (termini community) → **CORRETTO**: "Opportunista" / "Statistiche" / "Resistenza"
 
 4b. **Nomi stili con apostrofo**: Scrivi sempre **Rapace d'area** (con apostrofo). Il cliente può cercare "rapace d area" o "rapace d aera" (typo): rispondi con la forma ufficiale "Rapace d'area".
+
+4c. **Ala prolifica vs Taglio al centro**: Entrambi tagliano verso il centro. **Ala prolifica** taglia per **ricevere** passaggi filtranti (non "creare"). **Taglio al centro** converge per ricevere passaggi. NON dire "creare passaggi filtranti" per Ala prolifica.
 
 5. **NON confondere**: Stile giocatore (§2) vs Stile squadra (§4)
    - **Stile giocatore** (Opportunista, Collante, Box-to-Box) = FISSO, caratteristica card → sez. 2

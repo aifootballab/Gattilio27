@@ -1,8 +1,18 @@
 # 📚 Documentazione Master Completa - eFootball AI Coach
 
-**Data Aggiornamento**: 29 Gennaio 2026  
-**Versione**: 2.3.0  
+**Data Aggiornamento**: 3 Febbraio 2026  
+**Versione**: 2.4.0  
 **Status**: ✅ **PRODUZIONE** – Sistema completo e funzionante
+
+**Aggiornamenti 3 feb 2026 (v2.4.0)**:
+- **Assistant Chat (prompt migliorato)**:
+  - Allineamento tono: system e user unificati (amichevole e professionale)
+  - Ala prolifica: regola esplicita "RICEVERE passaggi filtranti (non creare)" in TERMINOLOGIA e tabella paletti
+  - % opzionale: "In sintesi: [azione] (~X%)" quando suggerimento tattico basato sui dati
+  - `appState.uploadingPlayer` aggiunto a `allowedAppStateKeys` per contesto completo
+- **Documentazione**:
+  - `docs/ANALISI_PROMPT_ASSISTANT_CHAT.md` – Analisi e miglioramenti prompt
+  - `docs/VALUTAZIONE_ECONOMICA_PIATTAFORMA.md` – Valutazione economica, costi, limiti, raccomandazioni
 
 **Aggiornamenti 29 gen 2026 (v2.3.0)**:
 - **Assistant Chat (contesto completo)**:
@@ -22,7 +32,7 @@
   - `GET /api/tasks/list` è endpoint leggero: il rate limit è **configurato** in `lib/rateLimiter.js` ma **attualmente disabilitato** nella route (commentato)
 - **⭐ Contromisure Live (fix e audit completo)**:
   - **Fix coach_name**: Aggiunto `coach_name` al select coaches per coerenza con helper
-  - **Fix modelli OpenAI**: Ripristinato `gpt-4o` come modello principale (rimossi `gpt-5.2` e `gpt-5` non disponibili)
+  - **Fix modelli OpenAI**: Ripristinato `gpt-4o`
   - **Fix playerSuggestionsRules**: Ripristinato approccio inline nel template string (come 10 commit fa)
   - **Audit completo**: Verificati flussi, endpoint, query Supabase, coerenza dati (vedi `AUDIT_COMPLETO_CONTROMISURE.md`)
 

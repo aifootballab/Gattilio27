@@ -1,8 +1,10 @@
 # 📚 Documentazione Completa - Guida Interattiva (Assistant Chat)
 
-**Data:** 23 Gennaio 2026  
-**Versione:** 1.0.0  
+**Data:** 3 Febbraio 2026  
+**Versione:** 1.1.0  
 **Status:** ✅ **PRODUZIONE** - Funzionante e testato
+
+**Aggiornamenti 3 feb 2026**: Prompt migliorato (tono unificato, Ala prolifica ricevere, % opzionale, appState.uploadingPlayer). Vedi `docs/ANALISI_PROMPT_ASSISTANT_CHAT.md`.
 
 ---
 

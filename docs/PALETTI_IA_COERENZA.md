@@ -1,6 +1,6 @@
 # Paletti IA – Coerenza tra Chat, Analyze-Match e Contromisure
 
-**Data**: 2 Febbraio 2026  
+**Data**: 3 Febbraio 2026  
 **Obiettivo**: Verificare che i vincoli dell’IA siano coerenti nelle 3 situazioni (Chat, Post-partita, Contromisure pre-partita).
 
 ---

@@ -1,6 +1,6 @@
 # 📚 Indice Documentazione - eFootball AI Coach
 
-**Ultimo aggiornamento**: 2026-02-02
+**Ultimo aggiornamento**: 2026-02-03
 
 Questo indice elenca **solo i documenti mantenuti** e coerenti con il codice attuale.  
 Mappatura **codice ↔ documentazione**: vedi **`docs/AUDIT_ENTERPRISE_2026.md`**.
@@ -18,29 +18,32 @@ Mappatura **codice ↔ documentazione**: vedi **`docs/AUDIT_ENTERPRISE_2026.md`*
 ### **3) `DOCUMENTAZIONE_RIFERIMENTO.md`**
 - **Quando usarlo**: riferimento rapido per programmatore (ogni pagina, API, componente, lib) e per chi legge (cosa fa ogni schermata). Contesto e glossario.
 
+### **4) `docs/GUIDA_VALIDAZIONE_PROGRAMMATORE.md`**
+- **Quando usarlo**: validazione piattaforma completa. Ogni cartella, ogni file, flusso dati IA, checklist. Per programmatore che deve conoscere tutta la piattaforma.
+
 ---
 
 ## 🤖 Assistant Chat, RAG e prompt
 
-### **4) `DOCUMENTAZIONE_GUIDA_INTERATTIVA.md`**
+### **5) `DOCUMENTAZIONE_GUIDA_INTERATTIVA.md`**
 - **Quando usarlo**: Assistant Chat (architettura, flusso, `route.js`, `AssistantChat.jsx`).
 
 ### **5) `info_rag.md`**
 - **Quando usarlo**: contenuto RAG eFootball (usato da `lib/ragHelper.js`). Modifiche qui si riflettono nelle risposte IA.
 
-### **6) `PIANO_INTEGRAZIONE_RAG_E_PROMPT.md`**
+### **7) `PIANO_INTEGRAZIONE_RAG_E_PROMPT.md`**
 - **Quando usarlo**: cosa va in RAG vs prompt, checklist integrazioni, gestione system/user.
 
 ### **7) `COERENZA_FOCUS_BILINGUE_E_RISPOSTA_IA.md`**
 - **Quando usarlo**: focus prodotto, bilingue IT/EN, come deve rispondere l’IA, cosa non deve dire.
 
-### **8) `CHIAREZZA_GIOCATORI_E_DOCUMENTAZIONE.md`**
+### **9) `CHIAREZZA_GIOCATORI_E_DOCUMENTAZIONE.md`**
 - **Quando usarlo**: regola “solo rosa cliente” (l’IA cita solo i giocatori caricati dall’utente).
 
 ### **9) `INTEGRAZIONE_ROSA_CHAT_PERSONALIZZATA.md`**
 - **Quando usarlo**: contesto personale (rosa, partite, tattica, allenatore) caricato on-demand in chat.
 
-### **10) `MEMORIA_ATTILA_BRAINSTORM.md`** e **`CONTENUTI_INTERNET_DA_INTEGRARE.md`**
+### **11) `MEMORIA_ATTILA_BRAINSTORM.md`** e **`CONTENUTI_INTERNET_DA_INTEGRARE.md`** (backlog, non runtime)
 - **Quando usarlo**: memoria brainstorm e backlog contenuti (non usati a runtime dall’API).
 
 ---
@@ -86,6 +89,12 @@ Mappatura **codice ↔ documentazione**: vedi **`docs/AUDIT_ENTERPRISE_2026.md`*
 - **`docs/PALETTI_IA_COERENZA.md`** – Paletti IA (chat, analyze-match, contromisure).
 - **`docs/INTEGRAZIONI_RAG_MANCANTI_DETTAGLIO.md`** – Integrazioni RAG da completare.
 - **`docs/VERIFICA_STILI_EFOOTBALL.md`** – Verifica stili di gioco vs fonti.
+- **`docs/ANALISI_PROMPT_ASSISTANT_CHAT.md`** – Analisi prompt chat, miglioramenti (tono, Ala prolifica, %).
+- **`docs/VALUTAZIONE_ECONOMICA_PIATTAFORMA.md`** – Valutazione economica: costi, limiti, proiezioni, raccomandazioni.
+- **`docs/AUDIT_STILI_GIOCATORE_CREARE_RICEVERE.md`** – Audit stili giocatore (creare vs ricevere).
+- **`docs/AUDIT_ALLINEAMENTO_SUPABASE_ISTRUZIONI_PALETTI.md`** – Allineamento Supabase, istruzioni, paletti IA.
+- **`docs/AUDIT_ENTERPRISE_IA_PROMPTI_2026.md`** – Audit enterprise prompt e RAG.
+- **`docs/AUDIT_CODICE_MORTO_E_DOCUMENTI.md`** – Codice morto e documenti inutili/ridondanti.
 
 ---
 

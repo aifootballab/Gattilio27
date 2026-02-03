@@ -1,6 +1,9 @@
 # Costi API e pricing crediti – Fase test (senza Stripe)
 
+**Data:** 2026-02-03  
 **Obiettivo:** Mappare ogni punto del codice che genera costo (OpenAI), definire pesi in crediti e prezzo con ricarico. Nessuna integrazione Stripe in questa fase: solo contatori/test per capire.
+
+**Vedi anche:** `docs/VALUTAZIONE_ECONOMICA_PIATTAFORMA.md` per valutazione economica completa.
 
 ---
 
@@ -114,6 +117,6 @@ Nessuna integrazione Stripe in questa fase: solo log + (opzionale) scrittura su 
 
 - **Tabella Supabase:** `user_credit_usage` (user_id, period_key YYYY-MM UTC, credits_used, credits_included). Migrazione: `migrations/create_user_credit_usage.sql`. RLS: SELECT solo propri record; INSERT/UPDATE solo service role.
 - **Servizio:** `lib/creditService.js` – `getCurrentPeriodKey()` (UTC), `recordUsage()`, `getCurrentUsage()` (con fallback al mese precedente se periodo corrente senza riga).
-- **API:** GET `/api/credits/usage` – Bearer obbligatorio; restituisce period_key, credits_used, credits_included, overage, percent_used.
+- **API:** GET/POST `/api/credits/usage` – Bearer obbligatorio; restituisce period_key, credits_used, credits_included, overage. POST usato da CreditsBar per evitare cache.
 - **UI:** `components/CreditsBar.jsx` in dashboard; fetch con cache: 'no-store'; i18n in `lib/i18n.js`.
 - **Documentazione completa:** `docs/SISTEMA_CREDITI_AI.md`.

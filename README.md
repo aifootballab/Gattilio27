@@ -54,6 +54,7 @@ lib/
 ├── normalize.js                  # Normalizzazione dati
 ├── aiKnowledgeHelper.js          # Calcolo AI Knowledge Score
 ├── ragHelper.js                  # RAG eFootball (info_rag), classifyQuestion, needsPersonalContext
+├── creditService.js              # Tracciamento crediti per utente/periodo
 └── rateLimiter.js                # Rate limiting per API
 ```
 
@@ -110,18 +111,24 @@ lib/
 **AI Knowledge**:
 - `GET /api/ai-knowledge` - Restituisce score conoscenza IA (0-100%) con breakdown per componente
 
+**Crediti**:
+- `GET/POST /api/credits/usage` - Utilizzo crediti mensili (credits_used, credits_included, overage)
+
 **Assistant Chat**:
 - `POST /api/assistant-chat` - Chat AI guida personale (message, currentPage, appState, language, history). RAG eFootball (info_rag.md), contesto personale on-demand (rosa, partite, tattica, allenatore).
 
 ## 📚 Documentazione
 
 **Documentazione principale**:
-- **`DOCUMENTAZIONE_MASTER_COMPLETA.md`** – Documentazione completa e aggiornata (29 Gennaio 2026)
+- **`docs/GUIDA_VALIDAZIONE_PROGRAMMATORE.md`** – Guida validazione: ogni cartella, ogni file, flusso dati (per programmatore)
+- **`DOCUMENTAZIONE_MASTER_COMPLETA.md`** – Documentazione completa (v2.4.0, 3 Febbraio 2026)
   - Panoramica, architettura, struttura progetto, DB schema, API, pagine, librerie, sicurezza, i18n, flussi
 - **`DOCUMENTAZIONE_RIFERIMENTO.md`** – Riferimento rapido: ogni pagina, API, componente, lib (per programmatore e per chi legge)
 
 **Documenti specializzati**:
-- **`DOCUMENTAZIONE_GUIDA_INTERATTIVA.md`** – Assistant Chat AI: architettura, prompt engineering, flussi
+- **`DOCUMENTAZIONE_GUIDA_INTERATTIVA.md`** – Assistant Chat AI: architettura, prompt, flussi
+- **`docs/ANALISI_PROMPT_ASSISTANT_CHAT.md`** – Analisi e miglioramenti prompt
+- **`docs/VALUTAZIONE_ECONOMICA_PIATTAFORMA.md`** – Valutazione economica
 - **`DOCUMENTAZIONE_DRAG_DROP.md`** – Drag & Drop giocatori sul campo 2D: funzionalità e implementazione
 - **`PROGETTAZIONE_BARRA_CONOSCENZA_IA.md`** – Barra Conoscenza IA: calcolo + flusso aggiornamento in produzione
 - **`INDICE_DOCUMENTAZIONE.md`** – Indice “pulito” dei documenti mantenuti

@@ -1,6 +1,6 @@
 # 📋 Documentazione Riferimento - eFootball AI Coach
 
-**Ultimo aggiornamento**: 29 Gennaio 2026
+**Ultimo aggiornamento**: 3 Febbraio 2026
 
 Documento unico di riferimento rapido: **per il programmatore** (file, funzioni, API) e **per chi legge** (cosa fa ogni schermata in linguaggio semplice). Contesto e glossario.
 
@@ -72,7 +72,7 @@ Documento unico di riferimento rapido: **per il programmatore** (file, funzioni,
 | POST | `/api/supabase/save-tactical-settings` | team_playing_style, individual_instructions | success/error |
 | POST | `/api/supabase/save-opponent-formation` | dati formazione avversaria | success/error |
 | POST | `/api/admin/recalculate-patterns` | (admin) | ricalcolo pattern tattici |
-| GET | `/api/credits/usage` | (Bearer) | usage crediti utente |
+| GET/POST | `/api/credits/usage` | (Bearer) body {} | period_key, credits_used, credits_included, overage |
 
 ---
 
@@ -108,9 +108,7 @@ Documento unico di riferimento rapido: **per il programmatore** (file, funzioni,
 | `lib/countermeasuresHelper.js` | generateCountermeasuresPrompt, validateCountermeasuresOutput | Prompt e validazione contromisure. |
 | `lib/tacticalInstructions.js` | (istruzioni tattiche) | Istruzioni individuali / tattica. |
 | `lib/taskHelper.js` | (task settimanali) | Logica obiettivi settimanali. |
-| `lib/playerPerformanceHelper.js` | (performance giocatori) | Analisi performance. |
 | `lib/validateFormationLimits.js` | (validazione limiti formazione) | Limiti reparti/posizioni. |
-| `lib/useAlert.js` | (hook alert) | Hook per sistema alert. |
 
 ---
 
@@ -144,3 +142,4 @@ Documento unico di riferimento rapido: **per il programmatore** (file, funzioni,
 - **Barra conoscenza IA**: `PROGETTAZIONE_BARRA_CONOSCENZA_IA.md`
 - **Sicurezza Supabase**: `VERIFICA_ENTERPRISE_SUPABASE.md`
 - **Crediti e design**: `docs/SISTEMA_CREDITI_AI.md`, `docs/COSTI_API_E_PRICING_CREDITI.md`, `docs/DESIGN_UNIFICATO_FOTO_GIOCATORE.md`
+- **Validazione completa (per programmatore)**: `docs/GUIDA_VALIDAZIONE_PROGRAMMATORE.md`
