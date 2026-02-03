@@ -140,7 +140,7 @@ export default function ImpostazioniProfiloPage() {
       }
     } catch (err) {
       console.error('[Impostazioni Profilo] Error saving profile:', err)
-      setError(err.message || 'Unable to save profile')
+        setError(err.message || t('errorProfileSave'))
       setTimeout(() => setError(null), 5000)
     } finally {
       setSaving(false)
@@ -169,9 +169,9 @@ export default function ImpostazioniProfiloPage() {
   
   const getLevelText = (level) => {
     switch(level) {
-      case 'complete': return 'Completo'
-      case 'intermediate': return 'Intermedio'
-      default: return 'Principiante'
+      case 'complete': return t('profileLevelComplete') || 'Completo'
+      case 'intermediate': return t('profileLevelIntermediate') || 'Intermedio'
+      default: return t('profileLevelBeginner') || 'Principiante'
     }
   }
 
@@ -179,7 +179,7 @@ export default function ImpostazioniProfiloPage() {
     return (
       <main style={{ padding: '32px 24px', minHeight: '100vh', textAlign: 'center' }}>
         <RefreshCw size={32} style={{ animation: 'spin 1s linear infinite', marginBottom: '16px', color: 'var(--neon-blue)' }} />
-        <div>Caricamento profilo...</div>
+        <div>{t('loadingProfile')}</div>
       </main>
     )
   }
@@ -324,7 +324,7 @@ export default function ImpostazioniProfiloPage() {
 
         <div style={{ marginBottom: '16px' }}>
           <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#888' }}>
-            Nome
+            {t('firstName')}
           </label>
           <input
             type="text"
@@ -387,10 +387,10 @@ export default function ImpostazioniProfiloPage() {
             }}
           >
             <Save size={18} />
-            {saving ? 'Salvataggio...' : 'Salva'}
+            {saving ? t('saving') : t('save')}
           </button>
           <button
-            onClick={() => handleSkip('Dati Personali')}
+            onClick={() => handleSkip(t('personalData'))}
             style={{
               padding: '12px 20px',
               backgroundColor: 'transparent',
@@ -405,7 +405,7 @@ export default function ImpostazioniProfiloPage() {
             }}
           >
             <SkipForward size={18} />
-            Salta
+            {t('skip')}
           </button>
         </div>
       </div>
@@ -440,7 +440,7 @@ export default function ImpostazioniProfiloPage() {
               fontSize: '16px'
             }}
           >
-            <option value="">Seleziona divisione</option>
+            <option value="">{t('selectDivision')}</option>
             {divisions.map(div => (
               <option key={div} value={div}>{div}</option>
             ))}
@@ -517,7 +517,7 @@ export default function ImpostazioniProfiloPage() {
 
         <div style={{ display: 'flex', gap: '12px' }}>
           <button
-            onClick={() => handleSave('Dati Gioco')}
+            onClick={() => handleSave(t('gameData'))}
             disabled={saving}
             style={{
               flex: 1,
@@ -536,10 +536,10 @@ export default function ImpostazioniProfiloPage() {
             }}
           >
             <Save size={18} />
-            {saving ? 'Salvataggio...' : 'Salva'}
+            {saving ? t('saving') : t('save')}
           </button>
           <button
-            onClick={() => handleSkip('Dati Gioco')}
+            onClick={() => handleSkip(t('gameData'))}
             style={{
               padding: '12px 20px',
               backgroundColor: 'transparent',
@@ -554,7 +554,7 @@ export default function ImpostazioniProfiloPage() {
             }}
           >
             <SkipForward size={18} />
-            Salta
+            {t('skip')}
           </button>
         </div>
       </div>
@@ -580,7 +580,7 @@ export default function ImpostazioniProfiloPage() {
             type="text"
             value={profile.ai_name}
             onChange={(e) => setProfile(prev => ({ ...prev, ai_name: e.target.value }))}
-            placeholder='Es: "Coach Mario", "Alex"'
+            placeholder={t('aiNamePlaceholder')}
             maxLength={255}
             style={{
               width: '100%',
@@ -639,7 +639,7 @@ export default function ImpostazioniProfiloPage() {
             }}
           >
             <Save size={18} />
-            {saving ? 'Salvataggio...' : 'Salva'}
+            {saving ? t('saving') : t('save')}
           </button>
           <button
             onClick={() => handleSkip('Preferenze IA')}
@@ -657,7 +657,7 @@ export default function ImpostazioniProfiloPage() {
             }}
           >
             <SkipForward size={18} />
-            Salta
+            {t('skip')}
           </button>
         </div>
       </div>
@@ -677,7 +677,7 @@ export default function ImpostazioniProfiloPage() {
 
         <div style={{ marginBottom: '16px' }}>
           <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#888' }}>
-            Quante ore giochi a settimana?
+            {t('hoursPerWeek')}
           </label>
           <input
             type="number"
@@ -700,7 +700,7 @@ export default function ImpostazioniProfiloPage() {
 
         <div style={{ marginBottom: '20px' }}>
           <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#888' }}>
-            Quali problemi riscontri?
+            {t('whichProblems')}
           </label>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {availableProblems.map(problem => (
@@ -735,7 +735,7 @@ export default function ImpostazioniProfiloPage() {
 
         <div style={{ display: 'flex', gap: '12px' }}>
           <button
-            onClick={() => handleSave('Esperienza Gioco')}
+            onClick={() => handleSave(t('gameExperience'))}
             disabled={saving}
             style={{
               flex: 1,
@@ -754,7 +754,7 @@ export default function ImpostazioniProfiloPage() {
             }}
           >
             <Save size={18} />
-            {saving ? 'Salvataggio...' : 'Salva'}
+            {saving ? t('saving') : t('save')}
           </button>
           <button
             onClick={() => handleSkip(t('gameExperience'))}
@@ -772,7 +772,7 @@ export default function ImpostazioniProfiloPage() {
             }}
           >
             <SkipForward size={18} />
-            Salta
+            {t('skip')}
           </button>
         </div>
       </div>
@@ -808,3 +808,4 @@ export default function ImpostazioniProfiloPage() {
     </main>
   )
 }
+
