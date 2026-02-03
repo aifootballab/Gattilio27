@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { useTranslation } from '@/lib/i18n'
 import LanguageSwitch from '@/components/LanguageSwitch'
-import { ArrowLeft, Upload, AlertCircle, CheckCircle2, RefreshCw, User, BarChart3, Zap, Gift, ChevronDown, ChevronUp, Award } from 'lucide-react'
+import { ArrowLeft, Upload, AlertCircle, CheckCircle2, RefreshCw, BarChart3, Zap, Gift, ChevronDown, ChevronUp, Award } from 'lucide-react'
 import { getPhotoTypeStyle } from '@/lib/playerPhotoTypes'
 
 export default function PlayerDetailPage() {
@@ -574,7 +574,7 @@ function StatsSection({ player, photoSlots, isExpanded, onToggle, onFileSelect, 
               {baseStats.attacking && Object.keys(baseStats.attacking).length > 0 && (
                 <div style={{ marginBottom: '20px' }}>
                   <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '12px', color: 'var(--neon-blue)' }}>
-                    Attacco
+                    {t('attacking')}
                   </h3>
                   <div style={{ 
                     display: 'grid', 
@@ -805,7 +805,7 @@ function SkillsSection({ player, photoSlots, isExpanded, onToggle, onFileSelect,
               textAlign: 'center',
               color: 'rgba(255, 255, 255, 0.6)'
             }}>
-              Nessuna abilità disponibile
+              {t('skillsNotAvailable')}
             </div>
           )}
 
@@ -893,7 +893,7 @@ function BoostersSection({ player, photoSlots, isExpanded, onToggle, onFileSelec
                   </div>
                   {booster.effect && (
                     <div style={{ fontSize: '14px', marginBottom: '4px', opacity: 0.9 }}>
-                      <strong>Effetto:</strong> {booster.effect}
+                      <strong>{t('effect')}:</strong> {booster.effect}
                     </div>
                   )}
                   {booster.condition && (
@@ -1026,7 +1026,7 @@ function ConfirmUpdateModal({
             <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '8px' }}>{t('extractedData')}:</div>
             <div style={{ fontSize: '13px', opacity: 0.9 }}>
               <div style={{ color: nameMismatch ? '#ef4444' : 'inherit' }}>
-                <strong>Nome:</strong> {extractedData.player_name || 'N/A'}
+                <strong>{t('name')}:</strong> {extractedData.player_name || 'N/A'}
                 {nameMismatch && ' ⚠️'}
               </div>
               {extractedData.team && (
