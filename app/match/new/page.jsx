@@ -682,7 +682,7 @@ export default function NewMatchPage() {
               }}
             >
               <SkipForward size={18} />
-              Skip
+              {t('skip')}
             </button>
           </div>
 
