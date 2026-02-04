@@ -140,6 +140,14 @@ Rollback: `rollback/FIX_LIB_2026-02-03/README.md`
 
 Rollback: `rollback/FIX_GESTIONE_FORMazione_2026-02-03/README.md`
 
+## 4.4 Fix Hydration Mismatch (3 feb 2026)
+
+| Fix | File | Dettaglio |
+|-----|------|-----------|
+| Hydration | lib/i18n.js | LanguageProvider: state iniziale sempre 'it', localStorage letto in useEffect dopo mount |
+
+Rollback: `rollback/FIX_HYDRATION_2026-02-03/README.md`
+
 ## 5. Gestione Rosa – Documentazione per funzione
 
 Vedi `docs/GESTIONE_ROSA_FUNZIONI.md` – ogni funzione della pagina `gestione-formazione/page.jsx` documentata separatamente.
