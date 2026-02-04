@@ -234,22 +234,13 @@ export async function GET(request) {
 **File**: `lib/taskHelper.test.js` (da creare)
 
 ```javascript
-import { getCurrentWeek, calculateWeightedTasksScore } from './taskHelper'
+import { getCurrentWeek } from './taskHelper'
 
 describe('taskHelper', () => {
   test('getCurrentWeek returns correct week', () => {
     const week = getCurrentWeek()
     expect(week.start).toMatch(/^\d{4}-\d{2}-\d{2}$/)
     expect(week.end).toMatch(/^\d{4}-\d{2}-\d{2}$/)
-  })
-
-  test('calculateWeightedTasksScore calculates correctly', () => {
-    const tasks = [
-      { difficulty: 'hard', goal_type: 'increase_wins', completed_at: new Date() }
-    ]
-    const score = calculateWeightedTasksScore(tasks)
-    expect(score).toBeGreaterThan(0)
-    expect(score).toBeLessThanOrEqual(200)
   })
 })
 ```

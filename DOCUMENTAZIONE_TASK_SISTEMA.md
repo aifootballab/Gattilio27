@@ -88,8 +88,8 @@ Il **Sistema Task (Obiettivi Settimanali)** è un sistema enterprise-grade per l
 │  │  taskHelper.js                                   │   │
 │  │  - generateWeeklyTasksForUser()                  │   │
 │  │  - updateTasksProgressAfterMatch()               │   │
-│  │  - calculateTaskProgress()                      │   │
-│  │  - calculateWeightedTasksScore()                 │   │
+│  │  - calculateTaskProgress()                       │   │
+│  │  - getCurrentWeek()                              │   │
 │  └──────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────┘
                           │
@@ -405,54 +405,6 @@ await updateTasksProgressAfterMatch(
 **Note**:
 - Filtra partite per settimana del task (non settimana corrente)
 - Supporta partite caricate in ritardo (ultime 2 settimane)
-
----
-
-### **`calculateWeightedTasksScore(completedTasks)`**
-
-**Descrizione**: Calcola score pesato per task completati (usato in leaderboard).
-
-**Parametri**:
-- `completedTasks` (array): Array di task completati
-
-**Ritorna**: `number` - Score pesato (0-200)
-
-**Formula**:
-```
-Base Score = 10 punti per task
-
-Moltiplicatori:
-- Difficoltà:
-  - easy: 1.0x
-  - medium: 1.5x
-  - hard: 2.0x
-
-- Tipo Task:
-  - increase_wins: 1.3x
-  - reduce_goals_conceded: 1.2x
-  - improve_defense: 1.2x
-  - improve_possession: 1.1x
-  - use_ai_recommendations: 1.1x
-  - altri: 1.0x
-
-- Recency (settimane fa):
-  - ≤ 1 settimana: 1.5x
-  - ≤ 2 settimane: 1.3x
-  - ≤ 4 settimane: 1.1x
-  - ≤ 8 settimane: 1.0x
-  - > 8 settimane: 0.5x
-
-Score Finale = Base × Difficoltà × Tipo × Recency
-Cap: 200 punti totali
-```
-
-**Esempio**:
-```javascript
-import { calculateWeightedTasksScore } from '@/lib/taskHelper'
-
-const score = calculateWeightedTasksScore(completedTasks)
-// Esempio: 3 task hard completati questa settimana = ~90 punti
-```
 
 ---
 

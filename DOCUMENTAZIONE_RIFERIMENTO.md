@@ -1,6 +1,6 @@
 # 📋 Documentazione Riferimento - eFootball AI Coach
 
-**Ultimo aggiornamento**: 3 Febbraio 2026
+**Ultimo aggiornamento**: 3 Febbraio 2026 (doc allineata a codice: taskHelper, gestione-formazione handleDelete)
 
 Documento unico di riferimento rapido: **per il programmatore** (file, funzioni, API) e **per chi legge** (cosa fa ogni schermata in linguaggio semplice). Contesto e glossario.
 
@@ -106,7 +106,7 @@ Documento unico di riferimento rapido: **per il programmatore** (file, funzioni,
 | `lib/i18n.js` | useTranslation, t, changeLanguage, translations | i18n IT/EN. |
 | `lib/countermeasuresHelper.js` | generateCountermeasuresPrompt, validateCountermeasuresOutput | Prompt e validazione contromisure. |
 | `lib/tacticalInstructions.js` | (istruzioni tattiche) | Istruzioni individuali / tattica. |
-| `lib/taskHelper.js` | (task settimanali) | Logica obiettivi settimanali. |
+| `lib/taskHelper.js` | generateWeeklyTasksForUser, updateTasksProgressAfterMatch, getCurrentWeek | Obiettivi settimanali, generazione e aggiornamento. |
 | `lib/validateFormationLimits.js` | (validazione limiti formazione) | Limiti reparti/posizioni. |
 
 ---

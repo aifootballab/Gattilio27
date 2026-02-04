@@ -24,4 +24,4 @@ git checkout HEAD -- lib/fetchHelper.js lib/taskHelper.js lib/playerPhotoTypes.j
 5. **extract-coach**: La route fa parsing manuale; `parseOpenAIResponse` non era usato
 6. **App**: Dashboard, gestione formazione, pagina giocatore, upload coach – verificare flussi principali
 
-**Nota**: `GUIDA_SVILUPPATORI_TASK.md` e `DOCUMENTAZIONE_TASK_SISTEMA.md` citano `calculateWeightedTasksScore` negli esempi di test. Se si eseguono quei test, aggiornare o rimuovere quei riferimenti.
+**Nota**: `GUIDA_SVILUPPATORI_TASK.md` e `DOCUMENTAZIONE_TASK_SISTEMA.md` sono stati aggiornati (3 feb 2026) per rimuovere i riferimenti a `calculateWeightedTasksScore`.

@@ -115,8 +115,9 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Failed to fetch tasks' }, { status: 500 })
     }
     
-    console.log(`[tasks/list] Found ${tasks?.length || 0} existing tasks for user ${user_id}, week ${weekStartDate}`)
-    console.log(`[tasks/list] User email: ${userData?.user?.email || 'unknown'}`)
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[tasks/list] Found ${tasks?.length || 0} tasks for user, week ${weekStartDate}`)
+    }
 
     // 5. Auto-generazione task: se non ci sono per la settimana corrente, generali
     const currentWeek = getCurrentWeek()
@@ -148,7 +149,9 @@ export async function GET(request) {
             end: weekEnd.toISOString().split('T')[0]
           }
           
-          console.log(`[tasks/list] Auto-generating tasks for user ${user_id} (${userData?.user?.email || 'unknown'}), week ${week.start}`)
+          if (process.env.NODE_ENV !== 'production') {
+            console.log(`[tasks/list] Auto-generating tasks for week ${week.start}`)
+          }
           
           const generatedTasks = await generateWeeklyTasksForUser(
             user_id,
@@ -161,7 +164,7 @@ export async function GET(request) {
           
           if (!generatedTasks || generatedTasks.length === 0) {
             console.warn(`[tasks/list] generateWeeklyTasksForUser returned empty array - this might indicate an issue`)
-            console.warn(`[tasks/list] User ${userData?.user?.email || user_id} might not have enough data for personalized tasks, but should still get generic tasks`)
+            console.warn(`[tasks/list] User might not have enough data for personalized tasks`)
           } else {
             // Se generati, recuperali di nuovo (usa RLS)
             console.log(`[tasks/list] Attempting to fetch ${generatedTasks.length} generated tasks`)

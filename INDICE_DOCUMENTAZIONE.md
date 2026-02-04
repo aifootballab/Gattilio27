@@ -35,7 +35,7 @@ Mappatura **codice ↔ documentazione**: vedi **`docs/AUDIT_ENTERPRISE_2026.md`*
 ### **7) `PIANO_INTEGRAZIONE_RAG_E_PROMPT.md`**
 - **Quando usarlo**: cosa va in RAG vs prompt, checklist integrazioni, gestione system/user.
 
-### **7) `COERENZA_FOCUS_BILINGUE_E_RISPOSTA_IA.md`**
+### **8) `COERENZA_FOCUS_BILINGUE_E_RISPOSTA_IA.md`**
 - **Quando usarlo**: focus prodotto, bilingue IT/EN, come deve rispondere l’IA, cosa non deve dire.
 
 ### **9) `CHIAREZZA_GIOCATORI_E_DOCUMENTAZIONE.md`**
@@ -78,7 +78,7 @@ Mappatura **codice ↔ documentazione**: vedi **`docs/AUDIT_ENTERPRISE_2026.md`*
 
 ## 🔌 Supabase / sicurezza / crediti / design
 
-### **16) `VERIFICA_ENTERPRISE_SUPABASE.md`**
+### **17) `VERIFICA_ENTERPRISE_SUPABASE.md`**
 - **Quando usarlo**: audit sicurezza/coerenza Supabase (RLS, pattern auth, service role).
 
 ### **17) Documenti in `docs/`**
@@ -99,6 +99,9 @@ Mappatura **codice ↔ documentazione**: vedi **`docs/AUDIT_ENTERPRISE_2026.md`*
 ## 🧪 Test
 
 ### **19) `TEST_GUIDE_CLOUD.md`**, **`TEST_CHAT_ASSISTANT.md`**
+
+### **20) `docs/TASK_RIFINITURE_PROGRAMMATORE.md`**
+- **Quando usarlo**: elenco task per rifiniture pre-handoff (codice morto, duplicati, log, bug, ecc.). Ogni task con errore, soluzione, prima/dopo cliente.
 - **Quando usarlo**: guide per test cloud e chat assistant.
 
 ---

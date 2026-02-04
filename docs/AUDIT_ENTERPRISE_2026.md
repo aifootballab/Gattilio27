@@ -1,7 +1,8 @@
 # Audit Enterprise Documentazione – Febbraio 2026
 
 **Data**: 3 Febbraio 2026  
-**Obiettivo**: Verifica coerenza documenti ↔ codice, rimozione obsoleti, documentazione gestione rosa per funzione.
+**Obiettivo**: Verifica coerenza documenti ↔ codice, rimozione obsoleti, documentazione gestione rosa per funzione.  
+**Ultimo aggiornamento doc**: 3 Feb 2026 – INDICE numerazione, DOCUMENTAZIONE_TASK_SISTEMA (calculateWeightedTasksScore rimosso), GUIDA_SVILUPPATORI_TASK, DOCUMENTAZIONE_RIFERIMENTO.
 
 ---
 
@@ -186,3 +187,7 @@ Vedi `docs/GESTIONE_ROSA_FUNZIONI.md` – ogni funzione della pagina `gestione-f
 | `rollback/FIX_DEAD_CODE_2026-02-03/` | safeFetch, calculateWeightedTasksScore, PHOTO_TYPE_ICONS, parseOpenAIResponse (extract-coach) |
 | `rollback/FIX_DOC_OBSOLETI_2026-02-03/` | Rimozione 14 doc obsoleti + memoria_attila_backup |
 | `rollback/FIX_GESTIONE_DELETE_2026-02-03/` | Unificazione handleDeletePlayerConfirm/handleDeleteReserveConfirm, fix reset modal |
+| `rollback/FIX_DOC_UPDATE_2026-02-03/` | Aggiornamento doc: INDICE, TASK_SISTEMA, GUIDA_SVILUPPATORI, RIFERIMENTO (calculateWeightedTasksScore) |
+| `rollback/FIX_SECURITY_2026-02-03/` | Log senza email (tasks/list), throttling login 3 s dopo errore |
+
+**Task rifiniture**: `docs/TASK_RIFINITURE_PROGRAMMATORE.md` – 10 task per programmatore (codice morto, shadowing, console.log, TODO, bug interpolazione modal, ecc.).

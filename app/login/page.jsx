@@ -17,6 +17,21 @@ export default function LoginPage() {
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState(null)
   const [success, setSuccess] = React.useState(null)
+  const [cooldownUntil, setCooldownUntil] = React.useState(0) // Timestamp fine cooldown (anti brute-force)
+
+  const cooldownRemaining = Math.max(0, Math.ceil((cooldownUntil - Date.now()) / 1000))
+
+  React.useEffect(() => {
+    if (cooldownRemaining <= 0) return
+    const t = setInterval(() => {
+      const rem = Math.max(0, Math.ceil((cooldownUntil - Date.now()) / 1000))
+      if (rem <= 0) {
+        setCooldownUntil(0)
+        clearInterval(t)
+      }
+    }, 500)
+    return () => clearInterval(t)
+  }, [cooldownUntil, cooldownRemaining])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -264,11 +279,11 @@ export default function LoginPage() {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || cooldownRemaining > 0}
             style={{
               width: '100%',
               padding: '14px',
-              background: loading ? 'rgba(0, 212, 255, 0.3)' : 'var(--neon-blue)',
+              background: (loading || cooldownRemaining > 0) ? 'rgba(0, 212, 255, 0.3)' : 'var(--neon-blue)',
               border: 'none',
               borderRadius: '8px',
               color: '#fff',
@@ -280,12 +295,14 @@ export default function LoginPage() {
               justifyContent: 'center',
               gap: '8px',
               transition: 'all 0.2s',
-              opacity: loading ? 0.6 : 1
+              opacity: (loading || cooldownRemaining > 0) ? 0.6 : 1
             }}
-            onMouseEnter={(e) => !loading && (e.target.style.background = 'rgba(0, 212, 255, 0.9)')}
+            onMouseEnter={(e) => !loading && cooldownRemaining <= 0 && (e.target.style.background = 'rgba(0, 212, 255, 0.9)')}
             onMouseLeave={(e) => !loading && (e.target.style.background = 'var(--neon-blue)')}
           >
-            {loading ? (
+            {cooldownRemaining > 0 ? (
+              t('retryInSeconds').replace('{{n}}', String(cooldownRemaining))
+            ) : loading ? (
               <>
                 <div style={{
                   width: '16px',
