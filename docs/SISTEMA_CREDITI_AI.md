@@ -93,9 +93,4 @@
 
 - **matches.credits_used** – colonna sulla tabella match: numero di foto caricate per quel match (metadata). **Non** è il sistema crediti mensili; nessun conflitto con `user_credit_usage`.
 - **Scrittura:** `recordUsage` fa **sempre la somma** (update `credits_used = existing.credits_used + credits`). **Lettura:** `getCurrentUsage` legge **solo il valore salvato** (nessuna somma in lettura).
-- Per dettagli sicurezza e audit: `docs/AUDIT_CREDITI_SICUREZZA_E_FLUSSO.md`.
-- Per costi e pesi: `docs/COSTI_API_E_PRICING_CREDITI.md`.
-- Per audit “perché si vede solo 5” e fix (POST, currentPeriodOnly): `docs/AUDIT_ENTERPRISE_CREDITI_PERCHÉ_SOLO_5.md`.
-quel match (metadata). **Non** è il sistema crediti mensili; nessun conflitto con `user_credit_usage`.
-- Per dettagli sicurezza e audit: `docs/AUDIT_CREDITI_SICUREZZA_E_FLUSSO.md`.
 - Per costi e pesi: `docs/COSTI_API_E_PRICING_CREDITI.md`.

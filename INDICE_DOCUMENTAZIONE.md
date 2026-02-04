@@ -1,6 +1,7 @@
 # 📚 Indice Documentazione - eFootball AI Coach
 
-**Ultimo aggiornamento**: 2026-02-03
+**Ultimo aggiornamento**: 2026-02-03  
+*Rimossi doc obsoleti: AUDIT_DOCUMENTAZIONE_2026, BRAINSTORM_DOCUMENTO, ANALISI_BRAINSTORM, AUDIT_CODICE_MORTO, memoria_attila_backup, audit/verifica one-off.*
 
 Questo indice elenca **solo i documenti mantenuti** e coerenti con il codice attuale.  
 Mappatura **codice ↔ documentazione**: vedi **`docs/AUDIT_ENTERPRISE_2026.md`**.
@@ -91,10 +92,6 @@ Mappatura **codice ↔ documentazione**: vedi **`docs/AUDIT_ENTERPRISE_2026.md`*
 - **`docs/VERIFICA_STILI_EFOOTBALL.md`** – Verifica stili di gioco vs fonti.
 - **`docs/ANALISI_PROMPT_ASSISTANT_CHAT.md`** – Analisi prompt chat, miglioramenti (tono, Ala prolifica, %).
 - **`docs/VALUTAZIONE_ECONOMICA_PIATTAFORMA.md`** – Valutazione economica: costi, limiti, proiezioni, raccomandazioni.
-- **`docs/AUDIT_STILI_GIOCATORE_CREARE_RICEVERE.md`** – Audit stili giocatore (creare vs ricevere).
-- **`docs/AUDIT_ALLINEAMENTO_SUPABASE_ISTRUZIONI_PALETTI.md`** – Allineamento Supabase, istruzioni, paletti IA.
-- **`docs/AUDIT_ENTERPRISE_IA_PROMPTI_2026.md`** – Audit enterprise prompt e RAG.
-- **`docs/AUDIT_CODICE_MORTO_E_DOCUMENTI.md`** – Codice morto e documenti inutili/ridondanti.
 - **`docs/VERIFICA_SUPABASE_END_TO_END.md`** – Coerenza API → tabelle Supabase → migrazioni.
 
 ---

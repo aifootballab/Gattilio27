@@ -201,4 +201,3 @@ Frontend (React/Next.js)          Backend (API Routes)           Servizi esterni
 - **Assistant Chat**: `DOCUMENTAZIONE_GUIDA_INTERATTIVA.md`
 - **RAG**: `info_rag.md`, `PIANO_INTEGRAZIONE_RAG_E_PROMPT.md`
 - **Crediti**: `docs/SISTEMA_CREDITI_AI.md`, `docs/COSTI_API_E_PRICING_CREDITI.md`
-- **Codice rimosso**: `docs/AUDIT_CODICE_MORTO_E_DOCUMENTI.md`

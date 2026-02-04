@@ -92,9 +92,21 @@ Tabelle senza migrazione in `migrations/`: `formation_layout`, `players`, `oppon
 
 ---
 
-## 3. Documenti rimossi (audit 2026-02-02)
+## 3. Documenti rimossi
 
-Rimossi 54+ documenti obsoleti (audit one-off, piani superseduti, migrazioni completate). Elenco in Git history.
+**Audit 2026-02-02**: 54+ documenti obsoleti (piani superseduti, migrazioni completate). Elenco in Git history.
+
+**Pulizia 2026-02-03**: documentazione obsoleta o non utile:
+- `docs/AUDIT_DOCUMENTAZIONE_2026.md` (sostituito da AUDIT_ENTERPRISE_2026)
+- `docs/AUDIT_ENTERPRISE_CREDITI_PERCHÉ_SOLO_5.md` (one-off storico)
+- `docs/BRAINSTORM_DOCUMENTO.md`, `docs/ANALISI_BRAINSTORM_RIGA_PER_RIGA.md` (contenuto confluito in info_rag)
+- `docs/AUDIT_CODICE_MORTO_E_DOCUMENTI.md` (azioni eseguite)
+- `docs/ESEMPIO_RISPOSTA_ABILITA_SBAGLIATE.md` (esempio one-off)
+- `docs/INTRECCI_IA_E_MIGLIORAMENTI.md`, `docs/FLUSSO_DATI_IA_E_SUGGERIMENTI.md`
+- `docs/VERIFICA_RAG_STILI_E_ABILITA.md`, `docs/AUDIT_STILI_GIOCATORE_CREARE_RICEVERE.md`
+- `docs/AUDIT_ALLINEAMENTO_SUPABASE_ISTRUZIONI_PALETTI.md`, `docs/AUDIT_DATI_IA_E_SUPABASE.md`
+- `docs/AUDIT_ENTERPRISE_IA_PROMPTI_2026.md`
+- `memoria_attila_backup/` (intera cartella, backup)
 
 ---
 
@@ -137,8 +149,9 @@ Rollback: `rollback/FIX_LIB_2026-02-03/README.md`
 | Fix | File | Dettaglio |
 |-----|------|-----------|
 | i18n | gestione-formazione/page.jsx, lib/i18n.js | formationCustom, ATTACCO→attacking, DIFESA→defending, FORZA→athleticism |
+| Codice duplicato | gestione-formazione/page.jsx | Unificati handleDeletePlayerConfirm e handleDeleteReserveConfirm; fix reset modal per riserve |
 
-Rollback: `rollback/FIX_GESTIONE_FORMazione_2026-02-03/README.md`
+Rollback: `rollback/FIX_GESTIONE_FORMazione_2026-02-03/README.md`, `rollback/FIX_GESTIONE_DELETE_2026-02-03/README.md`
 
 ## 4.4 Fix Hydration Mismatch (3 feb 2026)
 
@@ -171,3 +184,5 @@ Vedi `docs/GESTIONE_ROSA_FUNZIONI.md` – ogni funzione della pagina `gestione-f
 | `rollback/FIX_GESTIONE_FORMazione_2026-02-03/` | i18n formationCustom, attacking, defending, athleticism |
 | `rollback/FIX_HYDRATION_2026-02-03/` | LanguageProvider hydration |
 | `rollback/FIX_DEAD_CODE_2026-02-03/` | safeFetch, calculateWeightedTasksScore, PHOTO_TYPE_ICONS, parseOpenAIResponse (extract-coach) |
+| `rollback/FIX_DOC_OBSOLETI_2026-02-03/` | Rimozione 14 doc obsoleti + memoria_attila_backup |
+| `rollback/FIX_GESTIONE_DELETE_2026-02-03/` | Unificazione handleDeletePlayerConfirm/handleDeleteReserveConfirm, fix reset modal |

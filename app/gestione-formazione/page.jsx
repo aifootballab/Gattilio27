@@ -686,7 +686,7 @@ export default function GestioneFormazionePage() {
     }
   }
 
-  // Elimina definitivamente giocatore (sia titolare che riserva)
+  // Elimina definitivamente giocatore (unificato: titolare o riserva)
   const handleDeletePlayerConfirm = async (playerId) => {
     if (!supabase) return
     setAssigning(true)
@@ -697,7 +697,6 @@ export default function GestioneFormazionePage() {
         throw new Error('Sessione scaduta')
       }
 
-      // Elimina giocatore tramite endpoint API
       const res = await fetch('/api/supabase/delete-player', {
         method: 'DELETE',
         headers: {
@@ -707,22 +706,17 @@ export default function GestioneFormazionePage() {
         body: JSON.stringify({ player_id: playerId })
       })
 
-      const data = await safeJsonResponse(res, 'Errore eliminazione')
+      await safeJsonResponse(res, 'Errore eliminazione')
 
-      // Chiudi modal se aperto
+      // Reset UI: chiudi modal e deseleziona (sia titolare che riserva)
       setShowAssignModal(false)
       setSelectedSlot(null)
-
-      // Messaggio di successo
-      showToast(t('playerDeletedSuccessfully'), 'success')
-
-      // Reset stati UI
       setSelectedReserve(null)
-      
-      // Ricarica dati senza reload pagina
+
+      showToast(t('playerDeletedSuccessfully'), 'success')
       await fetchData()
     } catch (err) {
-      console.error('[GestioneFormazione] Delete player error:', err)
+      console.error('[GestioneFormazione] Delete error:', err)
       const { message } = mapErrorToUserMessage(err, t('errorDeletingPlayer'))
       setError(message)
       showToast(message, 'error')
@@ -748,44 +742,6 @@ export default function GestioneFormazionePage() {
     })
   }
 
-  // Elimina giocatore dalle riserve (cancellazione completa)
-  const handleDeleteReserveConfirm = async (playerId) => {
-    if (!supabase) return
-    setAssigning(true)
-    setError(null)
-    try {
-      const { data: session } = await supabase.auth.getSession()
-      if (!session?.session?.access_token) {
-        throw new Error('Sessione scaduta')
-      }
-
-      // Elimina giocatore tramite endpoint API
-      const res = await fetch('/api/supabase/delete-player', {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${session.session.access_token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ player_id: playerId })
-      })
-
-      const data = await safeJsonResponse(res, 'Errore eliminazione')
-
-      // Reset stati UI
-      setSelectedReserve(null)
-      
-      // Ricarica dati senza reload pagina
-      await fetchData()
-    } catch (err) {
-      console.error('[GestioneFormazione] Delete reserve error:', err)
-      const { message } = mapErrorToUserMessage(err, t('errorDeletingPlayer'))
-      setError(message)
-      showToast(message, 'error')
-    } finally {
-      setAssigning(false)
-    }
-  }
-
   const handleDeleteReserve = (playerId) => {
     if (!supabase) return
     setConfirmModal({
@@ -797,7 +753,7 @@ export default function GestioneFormazionePage() {
       variant: 'danger',
       onConfirm: () => {
         setConfirmModal(null)
-        handleDeleteReserveConfirm(playerId)
+        handleDeletePlayerConfirm(playerId)
       },
       onCancel: () => setConfirmModal(null)
     })

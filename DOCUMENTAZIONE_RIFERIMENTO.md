@@ -126,7 +126,7 @@ Documento unico di riferimento rapido: **per il programmatore** (file, funzioni,
 
 ## 7. Dove trovare cosa (codice ↔ documentazione)
 
-- **Indice e mappatura codice ↔ doc**: `INDICE_DOCUMENTAZIONE.md`, `docs/AUDIT_DOCUMENTAZIONE_2026.md`
+- **Indice e mappatura codice ↔ doc**: `INDICE_DOCUMENTAZIONE.md`, `docs/AUDIT_ENTERPRISE_2026.md`
 - **Architettura e flussi completi**: `DOCUMENTAZIONE_MASTER_COMPLETA.md`
 - **Setup e overview**: `README.md`
 - **Assistant Chat (route, prompt, flusso)**: `DOCUMENTAZIONE_GUIDA_INTERATTIVA.md`

@@ -62,13 +62,12 @@ Ogni sezione documenta una funzione o area del codice. Riferimento esatto per ma
 
 ## 6. Eliminazione giocatori
 
-### `handleDeletePlayer(playerId)` / `handleDeletePlayerConfirm` (linee ~734-732)
-- **Cosa fa**: Conferma modale e elimina definitivamente giocatore titolare.
-- **API**: `DELETE /api/supabase/delete-player` (player_id).
+### `handleDeletePlayer(playerId)` / `handleDeletePlayerConfirm` (unificato)
+- **Cosa fa**: Conferma modale e elimina definitivamente giocatore titolare. Usa `handleDeletePlayerConfirm`.
 
-### `handleDeleteReserve(playerId)` / `handleDeleteReserveConfirm` (linee ~751-804)
-- **Cosa fa**: Conferma modale e elimina definitivamente giocatore da riserve.
-- **API**: `DELETE /api/supabase/delete-player` (player_id).
+### `handleDeleteReserve(playerId)` (unificato)
+- **Cosa fa**: Conferma modale e elimina definitivamente giocatore da riserve. Usa la stessa `handleDeletePlayerConfirm`.
+- **API**: `DELETE /api/supabase/delete-player` (player_id). Reset completo modal in entrambi i casi.
 
 ---
 
