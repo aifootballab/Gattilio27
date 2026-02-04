@@ -1640,7 +1640,7 @@ export default function GestioneFormazionePage() {
       
       // Usa funzione esistente per salvare (NON MODIFICATA)
       await handleSelectManualFormation(
-        layout.formation || 'Personalizzato',
+        layout.formation || t('formationCustom'),
         updatedSlotPositions
       )
       
@@ -3398,7 +3398,7 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
                   <div style={{ padding: '18px' }}>
                     {baseStats.attacking && Object.keys(baseStats.attacking).length > 0 && (
                       <div style={{ marginBottom: '16px' }}>
-                        <div style={{ fontSize: '13px', fontWeight: 700, marginBottom: '10px', opacity: 0.9, color: 'var(--neon-green)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>ATTACCO</div>
+                        <div style={{ fontSize: '13px', fontWeight: 700, marginBottom: '10px', opacity: 0.9, color: 'var(--neon-green)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t('attacking')}</div>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '8px', fontSize: '13px' }}>
                           {Object.entries(baseStats.attacking).map(([key, value]) => (
                             <div key={key} style={{ 
@@ -3438,7 +3438,7 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
                     )}
                     {baseStats.athleticism && Object.keys(baseStats.athleticism).length > 0 && (
                       <div>
-                        <div style={{ fontSize: '13px', fontWeight: 700, marginBottom: '10px', opacity: 0.9, color: 'var(--neon-green)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>FORZA</div>
+                        <div style={{ fontSize: '13px', fontWeight: 700, marginBottom: '10px', opacity: 0.9, color: 'var(--neon-green)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t('athleticism')}</div>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '8px', fontSize: '13px' }}>
                           {Object.entries(baseStats.athleticism).map(([key, value]) => (
                             <div key={key} style={{ 

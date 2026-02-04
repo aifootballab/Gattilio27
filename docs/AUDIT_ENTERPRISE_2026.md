@@ -132,6 +132,14 @@ Rollback: `rollback/FIX_COMPONENTS_2026-02-03/README.md`
 
 Rollback: `rollback/FIX_LIB_2026-02-03/README.md`
 
+## 4.3 Audit gestione-formazione/ (3 feb 2026)
+
+| Fix | File | Dettaglio |
+|-----|------|-----------|
+| i18n | gestione-formazione/page.jsx, lib/i18n.js | formationCustom, ATTACCO→attacking, DIFESA→defending, FORZA→athleticism |
+
+Rollback: `rollback/FIX_GESTIONE_FORMazione_2026-02-03/README.md`
+
 ## 5. Gestione Rosa – Documentazione per funzione
 
 Vedi `docs/GESTIONE_ROSA_FUNZIONI.md` – ogni funzione della pagina `gestione-formazione/page.jsx` documentata separatamente.
