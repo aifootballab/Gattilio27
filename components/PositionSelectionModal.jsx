@@ -66,7 +66,8 @@ export default function PositionSelectionModal({
   selectedPositions,
   onPositionsChange,
   onConfirm,
-  onCancel
+  onCancel,
+  uploading = false
 }) {
   const { t, lang } = useTranslation()
 
@@ -350,23 +351,23 @@ export default function PositionSelectionModal({
           </button>
           <button
             onClick={onConfirm}
-            disabled={selectedPositions.length === 0}
+            disabled={selectedPositions.length === 0 || uploading}
             style={{
               padding: '10px 20px',
               borderRadius: '8px',
               border: 'none',
-              backgroundColor: selectedPositions.length === 0 
+              backgroundColor: selectedPositions.length === 0 || uploading
                 ? 'var(--border-color, #333)' 
                 : 'var(--neon-blue, #00d4ff)',
-              color: selectedPositions.length === 0 
+              color: selectedPositions.length === 0 || uploading
                 ? 'var(--text-secondary, #aaa)' 
                 : '#000',
-              cursor: selectedPositions.length === 0 ? 'not-allowed' : 'pointer',
+              cursor: selectedPositions.length === 0 || uploading ? 'not-allowed' : 'pointer',
               fontSize: '14px',
               fontWeight: '600'
             }}
           >
-            {t('save')}
+            {uploading ? (t('saving') || 'Salvataggio...') : t('save')}
           </button>
         </div>
       </div>

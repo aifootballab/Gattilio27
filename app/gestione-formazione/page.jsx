@@ -960,6 +960,7 @@ export default function GestioneFormazionePage() {
           variant: 'warning',
           onConfirm: () => {
             setConfirmModal(null)
+            setShowUploadPlayerModal(false)
             setShowPositionSelectionModal(true)
             setExtractedPlayerData({
               ...playerData,
@@ -997,6 +998,7 @@ export default function GestioneFormazionePage() {
         slot_index: selectedSlot.slot_index
       })
       
+      setShowUploadPlayerModal(false)
       setShowPositionSelectionModal(true)
       setUploadingPlayer(false)
       return // Non salvare ancora, aspetta conferma modal
@@ -1035,7 +1037,7 @@ export default function GestioneFormazionePage() {
         
         // Match esatto se nome+età corrispondono
         if (playerName && pName && playerAge && pAge) {
-          return pName === playerName && pAge === pAge && p.slot_index !== selectedSlot.slot_index
+          return pName === playerName && pAge === playerAge && p.slot_index !== selectedSlot.slot_index
         }
         // Fallback: solo nome se età non disponibile
         if (playerName && pName) {
@@ -1215,6 +1217,7 @@ export default function GestioneFormazionePage() {
       position: mainPosition,
       competence: 'Alta'
     }])
+    setShowUploadPlayerModal(false)
     setShowPositionSelectionModal(true)
   }
 
@@ -1241,6 +1244,7 @@ export default function GestioneFormazionePage() {
       position: mainPosition,
       competence: 'Alta'
     }])
+    setShowUploadPlayerModal(false)
     setShowPositionSelectionModal(true)
   }
 
@@ -2634,6 +2638,7 @@ export default function GestioneFormazionePage() {
           selectedPositions={selectedOriginalPositions}
           onPositionsChange={setSelectedOriginalPositions}
           onConfirm={handleSavePlayerWithPositions}
+          uploading={uploadingPlayer}
           onCancel={() => {
             setShowPositionSelectionModal(false)
             setExtractedPlayerData(null)
@@ -3642,24 +3647,6 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
                   {t('completeProfile')} ({completedSections}/3)
                 </button>
               )}
-              <button
-                onClick={() => {
-                  onClose()
-                  setTimeout(() => onUploadPhoto(), 100)
-                }}
-                className="btn"
-                style={{ 
-                  width: '100%', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '8px', 
-                  justifyContent: 'center',
-                  padding: '12px'
-                }}
-              >
-                <Upload size={18} />
-                {isProfileComplete ? t('updatePhoto') : t('uploadModifyPhoto')}
-              </button>
               {slot && onRemove && currentPlayer && (
                 <button
                   onClick={() => {
@@ -3708,10 +3695,7 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <button
-              onClick={() => {
-                onClose()
-                onUploadPhoto()
-              }}
+              onClick={() => onUploadPhoto()}
               className="btn primary"
               style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}
             >
@@ -3827,7 +3811,7 @@ function UploadPlayerModal({ slot, images, onImagesChange, onUpload, onClose, up
         zIndex: 1001,
         padding: '24px'
       }}
-      onClick={onClose}
+      onClick={() => { if (!uploading) onClose() }}
     >
       <div 
         className="card"
@@ -3847,13 +3831,15 @@ function UploadPlayerModal({ slot, images, onImagesChange, onUpload, onClose, up
             {slot.slot_index !== null ? `${t('uploadPlayer')} - ${t('slot')} ${slot.slot_index}` : t('loadReserve')}
           </h2>
           <button
-            onClick={onClose}
+            onClick={() => { if (!uploading) onClose() }}
+            disabled={uploading}
             style={{
               background: 'transparent',
               border: 'none',
               color: 'rgba(255, 255, 255, 0.7)',
-              cursor: 'pointer',
-              padding: '4px'
+              cursor: uploading ? 'not-allowed' : 'pointer',
+              padding: '4px',
+              opacity: uploading ? 0.5 : 1
             }}
           >
             <X size={20} />
