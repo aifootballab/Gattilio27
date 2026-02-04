@@ -19,6 +19,8 @@
 | ConfirmModal | `ConfirmModal.jsx` | gestione-formazione, match, ecc. |
 | MissingDataModal | `MissingDataModal.jsx` | gestione-formazione |
 | PositionSelectionModal | `PositionSelectionModal.jsx` | gestione-formazione |
-| TacticalSettingsPanel | `TacticalSettingsPanel.jsx` | contromisure-live |
+| TacticalSettingsPanel | `TacticalSettingsPanel.jsx` | gestione-formazione |
+
+**Note**: Audit 3 feb 2026 – PositionSelectionModal (lang), AssistantChat (usePathname), AIKnowledgeBar (i18n breakdown), TaskWidget (shadowing fix).
 
 **Doc**: `docs/GUIDA_VALIDAZIONE_PROGRAMMATORE.md`, `DOCUMENTAZIONE_RIFERIMENTO.md` §4

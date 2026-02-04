@@ -28,7 +28,7 @@ Mappatura **codice ↔ documentazione**: vedi **`docs/AUDIT_ENTERPRISE_2026.md`*
 ### **5) `DOCUMENTAZIONE_GUIDA_INTERATTIVA.md`**
 - **Quando usarlo**: Assistant Chat (architettura, flusso, `route.js`, `AssistantChat.jsx`).
 
-### **5) `info_rag.md`**
+### **6) `info_rag.md`**
 - **Quando usarlo**: contenuto RAG eFootball (usato da `lib/ragHelper.js`). Modifiche qui si riflettono nelle risposte IA.
 
 ### **7) `PIANO_INTEGRAZIONE_RAG_E_PROMPT.md`**
@@ -40,7 +40,7 @@ Mappatura **codice ↔ documentazione**: vedi **`docs/AUDIT_ENTERPRISE_2026.md`*
 ### **9) `CHIAREZZA_GIOCATORI_E_DOCUMENTAZIONE.md`**
 - **Quando usarlo**: regola “solo rosa cliente” (l’IA cita solo i giocatori caricati dall’utente).
 
-### **9) `INTEGRAZIONE_ROSA_CHAT_PERSONALIZZATA.md`**
+### **10) `INTEGRAZIONE_ROSA_CHAT_PERSONALIZZATA.md`**
 - **Quando usarlo**: contesto personale (rosa, partite, tattica, allenatore) caricato on-demand in chat.
 
 ### **11) `MEMORIA_ATTILA_BRAINSTORM.md`** e **`CONTENUTI_INTERNET_DA_INTEGRARE.md`** (backlog, non runtime)
@@ -50,27 +50,27 @@ Mappatura **codice ↔ documentazione**: vedi **`docs/AUDIT_ENTERPRISE_2026.md`*
 
 ## 🧠 Barra Conoscenza IA
 
-### **11) `PROGETTAZIONE_BARRA_CONOSCENZA_IA.md`**
+### **12) `PROGETTAZIONE_BARRA_CONOSCENZA_IA.md`**
 - **Quando usarlo**: come viene calcolata e aggiornata la barra in produzione.
 
 ---
 
 ## ✅ Task / Obiettivi Settimanali
 
-### **12) `DOCUMENTAZIONE_TASK_SISTEMA.md`**
+### **13) `DOCUMENTAZIONE_TASK_SISTEMA.md`**
 - **Quando usarlo**: reference completa (DB, API, helper, troubleshooting).
 
-### **13) `GUIDA_SVILUPPATORI_TASK.md`**
+### **14) `GUIDA_SVILUPPATORI_TASK.md`**
 - **Quando usarlo**: quick-start e guida pratica per estendere il sistema task.
 
 ---
 
 ## 🧩 UX: formazione / drag-drop / gestione rosa
 
-### **14) `DOCUMENTAZIONE_DRAG_DROP.md`**
+### **15) `DOCUMENTAZIONE_DRAG_DROP.md`**
 - **Quando usarlo**: drag & drop posizioni, salvataggio layout, edge cases.
 
-### **15) `docs/GESTIONE_ROSA_FUNZIONI.md`**
+### **16) `docs/GESTIONE_ROSA_FUNZIONI.md`**
 - **Quando usarlo**: documentazione gestione formazione divisa per funzione (fetchData, handleSlotClick, handleAssignFromReserve, upload, ecc.). Ogni funzione con API, input, stato.
 
 ---
@@ -101,7 +101,7 @@ Mappatura **codice ↔ documentazione**: vedi **`docs/AUDIT_ENTERPRISE_2026.md`*
 
 ## 🧪 Test
 
-### **18) `TEST_GUIDE_CLOUD.md`**, **`TEST_CHAT_ASSISTANT.md`**
+### **19) `TEST_GUIDE_CLOUD.md`**, **`TEST_CHAT_ASSISTANT.md`**
 - **Quando usarlo**: guide per test cloud e chat assistant.
 
 ---
@@ -111,3 +111,4 @@ Mappatura **codice ↔ documentazione**: vedi **`docs/AUDIT_ENTERPRISE_2026.md`*
 - **Fonte di verità**: `README.md` + `DOCUMENTAZIONE_MASTER_COMPLETA.md` + `DOCUMENTAZIONE_RIFERIMENTO.md`.
 - **Codice ↔ doc**: un solo documento “attivo” per feature; vedi **`docs/AUDIT_ENTERPRISE_2026.md`** per la mappatura completa.
 - **Documenti storici**: non mantenuti; usare Git history se serve.
+- **Rollback**: cartelle `rollback/FIX_*_2026-02-03/` con README per istruzioni di ripristino dopo fix audit.

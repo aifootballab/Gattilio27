@@ -17,10 +17,11 @@
 | `/allenatori` | `allenatori/page.jsx` | Gestione allenatori |
 | `/login` | `login/page.jsx` | Login Supabase Auth |
 
-## Redirect
+## Redirect e utilità
 
-- `/lista-giocatori` → `/gestione-formazione`
-- `/upload` → `/gestione-formazione`
+- `/lista-giocatori` → `/gestione-formazione` (`lista-giocatori/page.jsx`)
+- `/upload` → `/gestione-formazione` (`upload/page.jsx`)
+- `not-found.tsx` – Pagina 404 con i18n
 
 ## Layout
 

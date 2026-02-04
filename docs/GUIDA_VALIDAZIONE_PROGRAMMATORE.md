@@ -104,7 +104,7 @@ Frontend (React/Next.js)          Backend (API Routes)           Servizi esterni
 | `ConfirmModal.jsx` | Modal conferma | gestione-formazione, match, ecc. |
 | `MissingDataModal.jsx` | Modal dati mancanti | gestione-formazione |
 | `PositionSelectionModal.jsx` | Scelta posizione/competenza | gestione-formazione |
-| `TacticalSettingsPanel.jsx` | Pannello stile squadra + istruzioni | contromisure-live |
+| `TacticalSettingsPanel.jsx` | Pannello stile squadra + istruzioni | gestione-formazione |
 | `TaskWidget.jsx` | Widget obiettivi settimanali | page.jsx (dashboard) |
 
 ---
@@ -123,7 +123,7 @@ Frontend (React/Next.js)          Backend (API Routes)           Servizi esterni
 | `taskHelper.js` | generateWeeklyTasksForUser, updateTasksProgressAfterMatch | Obiettivi settimanali |
 | `i18n.js` | useTranslation, t, translations | i18n IT/EN |
 | `errorHelper.js` | mapErrorToUserMessage | Messaggi errore user-friendly |
-| `fetchHelper.js` | safeJsonResponse, safeFetch | Fetch con gestione errori |
+| `fetchHelper.js` | safeJsonResponse | Fetch con gestione errori |
 | `guideTours.js` | getTourSteps | Step tour guida |
 | `playerPhotoTypes.js` | PHOTO_TYPE_KEYS, getPhotoTypeConfig | Config foto giocatore |
 | `tacticalInstructions.js` | INDIVIDUAL_INSTRUCTIONS_CONFIG, validateIndividualInstruction | Istruzioni individuali |

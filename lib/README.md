@@ -29,7 +29,7 @@
 |------|-------|
 | `i18n.js` | useTranslation, t, translations (IT/EN) |
 | `errorHelper.js` | mapErrorToUserMessage |
-| `fetchHelper.js` | safeJsonResponse, safeFetch |
+| `fetchHelper.js` | safeJsonResponse |
 | `guideTours.js` | getTourSteps |
 | `playerPhotoTypes.js` | Config foto giocatore |
 | `tacticalInstructions.js` | Istruzioni individuali |

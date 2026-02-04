@@ -65,7 +65,7 @@ Tabelle senza migrazione in `migrations/`: `formation_layout`, `players`, `oppon
 | README.md | ✅ | Overview, setup |
 | DOCUMENTAZIONE_MASTER_COMPLETA.md | Da verificare | Architettura |
 | DOCUMENTAZIONE_RIFERIMENTO.md | ✅ | API/componenti allineati |
-| INDICE_DOCUMENTAZIONE.md | ⚠️ | Aggiornare riferimenti a doc rimossi |
+| INDICE_DOCUMENTAZIONE.md | ✅ | Numerazione corretta, convenzione rollback (3 feb 2026) |
 | info_rag.md | ✅ | Usato da ragHelper.js |
 | DOCUMENTAZIONE_GUIDA_INTERATTIVA.md | Da verificare | Assistant Chat |
 | DOCUMENTAZIONE_DRAG_DROP.md | ✅ | Drag & drop formazione |
@@ -154,8 +154,20 @@ Vedi `docs/GESTIONE_ROSA_FUNZIONI.md` – ogni funzione della pagina `gestione-f
 
 ---
 
-## 6. Incoerenze rilevate
+## 6. Incoerenze rilevate (aggiornato 3 feb 2026)
 
-1. **INDICE_DOCUMENTAZIONE.md** – Riferisce a `PROGETTAZIONE_BARRA_CONOSCENZA_IA.md`, `DOCUMENTAZIONE_TASK_SISTEMA.md`, `DOCUMENTAZIONE_DRAG_DROP.md` – verificare esistenza.
-2. **DOCUMENTAZIONE_RIFERIMENTO** – Glossario: "Box-to-Box" citato; correttamente Box-to-Box e Onnipresente sono distinti. "Ala prolifica, Collante, Box-to-Box" – ok.
-3. **Gestione formazione** – Nessun doc dedicato per funzione; creato `GESTIONE_ROSA_FUNZIONI.md`.
+1. **INDICE_DOCUMENTAZIONE.md** – Verificato: PROGETTAZIONE_BARRA_CONOSCENZA_IA, DOCUMENTAZIONE_TASK_SISTEMA, DOCUMENTAZIONE_DRAG_DROP esistono. Numero duplicato (5, 7, 9, 11) – corretto.
+2. **DOCUMENTAZIONE_RIFERIMENTO** – Glossario OK. Box-to-Box e Onnipresente distinti.
+3. **Gestione formazione** – Doc per funzione in `docs/GESTIONE_ROSA_FUNZIONI.md`.
+
+---
+
+## 7. Rollback (fix 3 feb 2026)
+
+| Cartella | Fix |
+|----------|-----|
+| `rollback/FIX_COMPONENTS_2026-02-03/` | PositionSelectionModal, AssistantChat, AIKnowledgeBar, TaskWidget |
+| `rollback/FIX_LIB_2026-02-03/` | normalize.js doc, errorHelper dead code |
+| `rollback/FIX_GESTIONE_FORMazione_2026-02-03/` | i18n formationCustom, attacking, defending, athleticism |
+| `rollback/FIX_HYDRATION_2026-02-03/` | LanguageProvider hydration |
+| `rollback/FIX_DEAD_CODE_2026-02-03/` | safeFetch, calculateWeightedTasksScore, PHOTO_TYPE_ICONS, parseOpenAIResponse (extract-coach) |
