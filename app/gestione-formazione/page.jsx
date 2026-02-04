@@ -167,7 +167,7 @@ export default function GestioneFormazionePage() {
         .order('created_at', { ascending: false })
 
       if (playersError) {
-        throw new Error(playersError.message || 'Errore caricamento giocatori')
+        throw new Error(playersError.message || t('errorLoadingPlayers'))
       }
 
       const playersArray = (players || [])
@@ -463,7 +463,7 @@ export default function GestioneFormazionePage() {
         if (duplicateInReserves.length > 0) {
           const { data: session } = await supabase.auth.getSession()
           if (!session?.session?.access_token) {
-            throw new Error('Sessione scaduta')
+            throw new Error(t('sessionExpired'))
           }
           
           for (const dup of duplicateInReserves) {
@@ -548,7 +548,7 @@ export default function GestioneFormazionePage() {
 
       const { data: session } = await supabase.auth.getSession()
       if (!session?.session?.access_token) {
-        throw new Error('Sessione scaduta')
+        throw new Error(t('sessionExpired'))
       }
 
       const res = await fetch('/api/supabase/assign-player-to-slot', {
@@ -563,7 +563,7 @@ export default function GestioneFormazionePage() {
         })
       })
 
-      const data = await safeJsonResponse(res, 'Errore assegnazione')
+      const data = await safeJsonResponse(res, t('errorAssignment'))
 
       // Messaggio di successo
       showToast(t('playerAssignedSuccessfully'), 'success')
@@ -595,7 +595,7 @@ export default function GestioneFormazionePage() {
     try {
       const { data: session } = await supabase.auth.getSession()
       if (!session?.session?.access_token) {
-        throw new Error('Sessione scaduta')
+        throw new Error(t('sessionExpired'))
       }
 
       // Rimuovi da slot tramite endpoint API
@@ -656,7 +656,7 @@ export default function GestioneFormazionePage() {
                 },
                 body: JSON.stringify({ player_id: playerId })
               })
-              const retryData = await safeJsonResponse(retryRes, 'Errore rimozione dopo eliminazione duplicato')
+              const retryData = await safeJsonResponse(retryRes, t('errorRemovalAfterDuplicate'))
             } else {
               throw new Error(t('errorDeletingDuplicateReserve'))
             }
@@ -694,7 +694,7 @@ export default function GestioneFormazionePage() {
     try {
       const { data: session } = await supabase.auth.getSession()
       if (!session?.session?.access_token) {
-        throw new Error('Sessione scaduta')
+        throw new Error(t('sessionExpired'))
       }
 
       const res = await fetch('/api/supabase/delete-player', {
@@ -706,7 +706,7 @@ export default function GestioneFormazionePage() {
         body: JSON.stringify({ player_id: playerId })
       })
 
-      await safeJsonResponse(res, 'Errore eliminazione')
+      await safeJsonResponse(res, t('errorDeletion'))
 
       // Reset UI: chiudi modal e deseleziona (sia titolare che riserva)
       setShowAssignModal(false)
@@ -819,7 +819,7 @@ export default function GestioneFormazionePage() {
     try {
       const { data: session } = await supabase.auth.getSession()
       if (!session?.session?.access_token) {
-        throw new Error('Sessione scaduta')
+        throw new Error(t('sessionExpired'))
       }
 
       const token = session.session.access_token
@@ -850,7 +850,7 @@ export default function GestioneFormazionePage() {
           continue
         }
         if (!extractRes.ok) {
-          const errorMsg = extractData.error || 'Errore sconosciuto'
+          const errorMsg = extractData.error || t('errorUnknown')
           console.warn('[UploadPlayer] Errore estrazione:', errorMsg)
           errors.push(errorMsg)
           continue
@@ -891,16 +891,18 @@ export default function GestioneFormazionePage() {
           // Salva sempre i dati estratti (inclusa la prima foto) per calcolare Math.max() dopo
           allExtractedData[img.type] = extractData.player
           
-          // Traccia foto caricate basandosi sul tipo
+          // Traccia foto caricate: card=Statistiche, stats=Abilità, skills=Booster (design unificato)
           if (img.type === 'card') {
             photoSlots.card = true
+            if (extractData.player?.base_stats && Object.keys(extractData.player.base_stats || {}).length > 0) {
+              photoSlots.statistiche = true
+            }
           } else if (img.type === 'stats') {
-            photoSlots.statistiche = true
-          } else if (img.type === 'skills') {
             photoSlots.abilita = true
-            // Se ci sono booster estratti dalla stessa foto, traccia anche booster
-            if (extractData.player?.boosters && Array.isArray(extractData.player.boosters) && extractData.player.boosters.length > 0) {
-              photoSlots.booster = true
+          } else if (img.type === 'skills') {
+            photoSlots.booster = true
+            if (extractData.player?.skills?.length || extractData.player?.com_skills?.length) {
+              photoSlots.abilita = true
             }
           } else if (img.type === 'booster') {
             photoSlots.booster = true
@@ -914,12 +916,12 @@ export default function GestioneFormazionePage() {
           // Se c'è un errore di quota OpenAI, mostralo chiaramente
           const quotaError = errors.find(e => e.includes('quota') || e.includes('billing'))
           if (quotaError) {
-            throw new Error('Quota OpenAI esaurita. Controlla il tuo piano e i dettagli di fatturazione su https://platform.openai.com/account/billing')
+            throw new Error(t('openAQuotaError'))
           }
           // Altrimenti mostra il primo errore specifico
           throw new Error(`${t('errorExtractionDataList')}: ${errors[0]}`)
         }
-        throw new Error('Errore: dati giocatore non estratti. Verifica le immagini e riprova.')
+        throw new Error(t('errorPlayerDataNotExtracted'))
       }
 
       // FIX: overall_rating - l'overall_rating è presente in tutte e tre le foto (card, statistiche, abilità)
@@ -1022,7 +1024,7 @@ export default function GestioneFormazionePage() {
     try {
       const { data: session } = await supabase.auth.getSession()
       if (!session?.session?.access_token) {
-        throw new Error('Sessione scaduta')
+        throw new Error(t('sessionExpired'))
       }
 
       const token = session.session.access_token
@@ -1119,7 +1121,7 @@ export default function GestioneFormazionePage() {
                 })
               })
 
-              const saveData = await safeJsonResponse(saveRes, 'Errore salvataggio giocatore')
+              const saveData = await safeJsonResponse(saveRes, t('errorSavingPlayerGeneric'))
 
               setShowUploadPlayerModal(false)
               setShowPositionSelectionModal(false)
@@ -1164,7 +1166,7 @@ export default function GestioneFormazionePage() {
         })
       })
 
-      const saveData = await safeJsonResponse(saveRes, 'Errore salvataggio giocatore')
+      const saveData = await safeJsonResponse(saveRes, t('errorSavingPlayerGeneric'))
 
       setShowUploadPlayerModal(false)
       setShowPositionSelectionModal(false)
@@ -1256,7 +1258,7 @@ export default function GestioneFormazionePage() {
     try {
       const { data: session } = await supabase.auth.getSession()
       if (!session?.session?.access_token) {
-        throw new Error('Sessione scaduta')
+        throw new Error(t('sessionExpired'))
       }
 
       const token = session.session.access_token
@@ -1270,7 +1272,7 @@ export default function GestioneFormazionePage() {
         body: JSON.stringify(settings)
       })
 
-      const data = await safeJsonResponse(res, 'Errore salvataggio impostazioni tattiche')
+      const data = await safeJsonResponse(res, t('errorSavingTacticalSettings'))
 
       // Aggiorna state locale
       setTacticalSettings(data.settings)
@@ -1282,7 +1284,7 @@ export default function GestioneFormazionePage() {
       await fetchData()
     } catch (err) {
       console.error('[GestioneFormazione] Save tactical settings error:', err)
-      setError(err.message || 'Errore salvataggio impostazioni tattiche')
+      setError(err.message || t('errorSavingTacticalSettings'))
       showToast(err.message || t('errorSavingTacticalSettings'), 'error')
     } finally {
       setSavingTacticalSettings(false)
@@ -1325,7 +1327,7 @@ export default function GestioneFormazionePage() {
       await doSelectManualFormation(formation, slotPositions)
     } catch (err) {
       console.error('[GestioneFormazione] Manual formation error:', err)
-      const { message } = mapErrorToUserMessage(err, 'Errore salvataggio formazione')
+      const { message } = mapErrorToUserMessage(err, t('errorSavingFormation'))
       setError(message)
       showToast(message, 'error')
     } finally {
@@ -1337,7 +1339,7 @@ export default function GestioneFormazionePage() {
     try {
       const { data: session } = await supabase.auth.getSession()
       if (!session?.session?.access_token) {
-        throw new Error('Sessione scaduta')
+        throw new Error(t('sessionExpired'))
       }
 
       const token = session.session.access_token
@@ -1365,7 +1367,7 @@ export default function GestioneFormazionePage() {
         })
       })
 
-      const layoutData = await safeJsonResponse(layoutRes, 'Errore salvataggio layout')
+      const layoutData = await safeJsonResponse(layoutRes, t('errorSavingLayout'))
 
       setShowFormationSelectorModal(false)
       
@@ -1373,7 +1375,7 @@ export default function GestioneFormazionePage() {
       await fetchData()
     } catch (err) {
       console.error('[GestioneFormazione] Manual formation error:', err)
-      const { message } = mapErrorToUserMessage(err, 'Errore salvataggio formazione')
+      const { message } = mapErrorToUserMessage(err, t('errorSavingFormation'))
       setError(message)
       showToast(message, 'error')
     } finally {
@@ -1429,7 +1431,7 @@ export default function GestioneFormazionePage() {
       // Verifica posizioni originali e chiedi conferma per ruoli non originali
       const { data: session } = await supabase.auth.getSession()
       if (!session?.session?.access_token) {
-        throw new Error('Sessione scaduta')
+        throw new Error(t('sessionExpired'))
       }
       const token = session.session.access_token
       
@@ -1626,7 +1628,7 @@ export default function GestioneFormazionePage() {
     try {
       const { data: session } = await supabase.auth.getSession()
       if (!session?.session?.access_token) {
-        throw new Error('Sessione scaduta')
+        throw new Error(t('sessionExpired'))
       }
 
       const token = session.session.access_token
@@ -1657,7 +1659,7 @@ export default function GestioneFormazionePage() {
           continue
         }
         if (!extractRes.ok) {
-          const errorMsg = extractData.error || 'Errore sconosciuto'
+          const errorMsg = extractData.error || t('errorUnknown')
           console.warn('[UploadReserve] Errore estrazione:', errorMsg)
           errors.push(errorMsg)
           continue
@@ -1698,16 +1700,18 @@ export default function GestioneFormazionePage() {
           // Salva sempre i dati estratti (inclusa la prima foto) per calcolare Math.max() dopo
           allExtractedData[img.type] = extractData.player
           
-          // Traccia foto caricate basandosi sul tipo
+          // Traccia foto caricate: card=Statistiche, stats=Abilità, skills=Booster (design unificato)
           if (img.type === 'card') {
             photoSlots.card = true
+            if (extractData.player?.base_stats && Object.keys(extractData.player.base_stats || {}).length > 0) {
+              photoSlots.statistiche = true
+            }
           } else if (img.type === 'stats') {
-            photoSlots.statistiche = true
-          } else if (img.type === 'skills') {
             photoSlots.abilita = true
-            // Se ci sono booster estratti dalla stessa foto, traccia anche booster
-            if (extractData.player?.boosters && Array.isArray(extractData.player.boosters) && extractData.player.boosters.length > 0) {
-              photoSlots.booster = true
+          } else if (img.type === 'skills') {
+            photoSlots.booster = true
+            if (extractData.player?.skills?.length || extractData.player?.com_skills?.length) {
+              photoSlots.abilita = true
             }
           } else if (img.type === 'booster') {
             photoSlots.booster = true
@@ -1721,12 +1725,12 @@ export default function GestioneFormazionePage() {
           // Se c'è un errore di quota OpenAI, mostralo chiaramente
           const quotaError = errors.find(e => e.includes('quota') || e.includes('billing'))
           if (quotaError) {
-            throw new Error('Quota OpenAI esaurita. Controlla il tuo piano e i dettagli di fatturazione su https://platform.openai.com/account/billing')
+            throw new Error(t('openAQuotaError'))
           }
           // Altrimenti mostra il primo errore specifico
           throw new Error(`${t('errorExtractionDataList')}: ${errors[0]}`)
         }
-        throw new Error('Errore: dati giocatore non estratti. Verifica le immagini e riprova.')
+        throw new Error(t('errorPlayerDataNotExtracted'))
       }
 
       // FIX: overall_rating - l'overall_rating è presente in tutte e tre le foto (card, statistiche, abilità)
@@ -1866,7 +1870,7 @@ export default function GestioneFormazionePage() {
                   }
                 })
               })
-              const retryData = await safeJsonResponse(retryRes, 'Errore salvataggio giocatore dopo sostituzione')
+              const retryData = await safeJsonResponse(retryRes, t('errorSavingPlayerAfterReplace'))
             } else {
               throw new Error(t('errorDeletingDuplicateReserveReplace'))
             }
@@ -2726,33 +2730,28 @@ function SlotCard({ slot, onClick, onRemove, isEditMode = false, onPositionChang
     return name.substring(0, 10) + '...'
   }
 
-  // Calcola colore bordo basato su completamento profilazione
-  function getProfileBorderColor(photoSlots) {
-    if (!photoSlots || typeof photoSlots !== 'object') {
-      return 'rgba(239, 68, 68, 0.8)' // Rosso: nessun dato
-    }
-    
-    // Normalizza valori: gestisce boolean e stringhe (per compatibilità database)
-    // Verifica esplicita === true per boolean, oppure === 'true' per stringhe
-    const hasCard = photoSlots.card === true || photoSlots.card === 'true'
-    const hasStats = photoSlots.statistiche === true || photoSlots.statistiche === 'true'
-    const hasSkills = (photoSlots.abilita === true || photoSlots.abilita === 'true') || 
-                      (photoSlots.booster === true || photoSlots.booster === 'true')
-    
+  // Calcola colore bordo basato su completamento profilazione (con fallback su dati reali)
+  function getProfileBorderColor(photoSlots, p) {
+    const ps = photoSlots && typeof photoSlots === 'object' ? photoSlots : {}
+    const baseStats = p?.base_stats || {}
+    const skills = Array.isArray(p?.skills) ? p.skills : []
+    const comSkills = Array.isArray(p?.com_skills) ? p.com_skills : []
+    const boosters = Array.isArray(p?.available_boosters) ? p.available_boosters : []
+    const hasStatsData = baseStats && Object.keys(baseStats).length > 0
+    const hasAbilitaData = skills.length > 0 || comSkills.length > 0
+    const hasBoosterData = boosters.length > 0
+    const hasCard = ps.card === true || ps.card === 'true' || hasStatsData
+    const hasStats = ps.statistiche === true || ps.statistiche === 'true' || hasStatsData
+    const hasSkills = (ps.abilita === true || ps.abilita === 'true' || ps.booster === true || ps.booster === 'true') || hasAbilitaData || hasBoosterData
     const count = [hasCard, hasStats, hasSkills].filter(Boolean).length
-    
-    if (count === 3) {
-      return 'rgba(34, 197, 94, 0.8)'      // Verde: completo (3/3)
-    }
-    if (count === 2) {
-      return 'rgba(251, 191, 36, 0.8)'      // Giallo/Arancione: parziale (2/3)
-    }
-    return 'rgba(239, 68, 68, 0.8)'        // Rosso: incompleto (0-1/3)
+    if (count === 3) return 'rgba(34, 197, 94, 0.8)'
+    if (count === 2) return 'rgba(251, 191, 36, 0.8)'
+    return 'rgba(239, 68, 68, 0.8)'
   }
 
   // Calcola colore hover (stesso colore, opacità maggiore)
-  function getProfileBorderColorHover(photoSlots) {
-    const baseColor = getProfileBorderColor(photoSlots)
+  function getProfileBorderColorHover(photoSlots, p) {
+    const baseColor = getProfileBorderColor(photoSlots, p)
     return baseColor.replace('0.8', '1.0').replace('0.6', '1.0')
   }
 
@@ -2852,11 +2851,11 @@ function SlotCard({ slot, onClick, onRemove, isEditMode = false, onPositionChang
   // Calcola colori bordo basati su profilazione
   const profileBorderColor = isEmpty 
     ? 'rgba(148, 163, 184, 0.5)'  // Grigio per slot vuoto
-    : getProfileBorderColor(player.photo_slots)
+    : getProfileBorderColor(player.photo_slots, player)
 
   const profileBorderColorHover = isEmpty
     ? 'rgba(148, 163, 184, 0.7)'
-    : getProfileBorderColorHover(player.photo_slots)
+    : getProfileBorderColorHover(player.photo_slots, player)
 
   return (
     <div
@@ -3110,15 +3109,14 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
   const hasStats = baseStats && Object.keys(baseStats).length > 0
   const hasSkills = skills.length > 0 || comSkills.length > 0
   const hasBoosters = boosters && boosters.length > 0
-  
-  // Calcola completezza profilo: 3 foto (Card, Statistiche, Abilità/Booster)
-  // Abilità e Booster possono essere nella stessa foto
-  const isProfileComplete = photoSlots.card && photoSlots.statistiche && (photoSlots.abilita || photoSlots.booster)
-  const completedSections = [
-    photoSlots.card && 'Card',
-    photoSlots.statistiche && 'Statistiche',
-    (photoSlots.abilita || photoSlots.booster) && 'Abilità/Booster'
-  ].filter(Boolean).length
+
+  // Fallback: usa dati reali se photo_slots inconsistente
+  const hasCardStatistiche = (photoSlots.card || photoSlots.statistiche) || hasStats
+  const hasAbilitaBooster = (photoSlots.abilita || photoSlots.booster) || hasSkills || hasBoosters
+
+  // Calcola completezza profilo: 3 sezioni (Card+Statistiche, Abilità, Booster)
+  const isProfileComplete = hasCardStatistiche && hasAbilitaBooster
+  const completedSections = [hasCardStatistiche, hasSkills || photoSlots.abilita, hasBoosters || photoSlots.booster].filter(Boolean).length
 
   return (
     <div style={{

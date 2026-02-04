@@ -90,12 +90,12 @@ export default function PlayerDetailPage() {
     const imageFiles = files.filter(file => file.type.startsWith('image/'))
 
     if (imageFiles.length === 0) {
-      setError('Seleziona almeno un\'immagine')
+      setError(t('selectAtLeastOneImage'))
       return
     }
 
     if (imageFiles.length > 1) {
-      setError('Carica una sola immagine alla volta')
+      setError(t('uploadOneImageOnly'))
       return
     }
 
@@ -314,10 +314,21 @@ export default function PlayerDetailPage() {
   }
 
   const photoSlots = player.photo_slots || {}
-  
-  // Calcola se profilo è completo: 3 foto (Card, Statistiche, Abilità/Booster)
-  // Abilità e Booster possono essere nella stessa foto
-  const isProfileComplete = photoSlots.card && photoSlots.statistiche && (photoSlots.abilita || photoSlots.booster)
+  const baseStats = player.base_stats || {}
+  const skills = player.skills || []
+  const comSkills = player.com_skills || []
+  const boosters = player.available_boosters || []
+
+  // Fallback: usa dati reali se photo_slots inconsistente (fix conteggio errato)
+  const hasStatisticheData = baseStats && Object.keys(baseStats).length > 0
+  const hasAbilitaData = skills.length > 0 || comSkills.length > 0
+  const hasBoosterData = Array.isArray(boosters) && boosters.length > 0
+  const hasCardStatistiche = (photoSlots.card || photoSlots.statistiche) || hasStatisticheData
+  const hasAbilitaBooster = (photoSlots.abilita || photoSlots.booster) || hasAbilitaData || hasBoosterData
+
+  // Calcola se profilo è completo: 3 sezioni (Card+Statistiche, Abilità, Booster)
+  const isProfileComplete = hasCardStatistiche && hasAbilitaBooster
+  const completedSections = [hasCardStatistiche, hasAbilitaData || photoSlots.abilita, hasBoosterData || photoSlots.booster].filter(Boolean).length
 
   const toggleSection = (section) => {
     setExpandedSections(prev => ({
@@ -542,7 +553,7 @@ function StatsSection({ player, photoSlots, isExpanded, onToggle, onFileSelect, 
   if (!player) return null
   
   const baseStats = player.base_stats || {}
-  const hasStats = photoSlots.statistiche && baseStats && Object.keys(baseStats).length > 0
+  const hasStats = (photoSlots.statistiche || (baseStats && Object.keys(baseStats).length > 0)) && baseStats && Object.keys(baseStats).length > 0
 
   return (
     <div className="card" style={SECTION_CARD_STYLE(style)}>
@@ -559,7 +570,7 @@ function StatsSection({ player, photoSlots, isExpanded, onToggle, onFileSelect, 
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <BarChart3 size={24} color={style.color} />
           <h2 style={{ fontSize: '20px', fontWeight: 700, margin: 0, color: style.color }}>{t('statsSection')}</h2>
-          {photoSlots.statistiche && (
+          {(photoSlots.statistiche || (baseStats && Object.keys(baseStats).length > 0)) && (
             <CheckCircle2 size={20} color="#22c55e" />
           )}
         </div>
@@ -712,7 +723,7 @@ function SkillsSection({ player, photoSlots, isExpanded, onToggle, onFileSelect,
   
   const skills = player.skills || []
   const comSkills = player.com_skills || []
-  const hasSkills = photoSlots.abilita && (skills.length > 0 || comSkills.length > 0)
+  const hasSkills = (photoSlots.abilita || skills.length > 0 || comSkills.length > 0) && (skills.length > 0 || comSkills.length > 0)
 
   return (
     <div className="card" style={SECTION_CARD_STYLE(style)}>
@@ -729,7 +740,7 @@ function SkillsSection({ player, photoSlots, isExpanded, onToggle, onFileSelect,
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <Zap size={24} color={style.color} />
           <h2 style={{ fontSize: '20px', fontWeight: 700, margin: 0, color: style.color }}>{t('skillsSection')}</h2>
-          {photoSlots.abilita && (
+          {(photoSlots.abilita || (skills.length > 0 || comSkills.length > 0)) && (
             <CheckCircle2 size={20} color="#22c55e" />
           )}
         </div>
@@ -847,7 +858,7 @@ function BoostersSection({ player, photoSlots, isExpanded, onToggle, onFileSelec
   if (!player) return null
   
   const boosters = player.available_boosters || []
-  const hasBoosters = photoSlots.booster && Array.isArray(boosters) && boosters.length > 0
+  const hasBoosters = (photoSlots.booster || (Array.isArray(boosters) && boosters.length > 0)) && Array.isArray(boosters) && boosters.length > 0
 
   return (
     <div className="card" style={SECTION_CARD_STYLE(style)}>
@@ -864,7 +875,7 @@ function BoostersSection({ player, photoSlots, isExpanded, onToggle, onFileSelec
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <Gift size={24} color={style.color} />
           <h2 style={{ fontSize: '20px', fontWeight: 700, margin: 0, color: style.color }}>{t('boostersSection')}</h2>
-          {photoSlots.booster && (
+          {(photoSlots.booster || (Array.isArray(boosters) && boosters.length > 0)) && (
             <CheckCircle2 size={20} color="#22c55e" />
           )}
         </div>
