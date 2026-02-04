@@ -51,7 +51,6 @@ lib/
 ├── supabaseClient.js            # Client Supabase (frontend)
 ├── authHelper.js                 # Helper autenticazione (API)
 ├── i18n.js                       # Internazionalizzazione (IT/EN)
-├── normalize.js                  # Normalizzazione dati
 ├── aiKnowledgeHelper.js          # Calcolo AI Knowledge Score
 ├── ragHelper.js                  # RAG eFootball (info_rag), classifyQuestion, needsPersonalContext
 ├── creditService.js              # Tracciamento crediti per utente/periodo

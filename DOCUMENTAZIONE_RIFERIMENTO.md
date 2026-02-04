@@ -104,7 +104,6 @@ Documento unico di riferimento rapido: **per il programmatore** (file, funzioni,
 | `lib/ragHelper.js` | getRelevantSections, classifyQuestion, needsPersonalContext | RAG eFootball (info_rag.md), classificazione domanda, contesto personale on-demand. |
 | `lib/aiKnowledgeHelper.js` | calculateAIKnowledgeScore, getAIKnowledgeLevel, updateAIKnowledgeScore, calculate*Score | Calcolo e aggiornamento AI Knowledge Score. |
 | `lib/i18n.js` | useTranslation, t, changeLanguage, translations | i18n IT/EN. |
-| `lib/normalize.js` | (normalizzazione dati) | Normalizzazione dati estratti da AI. |
 | `lib/countermeasuresHelper.js` | generateCountermeasuresPrompt, validateCountermeasuresOutput | Prompt e validazione contromisure. |
 | `lib/tacticalInstructions.js` | (istruzioni tattiche) | Istruzioni individuali / tattica. |
 | `lib/taskHelper.js` | (task settimanali) | Logica obiettivi settimanali. |

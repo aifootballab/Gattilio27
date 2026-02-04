@@ -467,7 +467,7 @@ Tutte le API routes sono in `/app/api`. Ogni cartella rappresenta un endpoint.
 1. Valida input (almeno 1 immagine)
 2. Chiama OpenAI Vision per ogni immagine
 3. Merge dati da tutte le immagini
-4. Normalizza dati con `normalize.js`
+4. Normalizza dati (inline nella route)
 5. Return oggetto giocatore completo
 
 **Note Tecniche**:
@@ -1043,19 +1043,7 @@ const RATE_LIMIT_CONFIG = {
 
 ---
 
-#### **`/lib/normalize.js` - Normalizzazione Dati**
-
-**Scopo**: Utilities per normalizzare dati estratti da AI.
-
-**Funzioni**:
-- Normalizzazione nomi giocatori
-- Normalizzazione ruoli/posizioni
-- Normalizzazione statistiche
-- Normalizzazione formato bilingue
-
-**Note Tecniche**:
-- Usato dopo estrazione dati da OpenAI
-- Garantisce coerenza dati nel database
+**Nota**: La normalizzazione dei dati estratti (nomi, ruoli, statistiche) è implementata inline nelle route extract-player, extract-coach, extract-match-data.
 
 ---
 

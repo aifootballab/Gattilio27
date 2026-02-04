@@ -128,7 +128,6 @@ Frontend (React/Next.js)          Backend (API Routes)           Servizi esterni
 | `playerPhotoTypes.js` | PHOTO_TYPE_KEYS, getPhotoTypeConfig | Config foto giocatore |
 | `tacticalInstructions.js` | INDIVIDUAL_INSTRUCTIONS_CONFIG, validateIndividualInstruction | Istruzioni individuali |
 | `validateFormationLimits.js` | validateFormationLimits | Limiti formazione |
-| `normalize.js` | (normalizzazione) | Dati estratti da AI |
 
 ---
 

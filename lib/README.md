@@ -39,7 +39,6 @@
 
 | File | Scopo |
 |------|-------|
-| `normalize.js` | Normalizzazione dati estratti da AI |
 | `rateLimiter.js` | checkRateLimit, RATE_LIMIT_CONFIG |
 
 **Doc**: `docs/GUIDA_VALIDAZIONE_PROGRAMMATORE.md`, `DOCUMENTAZIONE_RIFERIMENTO.md` §5

@@ -123,6 +123,15 @@ Rimossi 54+ documenti obsoleti (audit one-off, piani superseduti, migrazioni com
 
 Rollback: `rollback/FIX_COMPONENTS_2026-02-03/README.md`
 
+## 4.2 Audit lib/ (3 feb 2026)
+
+| Fix | File | Dettaglio |
+|-----|------|-----------|
+| Doc inesistente | lib/README.md, DOCUMENTAZIONE_RIFERIMENTO, GUIDA_VALIDAZIONE, README, DOCUMENTAZIONE_MASTER | Rimosso normalize.js (file non esiste, normalizzazione inline nelle route) |
+| Dead code | lib/errorHelper.js | Rimosse showUserFriendlyError, withErrorHandling (mai importate) |
+
+Rollback: `rollback/FIX_LIB_2026-02-03/README.md`
+
 ## 5. Gestione Rosa – Documentazione per funzione
 
 Vedi `docs/GESTIONE_ROSA_FUNZIONI.md` – ogni funzione della pagina `gestione-formazione/page.jsx` documentata separatamente.
