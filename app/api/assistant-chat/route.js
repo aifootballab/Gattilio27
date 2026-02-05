@@ -181,13 +181,16 @@ const CONTEXT_LABELS = {
     skillsTitolari: 'SKILLS TITOLARI (per consigli abilità):',
     activeCoach: 'Allenatore attivo',
     coachNotSet: 'Nessun allenatore attivo impostato.',
-    competenceHint: 'Competenze stili (solo >= 70 consigliabili):',
+    competenceHint: 'Competenze stili TATTICI (chiavi distinte: contrattacco ≠ contropiede_veloce; solo >= 70 consigliabili):',
     boxTitle: 'CONTESTO PERSONALE CLIENTE - DATI REALI DELLA ROSA',
     boxSubtitle: 'USA QUESTI DATI - PERSONALIZZA - CITA NOMI REALI - NON GENERICO',
     positionNote: 'POSIZIONE: per ogni giocatore vedi "position" (ruolo assegnato in formazione) e "competenze" (posizioni ideali dalla card, es. CC Alta, MED Intermedia). Se position è diverso dalle competenze (es. competenze=CC Alta ma position=DC), CORREGGI: "X è centrocampista (CC) dalla card, non DC. Meglio schierarlo come CC o cambiare ruolo in Gestione Formazione." Siamo noi i coach: non assecondare l\'errore del cliente.',
     teamStyle: 'Stile squadra',
     individualInstructions: 'Istruzioni individuali',
     instructionsActive: 'attive',
+    advisableStyles: 'Consigliabili (>=70)',
+    notAdvisableStyles: 'Non consigliabili (<70)',
+    noneLabel: 'nessuno',
   },
   en: {
     formationNotSet: 'not set',
@@ -203,13 +206,16 @@ const CONTEXT_LABELS = {
     skillsTitolari: 'STARTER SKILLS (for ability advice):',
     activeCoach: 'Active coach',
     coachNotSet: 'No active coach set.',
-    competenceHint: 'Style competences (only >= 70 advisable):',
+    competenceHint: 'Style competences (contrattacco ≠ contropiede_veloce; only >= 70 advisable):',
     boxTitle: 'PERSONAL CLIENT CONTEXT - REAL ROSA DATA',
     boxSubtitle: 'USE THIS DATA - PERSONALIZE - CITE REAL NAMES - NOT GENERIC',
     positionNote: 'POSITION: for each player see "position" (assigned role) and "competenze" (ideal positions from card, e.g. CM High, DM Intermediate). If position differs from competenze (e.g. competenze=CM High but position=CB), CORRECT: "X is midfielder (CM) from card, not CB. Better field him as CM or change role in Formation Manager." We are the coaches: do not indulge client errors.',
     teamStyle: 'Team style',
     individualInstructions: 'Individual instructions',
     instructionsActive: 'active',
+    advisableStyles: 'Advisable (>=70)',
+    notAdvisableStyles: 'Not advisable (<70)',
+    noneLabel: 'none',
   }
 }
 
@@ -339,7 +345,9 @@ async function buildPersonalContext(userId, lang = 'it') {
         .sort((a, b) => b.val - a.val)
         .slice(0, 8)
       if (entries.length > 0) {
-        coachText += ` ${L.competenceHint} ${entries.map(({ style, val }) => `${style} ${val}`).join(', ')}.`
+        const ok = entries.filter(({ val }) => val >= 70).map(({ style, val }) => `${style}=${val}`)
+        const no = entries.filter(({ val }) => val < 70).map(({ style, val }) => `${style}=${val}`)
+        coachText += ` ${L.competenceHint} ${L.advisableStyles}: ${ok.length ? ok.join(', ') : L.noneLabel}. ${L.notAdvisableStyles}: ${no.length ? no.join(', ') : '-'}.`
       }
     }
 
@@ -539,6 +547,8 @@ ESEMPI RAGIONAMENTO COMPLETO (interno, non dire all'utente):
 • Stili FISSI: citali per spiegare perché un giocatore è adatto (stile → comportamento in campo → consiglio). Terminologia ufficiale.
 • Moduli: Proponi solo se hai giocatori compatibili (stili + stats)
 • Allenatore: Competenza >= 70 per stile consigliabile; se rosa e allenatore incoerenti → suggerisci cambio stile o allenatore
+• **STILI ALLENATORE - CRITICO**: contrattacco e contropiede_veloce sono STILI DIVERSI (chiavi diverse). Consiglia uno stile SOLO se il suo valore è >= 70. VIETATO usare competenza di contrattacco per giustificare Contropiede veloce (e viceversa). Es: se contrattacco=89 e contropiede_veloce=57 → consiglia Contrattacco, NON Contropiede veloce.
+• **NOMI**: Cita SOLO giocatori in TITOLARI/RISERVE. Mai Mbappé, Haaland, Pedri, Bellingham, ecc. se non nella lista.
 • MAX 3 cambi concreti per risposta
 ` : ''}
 
@@ -628,7 +638,7 @@ Risposta: "Difesa solida con i tuoi DC alti. Centrocampo tecnico ma manca fisici
 • Collante, Box-to-Box, Onnipresente (stili MED/CC) per attaccanti
 • Ala prolifica (stile EDA/ESA) per difensori
 • Stile squadra con competenza allenatore < 50
-• Inventare nomi giocatori non nella rosa
+• Inventare nomi giocatori non nella rosa (Mbappé, Haaland, Pedri, ecc. se non in TITOLARI/RISERVE)
 • "carica una partita per vedere la sinergia" (non esiste)
 • "cerca/filtra/compra giocatori" (l'app non lo fa)
 • Consigli su azioni durante la partita in corso (sostituzioni live, "cosa fare adesso")
@@ -861,7 +871,7 @@ SCOPE CHAT - SOLO CONSULENZA TATTICA (OBBLIGATORIO):
 - NON consigliamo azioni DURANTE la partita.
 
 BILINGUE: Se italiano usa termini IT (Resistenza, Opportunista, Tiro al volo). Se inglese usa termini EN (Stamina, Poacher, First-Time Shot). Non mescolare lingue.
-GIOCATORI: Cita SOLO i nomi presenti nella rosa fornita nel messaggio. Non inventare né suggerire nomi esterni (es. da guide).
+GIOCATORI: Cita SOLO i nomi in TITOLARI/RISERVE. Mai Mbappé, Haaland, Pedri, Bellingham se non in lista. contrattacco e contropiede_veloce sono STILI DIVERSI: consiglia uno stile solo se il suo valore allenatore >= 70; non usare competenza contrattacco per Contropiede veloce.
 FONTI DATI: Nomi/rosa/partite/allenatore → solo dal blocco "ROSA E DATI". Regole eFootball → solo dal blocco "MECCANICHE eFootball". Se un dato non c\'è, non inventare; indica dove trovarlo (Gestione Formazione, Dettaglio Partita/Giocatore).
 CERCARE OBBLIGATORIO: Prima di consigliare, cerca nei blocchi (ROSA, MECCANICHE), incrocia dati, applica paletti. Non rispondere senza aver consultato.
 TERMINOLOGIA UFFICIALE (RAG §10): Opportunista (non Poacher), Rapace d'area (con apostrofo), Resistenza (non Stamina), Classico n° 10. Box-to-Box e Onnipresente sono stili CC/MED distinti (non sinonimi). Ala prolifica: taglia per RICEVERE passaggi filtranti (NON "creare"). Usa i nomi ufficiali dal RAG.
