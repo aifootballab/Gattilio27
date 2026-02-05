@@ -18,8 +18,8 @@ import { PHOTO_TYPE_KEYS, getPhotoTypeConfig } from '@/lib/playerPhotoTypes'
 // FEATURE FLAG - Sicurezza modifiche window.confirm
 // =====================================================
 // Imposta a true SOLO quando hai testato TUTTO su Vercel
-// MODALITÀ SICURA: false = usa window.confirm (sempre funzionante)
-const USE_CONFIRM_MODAL = false
+// MODALITÀ SICURA: true = ConfirmModal (UI coerente, i18n); false = window.confirm
+const USE_CONFIRM_MODAL = true
 // =====================================================
 
 /**
@@ -108,7 +108,6 @@ export default function GestioneFormazionePage() {
   const [selectedOriginalPositions, setSelectedOriginalPositions] = React.useState([])
   const [showMissingDataModal, setShowMissingDataModal] = React.useState(false)
   const [missingData, setMissingData] = React.useState({ required: [], optional: [] })
-  const [manualDataInput, setManualDataInput] = React.useState({})
   const [duplicateConfirmModal, setDuplicateConfirmModal] = React.useState(null) // { show, playerName, playerAge, slotIndex, onConfirm }
   const [confirmModal, setConfirmModal] = React.useState(null) // { show, title, message, onConfirm, onCancel, variant }
 
@@ -1228,7 +1227,6 @@ export default function GestioneFormazionePage() {
     setShowMissingDataModal(false)
     setMissingData({ required: [], optional: [] })
     setExtractedPlayerData(null)
-    setManualDataInput({})
     // Mantieni uploadImages e selectedSlot per permettere ricarica
     // L'utente può chiudere e riaprire modal upload
   }
@@ -1543,33 +1541,6 @@ export default function GestioneFormazionePage() {
         }
       }
       
-      // Aggiorna position dei giocatori in base alle nuove posizioni degli slot MODIFICATI
-      for (const [slotIndex, customPos] of Object.entries(customPositions)) {
-        const slotIdx = Number(slotIndex)
-        const playerInSlot = titolari.find(p => p.slot_index === slotIdx)
-        const newSlotPos = updatedSlotPositions[slotIdx]
-        
-        if (playerInSlot && newSlotPos && newSlotPos.position) {
-          // Aggiorna position del giocatore in base alla nuova position dello slot
-          try {
-            await fetch('/api/supabase/assign-player-to-slot', {
-              method: 'PATCH',
-              headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({
-                slot_index: slotIdx,
-                player_id: playerInSlot.id
-              })
-            })
-          } catch (err) {
-            console.error(`[handleSaveCustomPositions] Errore aggiornamento position per slot ${slotIdx}:`, err)
-            // Non bloccare il salvataggio se un aggiornamento fallisce
-          }
-        }
-      }
-      
       // Validazione limitazioni ruolo prima di salvare
       const { validateFormationLimits } = await import('../../lib/validateFormationLimits')
       const validation = validateFormationLimits(updatedSlotPositions)
@@ -1600,11 +1571,36 @@ export default function GestioneFormazionePage() {
         showToast(t('formationSavedWithWarnings'), 'error')
       }
       
-      // Usa funzione esistente per salvare (NON MODIFICATA)
+      // 1. Salva prima il layout (assign-player-to-slot legge slot_positions dal DB)
       await handleSelectManualFormation(
         layout.formation || t('formationCustom'),
         updatedSlotPositions
       )
+      
+      // 2. Aggiorna position dei giocatori (layout già salvato, API legge posizioni corrette)
+      for (const [slotIndex, customPos] of Object.entries(customPositions)) {
+        const slotIdx = Number(slotIndex)
+        const playerInSlot = titolari.find(p => p.slot_index === slotIdx)
+        const newSlotPos = updatedSlotPositions[slotIdx]
+        
+        if (playerInSlot && newSlotPos && newSlotPos.position) {
+          try {
+            await fetch('/api/supabase/assign-player-to-slot', {
+              method: 'PATCH',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                slot_index: slotIdx,
+                player_id: playerInSlot.id
+              })
+            })
+          } catch (err) {
+            console.error(`[handleSaveCustomPositions] Errore aggiornamento position per slot ${slotIdx}:`, err)
+          }
+        }
+      }
       
       setIsEditMode(false)
       setCustomPositions({})
@@ -2629,7 +2625,6 @@ export default function GestioneFormazionePage() {
             setShowMissingDataModal(false)
             setMissingData({ required: [], optional: [] })
             setExtractedPlayerData(null)
-            setManualDataInput({})
           }}
         />
       )}
@@ -3368,7 +3363,7 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
                               borderRadius: '6px',
                               border: '1px solid rgba(34, 197, 94, 0.1)'
                             }}>
-                              <span style={{ opacity: 0.85, fontWeight: 500 }}>{key.replace(/_/g, ' ')}:</span>
+                              <span style={{ opacity: 0.85, fontWeight: 500 }}>{t(key) || key.replace(/_/g, ' ')}:</span>
                               <span style={{ fontWeight: 700, color: 'var(--neon-green)', fontSize: '14px' }}>{value}</span>
                             </div>
                           ))}
@@ -3377,7 +3372,7 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
                     )}
                     {baseStats.defending && Object.keys(baseStats.defending).length > 0 && (
                       <div style={{ marginBottom: '16px' }}>
-                        <div style={{ fontSize: '13px', fontWeight: 700, marginBottom: '10px', opacity: 0.9, color: 'var(--neon-green)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>DIFESA</div>
+                        <div style={{ fontSize: '13px', fontWeight: 700, marginBottom: '10px', opacity: 0.9, color: 'var(--neon-green)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t('defending')}</div>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '8px', fontSize: '13px' }}>
                           {Object.entries(baseStats.defending).map(([key, value]) => (
                             <div key={key} style={{ 
@@ -3388,7 +3383,7 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
                               borderRadius: '6px',
                               border: '1px solid rgba(34, 197, 94, 0.1)'
                             }}>
-                              <span style={{ opacity: 0.85, fontWeight: 500 }}>{key.replace(/_/g, ' ')}:</span>
+                              <span style={{ opacity: 0.85, fontWeight: 500 }}>{t(key) || key.replace(/_/g, ' ')}:</span>
                               <span style={{ fontWeight: 700, color: 'var(--neon-green)', fontSize: '14px' }}>{value}</span>
                             </div>
                           ))}
@@ -3408,7 +3403,7 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
                               borderRadius: '6px',
                               border: '1px solid rgba(34, 197, 94, 0.1)'
                             }}>
-                              <span style={{ opacity: 0.85, fontWeight: 500 }}>{key.replace(/_/g, ' ')}:</span>
+                              <span style={{ opacity: 0.85, fontWeight: 500 }}>{t(key) || key.replace(/_/g, ' ')}:</span>
                               <span style={{ fontWeight: 700, color: 'var(--neon-green)', fontSize: '14px' }}>{value}</span>
                             </div>
                           ))}

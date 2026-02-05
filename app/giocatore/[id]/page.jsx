@@ -600,7 +600,7 @@ function StatsSection({ player, photoSlots, isExpanded, onToggle, onFileSelect, 
                         border: '1px solid rgba(0, 212, 255, 0.2)'
                       }}>
                         <div style={{ fontSize: '12px', opacity: 0.7, marginBottom: '4px' }}>
-                          {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                          {t(key) || key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                         </div>
                         <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--neon-blue)' }}>
                           {value}
@@ -630,7 +630,7 @@ function StatsSection({ player, photoSlots, isExpanded, onToggle, onFileSelect, 
                         border: '1px solid rgba(239, 68, 68, 0.2)'
                       }}>
                         <div style={{ fontSize: '12px', opacity: 0.7, marginBottom: '4px' }}>
-                          {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                          {t(key) || key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                         </div>
                         <div style={{ fontSize: '18px', fontWeight: 700, color: '#ef4444' }}>
                           {value}
@@ -645,7 +645,7 @@ function StatsSection({ player, photoSlots, isExpanded, onToggle, onFileSelect, 
               {baseStats.athleticism && Object.keys(baseStats.athleticism).length > 0 && (
                 <div style={{ marginBottom: '20px' }}>
                   <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '12px', color: '#f59e0b' }}>
-                    Forza
+                    {t('athleticism')}
                   </h3>
                   <div style={{ 
                     display: 'grid', 
@@ -660,7 +660,7 @@ function StatsSection({ player, photoSlots, isExpanded, onToggle, onFileSelect, 
                         border: '1px solid rgba(245, 158, 11, 0.2)'
                       }}>
                         <div style={{ fontSize: '12px', opacity: 0.7, marginBottom: '4px' }}>
-                          {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                          {t(key) || key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                         </div>
                         <div style={{ fontSize: '18px', fontWeight: 700, color: '#f59e0b' }}>
                           {value}
