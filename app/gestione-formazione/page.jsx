@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { useTranslation } from '@/lib/i18n'
 import LanguageSwitch from '@/components/LanguageSwitch'
-import { ArrowLeft, Upload, AlertCircle, CheckCircle2, RefreshCw, Info, X, Plus, User, Settings, BarChart3, Zap, Gift, ChevronDown, ChevronUp, Users, Star, Move } from 'lucide-react'
+import { ArrowLeft, Upload, AlertCircle, CheckCircle2, RefreshCw, Info, X, Plus, User, Settings, BarChart3, Zap, Gift, ChevronDown, ChevronUp, Users, Star, Move, Pencil } from 'lucide-react'
 import TacticalSettingsPanel from '@/components/TacticalSettingsPanel'
 import PositionSelectionModal from '@/components/PositionSelectionModal'
 import MissingDataModal from '@/components/MissingDataModal'
@@ -2045,23 +2045,24 @@ export default function GestioneFormazionePage() {
               {layout.formation}
             </div>
           )}
-          {layout?.formation && (
+          {/* Compilazione manuale: sempre visibile (seleziona/cambia formazione) */}
+          <button
+            onClick={() => setShowFormationSelectorModal(true)}
+            className="btn"
+            style={{ 
+              display: 'inline-flex', 
+              alignItems: 'center', 
+              gap: '8px',
+              fontSize: '14px',
+              padding: '8px 16px'
+            }}
+          >
+            <Settings size={16} />
+            {layout?.formation ? t('changeFormation') : (t('selectFormation') || t('createFormationBtn') || 'Seleziona formazione')}
+          </button>
+          {/* Matita e personalizza: solo se c'è già un layout */}
+          {layout?.formation && layout?.slot_positions && Object.keys(layout.slot_positions).length > 0 && (
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-              <button
-                onClick={() => setShowFormationSelectorModal(true)}
-                className="btn"
-                style={{ 
-                  display: 'inline-flex', 
-                  alignItems: 'center', 
-                  gap: '8px',
-                  fontSize: '14px',
-                  padding: '8px 16px'
-                }}
-              >
-                <Settings size={16} />
-                {t('changeFormation')}
-              </button>
-              
               <button
                 onClick={() => {
                   if (isEditMode) {
@@ -2091,12 +2092,11 @@ export default function GestioneFormazionePage() {
                   </>
                 ) : (
                   <>
-                    <Move size={16} />
+                    <Pencil size={16} />
                     {t('customizePositions')}
                   </>
                 )}
               </button>
-              
               {isEditMode && (
                 <button
                   onClick={() => {
