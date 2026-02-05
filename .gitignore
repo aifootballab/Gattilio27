@@ -12,6 +12,9 @@ node_modules/
 /.next/
 /out/
 
+# Cartella duplicata (evita commit per sbaglio)
+Gattilio27-master/
+
 # Misc
 .DS_Store
 *.pem
