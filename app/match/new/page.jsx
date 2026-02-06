@@ -11,12 +11,14 @@ import { mapErrorToUserMessage } from '@/lib/errorHelper'
 // STEPS sarà definito dentro il componente per avere accesso a t()
 
 const STORAGE_KEY = 'match_wizard_progress'
+const HOME_AWAY_STEP_ID = 'home_away'
 
 export default function NewMatchPage() {
   const { t } = useTranslation()
   const router = useRouter()
   
   const STEPS = React.useMemo(() => [
+    { id: HOME_AWAY_STEP_ID, label: t('stepHomeAway'), icon: '🏠' },
     { id: 'player_ratings', label: t('stepPlayerRatings'), icon: '⭐' },
     { id: 'team_stats', label: t('stepTeamStats'), icon: '📊' },
     { id: 'attack_areas', label: t('stepAttackAreas'), icon: '⚽' },
@@ -43,7 +45,12 @@ export default function NewMatchPage() {
       const saved = localStorage.getItem(STORAGE_KEY)
       if (saved) {
         const parsed = JSON.parse(saved)
-        setStepData(parsed.stepData || {})
+        const loadedStepData = parsed.stepData || {}
+        // Retrocompatibilità: se isHome era salvato ma manca stepData.home_away, considera step Casa/Fuori già fatto
+        if (parsed.isHome !== undefined && loadedStepData[HOME_AWAY_STEP_ID] === undefined) {
+          loadedStepData[HOME_AWAY_STEP_ID] = true
+        }
+        setStepData(loadedStepData)
         setStepImages(parsed.stepImages || {})
         if (parsed.opponentName) {
           setOpponentName(parsed.opponentName)
@@ -52,7 +59,7 @@ export default function NewMatchPage() {
           setIsHome(parsed.isHome)
         }
         // Trova primo step senza dati
-        const firstEmptyStep = STEPS.findIndex(step => !parsed.stepData?.[step.id])
+        const firstEmptyStep = STEPS.findIndex(step => !loadedStepData[step.id])
         if (firstEmptyStep >= 0) {
           setCurrentStep(firstEmptyStep)
         }
@@ -215,23 +222,24 @@ export default function NewMatchPage() {
     }
   }
 
-  // Calcola progresso foto (solo sezioni, non result)
+  // Calcola progresso foto (solo sezioni foto, escluso Casa/Fuori)
+  const photoSteps = React.useMemo(() => STEPS.filter(s => s.id !== HOME_AWAY_STEP_ID), [STEPS])
   const photosUploaded = React.useMemo(() => {
-    return STEPS.filter(step => stepData[step.id] && stepData[step.id] !== null).length
-  }, [stepData, STEPS])
+    return photoSteps.filter(step => stepData[step.id] && stepData[step.id] !== null).length
+  }, [stepData, photoSteps])
 
   const photosMissing = React.useMemo(() => {
-    return STEPS.filter(step => !stepData[step.id] || stepData[step.id] === null).map(step => step.label)
-  }, [stepData, STEPS])
+    return photoSteps.filter(step => !stepData[step.id] || stepData[step.id] === null).map(step => step.label)
+  }, [stepData, photoSteps])
 
   const photosComplete = React.useMemo(() => {
-    return STEPS.filter(step => stepData[step.id] && stepData[step.id] !== null).map(step => step.label)
-  }, [stepData, STEPS])
+    return photoSteps.filter(step => stepData[step.id] && stepData[step.id] !== null).map(step => step.label)
+  }, [stepData, photoSteps])
 
   const handleShowSummary = () => {
-    // Verifica che almeno una sezione abbia dati
-    const hasData = Object.values(stepData).some(data => data !== null && data !== undefined)
-    if (!hasData) {
+    // Verifica che almeno una sezione foto abbia dati (escluso Casa/Fuori)
+    const hasAtLeastOnePhotoSection = photoSteps.some(step => stepData[step.id] != null)
+    if (!hasAtLeastOnePhotoSection) {
       setError(t('loadAtLeastOneSection'))
       return
     }
@@ -420,7 +428,7 @@ export default function NewMatchPage() {
           alignItems: 'center',
           gap: '8px'
         }}>
-          <span>{photosUploaded}/{STEPS.length} {t('photosCount')}</span>
+          <span>{photosUploaded}/{photoSteps.length} {t('photosCount')}</span>
         </div>
         {extractedResult && (
           <div style={{
@@ -554,13 +562,75 @@ export default function NewMatchPage() {
             Passaggio {currentStep + 1}: {currentStepInfo.label}
           </h2>
           <p style={{ fontSize: '14px', opacity: 0.7, marginBottom: '24px' }}>
-            {currentStep === 0 && t('step0Instruction')}
-            {currentStep === 1 && t('step1Instruction')}
-            {currentStep === 2 && t('step2Instruction')}
-            {currentStep === 3 && t('step3Instruction')}
-            {currentStep === 4 && t('step4Instruction')}
+            {currentSection === HOME_AWAY_STEP_ID && t('stepHomeAwayInstruction')}
+            {currentStep === 1 && t('step0Instruction')}
+            {currentStep === 2 && t('step1Instruction')}
+            {currentStep === 3 && t('step2Instruction')}
+            {currentStep === 4 && t('step3Instruction')}
+            {currentStep === 5 && t('step4Instruction')}
           </p>
 
+          {/* Step 0: Casa / Fuori Casa (obbligatorio, prima delle foto) */}
+          {currentSection === HOME_AWAY_STEP_ID ? (
+            <div style={{ marginTop: '8px' }}>
+              <div style={{
+                display: 'flex',
+                gap: '12px',
+                marginBottom: '12px'
+              }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsHome(true)
+                    setStepData(prev => ({ ...prev, [HOME_AWAY_STEP_ID]: true }))
+                    if (currentStep < STEPS.length - 1) setCurrentStep(currentStep + 1)
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: '16px',
+                    background: isHome ? 'rgba(0, 212, 255, 0.25)' : 'rgba(0, 212, 255, 0.08)',
+                    border: `2px solid ${isHome ? 'rgba(0, 212, 255, 0.7)' : 'rgba(0, 212, 255, 0.25)'}`,
+                    borderRadius: '10px',
+                    color: '#00d4ff',
+                    fontSize: '16px',
+                    fontWeight: isHome ? 600 : 400,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    boxShadow: isHome ? '0 0 14px rgba(0, 212, 255, 0.25)' : 'none'
+                  }}
+                >
+                  🏠 {t('home')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsHome(false)
+                    setStepData(prev => ({ ...prev, [HOME_AWAY_STEP_ID]: true }))
+                    if (currentStep < STEPS.length - 1) setCurrentStep(currentStep + 1)
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: '16px',
+                    background: !isHome ? 'rgba(0, 212, 255, 0.25)' : 'rgba(0, 212, 255, 0.08)',
+                    border: `2px solid ${!isHome ? 'rgba(0, 212, 255, 0.7)' : 'rgba(0, 212, 255, 0.25)'}`,
+                    borderRadius: '10px',
+                    color: '#00d4ff',
+                    fontSize: '16px',
+                    fontWeight: !isHome ? 600 : 400,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    boxShadow: !isHome ? '0 0 14px rgba(0, 212, 255, 0.25)' : 'none'
+                  }}
+                >
+                  ✈️ {t('away')}
+                </button>
+              </div>
+              <div style={{ fontSize: '12px', opacity: 0.75, color: 'var(--neon-blue)' }}>
+                {t('homeAwayHint')}
+              </div>
+            </div>
+          ) : (
+            <>
           {/* Image Preview */}
           {currentImage && (
             <div style={{
@@ -700,6 +770,8 @@ export default function NewMatchPage() {
               <strong>{t('dataExtractedSuccess')}</strong>
             </div>
           )}
+            </>
+          )}
         </div>
       )}
 
@@ -708,7 +780,7 @@ export default function NewMatchPage() {
         <button
           data-tour-id="tour-match-save"
           onClick={handleShowSummary}
-          disabled={saving || !Object.values(stepData).some(d => d !== null && d !== undefined)}
+          disabled={saving || !photoSteps.some(step => stepData[step.id] != null)}
           style={{
             width: '100%',
             background: saving
@@ -718,8 +790,8 @@ export default function NewMatchPage() {
             borderRadius: '8px',
             padding: '16px',
             color: saving ? '#d1d5db' : '#86efac',
-            cursor: saving || !Object.values(stepData).some(d => d !== null && d !== undefined) ? 'not-allowed' : 'pointer',
-            opacity: saving || !Object.values(stepData).some(d => d !== null && d !== undefined) ? 0.5 : 1,
+            cursor: saving || !photoSteps.some(step => stepData[step.id] != null) ? 'not-allowed' : 'pointer',
+            opacity: saving || !photoSteps.some(step => stepData[step.id] != null) ? 0.5 : 1,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
