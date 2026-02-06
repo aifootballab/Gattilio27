@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { validateToken, extractBearerToken } from '@/lib/authHelper'
-import { getCurrentUsage } from '@/lib/creditService'
+import { getCurrentUsage, CREDITS_INCLUDED_DEFAULT } from '@/lib/creditService'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -43,9 +43,9 @@ async function handleCreditsUsage(req) {
 
   const usage = await getCurrentUsage(admin, userId, { currentPeriodOnly: true })
   const creditsUsed = Number(usage.credits_used)
-  const creditsIncluded = Number(usage.credits_included) || 200
+  const creditsIncluded = Number(usage.credits_included) || CREDITS_INCLUDED_DEFAULT
   const used = Number.isFinite(creditsUsed) ? creditsUsed : 0
-  const included = Number.isFinite(creditsIncluded) ? creditsIncluded : 200
+  const included = Number.isFinite(creditsIncluded) ? creditsIncluded : CREDITS_INCLUDED_DEFAULT
   const percentUsed = included > 0 ? Math.round((used / included) * 100) : 0
 
   const balanceRemaining = Math.max(0, included - used)
