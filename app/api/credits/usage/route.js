@@ -48,11 +48,14 @@ async function handleCreditsUsage(req) {
   const included = Number.isFinite(creditsIncluded) ? creditsIncluded : 200
   const percentUsed = included > 0 ? Math.round((used / included) * 100) : 0
 
+  const balanceRemaining = Math.max(0, included - used)
+
   return NextResponse.json(
     {
       period_key: usage.period_key,
       credits_used: used,
       credits_included: included,
+      balance_remaining: balanceRemaining,
       overage: Math.max(0, used - included),
       percent_used: Math.min(100, percentUsed),
       percent_used_raw: percentUsed

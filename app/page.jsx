@@ -27,6 +27,7 @@ import {
   ChevronUp,
   Trash2,
   User,
+  Zap,
   Shield,
   BookOpen
 } from 'lucide-react'
@@ -548,6 +549,35 @@ export default function DashboardPage() {
               <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <BookOpen size={18} />
                 {t('guideLink')}
+              </span>
+              <ArrowRight size={18} />
+            </button>
+            <button
+              onClick={() => router.push('/gestione-profilo')}
+              className="btn"
+              style={{
+                width: '100%',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '12px 16px',
+                background: 'rgba(255, 165, 0, 0.08)',
+                borderColor: 'rgba(255, 165, 0, 0.3)',
+                color: 'var(--neon-orange)',
+                marginTop: '10px'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(255, 165, 0, 0.15)'
+                e.currentTarget.style.boxShadow = '0 0 12px rgba(255, 165, 0, 0.2)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(255, 165, 0, 0.08)'
+                e.currentTarget.style.boxShadow = 'none'
+              }}
+            >
+              <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Zap size={18} />
+                {t('heroPoints')}
               </span>
               <ArrowRight size={18} />
             </button>
