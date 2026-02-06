@@ -21,23 +21,23 @@ export default function AssistantChat() {
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
   
-  // Suggerimenti contestuali alla pagina (domande coerenti con il perimetro: formazione, rosa, partite, meccaniche, app)
+  // Suggerimenti: 1 verticale (pagina), 1 gameplay (uso in partita), 1 meta/info
   const initialSuggestions = useMemo(() => {
     const page = (currentPage || '').toLowerCase()
     if (lang === 'en') {
-      if (page.includes('gestione-formazione')) return ['Which formation for my roster?', 'What substitutions do you recommend?', 'What individual instructions for my starters?']
-      if (page.includes('match/new')) return ['Which formation for my next match?', 'What team style do you recommend?', 'Who should I put on the bench for better cover?']
-      if (page.includes('match/') && !page.includes('new')) return ['Why did I lose this match?', 'What changes for the next one?', 'Which formation worked best?']
-      if (page.includes('contromisure')) return ['How do I prepare before the match?', 'Which formation against 4-3-3?', 'What countermeasures for high pressing?']
-      if (page.includes('allenatori')) return ['Which coach for counter-attack?', 'What style fits my coach?', 'Does the coach affect formation?']
-      return ['What\'s my difficulty in matches?', 'Which formation for my roster?', 'What substitutions do you recommend?']
+      if (page.includes('gestione-formazione')) return ['Which formation for my roster?', 'How to use counter-attack better in a match?', 'Want info on current meta?']
+      if (page.includes('match/new')) return ['Which formation for my next match?', 'How to defend better in a match?', 'Which formations are strongest?']
+      if (page.includes('match/') && !page.includes('new')) return ['Why did I lose this match?', 'How to manage pressing in a match?', 'Which styles work best?']
+      if (page.includes('contromisure')) return ['Which formation against 4-3-3?', 'How to use counter-attack in a match?', 'Which countermeasures are most effective?']
+      if (page.includes('allenatori')) return ['What style fits my coach?', 'How to use that style in a match?', 'Which styles are most effective?']
+      return ['Which formation for my roster?', 'How to defend better in a match?', 'Want info on meta?']
     }
-    if (page.includes('gestione-formazione')) return ['Quale modulo per la mia rosa?', 'Quali sostituzioni consigli?', 'Quali istruzioni individuali per i miei titolari?']
-    if (page.includes('match/new')) return ['Quale modulo per la prossima partita?', 'Quale stile squadra mi consigli?', 'Chi metto in panchina per coprire meglio?']
-    if (page.includes('match/') && !page.includes('new')) return ['Perché ho perso questa partita?', 'Quali cambi fare per la prossima?', 'Quale modulo ha funzionato meglio?']
-    if (page.includes('contromisure')) return ['Come preparo la squadra prima della partita?', 'Quale formazione contro il 4-3-3?', 'Quali contromisure per il pressing alto?']
-    if (page.includes('allenatori')) return ['Quale allenatore per il contropiede?', 'Quale stile abbinare al mio allenatore?', "L'allenatore influenza la formazione?"]
-    return ['Qual è la mia difficoltà nelle partite?', 'Quale modulo per la mia rosa?', 'Quali sostituzioni consigli?']
+    if (page.includes('gestione-formazione')) return ['Quale modulo per la mia rosa?', 'Come usare meglio il contropiede in partita?', 'Vuoi informazioni sul meta attuale?']
+    if (page.includes('match/new')) return ['Quale modulo per la prossima partita?', 'Come difendere meglio in partita?', 'Quali formazioni sono più forti?']
+    if (page.includes('match/') && !page.includes('new')) return ['Perché ho perso questa partita?', 'Come gestire il pressing in partita?', 'Quali stili funzionano meglio?']
+    if (page.includes('contromisure')) return ['Quale formazione contro il 4-3-3?', 'Come usare il contrattacco in partita?', 'Quali contromisure sono più efficaci?']
+    if (page.includes('allenatori')) return ['Quale stile abbinare al mio allenatore?', 'Come sfruttare lo stile in partita?', 'Quali stili sono più efficaci?']
+    return ['Quale modulo per la mia rosa?', 'Come difendere meglio in partita?', 'Vuoi informazioni sul meta?']
   }, [currentPage, lang])
   
   // Carica profilo utente al mount
