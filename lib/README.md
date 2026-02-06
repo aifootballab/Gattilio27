@@ -12,7 +12,7 @@
 
 | File | Scopo |
 |------|-------|
-| `ragHelper.js` | getRelevantSections, classifyQuestion, needsPersonalContext, getRelevantSectionsForContext → legge info_rag.md |
+| `ragHelper.js` | getRelevantSections, classifyQuestion, getRelevantSectionsForContext → legge info_rag.md |
 | `countermeasuresHelper.js` | generateCountermeasuresPrompt, validateCountermeasuresOutput |
 
 ## Business logic

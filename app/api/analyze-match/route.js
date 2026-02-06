@@ -286,7 +286,7 @@ async function generateAnalysisPrompt(matchData, confidence, missingSections, us
     ? `\n\n⚠️ MODALITÀ CONSERVATIVA: I dati disponibili sono limitati (${Math.round(confidence * 100)}% completezza). 
 Sii CONSERVATIVO nelle conclusioni. Evita affermazioni categoriche. 
 Indica chiaramente quando le tue analisi sono basate su dati limitati.
-Suggerisci di caricare le foto mancanti per un'analisi più precisa.`
+Puoi dire che con più sezioni complete l'analisi sarebbe più precisa; NON dare istruzioni su dove cliccare o come caricare (uso app).`
     : ''
   
   // ✅ FIX: Determina se match è vecchio o nuovo (deve essere dichiarato prima dell'uso)

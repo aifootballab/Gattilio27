@@ -125,7 +125,7 @@ export default function GuidaPage() {
       color: 'var(--neon-orange)',
       path: '/match/new',
       title: t('guideAddMatchTitle') || 'Aggiungi Partita',
-      description: t('guideAddMatchDesc') || 'Wizard 5 step per caricare dati partita',
+      description: t('guideAddMatchDesc') || 'Wizard 6 step (Casa/Fuori + 5 sezioni foto) per caricare dati partita',
       steps: [
         t('guideAddMatchStep1') || 'Step 1: Carica screenshot pagelle giocatori',
         t('guideAddMatchStep2') || 'Step 2: Carica screenshot statistiche squadra',

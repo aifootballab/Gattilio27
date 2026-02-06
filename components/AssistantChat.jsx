@@ -25,20 +25,20 @@ export default function AssistantChat() {
   const initialSuggestions = useMemo(() => {
     const page = (currentPage || '').toLowerCase()
     if (lang === 'en') {
-      if (page.includes('gestione-formazione')) return ['Which formation for my roster?', 'How do I load players from screenshots?', 'What individual instructions for my starters?']
-      if (page.includes('match/new')) return ['How does the match upload wizard work?', 'What do I need for post-match analysis?', 'Where do I find ratings in the screenshot?']
-      if (page.includes('match/') && !page.includes('new')) return ['Why did I lose this match?', 'What changes for the next one?', 'How do I read the AI analysis?']
+      if (page.includes('gestione-formazione')) return ['Which formation for my roster?', 'What substitutions do you recommend?', 'What individual instructions for my starters?']
+      if (page.includes('match/new')) return ['Which formation for my next match?', 'What team style do you recommend?', 'Who should I put on the bench for better cover?']
+      if (page.includes('match/') && !page.includes('new')) return ['Why did I lose this match?', 'What changes for the next one?', 'Which formation worked best?']
       if (page.includes('contromisure')) return ['How do I prepare before the match?', 'Which formation against 4-3-3?', 'What countermeasures for high pressing?']
-      if (page.includes('allenatori')) return ['How do I choose the active coach?', 'What skills for my playstyle?', 'Does the coach affect formation?']
-      return [t('howToAddMatch') || 'How do I add a match?', t('howToManageFormation') || 'How do I manage the formation?', "What's my difficulty in matches?"]
+      if (page.includes('allenatori')) return ['Which coach for counter-attack?', 'What style fits my coach?', 'Does the coach affect formation?']
+      return ['What\'s my difficulty in matches?', 'Which formation for my roster?', 'What substitutions do you recommend?']
     }
-    if (page.includes('gestione-formazione')) return ['Quale modulo per la mia rosa?', 'Come carico i giocatori da screenshot?', 'Quali istruzioni individuali per i miei titolari?']
-    if (page.includes('match/new')) return ['Come funziona il wizard per caricare una partita?', "Cosa serve per l'analisi post-partita?", 'Dove trovo le pagelle nello screenshot?']
-    if (page.includes('match/') && !page.includes('new')) return ['Perché ho perso questa partita?', 'Quali cambi fare per la prossima?', "Come leggo l'analisi AI?"]
+    if (page.includes('gestione-formazione')) return ['Quale modulo per la mia rosa?', 'Quali sostituzioni consigli?', 'Quali istruzioni individuali per i miei titolari?']
+    if (page.includes('match/new')) return ['Quale modulo per la prossima partita?', 'Quale stile squadra mi consigli?', 'Chi metto in panchina per coprire meglio?']
+    if (page.includes('match/') && !page.includes('new')) return ['Perché ho perso questa partita?', 'Quali cambi fare per la prossima?', 'Quale modulo ha funzionato meglio?']
     if (page.includes('contromisure')) return ['Come preparo la squadra prima della partita?', 'Quale formazione contro il 4-3-3?', 'Quali contromisure per il pressing alto?']
-    if (page.includes('allenatori')) return ['Come scelgo l\'allenatore attivo?', 'Quali competenze servono per il mio stile?', "L'allenatore influenza la formazione?"]
-    return [t('howToAddMatch') || 'Come carico una partita?', t('howToManageFormation') || 'Come gestisco la formazione?', 'Qual è la mia difficoltà nelle partite?']
-  }, [currentPage, lang, t])
+    if (page.includes('allenatori')) return ['Quale allenatore per il contropiede?', 'Quale stile abbinare al mio allenatore?', "L'allenatore influenza la formazione?"]
+    return ['Qual è la mia difficoltà nelle partite?', 'Quale modulo per la mia rosa?', 'Quali sostituzioni consigli?']
+  }, [currentPage, lang])
   
   // Carica profilo utente al mount
   useEffect(() => {

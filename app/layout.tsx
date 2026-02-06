@@ -26,7 +26,7 @@ export default function RootLayout({
           {children}
           {/* Tour contestuale (Mostrami come) - coerente UX, responsive, bilingue */}
           <GuideTour />
-          {/* Assistant Chat Widget - Sempre disponibile */}
+          {/* Assistant Chat Widget - Solo consigli tattici (no supporto uso app) */}
           <AssistantChat />
         </LanguageProviderWrapper>
       </body>

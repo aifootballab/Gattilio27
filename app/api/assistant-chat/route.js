@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { callOpenAIWithRetry } from '@/lib/openaiHelper'
 import { checkRateLimit, RATE_LIMIT_CONFIG } from '@/lib/rateLimiter'
 import { validateToken, extractBearerToken } from '@/lib/authHelper'
-import { getRelevantSections, classifyQuestion, needsPersonalContext } from '@/lib/ragHelper'
+import { getRelevantSections, classifyQuestion } from '@/lib/ragHelper'
 import { recordUsage } from '@/lib/creditService'
 
 export const runtime = 'nodejs'
@@ -61,20 +61,20 @@ function getApiError(key, lang) {
 function getDefaultSuggestions(lang, currentPage = '') {
   const page = (currentPage || '').toLowerCase()
   const it = [
-    { page: 'gestione-formazione', q: ['Quale modulo per la mia rosa?', 'Come carico i giocatori da screenshot?', 'Quali istruzioni individuali per i miei titolari?'] },
-    { page: 'match/new', q: ['Come funziona il wizard per caricare una partita?', 'Cosa serve per l\'analisi post-partita?', 'Dove trovo le pagelle nello screenshot?'] },
-    { page: 'match/', q: ['Perché ho perso questa partita?', 'Quali cambi fare per la prossima?', 'Come leggo l\'analisi AI?'] },
+    { page: 'gestione-formazione', q: ['Quale modulo per la mia rosa?', 'Quali sostituzioni consigli?', 'Quali istruzioni individuali per i miei titolari?'] },
+    { page: 'match/new', q: ['Quale modulo per la prossima partita?', 'Quale stile squadra mi consigli?', 'Chi metto in panchina per coprire meglio?'] },
+    { page: 'match/', q: ['Perché ho perso questa partita?', 'Quali cambi fare per la prossima?', 'Quale modulo ha funzionato meglio?'] },
     { page: 'contromisure', q: ['Come preparo la squadra prima della partita?', 'Quale formazione contro il 4-3-3?', 'Quali contromisure per il pressing alto?'] },
-    { page: 'allenatori', q: ['Come scelgo l\'allenatore attivo?', 'Quale allenatore per il contropiede?', 'L\'allenatore influenza la formazione?'] },
-    { page: '', q: ['Qual è la mia difficoltà nelle partite?', 'Come gestisco la formazione?', 'Come carico una partita?'] }
+    { page: 'allenatori', q: ['Quale allenatore per il contropiede?', 'L\'allenatore influenza la formazione?', 'Quale stile abbinare al mio allenatore?'] },
+    { page: '', q: ['Qual è la mia difficoltà nelle partite?', 'Quale modulo per la mia rosa?', 'Quali sostituzioni consigli?'] }
   ]
   const en = [
-    { page: 'gestione-formazione', q: ['Which formation for my roster?', 'How do I load players from screenshots?', 'What individual instructions for my starters?'] },
-    { page: 'match/new', q: ['How does the match upload wizard work?', 'What do I need for post-match analysis?', 'Where do I find ratings in the screenshot?'] },
-    { page: 'match/', q: ['Why did I lose this match?', 'What changes for the next one?', 'How do I read the AI analysis?'] },
+    { page: 'gestione-formazione', q: ['Which formation for my roster?', 'What substitutions do you recommend?', 'What individual instructions for my starters?'] },
+    { page: 'match/new', q: ['Which formation for my next match?', 'What team style do you recommend?', 'Who should I put on the bench for better cover?'] },
+    { page: 'match/', q: ['Why did I lose this match?', 'What changes for the next one?', 'Which formation worked best?'] },
     { page: 'contromisure', q: ['How do I prepare before the match?', 'Which formation against 4-3-3?', 'What countermeasures for high pressing?'] },
-    { page: 'allenatori', q: ['How do I choose the active coach?', 'Which coach for counter-attack?', 'Does the coach affect formation?'] },
-    { page: '', q: ['What\'s my difficulty in matches?', 'How do I manage my formation?', 'How do I add a match?'] }
+    { page: 'allenatori', q: ['Which coach for counter-attack?', 'Does the coach affect formation?', 'What style fits my coach?'] },
+    { page: '', q: ['What\'s my difficulty in matches?', 'Which formation for my roster?', 'What substitutions do you recommend?'] }
   ]
   const list = lang === 'en' ? en : it
   for (const { page: p, q } of list) {
@@ -221,7 +221,7 @@ const CONTEXT_LABELS = {
 
 /**
  * Costruisce riassunto contesto personale cliente (formazione, rosa, partite, tattica, allenatore).
- * Usato quando needsPersonalContext(message) è true. Non blocca: in errore restituisce ''.
+ * Sempre invocato: la chat è solo consulenza tattica sul cliente. In errore restituisce ''.
  * @param {string} userId - user_id da token
  * @param {'it'|'en'} lang - lingua per label (default 'it')
  * @returns {Promise<string>} Testo compatto (max MAX_PERSONAL_CONTEXT_CHARS) o ''
@@ -442,7 +442,7 @@ function buildPersonalizedPrompt(userMessage, context, language = 'it', efootbal
   let pageContext = ''
   if (currentPage) {
     if (currentPage.includes('/match/new')) {
-      pageContext = 'Il cliente sta caricando una nuova partita (wizard 5 step).'
+      pageContext = 'Il cliente sta caricando una nuova partita (wizard 6 step: prima Casa/Fuori, poi 5 sezioni foto).'
     } else if (currentPage.includes('/match/') && !currentPage.includes('/match/new')) {
       pageContext = 'Il cliente sta visualizzando i dettagli di una partita.'
     } else if (currentPage.includes('/gestione-formazione')) {
@@ -543,7 +543,7 @@ ESEMPI RAGIONAMENTO COMPLETO (interno, non dire all'utente):
 • **POSIZIONE IDEALE (competenze dalla card) vs RUOLO ASSEGNATO (position)**: Se un giocatore ha competenze = CC/MED ma è schierato come DC (o viceversa), CORREGGI: "X è centrocampista (CC) dalla card, non difensore centrale. Meglio schierarlo come CC o cambia ruolo in Gestione Formazione." Siamo noi i coach: non assecondare l\'errore del cliente. Non suggerire mai un giocatore in un ruolo che non compare nelle sue competenze (es. se competenze = solo CC/MED, non metterlo in difesa).
 • **SINERGIA**: La sinergia la SUGGERISCI TU in base a ruoli/stili. Risposta: "Metti [nome] al posto di [nome] per migliore sinergia." NON dire mai "carica una partita per vedere la sinergia" (quei dati non esistono).
 • **card_type (Trending/Epico/POTW/In evidenza/ecc.)**: Lo SAI dai dati rosa ("card: X"). NON dire "se non è Trending": di' direttamente "Messi è Trending, non può ricevere abilità aggiuntive" oppure "Pedri è Epico, puoi aggiungere abilità tramite Programmi".
-• **ROSA/PARTITE VUOTI**: Se vedi "Nessuna partita caricata" o nessun giocatore sotto TITOLARI/Riserve → risposta costruttiva: (1) "Non ho ancora rosa/partite", (2) percorso concreto (Gestione Formazione → carica formazione e riserve; Aggiungi Partita → wizard 5 step), (3) "Poi chiedimi di nuovo". Non dire solo "carica i dati".
+• **ROSA/PARTITE VUOTI**: Se vedi "Nessuna partita caricata" o nessun giocatore sotto TITOLARI/Riserve → risposta breve: (1) "Non ho ancora rosa/partite per darti consigli tattici." (2) "Per caricare formazione e partite usa la Guida (menu) o il tour Mostrami come (bussola)." (3) "Poi chiedimi di nuovo per consigli su modulo, sostituzioni, stile." NON dare istruzioni passo-passo su dove cliccare o come usare il wizard.
 • Stili FISSI: citali per spiegare perché un giocatore è adatto (stile → comportamento in campo → consiglio). Terminologia ufficiale.
 • Moduli: Proponi solo se hai giocatori compatibili (stili + stats)
 • Allenatore: Competenza >= 70 per stile consigliabile; se rosa e allenatore incoerenti → suggerisci cambio stile o allenatore
@@ -574,7 +574,7 @@ REGOLE MECCANICHE (sintesi):
 ` : ''}
 
 📍 DA DOVE PRENDI I DATI (OBBLIGATORIO):
-• **Nomi giocatori, partite, formazione, tattica, allenatore** → SOLO dal blocco "📊 ROSA E DATI" sopra (se presente). Se quel blocco non c'è, non hai rosa: non citare nomi, di\' "carica formazione e riserve in Gestione Formazione".
+• **Nomi giocatori, partite, formazione, tattica, allenatore** → SOLO dal blocco "📊 ROSA E DATI" sopra (se presente). Se quel blocco non c'è, non hai rosa: non citare nomi; di\' di usare la Guida (menu) o il tour Mostrami come (bussola) per caricare formazione e partite, poi chiedere di nuovo per consigli tattici. NON dare istruzioni passo-passo (es. "vai in Gestione Formazione", "clicca su...").
 • **Regole di gioco** (stili, moduli, istruzioni individuali, abilità, limiti) → SOLO dal blocco "📚 MECCANICHE eFootball" sopra (se presente). Se non c'è, rispondi in base a ciò che sai dal system message; non inventare regole.
 • **Profilo** (nome, team) → dal contesto in alto (👤 nome | team).
 • **NON** inventare dati. DOMANDE DIRETTE SU DATI ("che abilità ha X?", "quale velocità?", "cosa ha nel mio giocatore?") → risposta standard: "Per abilità e statistiche apri la scheda giocatore in Gestione Formazione. Posso aiutarti con consigli tattici: formazione, stile, sostituzioni, istruzioni." Se chiede "perché ho perso?" senza analisi nel contesto → suggerisci "Apri Dettaglio Partita per l'analisi completa" e offri consiglio tattico generico.
@@ -582,12 +582,12 @@ REGOLE MECCANICHE (sintesi):
 📍 ORDINE RAGIONAMENTO (vedi COME CERCARE E RAGIONARE sopra):
 - Rosa/consigli/modulo → cerca ROSA + MECCANICHE, incrocia stili+moduli+allenatore, poi consiglio.
 - Regole eFootball (cos'è Opportunista, Collante, ecc.) → cerca MECCANICHE sez. ## 2, spiega cosa FA in campo, terminologia ufficiale.
-- Dato non presente → non inventare. Indica dove trovarlo (Gestione Formazione, Dettaglio Partita/Giocatore).
+- Dato non presente → non inventare. Puoi indicare in quale sezione si trova (es. scheda giocatore, Dettaglio Partita); per come usare l'app o dove cliccare rimanda alla Guida o al tour Mostrami come.
 
 📱 FUNZIONALITÀ APP:
 1. Dashboard (/): panoramica squadra
 2. Gestione Formazione (/gestione-formazione): campo 2D, upload giocatori
-3. Aggiungi Partita (/match/new): wizard 5 step
+3. Aggiungi Partita (/match/new): wizard 6 step (Casa/Fuori + 5 sezioni foto)
 4. Dettaglio Partita (/match/[id]): analisi post-match
 5. Dettaglio Giocatore (/giocatore/[id]): scheda completa
 6. Impostazioni Profilo (/impostazioni-profilo): dati utente
@@ -620,8 +620,8 @@ Risposta: "Bellingham MED titolare, Pedri in panchina. In sintesi: più fisico a
 Domanda: "Che abilità ha Messi?"
 Risposta: "Per abilità e statistiche apri la scheda giocatore in Gestione Formazione. Posso aiutarti con consigli tattici: formazione, stile, sostituzioni."
 
-Domanda: "Come carico una partita?"
-Risposta: "Vai su 'Aggiungi Partita', carica screenshot pagelle → statistiche → aree attacco → recuperi → formazione avversaria. In sintesi: 5 step con upload foto."
+Domanda: "Come carico una partita?" / "Dove trovo il wizard?" / "Come carico le foto?"
+Risposta (solo questa, niente step): "Per come usare l'app (caricare foto, wizard, dove trovare) vai su Guida nel menu o clicca la bussola per il tour Mostrami come. Io sono qui solo per consigli tattici: formazione, rosa, modulo, sostituzioni."
 
 Domanda: "Che ne pensi della mia rosa?"
 Risposta: "Difesa solida con i tuoi DC alti. Centrocampo tecnico ma manca fisicità. Metti un MED difensivo in panchina. In sintesi: rafforza il centro."
@@ -634,6 +634,7 @@ Risposta: "Difesa solida con i tuoi DC alti. Centrocampo tecnico ma manca fisici
 "Esegui. Operazione completata." → tono robotico (sii professionale e diretto)
 
 🔴 VIETATO ASSOLUTO:
+• Dare istruzioni su uso app (come caricare foto, wizard, dove cliccare, dove trovare): rispondi solo con redirect a Guida / tour Mostrami come
 • "potenziare/migliorare/allenare" stili o giocatori (sono fissi)
 • Collante, Box-to-Box, Onnipresente (stili MED/CC) per attaccanti
 • Ala prolifica (stile EDA/ESA) per difensori
@@ -674,15 +675,16 @@ SUGGERIMENTI:
 👍 CORRETTO: Le domande "1. 2. 3." vanno SOLO dopo "---" nel blocco SUGGERIMENTI.
 
 REGOLE SUGGERIMENTI (3 domande OBBLIGATORIE - stesso formato 1. 2. 3.):
-- Solo domande che puoi rispondere COERENTEMENTE con i dati che hai (rosa, partite, meccaniche eFootball, funzionalità app).
+- Solo domande su CONSULENZA TATTICA (formazione, rosa, modulo, sostituzioni, stile, istruzioni). MAI domande su uso app (come caricare, dove trovare, wizard): quelle vanno alla Guida.
+- Solo domande che puoi rispondere COERENTEMENTE con i dati che hai (rosa, partite, meccaniche eFootball).
 - Mai domande fuori perimetro: no "cosa fare durante la partita", no "come recuperare stamina" (Resistenza è fissa), no "cerca giocatori" (non esiste).
 - 2 domande sullo stesso tema della risposta (approfondimento/collegamento).
-- 1 domanda che cambia tema (es. da formazione → meccaniche, da partite → guida app).
+- 1 domanda che cambia tema (es. da formazione → moduli, da partite → sostituzioni).
 - Se c'è rosa: usa NOMI REALI dai titolari/riserve (es. "Come sfruttare [Nome] sulla fascia?").
 - Mai generiche tipo "Che ne pensi?" - sempre domande operative e specifiche.
 - Nella stessa lingua della risposta (IT o EN).
 
-${personalContextSummary ? 'DATI ROSA SOPRA - usa nomi specifici nei suggerimenti' : 'ROSA NON CARICATA - suggerisci domande su come caricare (Gestione Formazione, Aggiungi Partita)'}
+${personalContextSummary ? 'DATI ROSA SOPRA - usa nomi specifici nei suggerimenti' : 'ROSA NON CARICATA - suggerisci solo domande TATTICHE (formazione, modulo, stile, sostituzioni) che l\'utente potrà fare dopo aver caricato i dati; NON suggerire domande su come caricare (quelle vanno alla Guida).'}
 
 DOMANDA CLIENTE: "${userMessage}"
 
@@ -824,15 +826,13 @@ export async function POST(req) {
       }
     }
 
-    // Contesto personale (rosa, partite, tattica, allenatore): solo se la domanda lo richiede
+    // Contesto personale (rosa, partite, tattica, allenatore): sempre (chat solo consulenza tattica cliente)
     let personalContextSummary = ''
-    if (needsPersonalContext(message)) {
-      try {
-        personalContextSummary = await buildPersonalContext(userId, lang)
-        if (personalContextSummary) console.log('[assistant-chat] Personal context loaded')
-      } catch (pcError) {
-        console.error('[assistant-chat] buildPersonalContext error (non-blocking):', pcError?.message)
-      }
+    try {
+      personalContextSummary = await buildPersonalContext(userId, lang)
+      if (personalContextSummary) console.log('[assistant-chat] Personal context loaded')
+    } catch (pcError) {
+      console.error('[assistant-chat] buildPersonalContext error (non-blocking):', pcError?.message)
     }
 
     // Costruisci prompt personalizzato (con eventuali blocchi RAG eFootball e contesto personale)
@@ -865,6 +865,7 @@ export async function POST(req) {
 
 SCOPE CHAT - SOLO CONSULENZA TATTICA (OBBLIGATORIO):
 - Fornisci SOLO consigli e strategie tattici: formazione, stile squadra, sostituzioni, istruzioni individuali, moduli, contromisure.
+- NON dare MAI istruzioni su come usare l'app: come caricare foto, dove cliccare, come funziona il wizard, dove trovare una funzione, step per upload, "vai su... poi clicca...". Se l'utente chiede cose del genere rispondi SOLO (una frase): "Per come usare l'app (caricare foto, wizard, dove trovare) vai su Guida nel menu o clicca la bussola per il tour Mostrami come. Io sono qui solo per consigli tattici: formazione, rosa, modulo, sostituzioni." (EN: "For how to use the app (upload photos, wizard, where to find things) go to Guide in the menu or click the compass for the Show me how tour. I'm here only for tactical advice: formation, roster, module, substitutions.")
 - NON rispondere a domande dirette su dati specifici (abilità giocatore X, statistiche singole, overall, dettagli card) se non sono esplicitamente nel blocco ROSA E DATI.
 - Se l'utente chiede "che abilità ha X?", "quale velocità?", "cosa ha nel mio giocatore?": rispondi "Per abilità e statistiche apri la scheda giocatore in Gestione Formazione (clic sulla card). Posso aiutarti con consigli tattici: formazione, stile, sostituzioni, istruzioni."
 - PRE-PARTITA: formazione, tattica, roster, contromisure. POST-PARTITA: analisi da dati caricati.
@@ -872,7 +873,7 @@ SCOPE CHAT - SOLO CONSULENZA TATTICA (OBBLIGATORIO):
 
 BILINGUE: Se italiano usa termini IT (Resistenza, Opportunista, Tiro al volo). Se inglese usa termini EN (Stamina, Poacher, First-Time Shot). Non mescolare lingue.
 GIOCATORI: Cita SOLO i nomi in TITOLARI/RISERVE. Mai Mbappé, Haaland, Pedri, Bellingham se non in lista. contrattacco e contropiede_veloce sono STILI DIVERSI: consiglia uno stile solo se il suo valore allenatore >= 70; non usare competenza contrattacco per Contropiede veloce.
-FONTI DATI: Nomi/rosa/partite/allenatore → solo dal blocco "ROSA E DATI". Regole eFootball → solo dal blocco "MECCANICHE eFootball". Se un dato non c\'è, non inventare; indica dove trovarlo (Gestione Formazione, Dettaglio Partita/Giocatore).
+FONTI DATI: Nomi/rosa/partite/allenatore → solo dal blocco "ROSA E DATI". Regole eFootball → solo dal blocco "MECCANICHE eFootball". Se un dato non c\'è, non inventare. Puoi dire in quale sezione si trova; per come usare l\'app rimanda a Guida/tour Mostrami come.
 CERCARE OBBLIGATORIO: Prima di consigliare, cerca nei blocchi (ROSA, MECCANICHE), incrocia dati, applica paletti. Non rispondere senza aver consultato.
 TERMINOLOGIA UFFICIALE (RAG §10): Opportunista (non Poacher), Rapace d'area (con apostrofo), Resistenza (non Stamina), Classico n° 10. Box-to-Box e Onnipresente sono stili CC/MED distinti (non sinonimi). Ala prolifica: taglia per RICEVERE passaggi filtranti (NON "creare"). Usa i nomi ufficiali dal RAG.
 
@@ -880,6 +881,7 @@ TONO: Amichevole e professionale, diretto e operativo. Max 3 frasi + "In sintesi
 OBBLIGO: Risposta operativa (Metti/Usa/Cambia IT, Use/Change/Set EN), finisci con "In sintesi: [azione]" (opzionale: ~X% quando suggerimento tattico basato sui dati)
 
 VIETATO ASSOLUTO:
+- Dare istruzioni su uso app (come caricare foto, wizard, dove cliccare, dove trovare): redirect alla Guida / tour Mostrami come
 - Rispondere a domande dirette su dati ("che abilità ha X?", "quale velocità?") inventando: redirect a Gestione Formazione
 - "potenziare"/"migliorare"/"allenare" stili o statistiche (sono FISSE)
 - Inventare nomi giocatori non nei dati

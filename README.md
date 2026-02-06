@@ -52,7 +52,7 @@ lib/
 ├── authHelper.js                 # Helper autenticazione (API)
 ├── i18n.js                       # Internazionalizzazione (IT/EN)
 ├── aiKnowledgeHelper.js          # Calcolo AI Knowledge Score
-├── ragHelper.js                  # RAG eFootball (info_rag), classifyQuestion, needsPersonalContext
+├── ragHelper.js                  # RAG eFootball (info_rag), classifyQuestion, getRelevantSections
 ├── creditService.js              # Tracciamento crediti per utente/periodo
 └── rateLimiter.js                # Rate limiting per API
 ```

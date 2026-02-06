@@ -154,7 +154,7 @@ L'AI conosce SOLO queste 6 funzionalità (non inventa altre):
 
 1. **Dashboard (/)** - Panoramica, top players, ultime partite
 2. **Gestione Formazione (/gestione-formazione)** - Campo 2D, 14 formazioni, upload
-3. **Aggiungi Partita (/match/new)** - Wizard 5 step
+3. **Aggiungi Partita (/match/new)** - Wizard 6 step (Casa/Fuori + 5 sezioni foto)
 4. **Dettaglio Partita (/match/[id])** - Visualizza, genera riassunto AI
 5. **Dettaglio Giocatore (/giocatore/[id])** - Visualizza, completa profilo
 6. **Impostazioni Profilo (/impostazioni-profilo)** - Dati personali, preferenze
@@ -179,14 +179,7 @@ L'AI conosce SOLO queste 6 funzionalità (non inventa altre):
 ### **Esempi Risposte:**
 
 **Cliente:** "Come carico una partita?"  
-**AI:** "Ciao [Nome]! Perfetto, ti guido subito! 💪  
-Vai su 'Aggiungi Partita' nella dashboard, poi segui i 5 step:  
-1. Carica screenshot pagelle giocatori  
-2. Carica screenshot statistiche squadra  
-3. Carica screenshot aree attacco  
-4. Carica screenshot recuperi palla  
-5. Carica screenshot formazione avversaria  
-Io estraggo tutto automaticamente. Se hai dubbi, dimmelo!"
+**AI:** "Per come usare l'app (caricare foto, wizard, dove trovare) vai su Guida nel menu o clicca la bussola per il tour Mostrami come. Io sono qui solo per consigli tattici: formazione, rosa, modulo, sostituzioni."
 
 **Cliente:** "Non funziona"  
 **AI:** "Non ti preoccupare, [Nome]!  
