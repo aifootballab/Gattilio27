@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useTranslation } from '@/lib/i18n'
 import { supabase } from '@/lib/supabaseClient'
 import { Trophy, CheckCircle2, Circle, XCircle, Loader2, ChevronDown, ChevronUp } from 'lucide-react'
@@ -11,6 +11,9 @@ export default function TaskWidget() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [isExpanded, setIsExpanded] = useState(true) // Stato per collassare/espandere
+  const [completedFeedbackToast, setCompletedFeedbackToast] = useState(null)
+  const previousCompletedIdsRef = useRef([])
+  const hasFetchedBeforeRef = useRef(false)
 
   useEffect(() => {
     // Chiama al mount
@@ -37,6 +40,13 @@ export default function TaskWidget() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // Array vuoto = solo al mount
+
+  // Auto-dismiss toast completamento obiettivo
+  useEffect(() => {
+    if (!completedFeedbackToast) return
+    const timer = setTimeout(() => setCompletedFeedbackToast(null), 4000)
+    return () => clearTimeout(timer)
+  }, [completedFeedbackToast])
 
   const fetchTasks = async () => {
     try {
@@ -80,6 +90,16 @@ export default function TaskWidget() {
                task.target_value > 0 &&
                (task.current_value === null || task.current_value >= 0)
       })
+
+      // Feedback al completamento: toast solo dopo un refetch (non al primo caricamento)
+      const completedIds = validTasks.filter(tk => tk.status === 'completed').map(tk => tk.id)
+      const prev = previousCompletedIdsRef.current
+      const newlyCompleted = completedIds.filter(id => !prev.includes(id))
+      if (hasFetchedBeforeRef.current && newlyCompleted.length > 0) {
+        setCompletedFeedbackToast(t('goalCompletedFeedback') || 'Obiettivo completato! Contribuisce alla barra Conoscenza IA.')
+      }
+      hasFetchedBeforeRef.current = true
+      previousCompletedIdsRef.current = completedIds
       
       setTasks(validTasks)
     } catch (err) {
@@ -205,6 +225,41 @@ export default function TaskWidget() {
           )}
         </div>
       </div>
+
+      {/* Nesso task → barra Conoscenza */}
+      {isExpanded && (
+        <p style={{
+          fontSize: 'clamp(11px, 2.5vw, 12px)',
+          color: '#666',
+          margin: '0 0 clamp(10px, 2.5vw, 12px) 0',
+          lineHeight: '1.4'
+        }}>
+          {t('goalsIncreaseKnowledge') || 'Completare gli obiettivi aumenta la conoscenza che l\'IA ha di te.'}
+        </p>
+      )}
+
+      {/* Toast completamento obiettivo */}
+      {completedFeedbackToast && (
+        <div
+          role="alert"
+          style={{
+            position: 'fixed',
+            top: 'clamp(16px, 4vw, 24px)',
+            right: 'clamp(16px, 4vw, 24px)',
+            padding: 'clamp(10px, 2.5vw, 14px) clamp(14px, 3vw, 18px)',
+            backgroundColor: 'rgba(34, 197, 94, 0.95)',
+            color: '#fff',
+            borderRadius: '8px',
+            fontSize: 'clamp(12px, 2.8vw, 14px)',
+            fontWeight: '500',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+            zIndex: 9999,
+            maxWidth: 'min(320px, 90vw)'
+          }}
+        >
+          {completedFeedbackToast}
+        </div>
+      )}
 
       {/* Lista Task - Collassabile */}
       {isExpanded && (

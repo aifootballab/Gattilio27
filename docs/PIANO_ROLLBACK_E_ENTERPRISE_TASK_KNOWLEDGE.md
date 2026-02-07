@@ -51,6 +51,11 @@ Tutte le modifiche devono rispettare i seguenti punti. In implementazione: valid
 - [ ] Conteggio use_ai_recommendations: whitelist fissa di `description` nel codice; userId solo da parametro (token).
 - [ ] update-match (se modificato): stesse regole di save-match per `recommended_formation_used` e userId.
 
+### 0.8 Regola generale sui task (solo dati caricati / loggati)
+
+- Ogni **goal_type** che generiamo deve essere calcolabile **solo** da: (a) dati partita caricati/salvati (formation_played, result, team_stats, data_completeness), (b) log utilizzo (credit_transactions), (c) profilo utente (common_problems, ecc.). Nessun task può dipendere da flag autodichiarati.
+- **use_recommended_formation** non viene più generato; la logica di progresso resta per task già esistenti. Colonna `matches.recommended_formation_used` resta per uso futuro (es. inferenza server-side).
+
 ---
 
 ## Parte 1 – Rollback

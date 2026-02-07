@@ -303,6 +303,15 @@ export default function AIKnowledgeBar() {
         {getLevelText(level)} - {getDescriptionText(level)}
       </div>
 
+      {/* Nesso obiettivi → score */}
+      <div style={{
+        fontSize: 'clamp(11px, 2.5vw, 12px)',
+        color: '#666',
+        marginBottom: '8px'
+      }}>
+        {t('goalsContributeToBar') || 'Gli obiettivi completati contribuiscono a questo score.'}
+      </div>
+
       {/* Breakdown (Espandibile) */}
       <details 
         style={{

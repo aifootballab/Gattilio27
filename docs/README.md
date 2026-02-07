@@ -19,3 +19,4 @@ Solo documenti utili e di riferimento per produzione.
 ## Riferimento e audit
 - **GESTIONE_ROSA_FUNZIONI.md** – Funzioni gestione rosa, formazione
 - **AUDIT_CHAT_COACH.md** – Audit chat coach (ripetitivita, tasti, varieta consigli)
+- **SERVIZI_CLIENTE_EFOOTBALL_AI_COACH_DESCRIZIONE_COMPLETA.md** – Descrizione precisa di ogni cartella e ogni funzione, nominata in base al servizio al cliente (pagine, API, lib, components)
