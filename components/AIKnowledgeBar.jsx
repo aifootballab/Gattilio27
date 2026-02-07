@@ -267,16 +267,23 @@ export default function AIKnowledgeBar() {
         </span>
       </div>
 
-      {/* Progress Bar - IDENTICO a profilazione */}
-      <div style={{
-        width: '100%',
-        height: '24px',
-        backgroundColor: '#2a2a2a',
-        borderRadius: '12px',
-        overflow: 'hidden',
-        marginBottom: '12px',
-        position: 'relative'
-      }}>
+      {/* Progress Bar - IDENTICO a profilazione; ARIA per accessibilità */}
+      <div
+        role="progressbar"
+        aria-valuenow={Math.round(score)}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={`${t('aiKnowledge') || 'Conoscenza AI'}: ${Math.round(score)}%`}
+        style={{
+          width: '100%',
+          height: '24px',
+          backgroundColor: '#2a2a2a',
+          borderRadius: '12px',
+          overflow: 'hidden',
+          marginBottom: '12px',
+          position: 'relative'
+        }}
+      >
         <div style={{
           width: `${score}%`,
           height: '100%',
