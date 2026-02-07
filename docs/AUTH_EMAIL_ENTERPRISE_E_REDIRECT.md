@@ -18,6 +18,29 @@ Se l’utente si è registrato da **localhost** (o il Site URL in Supabase era a
 
 Così il link nella email segue sempre il dominio da cui l’utente sta usando l’app (produzione o dev).
 
+### Variabile d’ambiente per il link nelle email (niente più localhost)
+
+Se apri **Recupera password** (o **Registrati**) da **localhost**, il link nell’email andrebbe a localhost e, cliccando da telefono o da un altro PC, darebbe errore.
+
+L’app ora usa **`NEXT_PUBLIC_APP_URL`**: se è impostata, tutti i link nelle email (conferma iscrizione, recupero password) puntano a quell’URL invece che a `window.location.origin`.
+
+- **In produzione (Vercel / tuo hosting):** imposta la variabile d’ambiente  
+  `NEXT_PUBLIC_APP_URL=https://tuodominio.com`  
+  (senza slash finale). Così, anche se qualcuno chiede il reset da localhost, il link nell’email sarà comunque `https://tuodominio.com/reset-password`.
+- **In sviluppo:** puoi impostare in `.env.local`  
+  `NEXT_PUBLIC_APP_URL=https://tuodominio.com`  
+  così quando provi da localhost i link nelle email puntano al sito reale.
+
+In Vercel (o `.env.production` / `.env.local`) imposta:
+
+```bash
+NEXT_PUBLIC_APP_URL=https://tuodominio.com
+```
+
+(È già documentato in `.env.example`.)
+
+**Sicurezza:** `NEXT_PUBLIC_APP_URL` è esposta nel frontend (prefisso `NEXT_PUBLIC_`), ma non è un segreto: è l’URL pubblico del sito. Usarla per i redirect nelle email non introduce rischi; evita solo che il link punti a localhost.
+
 ### Cosa fare in Supabase (obbligatorio in produzione)
 
 1. **Authentication** → **URL Configuration**.

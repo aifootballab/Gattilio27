@@ -55,7 +55,10 @@ export default function LoginPage() {
     try {
       if (mode === 'signup') {
         // Registrazione
-        const redirectUrl = typeof window !== 'undefined' ? `${window.location.origin}/` : undefined
+        const baseUrl = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_APP_URL)
+          ? String(process.env.NEXT_PUBLIC_APP_URL).replace(/\/$/, '')
+          : (typeof window !== 'undefined' ? window.location.origin : '')
+        const redirectUrl = baseUrl ? `${baseUrl}/` : undefined
         const { data, error: signUpError } = await supabase.auth.signUp({
           email: email.trim().toLowerCase(),
           password: password,
