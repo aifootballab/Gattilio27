@@ -25,19 +25,19 @@ export default function AssistantChat() {
   const initialSuggestions = useMemo(() => {
     const page = (currentPage || '').toLowerCase()
     if (lang === 'en') {
-      if (page.includes('gestione-formazione')) return ['Which formation for my roster?', 'How to use counter-attack better in a match?', 'Want info on current meta?']
+      if (page.includes('gestione-formazione')) return ['Which formation for my roster?', 'How to manage pressing and compactness in a match?', 'Which individual instructions do you recommend?']
       if (page.includes('match/new')) return ['Which formation for my next match?', 'How to defend better in a match?', 'Which formations are strongest?']
-      if (page.includes('match/') && !page.includes('new')) return ['Why did I lose this match?', 'How to manage pressing in a match?', 'Which styles work best?']
-      if (page.includes('contromisure')) return ['Which formation against 4-3-3?', 'How to use counter-attack in a match?', 'Which countermeasures are most effective?']
-      if (page.includes('allenatori')) return ['What style fits my coach?', 'How to use that style in a match?', 'Which styles are most effective?']
-      return ['Which formation for my roster?', 'How to defend better in a match?', 'Want info on meta?']
+      if (page.includes('match/') && !page.includes('new')) return ['Why did I lose this match?', 'How to handle set pieces?', 'Which styles work best?']
+      if (page.includes('contromisure')) return ['Which formation against 4-3-3?', 'How to close down space in defence?', 'Which countermeasures are most effective?']
+      if (page.includes('allenatori')) return ['What style fits my coach?', 'High or deep line with this style?', 'Which styles are most effective?']
+      return ['Which formation for my roster?', 'How to improve build-up and possession?', 'Want info on meta?']
     }
-    if (page.includes('gestione-formazione')) return ['Quale modulo per la mia rosa?', 'Come usare meglio il contropiede in partita?', 'Vuoi informazioni sul meta attuale?']
+    if (page.includes('gestione-formazione')) return ['Quale modulo per la mia rosa?', 'Come gestire pressing e compattezza in partita?', 'Quali istruzioni individuali mi consigli?']
     if (page.includes('match/new')) return ['Quale modulo per la prossima partita?', 'Come difendere meglio in partita?', 'Quali formazioni sono più forti?']
-    if (page.includes('match/') && !page.includes('new')) return ['Perché ho perso questa partita?', 'Come gestire il pressing in partita?', 'Quali stili funzionano meglio?']
-    if (page.includes('contromisure')) return ['Quale formazione contro il 4-3-3?', 'Come usare il contrattacco in partita?', 'Quali contromisure sono più efficaci?']
-    if (page.includes('allenatori')) return ['Quale stile abbinare al mio allenatore?', 'Come sfruttare lo stile in partita?', 'Quali stili sono più efficaci?']
-    return ['Quale modulo per la mia rosa?', 'Come difendere meglio in partita?', 'Vuoi informazioni sul meta?']
+    if (page.includes('match/') && !page.includes('new')) return ['Perché ho perso questa partita?', 'Come gestire i calci piazzati?', 'Quali stili funzionano meglio?']
+    if (page.includes('contromisure')) return ['Quale formazione contro il 4-3-3?', 'Come chiudere gli spazi in difesa?', 'Quali contromisure sono più efficaci?']
+    if (page.includes('allenatori')) return ['Quale stile abbinare al mio allenatore?', 'Linea alta o bassa con questo stile?', 'Quali stili sono più efficaci?']
+    return ['Quale modulo per la mia rosa?', 'Come migliorare costruzione e possesso?', 'Vuoi informazioni sul meta?']
   }, [currentPage, lang])
   
   // Carica profilo utente al mount

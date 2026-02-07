@@ -75,3 +75,9 @@ Se non riceve l’email: verificare in Supabase **Authentication** → **Users**
 
 6. **Riprova “Invia link”**  
    Dopo aver verificato l’email in Supabase e aver controllato spam/attesa, riprova da **Recupera password**; assicurati che l’URL dell’app sia quello di produzione (non localhost) così il link nella email punta al sito reale.
+
+---
+
+## Task per il programmatore (setup produzione / from zero to hero)
+
+**Configurare Custom SMTP** in Supabase (Authentication → E-mail → Impostazioni SMTP) per far arrivare le email di recupero password e ridurre rate limit/spam. Guida passo-passo (anche no-code): **`docs/SMTP_RESEND_SETUP_NOCODE.md`** (Resend: host `smtp.resend.com`, username `resend`, port 465, password = API Key Resend).

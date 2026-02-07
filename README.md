@@ -205,6 +205,10 @@ Crea `.env.local` con le variabili d'ambiente (vedi `.env.example`).
 
 Vedi `DOCUMENTAZIONE_MASTER_COMPLETA.md` per troubleshooting e dettagli tecnici.
 
+## ⏳ Da configurare in produzione (task)
+
+- **SMTP Supabase**: per far arrivare le email di recupero password, configurare Custom SMTP in Supabase (Authentication → E-mail → Impostazioni SMTP). Guida: **`docs/SMTP_RESEND_SETUP_NOCODE.md`**.
+
 ## 📖 Risorse
 
 - **Supabase Docs**: https://supabase.com/docs

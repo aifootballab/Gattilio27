@@ -25,6 +25,7 @@ Punto critico per “non arriva mail”: **step 3** (Supabase invia?) e **step 4
 
 Tutte le richieste **POST /recover** restituiscono **status 200** (nessun errore lato API):
 
+- **14:57:30** – 200 (ultima verificata)
 - 14:46:27 – 200
 - 14:41:27 – 200
 - 14:33:34 – 200
@@ -32,7 +33,7 @@ Tutte le richieste **POST /recover** restituiscono **status 200** (nessun errore
 - 14:23:12 – 200
 - 14:17:14 – 200
 
-L’app e l’API Supabase sono quindi **allineate**: la richiesta di recupero viene accettata.
+L’app e l’API Supabase sono quindi **allineate**: la richiesta di recupero viene accettata. Per **nessuna** delle richieste 14:33, 14:41, 14:46, 14:57 compare un evento **mail.send** → Supabase non sta inviando l’email (rate limit lato server).
 
 ### 2.2 Evento mail.send
 
@@ -128,7 +129,30 @@ Dopo aver configurato il Custom SMTP, le nuove email di recupero partiranno dal 
 
 ---
 
-## 7. Riferimenti
+## 7. Cosa controllare in Supabase Dashboard (adesso)
+
+1. **Authentication → Logs**  
+   Dopo aver cliccato “Invia link”, cerca negli ultimi log:
+   - una riga **POST /recover** con status 200 (c’è sempre);
+   - una riga **mail.send** con `mail_type: recovery` e la tua email.  
+   Se **manca** la riga mail.send, Supabase non ha inviato l’email (rate limit o policy del progetto).
+
+2. **Project Settings → Auth → SMTP**  
+   Se **Custom SMTP** è disattivato, le email (quando partono) usano `noreply@mail.app.supabase.io` e spesso finiscono in spam. Attiva Custom SMTP (Resend, SendGrid, ecc.) per migliorare la deliverability.
+
+3. **Authentication → Email Templates → Reset password**  
+   Verifica che il template non sia vuoto e contenga il link (es. `{{ .ConfirmationURL }}`).
+
+4. **Authentication → URL Configuration**  
+   **Site URL** = URL di produzione (es. `https://gattilio27.vercel.app`). **Redirect URLs** includano `https://.../reset-password`.
+
+**Errori/warning nei log Auth:** ERROR (`apiworker is exiting`, `config reloader`, `prometheus shut down`) e WARNING su `GOTRUE_JWT_ADMIN_GROUP_NAME` / `GOTRUE_JWT_DEFAULT_GROUP_NAME` sono interni/deprecation; l’app non usa quei JWT group → nessuna azione richiesta.
+
+Supabase **non espone** in Dashboard un’opzione per disabilitare il rate limit sulle recovery email. Se per lo stesso indirizzo hai già richiesto il link di recente, bisogna **aspettare** (es. 1 ora) e riprovare **una sola volta**; in alternativa contattare il supporto Supabase per i limiti del progetto.
+
+---
+
+## 8. Riferimenti
 
 - `docs/EMAIL_NON_ARRIVANO_DIAGNOSI_ENTERPRISE.md` – diagnosi e Custom SMTP
 - `docs/RECUPERO_PASSWORD.md` – flusso e sicurezza
