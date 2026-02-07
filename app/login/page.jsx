@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslation } from '@/lib/i18n'
 import LanguageSwitch from '@/components/LanguageSwitch'
 import { supabase } from '@/lib/supabaseClient'
+import Link from 'next/link'
 import { Mail, Lock, LogIn, UserPlus, AlertCircle } from 'lucide-react'
 
 export default function LoginPage() {
@@ -276,6 +277,17 @@ export default function LoginPage() {
               />
             </div>
           </div>
+
+          {mode === 'login' && (
+            <div style={{ textAlign: 'right', marginTop: '-8px' }}>
+              <Link
+                href="/forgot-password"
+                style={{ fontSize: '13px', color: 'var(--neon-blue)', textDecoration: 'none' }}
+              >
+                {t('forgotPassword')}
+              </Link>
+            </div>
+          )}
 
           <button
             type="submit"
