@@ -35,14 +35,14 @@ export default function ImpostazioniProfiloPage() {
   // Divisioni disponibili
   const divisions = ['Division 1', 'Division 2', 'Division 3', 'Division 4', 'Division 5', 'Division 6', 'Division 7', 'Division 8', 'Division 9', 'Division 10']
   
-  // Problemi comuni disponibili
+  // Problemi comuni: value = valore salvato in DB (invariato), key = chiave i18n per etichetta
   const availableProblems = [
-    'Passaggi',
-    'Difesa',
-    'Centrocampo',
-    'Attacco',
-    'Formazione',
-    'Istruzioni tattiche'
+    { value: 'Passaggi', key: 'problemPassaggi' },
+    { value: 'Difesa', key: 'problemDifesa' },
+    { value: 'Centrocampo', key: 'problemCentrocampo' },
+    { value: 'Attacco', key: 'problemAttacco' },
+    { value: 'Formazione', key: 'problemFormazione' },
+    { value: 'Istruzioni tattiche', key: 'problemIstruzioniTattiche' }
   ]
 
   // Carica profilo esistente
@@ -655,12 +655,12 @@ export default function ImpostazioniProfiloPage() {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
           <Brain size={20} color="#00d4ff" />
-          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>Preferenze IA</h2>
+          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>{t('aiPreferences')}</h2>
         </div>
 
         <div style={{ marginBottom: '16px' }}>
           <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#888' }}>
-            Nome IA (opzionale)
+            {t('aiName')}
           </label>
           <input
             type="text"
@@ -706,7 +706,7 @@ export default function ImpostazioniProfiloPage() {
 
         <div style={{ display: 'flex', gap: '12px' }}>
           <button
-            onClick={() => handleSave('Preferenze IA')}
+            onClick={() => handleSave(t('aiPreferences'))}
             disabled={saving}
             style={{
               flex: 1,
@@ -728,7 +728,7 @@ export default function ImpostazioniProfiloPage() {
             {saving ? t('saving') : t('save')}
           </button>
           <button
-            onClick={() => handleSkip('Preferenze IA')}
+            onClick={() => handleSkip(t('aiPreferences'))}
             style={{
               padding: '12px 20px',
               backgroundColor: 'transparent',
@@ -758,7 +758,7 @@ export default function ImpostazioniProfiloPage() {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
           <Clock size={20} color="#00d4ff" />
-          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>Esperienza Gioco</h2>
+          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>{t('gameExperience')}</h2>
         </div>
 
         <div style={{ marginBottom: '16px' }}>
@@ -769,7 +769,7 @@ export default function ImpostazioniProfiloPage() {
             type="number"
             value={profile.hours_per_week || ''}
             onChange={(e) => setProfile(prev => ({ ...prev, hours_per_week: e.target.value ? parseInt(e.target.value) : null }))}
-            placeholder="0-168 ore"
+            placeholder={t('hoursPerWeekPlaceholder')}
             min="0"
             max="168"
             style={{
@@ -791,7 +791,7 @@ export default function ImpostazioniProfiloPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {availableProblems.map(problem => (
               <label
-                key={problem}
+                key={problem.value}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -805,15 +805,15 @@ export default function ImpostazioniProfiloPage() {
               >
                 <input
                   type="checkbox"
-                  checked={profile.common_problems.includes(problem)}
-                  onChange={() => toggleProblem(problem)}
+                  checked={profile.common_problems.includes(problem.value)}
+                  onChange={() => toggleProblem(problem.value)}
                   style={{
                     width: '20px',
                     height: '20px',
                     cursor: 'pointer'
                   }}
                 />
-                <span style={{ fontSize: '16px' }}>{problem}</span>
+                <span style={{ fontSize: '16px' }}>{t(problem.key)}</span>
               </label>
             ))}
           </div>
@@ -867,7 +867,7 @@ export default function ImpostazioniProfiloPage() {
       <button
         data-tour-id="tour-profile-complete"
         onClick={() => {
-          handleSave('Profilo Completo')
+          handleSave(t('completeProfile'))
           setTimeout(() => router.push('/'), 2000)
         }}
         disabled={saving}
@@ -889,7 +889,7 @@ export default function ImpostazioniProfiloPage() {
         }}
       >
         <CheckCircle2 size={20} />
-        {saving ? 'Salvataggio...' : 'Completa Profilo'}
+        {saving ? t('saving') : t('completeProfile')}
       </button>
     </main>
   )
