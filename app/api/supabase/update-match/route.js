@@ -502,7 +502,8 @@ export async function POST(req) {
       photos_uploaded: photosUploaded,
       missing_photos: missingPhotos.length > 0 ? missingPhotos : null,
       data_completeness: dataCompleteness,
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
+      recommended_formation_used: data?.recommended_formation_used === true ? true : (existingMatch.recommended_formation_used === true)
     }
 
     // 5. Aggiorna match

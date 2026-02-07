@@ -25,23 +25,20 @@ export default function AIKnowledgeBar() {
   const [error, setError] = useState(null)
   const [showDetails, setShowDetails] = useState(false)
 
-  // Ref per tracciare score durante retry
+  const scoreRef = React.useRef(score)
   const previousScoreRef = React.useRef(score)
   const retryTimeoutRef = React.useRef(null)
-  
+  scoreRef.current = score
+
   useEffect(() => {
     // Solo lato client per evitare hydration mismatch
     if (typeof window === 'undefined') return
     
     fetchAIKnowledge()
     
-    // FIX: Retry con backoff quando arriva evento match-saved
-    // Il server aggiorna AI Knowledge in modo async, quindi dobbiamo pollare finché non vediamo cambiamento
     const handleMatchSaved = () => {
       console.log('[AIKnowledgeBar] Match saved event received, starting retry with backoff...')
-      
-      // Salva score attuale per confronto
-      previousScoreRef.current = score
+      previousScoreRef.current = scoreRef.current
       
       // Configurazione backoff: tentativi a 1s, 2s, 3s, 5s, 8s (max 5 tentativi, totale ~19s)
       const retryDelays = [1000, 2000, 3000, 5000, 8000]
@@ -114,7 +111,7 @@ export default function AIKnowledgeBar() {
       if (retryTimeoutRef.current) clearTimeout(retryTimeoutRef.current)
       window.removeEventListener('match-saved', handleMatchSaved)
     }
-  }, [score]) // Dipendenza da score per avere valore aggiornato in handleMatchSaved
+  }, [])
 
   const fetchAIKnowledge = async () => {
     try {

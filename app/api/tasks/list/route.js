@@ -62,9 +62,11 @@ export async function GET(request) {
       )
     }
 
-    // 3. Parametri query
+    // 3. Parametri query (sicurezza: lang whitelist it|en, mai da input in stringhe)
     const { searchParams } = new URL(request.url)
     let weekStartDate = searchParams.get('week_start_date') || getCurrentWeek().start
+    const langParam = searchParams.get('lang') || request.headers.get('accept-language')?.split(',')[0]?.slice(0, 2) || 'it'
+    const lang = (langParam === 'en' || langParam === 'it') ? langParam : 'it'
 
     // Validazione formato data (se fornita)
     if (weekStartDate) {
@@ -157,7 +159,8 @@ export async function GET(request) {
             user_id,
             supabaseUrl,
             serviceKey,
-            week
+            week,
+            lang
           )
           
           console.log(`[tasks/list] generateWeeklyTasksForUser returned ${generatedTasks?.length || 0} tasks`)

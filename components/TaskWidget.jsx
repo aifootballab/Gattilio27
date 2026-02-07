@@ -53,7 +53,7 @@ export default function TaskWidget() {
       const token = session.access_token
 
       // Chiama API
-      const response = await fetch('/api/tasks/list', {
+      const response = await fetch(`/api/tasks/list?lang=${lang === 'en' ? 'en' : 'it'}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -339,9 +339,9 @@ export default function TaskWidget() {
                       color: '#888',
                       textTransform: 'uppercase'
                     }}>
-                      {task.difficulty === 'easy' && (lang === 'it' ? '🟢 Facile' : '🟢 Easy')}
-                      {task.difficulty === 'medium' && (lang === 'it' ? '🟡 Medio' : '🟡 Medium')}
-                      {task.difficulty === 'hard' && (lang === 'it' ? '🔴 Difficile' : '🔴 Hard')}
+                      {task.difficulty === 'easy' && `🟢 ${t('goalDifficultyEasy')}`}
+                      {task.difficulty === 'medium' && `🟡 ${t('goalDifficultyMedium')}`}
+                      {task.difficulty === 'hard' && `🔴 ${t('goalDifficultyHard')}`}
                     </div>
                   )}
 
@@ -353,7 +353,7 @@ export default function TaskWidget() {
                       marginTop: 'clamp(6px, 1.5vw, 8px)',
                       lineHeight: '1.4'
                     }}>
-                      ✅ {t('goalCompleted') || 'Completato'} {new Date(task.completed_at).toLocaleDateString(lang === 'it' ? 'it-IT' : 'en-US')}
+                      ✅ {t('goalCompleted')} {new Date(task.completed_at).toLocaleDateString(lang === 'it' ? 'it-IT' : 'en-US')}
                     </div>
                   )}
                   {task.status === 'failed' && (
@@ -363,7 +363,7 @@ export default function TaskWidget() {
                       marginTop: 'clamp(6px, 1.5vw, 8px)',
                       lineHeight: '1.4'
                     }}>
-                      ❌ {t('goalFailed') || 'Non completato'}
+                      ❌ {t('goalFailed')}
                     </div>
                   )}
                 </div>

@@ -300,6 +300,8 @@ export async function POST(req) {
     if (matchData.is_home !== undefined && typeof matchData.is_home !== 'boolean') {
       return NextResponse.json({ error: 'is_home must be a boolean' }, { status: 400 })
     }
+    // Sicurezza: recommended_formation_used solo boolean stretto (honor system obiettivo settimanale)
+    const recommendedFormationUsed = matchData.recommended_formation_used === true
 
     // Validazione: almeno una sezione deve avere dati
     const photosUploaded = calculatePhotosUploaded(matchData)
@@ -401,7 +403,8 @@ export async function POST(req) {
       photos_uploaded: photosUploaded,
       missing_photos: missingPhotos.length > 0 ? missingPhotos : null,
       data_completeness: dataCompleteness,
-      credits_used: creditsUsed
+      credits_used: creditsUsed,
+      recommended_formation_used: recommendedFormationUsed
     }
 
     // Inserisci in Supabase
