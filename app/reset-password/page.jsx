@@ -24,31 +24,34 @@ export default function ResetPasswordPage() {
       setInvalidLink(true)
       return
     }
+    let timeoutId
+    let subscription
+    const hasHash = typeof window !== 'undefined' && window.location.hash && window.location.hash.includes('type=recovery')
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession()
       if (session) {
         setSessionReady(true)
         return
       }
-      const hasHash = typeof window !== 'undefined' && window.location.hash && window.location.hash.includes('type=recovery')
       if (hasHash) {
-        const { data: { session: s } } = await supabase.auth.getSession()
-        if (s) setSessionReady(true)
-        else {
-          const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
-            if (s) setSessionReady(true)
-          })
-          const t = setTimeout(() => {
-            subscription?.unsubscribe?.()
-            setInvalidLink(true)
-          }, 5000)
-          return () => clearTimeout(t)
-        }
+        // detectSessionInUrl: true nel client processa l'hash in modo asincrono; aspettiamo onAuthStateChange
+        const { data: { subscription: sub } } = supabase.auth.onAuthStateChange((event, s) => {
+          if (s && (event === 'PASSWORD_RECOVERY' || event === 'INITIAL_SESSION')) setSessionReady(true)
+        })
+        subscription = sub
+        timeoutId = setTimeout(() => {
+          subscription?.unsubscribe?.()
+          setInvalidLink(true)
+        }, 8000)
       } else {
         setInvalidLink(true)
       }
     }
     checkSession()
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId)
+      subscription?.unsubscribe?.()
+    }
   }, [])
 
   const handleSubmit = async (e) => {

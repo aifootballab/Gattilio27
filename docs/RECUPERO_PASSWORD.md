@@ -54,6 +54,8 @@ Se non riceve l’email: verificare in Supabase **Authentication** → **Users**
 
 ## Se non arriva nessuna email (conferma o recupero password)
 
+**Diagnosi enterprise (log Supabase + checklist + Custom SMTP):** vedi **`docs/EMAIL_NON_ARRIVANO_DIAGNOSI_ENTERPRISE.md`**.
+
 1. **Controlla spam / posta indesiderata**  
    Le email da Supabase (`noreply@mail.app.supabase.io`) spesso finiscono lì. Cerca “Supabase” o “Conferma” / “Reset” e segnala come “Non spam” se le trovi.
 
