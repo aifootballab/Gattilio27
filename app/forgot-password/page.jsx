@@ -8,8 +8,6 @@ import LanguageSwitch from '@/components/LanguageSwitch'
 import { supabase } from '@/lib/supabaseClient'
 import { Mail, ArrowLeft, AlertCircle, CheckCircle } from 'lucide-react'
 
-const RESET_COOLDOWN_MS = 60 * 1000 // 1 minuto tra una richiesta e l'altra (enterprise: limita abuso)
-
 export default function ForgotPasswordPage() {
   const { t } = useTranslation()
   const router = useRouter()
@@ -17,18 +15,6 @@ export default function ForgotPasswordPage() {
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState(null)
   const [success, setSuccess] = React.useState(false)
-  const [cooldownUntil, setCooldownUntil] = React.useState(0)
-
-  const cooldownRemaining = Math.max(0, Math.ceil((cooldownUntil - Date.now()) / 1000))
-
-  React.useEffect(() => {
-    if (cooldownRemaining <= 0) return
-    const interval = setInterval(() => {
-      const rem = Math.max(0, Math.ceil((cooldownUntil - Date.now()) / 1000))
-      if (rem <= 0) setCooldownUntil(0)
-    }, 500)
-    return () => clearInterval(interval)
-  }, [cooldownUntil, cooldownRemaining])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -58,7 +44,6 @@ export default function ForgotPasswordPage() {
         return
       }
       setSuccess(true)
-      setCooldownUntil(Date.now() + RESET_COOLDOWN_MS)
     } catch (err) {
       console.error('[ForgotPassword]', err)
       setError(err?.message || t('resetPasswordError'))
@@ -165,21 +150,21 @@ export default function ForgotPasswordPage() {
             </div>
             <button
               type="submit"
-              disabled={loading || cooldownRemaining > 0}
+              disabled={loading}
               style={{
                 width: '100%',
                 padding: '14px',
-                background: (loading || cooldownRemaining > 0) ? 'rgba(0, 212, 255, 0.3)' : 'var(--neon-blue)',
+                background: loading ? 'rgba(0, 212, 255, 0.3)' : 'var(--neon-blue)',
                 border: 'none',
                 borderRadius: '8px',
                 color: '#fff',
                 fontSize: '16px',
                 fontWeight: 600,
                 cursor: loading ? 'not-allowed' : 'pointer',
-                opacity: (loading || cooldownRemaining > 0) ? 0.6 : 1
+                opacity: loading ? 0.6 : 1
               }}
             >
-              {cooldownRemaining > 0 ? t('retryInSeconds').replace('{{n}}', String(cooldownRemaining)) : loading ? '...' : t('sendResetLink')}
+              {loading ? '...' : t('sendResetLink')}
             </button>
           </form>
         )}

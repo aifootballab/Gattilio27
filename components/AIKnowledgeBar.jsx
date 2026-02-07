@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { useTranslation } from '@/lib/i18n'
 import { supabase } from '@/lib/supabaseClient'
 import { safeJsonResponse } from '@/lib/fetchHelper'
@@ -16,6 +17,7 @@ import { Brain, RefreshCw, AlertCircle } from 'lucide-react'
  */
 export default function AIKnowledgeBar() {
   const { t } = useTranslation()
+  const router = useRouter()
   const [score, setScore] = useState(0)
   const [level, setLevel] = useState('beginner')
   const [breakdown, setBreakdown] = useState({})
@@ -117,18 +119,17 @@ export default function AIKnowledgeBar() {
   const fetchAIKnowledge = async () => {
     try {
       setError(null)
-      
       if (!supabase) {
-        throw new Error('Supabase client not initialized')
+        setError('Supabase not configured')
+        return
       }
-
       const { data: session } = await supabase.auth.getSession()
       if (!session?.session?.access_token) {
-        throw new Error(t('sessionExpired') || 'Session expired')
+        setLoading(false)
+        router.push('/login')
+        return
       }
-
       const token = session.session.access_token
-
       const res = await fetch('/api/ai-knowledge', {
         method: 'GET',
         headers: {
@@ -136,14 +137,27 @@ export default function AIKnowledgeBar() {
           'Content-Type': 'application/json'
         }
       })
-
+      if (res.status === 401) {
+        setLoading(false)
+        router.push('/login')
+        return
+      }
       const data = await safeJsonResponse(res, 'Failed to fetch AI knowledge')
       setScore(data.score || 0)
       setLevel(data.level || 'beginner')
       setBreakdown(data.breakdown || {})
     } catch (err) {
-      console.error('[AIKnowledgeBar] Error fetching:', err)
-      setError(err.message || 'Error loading AI knowledge')
+      const msg = err?.message || ''
+      const isSessionExpired = /sessione scaduta|session expired|invalid or expired|authentication required/i.test(msg)
+      if (isSessionExpired) {
+        setLoading(false)
+        router.push('/login')
+        return
+      }
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('[AIKnowledgeBar] Error fetching:', err)
+      }
+      setError(msg || t('sessionExpired'))
     } finally {
       setLoading(false)
     }
