@@ -213,12 +213,15 @@ export async function GET(request) {
       }
     }
 
-    // 6. Restituisci task
+    // 6. Coerenza: escludi task autodichiarati (use_recommended_formation) dalla risposta
+    const GOAL_TYPE_HIDDEN = 'use_recommended_formation'
+    const visibleTasks = (tasks || []).filter(t => t && t.goal_type !== GOAL_TYPE_HIDDEN)
+
     return NextResponse.json({
       success: true,
-      tasks: tasks || [],
+      tasks: visibleTasks,
       week_start_date: weekStartDate,
-      count: tasks?.length || 0
+      count: visibleTasks.length
     })
   } catch (error) {
     console.error('[tasks/list] Error:', error)
