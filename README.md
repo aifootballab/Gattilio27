@@ -116,21 +116,22 @@ lib/
 **Assistant Chat**:
 - `POST /api/assistant-chat` - Chat AI guida personale (message, currentPage, appState, language, history). RAG eFootball (info_rag.md), contesto personale on-demand (rosa, partite, tattica, allenatore).
 
-## 📚 Documentazione
+## 📚 Documentazione (docs/)
 
-**Documentazione principale**:
-- **`docs/GUIDA_VALIDAZIONE_PROGRAMMATORE.md`** – Guida validazione: ogni cartella, ogni file, flusso dati (per programmatore)
-- **`DOCUMENTAZIONE_MASTER_COMPLETA.md`** – Documentazione completa (v2.4.0, 3 Febbraio 2026)
-  - Panoramica, architettura, struttura progetto, DB schema, API, pagine, librerie, sicurezza, i18n, flussi
-- **`DOCUMENTAZIONE_RIFERIMENTO.md`** – Riferimento rapido: ogni pagina, API, componente, lib (per programmatore e per chi legge)
+**Auth e email (enterprise)**:
+- **`docs/RECUPERO_PASSWORD.md`** – Flusso recupero password, Supabase, task SMTP
+- **`docs/AUTH_EMAIL_ENTERPRISE_E_REDIRECT.md`** – Redirect email, Site URL
+- **`docs/SICUREZZA.md`** – Checklist sicurezza, env, RLS
+- **`docs/AUDIT_EMAIL_RECUPERO_PASSWORD_E2E.md`** – Audit log email
+- **`docs/EMAIL_NON_ARRIVANO_DIAGNOSI_ENTERPRISE.md`** – Diagnosi email, Custom SMTP
+- **`docs/SMTP_RESEND_SETUP_NOCODE.md`** – Setup SMTP Resend
 
-**Documenti specializzati**:
-- **`DOCUMENTAZIONE_GUIDA_INTERATTIVA.md`** – Assistant Chat AI: architettura, prompt, flussi
-- **`docs/ANALISI_PROMPT_ASSISTANT_CHAT.md`** – Analisi e miglioramenti prompt
-- **`docs/VALUTAZIONE_ECONOMICA_PIATTAFORMA.md`** – Valutazione economica
-- **`DOCUMENTAZIONE_DRAG_DROP.md`** – Drag & Drop giocatori sul campo 2D: funzionalità e implementazione
-- **`PROGETTAZIONE_BARRA_CONOSCENZA_IA.md`** – Barra Conoscenza IA: calcolo + flusso aggiornamento in produzione
-- **`INDICE_DOCUMENTAZIONE.md`** – Indice “pulito” dei documenti mantenuti
+**Crediti e business**:
+- **`docs/SISTEMA_CREDITI_AI.md`**, **`docs/COSTI_API_E_PRICING_CREDITI.md`**, **`docs/RIEPILOGO_HERO_POINTS_CREDITI.md`**, **`docs/INTEGRAZIONE_SITO_PAGAMENTI_HERO_POINTS.md`**
+
+**Riferimento**:
+- **`docs/GESTIONE_ROSA_FUNZIONI.md`** – Gestione rosa, formazione
+- **`docs/AUDIT_CHAT_COACH.md`** – Audit chat coach
 
 ## ⚙️ Environment Variables
 
@@ -173,7 +174,7 @@ Crea `.env.local` con le variabili d'ambiente (vedi `.env.example`).
 - ✅ Row Level Security (RLS) su tutte le tabelle Supabase
 - ✅ Service Role Key: Server-only, non esposto al client
 
-**Per dettagli completi**: Vedi `DOCUMENTAZIONE_MASTER_COMPLETA.md` sezione Sicurezza
+**Per dettagli completi**: Vedi `docs/SICUREZZA.md`
 
 ---
 
@@ -203,7 +204,7 @@ Crea `.env.local` con le variabili d'ambiente (vedi `.env.example`).
 
 ## 🐛 Troubleshooting
 
-Vedi `DOCUMENTAZIONE_MASTER_COMPLETA.md` per troubleshooting e dettagli tecnici.
+Vedi `docs/` (auth, email, crediti, gestione rosa). Per email che non arrivano: `docs/EMAIL_NON_ARRIVANO_DIAGNOSI_ENTERPRISE.md` e `docs/SMTP_RESEND_SETUP_NOCODE.md`.
 
 ## ⏳ Da configurare in produzione (task)
 

@@ -27,4 +27,4 @@
 
 `layout.tsx`: LanguageProviderWrapper, CreditsBar, AssistantChat, GuideTour.
 
-**Doc completa**: `docs/GUIDA_VALIDAZIONE_PROGRAMMATORE.md`, `DOCUMENTAZIONE_MASTER_COMPLETA.md`
+**Doc**: `docs/` (auth, crediti, gestione rosa, audit chat). API: `app/api/README.md`
