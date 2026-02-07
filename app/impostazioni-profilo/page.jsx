@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { useTranslation } from '@/lib/i18n'
 import LanguageSwitch from '@/components/LanguageSwitch'
-import { ArrowLeft, Save, SkipForward, RefreshCw, User, Gamepad2, Brain, Clock, CheckCircle2, AlertCircle, BarChart3 } from 'lucide-react'
+import { ArrowLeft, Save, SkipForward, RefreshCw, User, Gamepad2, Brain, Clock, CheckCircle2, AlertCircle, BarChart3, X, Wallet } from 'lucide-react'
+import Link from 'next/link'
 
 export default function ImpostazioniProfiloPage() {
   const { t } = useTranslation()
@@ -29,6 +30,7 @@ export default function ImpostazioniProfiloPage() {
   const [saving, setSaving] = React.useState(false)
   const [error, setError] = React.useState(null)
   const [success, setSuccess] = React.useState(null)
+  const [toast, setToast] = React.useState(null) // { message, type: 'success' | 'error' }
   
   // Divisioni disponibili
   const divisions = ['Division 1', 'Division 2', 'Division 3', 'Division 4', 'Division 5', 'Division 6', 'Division 7', 'Division 8', 'Division 9', 'Division 10']
@@ -130,22 +132,38 @@ export default function ImpostazioniProfiloPage() {
 
       const data = await response.json()
       if (data.profile) {
-        // Aggiorna profileData per aggiornare barra profilazione
-        setProfileData({
+        setProfileData(prev => prev ? {
+          ...prev,
+          profile_completion_score: data.profile.profile_completion_score,
+          profile_completion_level: data.profile.profile_completion_level
+        } : {
           profile_completion_score: data.profile.profile_completion_score,
           profile_completion_level: data.profile.profile_completion_level
         })
-        setSuccess(`${sectionName} ${t('profileSectionSaved')}`)
-        setTimeout(() => setSuccess(null), 3000)
       }
+      const successMsg = data.profile
+        ? `${sectionName} ${t('profileSectionSaved')}`
+        : t('profileSectionSaved')
+      setSuccess(successMsg)
+      setToast({ message: successMsg, type: 'success' })
+      setTimeout(() => setSuccess(null), 3000)
     } catch (err) {
       console.error('[Impostazioni Profilo] Error saving profile:', err)
-        setError(err.message || t('errorProfileSave'))
+      const errMsg = err.message || t('errorProfileSave')
+      setError(errMsg)
+      setToast({ message: errMsg, type: 'error' })
       setTimeout(() => setError(null), 5000)
     } finally {
       setSaving(false)
     }
   }
+
+  React.useEffect(() => {
+    if (toast) {
+      const t = setTimeout(() => setToast(null), 4000)
+      return () => clearTimeout(t)
+    }
+  }, [toast])
 
   // Skip sezione
   const handleSkip = (sectionName) => {
@@ -221,9 +239,77 @@ export default function ImpostazioniProfiloPage() {
         </button>
         <h1 style={{ margin: 0, fontSize: '20px', fontWeight: '600' }}>{t('profileSettings')}</h1>
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <Link
+            href="/gestione-profilo"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '8px 12px',
+              backgroundColor: 'rgba(255,165,0,0.15)',
+              border: '1px solid rgba(255,165,0,0.4)',
+              borderRadius: '8px',
+              color: '#ffa500',
+              fontSize: '13px',
+              fontWeight: '500',
+              textDecoration: 'none'
+            }}
+          >
+            <Wallet size={16} />
+            {t('goToHeroPoints')}
+          </Link>
           <LanguageSwitch />
         </div>
       </div>
+
+      {/* Toast: feedback vicino all'azione (visibile anche se la sezione è in basso) */}
+      {toast && (
+        <div style={{
+          position: 'fixed',
+          top: '20px',
+          right: '20px',
+          zIndex: 10000,
+          padding: '16px 20px',
+          background: toast.type === 'success'
+            ? 'rgba(34, 197, 94, 0.95)'
+            : 'rgba(239, 68, 68, 0.95)',
+          border: `2px solid ${toast.type === 'success' ? '#22c55e' : '#ef4444'}`,
+          borderRadius: '12px',
+          boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          minWidth: '280px',
+          maxWidth: '420px',
+          animation: 'slideInRight 0.3s ease-out',
+          backdropFilter: 'blur(8px)'
+        }}>
+          {toast.type === 'success' ? (
+            <CheckCircle2 size={20} color="#ffffff" />
+          ) : (
+            <AlertCircle size={20} color="#ffffff" />
+          )}
+          <span style={{ color: '#ffffff', fontSize: '14px', fontWeight: 600, flex: 1 }}>
+            {typeof toast.message === 'string' ? toast.message : (toast.message?.message ?? String(toast.message ?? ''))}
+          </span>
+          <button
+            type="button"
+            onClick={() => setToast(null)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: '#ffffff',
+              cursor: 'pointer',
+              padding: '4px',
+              display: 'flex',
+              alignItems: 'center'
+            }}
+            aria-label={t('close')}
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
 
       {/* Barra Profilazione */}
       <div style={{

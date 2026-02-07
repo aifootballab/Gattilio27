@@ -5,8 +5,9 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { useTranslation } from '@/lib/i18n'
 import LanguageSwitch from '@/components/LanguageSwitch'
-import { ArrowLeft, RefreshCw, Wallet, BarChart3, Award, Calendar, Zap, Camera } from 'lucide-react'
+import { ArrowLeft, RefreshCw, Wallet, BarChart3, Award, Calendar, Zap, Camera, User } from 'lucide-react'
 import { safeJsonResponse } from '@/lib/fetchHelper'
+import Link from 'next/link'
 
 export default function GestioneProfiloPage() {
   const { t, lang } = useTranslation()
@@ -125,7 +126,28 @@ export default function GestioneProfiloPage() {
             {t('gestioneProfilo')}
           </h1>
         </div>
-        <LanguageSwitch />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <Link
+            href="/impostazioni-profilo"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '8px 12px',
+              backgroundColor: 'rgba(0, 212, 255, 0.15)',
+              border: '1px solid rgba(0, 212, 255, 0.4)',
+              borderRadius: '8px',
+              color: '#00d4ff',
+              fontSize: '13px',
+              fontWeight: '500',
+              textDecoration: 'none'
+            }}
+          >
+            <User size={16} />
+            {t('editProfileData')}
+          </Link>
+          <LanguageSwitch />
+        </div>
       </div>
 
       {error && (
