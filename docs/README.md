@@ -28,8 +28,9 @@ Solo documenti utili e di riferimento per produzione.
 ## Riferimento e audit
 - **GESTIONE_ROSA_FUNZIONI.md** – Funzioni gestione rosa, formazione
 - **TASK_E_KNOWLEDGE_ESPERIENZA_CLIENTE.md** – Task (obiettivi settimanali), barra Conoscenza, cosa succede quando il cliente completa un task
+- **TUTORIAL_COMPLETAMENTO_CLIENTE.md** – Ordine consigliato per completare setup (profilo, rosa, partite, statistiche), perché la barra non si aggiornava, utilizzo stimato, idee tutorial in-app
 - **AUDIT_CHAT_COACH.md** – Audit chat coach (ripetività, tasti, varietà consigli)
 - **SERVIZI_CLIENTE_EFOOTBALL_AI_COACH_DESCRIZIONE_COMPLETA.md** – Descrizione cartelle e funzioni per servizio al cliente (pagine, API, lib, components)
-- **AUDIT_BARRA_CONOSCENZA_AI.md** – Barra Conoscenza AI
+- **AUDIT_BARRA_CONOSCENZA_AI.md** – Barra Conoscenza AI (evento knowledge-should-refresh, ?refresh=1, utilizzo stimato)
 - **AUDIT_UX_IMPOSTAZIONI_PROFILO_E_HERO_POINTS.md** – UX impostazioni profilo e Hero Points
 - **AUDIT_ENTERPRISE_TASK_FONTI_VERITA.md** – Enterprise task e fonti di verità

@@ -59,6 +59,11 @@ export default function DashboardPage() {
   const [showAiInfoModal, setShowAiInfoModal] = React.useState(false)
   const [showGameAnalysisModal, setShowGameAnalysisModal] = React.useState(false)
   const [gameAnalysisLastCapture, setGameAnalysisLastCapture] = React.useState(null)
+  const [hasActiveCoach, setHasActiveCoach] = React.useState(false)
+  const [reminderDismissed, setReminderDismissed] = React.useState(() => {
+    if (typeof window === 'undefined') return false
+    return window.sessionStorage?.getItem('dashboard-setup-reminder-dismissed') === '1'
+  })
 
   React.useEffect(() => {
     if (!supabase) {
@@ -182,6 +187,15 @@ export default function DashboardPage() {
             }
           }
         }
+
+        // Allenatore attivo (per promemoria setup)
+        const { data: activeCoach } = await supabase
+          .from('coaches')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('is_active', true)
+          .maybeSingle()
+        setHasActiveCoach(!!activeCoach)
       } catch (err) {
         console.error('[Dashboard] Error:', err)
         setError(err.message || t('coachDataLoadError'))
@@ -452,6 +466,76 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+
+      {/* Promemoria setup: manca allenatore, statistiche o rosa completa */}
+      {!loading && !reminderDismissed && (hasActiveCoach === false || !gameAnalysisLastCapture || stats.titolari < 11) && (
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            gap: '10px',
+            padding: '12px 16px',
+            background: 'rgba(0, 212, 255, 0.08)',
+            border: '1px solid rgba(0, 212, 255, 0.25)',
+            borderRadius: '10px',
+            marginBottom: '16px',
+            fontSize: '14px'
+          }}
+        >
+          <span style={{ flex: '1 1 auto', minWidth: 0 }}>
+            {t('setupReminderIntro')}
+            {((!hasActiveCoach) || (!gameAnalysisLastCapture) || (stats.titolari < 11)) && (
+              <span style={{ opacity: 0.95 }}>
+                {' '}
+                {lang === 'en' ? 'Missing:' : 'Manca:'}{' '}
+                {[
+                  !hasActiveCoach && (
+                    <button
+                      key="coach"
+                      type="button"
+                      onClick={() => router.push('/allenatori')}
+                      style={{ background: 'none', border: 'none', color: 'var(--neon-blue)', textDecoration: 'underline', cursor: 'pointer', padding: 0, fontSize: 'inherit' }}
+                    >
+                      {t('setupReminderMissingCoach')}
+                    </button>
+                  ),
+                  !gameAnalysisLastCapture && (
+                    <button
+                      key="stats"
+                      type="button"
+                      onClick={() => setShowGameAnalysisModal(true)}
+                      style={{ background: 'none', border: 'none', color: 'var(--neon-blue)', textDecoration: 'underline', cursor: 'pointer', padding: 0, fontSize: 'inherit' }}
+                    >
+                      {t('setupReminderMissingStats')}
+                    </button>
+                  ),
+                  stats.titolari < 11 && (
+                    <button
+                      key="roster"
+                      type="button"
+                      onClick={() => router.push('/gestione-formazione')}
+                      style={{ background: 'none', border: 'none', color: 'var(--neon-blue)', textDecoration: 'underline', cursor: 'pointer', padding: 0, fontSize: 'inherit' }}
+                    >
+                      {t('setupReminderMissingRoster')}
+                    </button>
+                  )
+                ].filter(Boolean).reduce((acc, el, i) => (i === 0 ? [el] : [...acc, ', ', el]), [])}
+              </span>
+            )}
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              try { window.sessionStorage?.setItem('dashboard-setup-reminder-dismissed', '1') } catch (_) {}
+              setReminderDismissed(true)
+            }}
+            style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.6)', cursor: 'pointer', fontSize: '13px', whiteSpace: 'nowrap' }}
+          >
+            {t('setupReminderDismiss')}
+          </button>
+        </div>
+      )}
 
       <AiInfoModal show={showAiInfoModal} onClose={() => setShowAiInfoModal(false)} />
       <GameAnalysisModal show={showGameAnalysisModal} onClose={() => setShowGameAnalysisModal(false)} onSuccess={fetchGameAnalysisCapture} />

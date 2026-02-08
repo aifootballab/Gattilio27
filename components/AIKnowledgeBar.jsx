@@ -36,29 +36,19 @@ export default function AIKnowledgeBar() {
     
     fetchAIKnowledge()
     
-    const handleMatchSaved = () => {
-      console.log('[AIKnowledgeBar] Match saved event received, starting retry with backoff...')
+    const doRefresh = (useRefreshParam = false) => {
       previousScoreRef.current = scoreRef.current
-      
-      // Configurazione backoff: tentativi a 1s, 2s, 3s, 5s, 8s (max 5 tentativi, totale ~19s)
       const retryDelays = [1000, 2000, 3000, 5000, 8000]
       let attempt = 0
-      
+
       const attemptRefresh = async () => {
-        if (attempt >= retryDelays.length) {
-          console.log('[AIKnowledgeBar] Max retry attempts reached, using current score')
-          return
-        }
-        
+        if (attempt >= retryDelays.length) return
         attempt++
-        console.log(`[AIKnowledgeBar] Retry attempt ${attempt}/${retryDelays.length}...`)
-        
         try {
-          // Fetch nuovi dati
           const { data: session } = await supabase.auth.getSession()
           if (!session?.session?.access_token) return
-          
-          const res = await fetch('/api/ai-knowledge', {
+          const url = useRefreshParam ? '/api/ai-knowledge?refresh=1' : '/api/ai-knowledge'
+          const res = await fetch(url, {
             method: 'GET',
             headers: {
               'Authorization': `Bearer ${session.session.access_token}`,
@@ -94,22 +84,22 @@ export default function AIKnowledgeBar() {
         }
       }
       
-      // Avvia primo tentativo dopo 1s
       retryTimeoutRef.current = setTimeout(attemptRefresh, retryDelays[0])
     }
-    
-    // Ascolta eventi di salvataggio partita
-    window.addEventListener('match-saved', handleMatchSaved)
-    
-    // Cache locale: ricarica ogni 1 minuto
-    const interval = setInterval(() => {
-      fetchAIKnowledge()
-    }, 1 * 60 * 1000)
+
+    const onMatchSaved = () => doRefresh(false)
+    const onKnowledgeRefresh = () => doRefresh(true)
+
+    window.addEventListener('match-saved', onMatchSaved)
+    window.addEventListener('knowledge-should-refresh', onKnowledgeRefresh)
+
+    const interval = setInterval(() => { fetchAIKnowledge() }, 1 * 60 * 1000)
 
     return () => {
       clearInterval(interval)
       if (retryTimeoutRef.current) clearTimeout(retryTimeoutRef.current)
-      window.removeEventListener('match-saved', handleMatchSaved)
+      window.removeEventListener('match-saved', onMatchSaved)
+      window.removeEventListener('knowledge-should-refresh', onKnowledgeRefresh)
     }
   }, [])
 

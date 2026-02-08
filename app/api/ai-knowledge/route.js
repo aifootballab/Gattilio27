@@ -90,13 +90,17 @@ export async function GET(req) {
       console.error('[AIKnowledge API] Error fetching profile:', profileError)
     }
 
-    // Se score esiste e è stato calcolato di recente (< 5 minuti), restituisci cached
+    // Forza ricalcolo se ?refresh=1 (es. dopo salvataggio profilo/rosa da UI)
+    const url = new URL(req.url || '', 'http://localhost')
+    const forceRefresh = url.searchParams.get('refresh') === '1' || url.searchParams.get('refresh') === 'true'
+
+    // Se score esiste e è stato calcolato di recente (< 5 minuti) e non è richiesto refresh, restituisci cached
     const now = new Date()
     const lastCalculated = profile?.ai_knowledge_last_calculated 
       ? new Date(profile.ai_knowledge_last_calculated)
       : null
     
-    const cacheValid = lastCalculated && 
+    const cacheValid = !forceRefresh && lastCalculated && 
       (now - lastCalculated) < 5 * 60 * 1000 // 5 minuti
 
     if (profile?.ai_knowledge_score !== null && profile?.ai_knowledge_score !== undefined && cacheValid) {

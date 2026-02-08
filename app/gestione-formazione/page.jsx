@@ -227,6 +227,7 @@ export default function GestioneFormazionePage() {
       if (!tacticalError && tacticalSettingsData) {
         setTacticalSettings(tacticalSettingsData)
       }
+      if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('knowledge-should-refresh'))
     } catch (err) {
       console.error('[GestioneFormazione] Error:', err)
       setError(err.message || t('errorLoadingData'))

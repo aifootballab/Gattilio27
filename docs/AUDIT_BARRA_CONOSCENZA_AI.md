@@ -24,6 +24,7 @@ La barra **Conoscenza AI** mostra uno score 0–100% basato su: Profilo (20), Ro
 ### 2.2 Comportamento
 - **Mount**: fetch `/api/ai-knowledge` solo lato client (evita hydration mismatch).
 - **Evento `match-saved`**: retry con backoff 1s, 2s, 3s, 5s, 8s (max 5 tentativi); aggiornamento solo se score cambia (> 0.01).
+- **Evento `knowledge-should-refresh`**: come match-saved ma la barra chiama l’API con **?refresh=1** per forzare ricalcolo (utile dopo salvataggio profilo o rosa). Emesso da: impostazioni-profilo (dopo save), gestione-formazione (dopo fetchData, es. aggiunta/rimozione giocatore, cambio formazione).
 - **Polling**: refresh ogni 60 secondi.
 - **401 / sessione assente**: redirect a `/login`.
 - **Errori**: messaggio utente con `t('sessionExpired')` o messaggio errore; in dev log in console.
@@ -44,7 +45,8 @@ La barra **Conoscenza AI** mostra uno score 0–100% basato su: Profilo (20), Ro
 - **Dati**: score calcolato per `userId` estratto dal token; nessun parametro path/query che permetta di interrogare altri utenti.
 
 ### 3.2 Logica
-- **Cache**: se in `user_profiles` esistono `ai_knowledge_score` e `ai_knowledge_last_calculated` entro 5 minuti, si restituisce il valore cached (evita ricalcolo continuo).
+- **Cache**: se in `user_profiles` esistono `ai_knowledge_score` e `ai_knowledge_last_calculated` entro 5 minuti **e** non è presente il query param **?refresh=1**, si restituisce il valore cached (evita ricalcolo continuo).
+- **Refresh forzato**: GET con `?refresh=1` o `?refresh=true` ignora la cache e ricalcola sempre (usato dalla UI dopo salvataggio profilo/rosa).
 - **Calcolo**: `calculateAIKnowledgeScore(userId, …)` da `lib/aiKnowledgeHelper.js`; risultato scritto in `user_profiles` (ai_knowledge_score, ai_knowledge_level, ai_knowledge_breakdown, ai_knowledge_last_calculated).
 - **Fallback**: in caso di errore di calcolo si restituisce cache scaduta se disponibile, altrimenti score 0 e breakdown a zero.
 
@@ -60,7 +62,7 @@ La barra **Conoscenza AI** mostra uno score 0–100% basato su: Profilo (20), Ro
 | Partite | 30 | matches (1 partita = 3%, max 10 partite) |
 | Pattern | 15 | team_tactical_patterns |
 | Allenatore | 10 | coaches (presenza record) |
-| Utilizzo | 10 | stima da partite/giocatori/obiettivi (chat_messages, interactions) |
+| Utilizzo | 10 | **Stima**: non esiste tracking messaggi chat in DB; `chat_messages` = floor(matches/3), `interactions` = matches + players + obiettivi completati. Per utilizzo “reale” servirebbe un event log dedicato. |
 | Successi | 15 | profilo (miglioramento divisione 5%) + weekly_goals completati (5%) + miglioramento gol subiti ultime 10 vs precedenti 10 (5%) |
 
 I massimi 20, 25, 30, 15, 10, 10, 15 sono coerenti con le etichette “/20”, “/25”, … nella UI.
