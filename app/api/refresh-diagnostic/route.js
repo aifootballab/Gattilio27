@@ -1,0 +1,162 @@
+import { NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
+import { validateToken, extractBearerToken } from '@/lib/authHelper'
+import { checkRateLimit } from '@/lib/rateLimiter'
+import { buildDiagnostic } from '@/lib/diagnosticBuilder'
+
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+
+function getPreferredLanguage(req) {
+  const accept = req?.headers?.get?.('accept-language') || ''
+  if (accept.toLowerCase().startsWith('it') || accept.includes('it')) return 'it'
+  return 'en'
+}
+
+const RATE_LIMIT_MESSAGES = {
+  it: "Puoi aggiornare l'analisi al massimo 2 volte al minuto. Riprova tra X secondi.",
+  en: 'You can refresh the analysis at most 2 times per minute. Try again in X seconds.'
+}
+
+/** Solo POST ammesso; GET/altri metodi → 405 (allineamento con altri endpoint protetti). */
+export async function GET() {
+  return NextResponse.json({ error: 'Method not allowed' }, { status: 405 })
+}
+
+export async function POST(req) {
+  const lang = getPreferredLanguage(req)
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+  if (!supabaseUrl || !anonKey || !serviceKey) {
+    return NextResponse.json(
+      { error: lang === 'en' ? 'Configuration missing.' : 'Configurazione mancante.' },
+      { status: 500, headers: { 'Content-Language': lang } }
+    )
+  }
+
+  const token = extractBearerToken(req)
+  if (!token) {
+    return NextResponse.json(
+      { error: lang === 'en' ? 'Authentication required.' : 'Autenticazione richiesta.' },
+      { status: 401, headers: { 'Content-Language': lang } }
+    )
+  }
+
+  const { userData, error: authError } = await validateToken(token, supabaseUrl, anonKey)
+  if (authError || !userData?.user?.id) {
+    return NextResponse.json(
+      { error: lang === 'en' ? 'Invalid or expired authentication.' : 'Autenticazione non valida o scaduta.' },
+      { status: 401, headers: { 'Content-Language': lang } }
+    )
+  }
+
+  const userId = userData.user.id
+
+  // Rate limit: 2 richieste per minuto
+  const rateLimit = await checkRateLimit(userId, '/api/refresh-diagnostic', 2, 60000)
+  if (!rateLimit.allowed) {
+    const retryAfterSeconds = Math.max(1, Math.ceil((rateLimit.resetAt - new Date()) / 1000))
+    const message = (RATE_LIMIT_MESSAGES[lang] || RATE_LIMIT_MESSAGES.en).replace('X', String(retryAfterSeconds))
+    return NextResponse.json(
+      {
+        error: 'RATE_LIMIT',
+        message,
+        retryAfterSeconds
+      },
+      {
+        status: 429,
+        headers: {
+          'Content-Language': lang,
+          'Retry-After': String(retryAfterSeconds)
+        }
+      }
+    )
+  }
+
+  try {
+    const admin = createClient(supabaseUrl, serviceKey, {
+      auth: { autoRefreshToken: false, persistSession: false }
+    })
+
+    const [profileRes, formationRes, playersRes, stylesRes, matchesRes, tacticalRes, coachRes, patternsRes] = await Promise.all([
+      admin.from('user_profiles').select('first_name, team_name, common_problems').eq('user_id', userId).maybeSingle(),
+      admin.from('formation_layout').select('formation').eq('user_id', userId).maybeSingle(),
+      admin.from('players').select('id, player_name, position, overall_rating, playing_style_id, slot_index, skills, com_skills').eq('user_id', userId).order('slot_index', { ascending: true, nullsFirst: false }).limit(50),
+      admin.from('playing_styles').select('id, name'),
+      admin.from('matches').select('opponent_name, result, formation_played, playing_style_played, match_date, opponent_formation_id').eq('user_id', userId).order('match_date', { ascending: false }).limit(20),
+      admin.from('team_tactical_settings').select('team_playing_style, individual_instructions').eq('user_id', userId).maybeSingle(),
+      admin.from('coaches').select('coach_name, playing_style_competence, connection, stat_boosters').eq('user_id', userId).eq('is_active', true).maybeSingle(),
+      admin.from('team_tactical_patterns').select('formation_usage, playing_style_usage, recurring_issues').eq('user_id', userId).maybeSingle()
+    ])
+
+    const profile = profileRes.data || {}
+    const formation = formationRes.data?.formation || (lang === 'en' ? 'not set' : 'non impostata')
+    const roster = playersRes.data || []
+    const stylesData = stylesRes.data || []
+    const stylesLookup = {}
+    stylesData.forEach(s => { stylesLookup[s.id] = s.name || '' })
+    const matches = matchesRes.data || []
+    const tacticalRow = tacticalRes.data
+    const teamStyle = tacticalRow?.team_playing_style || formation
+    const indInstr = tacticalRow?.individual_instructions
+    const numInstructions = Array.isArray(indInstr) ? indInstr.length : (indInstr && typeof indInstr === 'object' ? Object.keys(indInstr).length : 0)
+    const coachRow = coachRes.data || null
+    const patternsRow = patternsRes.data || {}
+
+    let oppFormationsMap = {}
+    const oppIds = [...new Set(matches.map(m => m.opponent_formation_id).filter(Boolean))]
+    if (oppIds.length > 0) {
+      const { data: oppData } = await admin.from('opponent_formations').select('id, formation_name, playing_style').in('id', oppIds)
+      if (oppData) oppData.forEach(o => { oppFormationsMap[o.id] = o })
+    }
+
+    const diagnosticData = {
+      profile,
+      formation,
+      roster,
+      stylesLookup,
+      matches,
+      oppFormationsMap,
+      teamStyle,
+      numInstructions,
+      coachRow,
+      patternsRow
+    }
+
+    const content = buildDiagnostic(lang, diagnosticData)
+    if (!content || content.trim().length === 0) {
+      return NextResponse.json(
+        { error: lang === 'en' ? 'Could not build diagnostic.' : 'Impossibile generare il riassunto.' },
+        { status: 500, headers: { 'Content-Language': lang } }
+      )
+    }
+
+    const { error: upsertError } = await admin
+      .from('user_diagnostic_cache')
+      .upsert(
+        { user_id: userId, content: content.trim(), generated_at: new Date().toISOString(), lang },
+        { onConflict: 'user_id' }
+      )
+
+    if (upsertError) {
+      console.error('[refresh-diagnostic] Upsert error:', upsertError.message)
+      return NextResponse.json(
+        { error: lang === 'en' ? 'Error saving diagnostic.' : 'Errore nel salvataggio del riassunto.' },
+        { status: 500, headers: { 'Content-Language': lang } }
+      )
+    }
+
+    return NextResponse.json(
+      { success: true, generated_at: new Date().toISOString() },
+      { status: 200, headers: { 'Content-Language': lang } }
+    )
+  } catch (err) {
+    console.error('[refresh-diagnostic] Error:', err?.message || err)
+    return NextResponse.json(
+      { error: lang === 'en' ? 'Server error.' : 'Errore server.' },
+      { status: 500, headers: { 'Content-Language': lang } }
+    )
+  }
+}

@@ -33,7 +33,7 @@ import {
 } from 'lucide-react'
 
 export default function DashboardPage() {
-  const { t } = useTranslation()
+  const { t, lang } = useTranslation()
   const router = useRouter()
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState(null)
@@ -51,6 +51,8 @@ export default function DashboardPage() {
   const [editingOpponentName, setEditingOpponentName] = React.useState('')
   const [savingOpponentName, setSavingOpponentName] = React.useState(false)
   const [tacticalPatterns, setTacticalPatterns] = React.useState(null) // Pattern tattici per AI Insights
+  const [refreshDiagnosticLoading, setRefreshDiagnosticLoading] = React.useState(false)
+  const [refreshDiagnosticMessage, setRefreshDiagnosticMessage] = React.useState(null) // 'success' | 'rate_limit' | null
 
   React.useEffect(() => {
     if (!supabase) {
@@ -352,9 +354,63 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* AI Knowledge Bar */}
-      <div data-tour-id="tour-dashboard-ai">
-        <AIKnowledgeBar />
+      {/* AI Knowledge Bar + Aggiorna analisi */}
+      <div data-tour-id="tour-dashboard-ai" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          <div style={{ flex: '1 1 auto', minWidth: 0 }}>
+            <AIKnowledgeBar />
+          </div>
+          <button
+            type="button"
+            className="btn secondary"
+            disabled={refreshDiagnosticLoading}
+            onClick={async () => {
+              setRefreshDiagnosticMessage(null)
+              setRefreshDiagnosticLoading(true)
+              try {
+                const { data: session } = await supabase?.auth.getSession() ?? {}
+                if (!session?.session?.access_token) {
+                  setRefreshDiagnosticLoading(false)
+                  return
+                }
+                const res = await fetch('/api/refresh-diagnostic', {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': `Bearer ${session.session.access_token}`,
+                    'Content-Type': 'application/json',
+                    'Accept-Language': lang === 'en' ? 'en' : 'it'
+                  }
+                })
+                const data = await res.json().catch(() => ({}))
+                if (res.status === 200 && data.success) {
+                  setRefreshDiagnosticMessage('success')
+                  setTimeout(() => setRefreshDiagnosticMessage(null), 3000)
+                } else if (res.status === 429) {
+                  const seconds = data.retryAfterSeconds ?? 60
+                  alert(t('refreshAnalysisRateLimit').replace('{seconds}', String(seconds)))
+                  setRefreshDiagnosticMessage('rate_limit')
+                } else {
+                  setRefreshDiagnosticMessage('rate_limit')
+                }
+              } catch (e) {
+                setRefreshDiagnosticMessage('rate_limit')
+              } finally {
+                setRefreshDiagnosticLoading(false)
+              }
+            }}
+            style={{ whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            title={t('refreshAnalysis')}
+          >
+            <RefreshCw size={16} style={{ opacity: refreshDiagnosticLoading ? 0.6 : 1 }} />
+            {refreshDiagnosticLoading ? (lang === 'en' ? 'Updating…' : 'Aggiornamento…') : t('refreshAnalysis')}
+          </button>
+        </div>
+        {refreshDiagnosticMessage === 'success' && (
+          <div style={{ fontSize: '13px', color: 'var(--neon-blue)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <RefreshCw size={14} />
+            {t('refreshAnalysisSuccess')}
+          </div>
+        )}
       </div>
 
       {/* Credits Bar: montata in layout per aggiornamento immediato dopo ogni API (credits-consumed) */}

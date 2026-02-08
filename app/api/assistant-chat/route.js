@@ -57,24 +57,24 @@ function getApiError(key, lang) {
   return entry[lang] ?? entry.en
 }
 
-/** Suggerimenti di fallback: variati (modulo, gameplay, meta) — non sempre contrattacco/sostituzioni. */
+/** Suggerimenti di fallback: formula (approfondimento stessa leva, gameplay legato, prossimo passo con rosa/partite/allenatore). Niente meta, niente "perché ho perso", niente "migliorare giocatore". */
 function getDefaultSuggestions(lang, currentPage = '') {
   const page = (currentPage || '').toLowerCase()
   const it = [
-    { page: 'gestione-formazione', q: ['Quale modulo per la mia rosa?', 'Come gestire pressing e compattezza in partita?', 'Quali istruzioni individuali mi consigli?'] },
-    { page: 'match/new', q: ['Quale modulo per la prossima partita?', 'Come difendere meglio in partita?', 'Quali formazioni sono più forti?'] },
-    { page: 'match/', q: ['Perché ho perso questa partita?', 'Come gestire i calci piazzati?', 'Quali stili funzionano meglio?'] },
-    { page: 'contromisure', q: ['Quale formazione contro il 4-3-3?', 'Come chiudere gli spazi in difesa?', 'Quali contromisure sono più efficaci?'] },
-    { page: 'allenatori', q: ['Quale stile abbinare al mio allenatore?', 'Linea alta o bassa con questo stile?', 'Quali stili sono più efficaci?'] },
-    { page: '', q: ['Quale modulo per la mia rosa?', 'Come migliorare costruzione e possesso?', 'Vuoi informazioni sul meta?'] }
+    { page: 'gestione-formazione', q: ['Quale modulo per la mia rosa?', 'Quali istruzioni con la formazione che uso?', 'Come organizzare pressing e compattezza con la mia rosa?'] },
+    { page: 'match/new', q: ['Quale modulo per la prossima partita?', 'Come difendere meglio con la mia rosa?', 'Cosa preparare su piazzati e transizioni?'] },
+    { page: 'match/', q: ['Cosa correggere dopo questa partita?', 'Come gestire i calci piazzati con la mia rosa?', 'Quale modulo o stile provare dopo?'] },
+    { page: 'contromisure', q: ['Quale formazione contro il 4-3-3 con i miei giocatori?', 'Come chiudere gli spazi in difesa?', 'Quali istruzioni per contrastare questo stile?'] },
+    { page: 'allenatori', q: ['Quale stile abbinare al mio allenatore con la rosa attuale?', 'Linea alta o bassa con questo stile?', 'Quali istruzioni con questo allenatore?'] },
+    { page: '', q: ['Quale modulo per la mia rosa?', 'Quali istruzioni con la formazione che uso?', 'Come organizzare pressing e compattezza con la mia rosa?'] }
   ]
   const en = [
-    { page: 'gestione-formazione', q: ['Which formation for my roster?', 'How to manage pressing and compactness in a match?', 'Which individual instructions do you recommend?'] },
-    { page: 'match/new', q: ['Which formation for my next match?', 'How to defend better in a match?', 'Which formations are strongest?'] },
-    { page: 'match/', q: ['Why did I lose this match?', 'How to handle set pieces?', 'Which styles work best?'] },
-    { page: 'contromisure', q: ['Which formation against 4-3-3?', 'How to close down space in defence?', 'Which countermeasures are most effective?'] },
-    { page: 'allenatori', q: ['What style fits my coach?', 'High or deep line with this style?', 'Which styles are most effective?'] },
-    { page: '', q: ['Which formation for my roster?', 'How to improve build-up and possession?', 'Want info on meta?'] }
+    { page: 'gestione-formazione', q: ['Which formation for my roster?', 'Which instructions with the formation I use?', 'How to organise pressing and compactness with my roster?'] },
+    { page: 'match/new', q: ['Which formation for my next match?', 'How to defend better with my roster?', 'What to prepare on set pieces and transitions?'] },
+    { page: 'match/', q: ['What to fix after this match?', 'How to handle set pieces with my roster?', 'Which formation or style to try next?'] },
+    { page: 'contromisure', q: ['Which formation against 4-3-3 with my players?', 'How to close down space in defence?', 'Which instructions to counter this style?'] },
+    { page: 'allenatori', q: ['What style fits my coach with my current roster?', 'High or deep line with this style?', 'Which instructions with this coach?'] },
+    { page: '', q: ['Which formation for my roster?', 'Which instructions with the formation I use?', 'How to organise pressing and compactness with my roster?'] }
   ]
   const list = lang === 'en' ? en : it
   for (const { page: p, q } of list) {
@@ -514,10 +514,11 @@ async function buildPersonalContext(userId, lang = 'it') {
 /**
  * Costruisce prompt personalizzato e motivante.
  * @param {string} efootballKnowledge - Se presente, blocco RAG eFootball (opzionale).
- * @param {string} personalContextSummary - Se presente, blocco contesto personale (rosa, partite, tattica, allenatore).
+ * @param {string} personalContextSummary - Se presente, blocco contesto personale (rosa/diagnostic).
  * @param {boolean} hasHistory - Se true, c'è già storia conversazione: non risalutare, continua naturalmente.
+ * @param {string} [contextBlockLabel] - Etichetta blocco contesto: 'RIASSUNTO ANALISI' (diagnostic) o 'ROSA E DATI' (fallback).
  */
-function buildPersonalizedPromptV2(userMessage, context, language = 'it', efootballKnowledge = '', personalContextSummary = '', hasHistory = false) {
+function buildPersonalizedPromptV2(userMessage, context, language = 'it', efootballKnowledge = '', personalContextSummary = '', hasHistory = false, contextBlockLabel = 'ROSA E DATI') {
   const { profile, currentPage, appState } = context || {}
   const firstName = profile?.first_name || (language === 'en' ? 'friend' : 'amico')
   const teamName = profile?.team_name || (language === 'en' ? 'your team' : 'il tuo team')
@@ -551,9 +552,9 @@ OUTPUT: max 3 imperative sentences, end with “In summary: …”. No visible r
 
   const capsule = language === 'en' ? capsuleEn : capsuleIt
 
-  // Suggerimenti: devono derivare dalla leva scelta (vincolo), ma il modello li genera.
-  const suggRulesIt = `SUGGERIMENTI (3 domande, obbligatori): 1 verticale sullo stesso problema, 1 gameplay (pressing/compattezza/possesso/piazzati/transizioni), 1 meta/info. Niente uso app, niente tasti/pulsanti.`
-  const suggRulesEn = `SUGGESTIONS (3 questions, required): 1 deep-dive on same issue, 1 gameplay (pressing/compactness/possession/set pieces/transitions), 1 meta/info. No app usage, no buttons/inputs.`
+  // Suggerimenti: formula (1) approfondimento stessa leva + suoi dati, (2) gameplay legato a formazione/stile/risposta, (3) prossimo passo con rosa/partite/allenatore. Vietato: meta, "perché ho perso", "migliorare giocatore".
+  const suggRulesIt = `SUGGERIMENTI (3 domande, obbligatori): (1) una che approfondisce la stessa leva che hai appena consigliato, legata ai SUOI dati (rosa/formazione); (2) una su gameplay (pressing/compattezza/possesso/piazzati/transizioni) legata alla formazione/stile/risposta; (3) una sul prossimo passo con rosa/partite/allenatore. VIETATO: "qual è il meta?", "perché ho perso?", "migliorare un giocatore", domande vaghe senza rosa/partite/allenatore. Niente uso app, niente tasti/pulsanti.`
+  const suggRulesEn = `SUGGESTIONS (3 questions, required): (1) one that deep-dives on the same lever you just advised, tied to THEIR data (roster/formation); (2) one on gameplay (pressing/compactness/possession/set pieces/transitions) tied to formation/style/answer; (3) one on next step with roster/matches/coach. FORBIDDEN: "what's the meta?", "why did I lose?", "improve a player", vague questions without roster/matches/coach. No app usage, no buttons/inputs.`
   const suggRules = language === 'en' ? suggRulesEn : suggRulesIt
 
   const header = `CONTESTO: ${contestoAttuale}
@@ -565,7 +566,7 @@ ${commonProblems.length > 0 ? `Problemi: ${commonProblems.join(', ')}` : ''}`
 
   const blocks = [
     header,
-    personalContextSummary ? `\n📊 ROSA E DATI:\n${personalContextSummary}` : '',
+    personalContextSummary ? `\n📊 ${contextBlockLabel}:\n${personalContextSummary}` : '',
     efootballKnowledge ? `\n📚 MECCANICHE eFootball (RAG):\n${efootballKnowledge}` : '',
     `\n${capsule}\n\nFORMATO RISPOSTA:\n[Max 3 frasi operative. Chiudi con In sintesi / In summary.]\n\n---\nSUGGERIMENTI:\n1. ...\n2. ...\n3. ...\n\n${suggRules}\n\nDOMANDA CLIENTE: "${userMessage}"\nRispondi come ${aiName} in ${language === 'it' ? 'italiano' : 'inglese'}.`
   ].filter(Boolean)
@@ -580,7 +581,8 @@ SCOPE: solo consulenza tattica eFootball basata su ROSA, PARTITE, ALLENATORE, TA
 - Gameplay consentito SOLO come “cosa fare” (azioni). VIETATO citare tasti/pulsanti/controller.
 - Uso app (wizard, click, menu, upload): NON spiegare. Se chiesto, rispondi solo: "Sono qui solo per consigli tattici: formazione, rosa, modulo, sostituzioni, stile. Esplora il menu per le altre funzioni."
 
-FONTI: Nomi/rosa/partite/allenatore/tattica → solo dal blocco ROSA E DATI. Regole eFootball → solo dal blocco RAG. Se manca un dato, non inventare.
+FONTI: Nomi/rosa/partite/allenatore/tattica → solo dal blocco contesto sotto (ROSA E DATI o RIASSUNTO ANALISI). Regole eFootball → solo dal blocco RAG. Se manca un dato, non inventare.
+REGOLA ORO (RAG §10): MAI suggerire di potenziare, migliorare o far crescere un giocatore; statistiche e card sono FISSE.
 
 VINCOLI: solo nomi in ROSA; team_playing_style configurabile SOLO 5 (Possesso palla, Contropiede veloce, Contrattacco, Passaggio lungo, Vie laterali); contrattacco ≠ contropiede_veloce e serve competenza coach >=70 per consigliare; istruzioni individuali solo §5; limiti moduli §3.4; NO Tattica(astuzia) sui difensori; NO Tornante su MED Collante; Dominio palle alte ≠ Colpo di testa.
 
@@ -592,7 +594,8 @@ SCOPE: only eFootball tactical advice based on ROSTER, MATCHES, COACH, TACTICS a
 - Gameplay allowed only as “what to do” (actions). Never mention buttons/inputs/controller.
 - App usage (wizard, clicks, menus, upload): do not explain. If asked, reply only: "I'm here only for tactical advice: formation, roster, module, substitutions, style. Explore the menu for other features."
 
-SOURCES: Names/roster/matches/coach/tactics only from the ROSTER & DATA block. eFootball rules only from the RAG block. If data is missing, do not invent.
+SOURCES: Names/roster/matches/coach/tactics only from the context block below (ROSTER & DATA or ANALYSIS SUMMARY). eFootball rules only from the RAG block. If data is missing, do not invent.
+GOLDEN RULE (RAG §10): NEVER suggest improving, boosting or training a player; stats and card are FIXED.
 
 CONSTRAINTS: only roster names; only 5 configurable team styles (Possession, Quick Counter, Long Ball Counter, Long Ball, Out Wide); contrattacco ≠ contropiede_veloce and require coach competence >=70; individual instructions only §5; formation limits §3.4; no Tactical(fouls) on defenders; no Box-to-box (Tornante) on an Anchor Man DM, especially if Collante/Anchor Man; High ball dominance ≠ Heading.
 
@@ -734,19 +737,39 @@ export async function POST(req) {
       }
     }
 
-    // Contesto personale (rosa, partite, tattica, allenatore): sempre (chat solo consulenza tattica cliente)
+    // Contesto personale: se esiste diagnostic in cache usalo (RIASSUNTO ANALISI), altrimenti fallback buildPersonalContext (ROSA E DATI)
     let personalContextSummary = ''
+    let contextBlockLabel = 'ROSA E DATI'
     try {
-      personalContextSummary = await buildPersonalContext(userId, lang)
-      if (personalContextSummary) console.log('[assistant-chat] Personal context loaded')
+      const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+      if (serviceKey && supabaseUrl) {
+        const admin = createClient(supabaseUrl, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } })
+        const { data: cacheRow } = await admin.from('user_diagnostic_cache').select('content').eq('user_id', userId).maybeSingle()
+        if (cacheRow?.content && String(cacheRow.content).trim().length > 0) {
+          let raw = String(cacheRow.content).trim()
+          personalContextSummary = raw.length > MAX_PERSONAL_CONTEXT_CHARS ? raw.slice(0, MAX_PERSONAL_CONTEXT_CHARS) + '\n... (riassunto troncato).' : raw
+          contextBlockLabel = 'RIASSUNTO ANALISI'
+          if (personalContextSummary) console.log('[assistant-chat] Diagnostic from cache used')
+        }
+      }
+      if (!personalContextSummary) {
+        personalContextSummary = await buildPersonalContext(userId, lang)
+        if (personalContextSummary) console.log('[assistant-chat] Personal context (fallback) loaded')
+      }
     } catch (pcError) {
-      console.error('[assistant-chat] buildPersonalContext error (non-blocking):', pcError?.message)
+      console.error('[assistant-chat] Context/diagnostic error (non-blocking):', pcError?.message)
+      try {
+        personalContextSummary = await buildPersonalContext(userId, lang)
+        if (personalContextSummary) console.log('[assistant-chat] Personal context fallback after error')
+      } catch (fallbackError) {
+        console.error('[assistant-chat] buildPersonalContext fallback error:', fallbackError?.message)
+      }
     }
 
     // Costruisci prompt personalizzato (con eventuali blocchi RAG eFootball e contesto personale)
     let prompt
     try {
-      prompt = buildPersonalizedPromptV2(message, context, lang, efootballKnowledge, personalContextSummary, history.length > 0)
+      prompt = buildPersonalizedPromptV2(message, context, lang, efootballKnowledge, personalContextSummary, history.length > 0, contextBlockLabel)
       if (!prompt || prompt.trim().length === 0) {
         throw new Error('Empty prompt generated')
       }
