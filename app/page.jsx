@@ -60,6 +60,17 @@ export default function DashboardPage() {
   const [showGameAnalysisModal, setShowGameAnalysisModal] = React.useState(false)
   const [gameAnalysisLastCapture, setGameAnalysisLastCapture] = React.useState(null)
   const [hasActiveCoach, setHasActiveCoach] = React.useState(false)
+  const [reminderRotationIndex, setReminderRotationIndex] = React.useState(0)
+
+  // Rotazione continua ordine promemoria setup (ogni 3 s, solo client-side, nessuna chiamata API)
+  const showSetupReminder = !loading && (hasActiveCoach === false || !gameAnalysisLastCapture || stats.titolari < 11)
+  React.useEffect(() => {
+    if (!showSetupReminder) return
+    const interval = setInterval(() => {
+      setReminderRotationIndex((i) => i + 1)
+    }, 3000)
+    return () => clearInterval(interval)
+  }, [showSetupReminder])
 
   React.useEffect(() => {
     if (!supabase) {
@@ -464,7 +475,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Promemoria setup: manca allenatore, statistiche o rosa completa (sempre visibile quando manca qualcosa, nessun nascondi) */}
-      {!loading && (hasActiveCoach === false || !gameAnalysisLastCapture || stats.titolari < 11) && (
+      {showSetupReminder && (
         <div
           style={{
             display: 'flex',
@@ -483,38 +494,29 @@ export default function DashboardPage() {
             {t('setupReminderIntro')}
             {' '}
             {lang === 'en' ? 'Missing:' : 'Manca:'}{' '}
-            {[
-              !hasActiveCoach && (
-                <button
-                  key="coach"
-                  type="button"
-                  onClick={() => router.push('/allenatori')}
-                  style={{ background: 'none', border: 'none', color: 'var(--neon-blue)', textDecoration: 'underline', cursor: 'pointer', padding: 0, fontSize: 'inherit' }}
-                >
-                  {t('setupReminderMissingCoach')}
-                </button>
-              ),
-              !gameAnalysisLastCapture && (
-                <button
-                  key="stats"
-                  type="button"
-                  onClick={() => setShowGameAnalysisModal(true)}
-                  style={{ background: 'none', border: 'none', color: 'var(--neon-blue)', textDecoration: 'underline', cursor: 'pointer', padding: 0, fontSize: 'inherit' }}
-                >
-                  {t('setupReminderMissingStats')}
-                </button>
-              ),
-              stats.titolari < 11 && (
-                <button
-                  key="roster"
-                  type="button"
-                  onClick={() => router.push('/gestione-formazione')}
-                  style={{ background: 'none', border: 'none', color: 'var(--neon-blue)', textDecoration: 'underline', cursor: 'pointer', padding: 0, fontSize: 'inherit' }}
-                >
-                  {t('setupReminderMissingRoster')}
-                </button>
-              )
-            ].filter(Boolean).reduce((acc, el, i) => (i === 0 ? [el] : [...acc, ', ', el]), [])}
+            {(() => {
+              const items = [
+                !hasActiveCoach && { key: 'coach', label: t('setupReminderMissingCoach'), onClick: () => router.push('/allenatori') },
+                !gameAnalysisLastCapture && { key: 'stats', label: t('setupReminderMissingStats'), onClick: () => setShowGameAnalysisModal(true) },
+                stats.titolari < 11 && { key: 'roster', label: t('setupReminderMissingRoster'), onClick: () => router.push('/gestione-formazione') }
+              ].filter(Boolean)
+              const n = items.length
+              const offset = n ? reminderRotationIndex % n : 0
+              const rotated = n ? [...items.slice(offset), ...items.slice(0, offset)] : []
+              return rotated.reduce((acc, item, i) => {
+                const el = (
+                  <button
+                    key={item.key}
+                    type="button"
+                    onClick={item.onClick}
+                    style={{ background: 'none', border: 'none', color: 'var(--neon-blue)', textDecoration: 'underline', cursor: 'pointer', padding: 0, fontSize: 'inherit' }}
+                  >
+                    {item.label}
+                  </button>
+                )
+                return i === 0 ? [el] : [...acc, ', ', el]
+              }, [])
+            })()}
           </span>
         </div>
       )}
