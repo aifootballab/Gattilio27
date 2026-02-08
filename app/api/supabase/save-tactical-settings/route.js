@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { validateToken, extractBearerToken } from '../../../../lib/authHelper'
-import { validateIndividualInstruction, INDIVIDUAL_INSTRUCTIONS_CONFIG } from '../../../../lib/tacticalInstructions'
+import { validateIndividualInstruction } from '../../../../lib/tacticalInstructions'
 import { checkRateLimit, RATE_LIMIT_CONFIG } from '../../../../lib/rateLimiter'
 
 export const runtime = 'nodejs'
@@ -113,20 +113,16 @@ export async function POST(req) {
         const instructionData = individual_instructions[categoryKey]
         if (!instructionData) continue
 
-        if (instructionData.instruction && (!instructionData.player_id || instructionData.player_id.trim() === '')) {
-          return NextResponse.json(
-            { error: `Player ID is required for instruction in category ${categoryKey}` },
-            { status: 400 }
-          )
-        }
-        if (instructionData.player_id && instructionData.player_id.trim() !== '' && !instructionData.instruction) {
-          return NextResponse.json(
-            { error: `Instruction is required for player in category ${categoryKey}` },
-            { status: 400 }
-          )
-        }
-
+        // Istruzione senza giocatore (es. dopo sanitizzazione frontend): salta e salva il resto
         const playerId = instructionData.player_id && instructionData.player_id.trim()
+        if (instructionData.instruction && !playerId) {
+          droppedInstructions.push(categoryKey)
+          continue
+        }
+        if (playerId && !instructionData.instruction) {
+          droppedInstructions.push(categoryKey)
+          continue
+        }
         if (!playerId || !instructionData.instruction) continue
 
         const inTitolari = titolari.some(p => p.id === playerId)
@@ -197,7 +193,7 @@ export async function POST(req) {
         individual_instructions: settings.individual_instructions
       },
       ...(droppedInstructions.length > 0 && {
-        warning: 'Un\'istruzione è stata rimossa: il giocatore non è più in formazione. Assegna di nuovo un titolare se vuoi.'
+        warning: 'Alcune istruzioni sono state rimosse (giocatore non in formazione o non selezionato). Assegna un titolare se vuoi.'
       })
     })
   } catch (err) {
