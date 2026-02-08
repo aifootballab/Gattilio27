@@ -81,7 +81,7 @@ export async function POST(req) {
     })
 
     const [profileRes, formationRes, playersRes, stylesRes, matchesRes, tacticalRes, coachRes, patternsRes] = await Promise.all([
-      admin.from('user_profiles').select('first_name, team_name, common_problems').eq('user_id', userId).maybeSingle(),
+      admin.from('user_profiles').select('first_name, last_name, team_name, common_problems, ai_name, current_division, hours_per_week, connection_quality, slow_opponent_connection_issues, input_delay, pass_level, smart_assist, platform, favourite_player_name, ai_weak_point, ai_learn_goals, ai_notes').eq('user_id', userId).maybeSingle(),
       admin.from('formation_layout').select('formation').eq('user_id', userId).maybeSingle(),
       admin.from('players').select('id, player_name, position, overall_rating, playing_style_id, role, slot_index, skills, com_skills').eq('user_id', userId).order('slot_index', { ascending: true, nullsFirst: false }).limit(50),
       admin.from('playing_styles').select('id, name'),

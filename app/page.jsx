@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { useTranslation } from '@/lib/i18n'
 import LanguageSwitch from '@/components/LanguageSwitch'
 import AIKnowledgeBar from '@/components/AIKnowledgeBar'
+import AiInfoModal from '@/components/AiInfoModal'
 import CreditsBar from '@/components/CreditsBar'
 import TaskWidget from '@/components/TaskWidget'
 import { safeJsonResponse } from '@/lib/fetchHelper'
@@ -29,7 +30,8 @@ import {
   User,
   Zap,
   Shield,
-  BookOpen
+  BookOpen,
+  Info
 } from 'lucide-react'
 
 export default function DashboardPage() {
@@ -53,6 +55,7 @@ export default function DashboardPage() {
   const [tacticalPatterns, setTacticalPatterns] = React.useState(null) // Pattern tattici per AI Insights
   const [refreshDiagnosticLoading, setRefreshDiagnosticLoading] = React.useState(false)
   const [refreshDiagnosticMessage, setRefreshDiagnosticMessage] = React.useState(null) // 'success' | 'rate_limit' | null
+  const [showAiInfoModal, setShowAiInfoModal] = React.useState(false)
 
   React.useEffect(() => {
     if (!supabase) {
@@ -354,12 +357,22 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* AI Knowledge Bar + Aggiorna analisi */}
+      {/* AI Knowledge Bar + Informazioni IA + Aggiorna analisi */}
       <div data-tour-id="tour-dashboard-ai" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
           <div style={{ flex: '1 1 auto', minWidth: 0 }}>
             <AIKnowledgeBar />
           </div>
+          <button
+            type="button"
+            className="btn secondary"
+            onClick={() => setShowAiInfoModal(true)}
+            style={{ whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            title={t('aiInfoTitle')}
+          >
+            <Info size={16} />
+            {t('aiInfoTitle')}
+          </button>
           <button
             type="button"
             className="btn secondary"
@@ -412,6 +425,8 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+
+      <AiInfoModal show={showAiInfoModal} onClose={() => setShowAiInfoModal(false)} />
 
       {/* Credits Bar: montata in layout per aggiornamento immediato dopo ogni API (credits-consumed) */}
 
