@@ -173,14 +173,28 @@ export default function AIKnowledgeBar() {
   const getDescriptionText = (level) => {
     switch (level) {
       case 'expert':
-        return t('aiKnowledgeDescriptionExpert') || t('aiKnowledgeDescription') || 'L\'IA ti conosce perfettamente'
+        return t('aiKnowledgeDescriptionExpert') || t('aiKnowledgeDescription') || 'Abbiamo un quadro completo: i consigli sono al massimo su misura.'
       case 'advanced':
-        return t('aiKnowledgeDescriptionAdvanced') || t('aiKnowledgeDescription') || 'L\'IA ti conosce molto bene'
+        return t('aiKnowledgeDescriptionAdvanced') || t('aiKnowledgeDescription') || 'Ti conosciamo bene: i consigli riflettono il tuo modo di giocare.'
       case 'intermediate':
-        return t('aiKnowledgeDescriptionIntermediate') || t('aiKnowledgeDescription') || 'L\'IA ti conosce abbastanza bene'
+        return t('aiKnowledgeDescriptionIntermediate') || t('aiKnowledgeDescription') || 'Ti conosciamo abbastanza bene: i consigli sono già personalizzati.'
       default:
-        return t('aiKnowledgeDescriptionBeginner') || t('aiKnowledgeDescription') || 'L\'IA sta imparando a conoscerti'
+        return t('aiKnowledgeDescriptionBeginner') || t('aiKnowledgeDescription') || 'Stiamo imparando a conoscerti.'
     }
+  }
+
+  /** CTA dinamica: primo componente sotto il massimo (ordine: profilo, rosa, partite, pattern, allenatore, utilizzo, successi) */
+  const getNextStepCtaKey = () => {
+    const max = { profile: 20, roster: 25, matches: 30, patterns: 15, coach: 10, usage: 10, success: 15 }
+    const b = breakdown || {}
+    if ((b.profile || 0) < max.profile) return 'ctaNextStepProfile'
+    if ((b.roster || 0) < max.roster) return 'ctaNextStepRoster'
+    if ((b.matches || 0) < max.matches) return 'ctaNextStepMatches'
+    if ((b.patterns || 0) < max.patterns) return 'ctaNextStepPattern'
+    if ((b.coach || 0) < max.coach) return 'ctaNextStepCoach'
+    if ((b.usage || 0) < max.usage) return 'ctaNextStepUsage'
+    if ((b.success || 0) < max.success) return 'ctaNextStepSuccess'
+    return 'completeProfileToIncreaseKnowledge'
   }
 
   if (loading) {
@@ -337,14 +351,14 @@ export default function AIKnowledgeBar() {
           <div>{t('aiKnowledgeProfile')}: {Math.round(breakdown.profile || 0)}/20</div>
           <div>{t('aiKnowledgeRoster')}: {Math.round(breakdown.roster || 0)}/25</div>
           <div>{t('aiKnowledgeMatches')}: {Math.round(breakdown.matches || 0)}/30</div>
-          <div>{t('aiKnowledgePatterns')}: {Math.round(breakdown.patterns || 0)}/15</div>
+          <div title={t('aiKnowledgePatternsHint')}>{t('aiKnowledgePatterns')}: {Math.round(breakdown.patterns || 0)}/15</div>
           <div>{t('aiKnowledgeCoach')}: {Math.round(breakdown.coach || 0)}/10</div>
           <div>{t('aiKnowledgeUsage')}: {Math.round(breakdown.usage || 0)}/10</div>
-          <div>{t('aiKnowledgeSuccess')}: {Math.round(breakdown.success || 0)}/15</div>
+          <div title={t('aiKnowledgeSuccessHint')}>{t('aiKnowledgeSuccess')}: {Math.round(breakdown.success || 0)}/15</div>
         </div>
       </details>
 
-      {/* CTA se score basso */}
+      {/* CTA dinamica: primo step sotto il massimo (non sempre "Completa il profilo") */}
       {score < 50 && (
         <div style={{
           marginTop: '12px',
@@ -354,7 +368,7 @@ export default function AIKnowledgeBar() {
           fontSize: 'clamp(11px, 3vw, 13px)',
           color: '#ffaa00'
         }}>
-          💡 {t('completeProfileToIncreaseKnowledge') || 'Completa il profilo per aumentare la conoscenza dell\'IA'}
+          💡 {t(getNextStepCtaKey())}
         </div>
       )}
     </div>

@@ -2,6 +2,13 @@
 
 Solo documenti utili e di riferimento per produzione.
 
+## Check coerenza e sicurezza
+- **CHECK_COERENZA_SUPABASE_FRONT_BACK_SICUREZZA_TRADUZIONI.md** – Check Supabase (tabelle, RLS, migration), backend (auth, user_id), frontend, sicurezza, traduzioni IT/EN
+
+## Barra Conoscenza AI
+- **ANALISI_ENTERPRISE_BARRA_CONOSCENZA_AI.md** – Come funziona la barra, perché non si aggiorna, Pattern/Successi, CTA dinamica, fix (coach, refresh dopo Informazioni IA)
+- **AUDIT_BARRA_CONOSCENZA_AI.md** – Audit tecnico barra, API, i18n, eventi
+
 ## Diagnostic, chat e riassunto
 - **IMPLEMENTAZIONE_DIAGNOSTIC_CHAT.md** – Piano e implementazione: diagnostic, "Aggiorna analisi", cache, suggerimenti (stato: implementato)
 - **DIAGNOSTIC_DOCUMENTO_ANALISI_DIFFICOLTA.md** – Dati, flussi, difficoltà e struttura del riassunto analisi

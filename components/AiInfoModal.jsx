@@ -159,6 +159,7 @@ export default function AiInfoModal({ show, onClose }) {
       const data = await res.json().catch(() => ({}))
       if (res.ok && data.success) {
         setSuccess(true)
+        if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('knowledge-should-refresh'))
         setTimeout(() => {
           setSuccess(false)
           onClose?.()
