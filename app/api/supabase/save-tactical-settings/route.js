@@ -107,65 +107,62 @@ export async function POST(req) {
       // Non bloccare, ma la validazione "linea_bassa" con 5 difensori non funzionerà
     }
 
-    // Validazione delle istruzioni individuali
+    let droppedInstructions = []
     if (individual_instructions && typeof individual_instructions === 'object') {
       for (const categoryKey in individual_instructions) {
         const instructionData = individual_instructions[categoryKey]
-        
-        // Se instructionData esiste, deve avere entrambi player_id e instruction validi
-        if (instructionData) {
-          // Se instruction è presente, player_id deve essere presente e non vuoto
-          if (instructionData.instruction && (!instructionData.player_id || instructionData.player_id.trim() === '')) {
-            return NextResponse.json(
-              { error: `Player ID is required for instruction in category ${categoryKey}` },
-              { status: 400 }
-            )
-          }
-          
-          // Se player_id è presente, instruction deve essere presente
-          if (instructionData.player_id && instructionData.player_id.trim() !== '' && !instructionData.instruction) {
-            return NextResponse.json(
-              { error: `Instruction is required for player in category ${categoryKey}` },
-              { status: 400 }
-            )
-          }
-          
-          // Validazione completa solo se entrambi sono presenti
-          if (instructionData.player_id && instructionData.player_id.trim() !== '' && instructionData.instruction) {
-            const validationResult = validateIndividualInstruction(
-              categoryKey,
-              instructionData.player_id.trim(),
-              instructionData.instruction,
-              titolari,
-              formationLayout || null // Passa formationLayout per validazione "linea_bassa"
-            )
-            if (!validationResult.valid) {
-              return NextResponse.json(
-                { error: validationResult.error },
-                { status: 400 }
-              )
-            }
-          }
+        if (!instructionData) continue
+
+        if (instructionData.instruction && (!instructionData.player_id || instructionData.player_id.trim() === '')) {
+          return NextResponse.json(
+            { error: `Player ID is required for instruction in category ${categoryKey}` },
+            { status: 400 }
+          )
+        }
+        if (instructionData.player_id && instructionData.player_id.trim() !== '' && !instructionData.instruction) {
+          return NextResponse.json(
+            { error: `Instruction is required for player in category ${categoryKey}` },
+            { status: 400 }
+          )
+        }
+
+        const playerId = instructionData.player_id && instructionData.player_id.trim()
+        if (!playerId || !instructionData.instruction) continue
+
+        const inTitolari = titolari.some(p => p.id === playerId)
+        if (!inTitolari) {
+          droppedInstructions.push(categoryKey)
+          continue
+        }
+
+        const validationResult = validateIndividualInstruction(
+          categoryKey,
+          playerId,
+          instructionData.instruction.trim(),
+          titolari,
+          formationLayout || null
+        )
+        if (!validationResult.valid) {
+          return NextResponse.json(
+            { error: validationResult.error },
+            { status: 400 }
+          )
         }
       }
     }
 
-    // Sanitizzazione: rimuovi istruzioni incomplete (senza player_id o instruction)
+    // Sanitizzazione: solo istruzioni complete e con player ancora titolare
     const sanitizedInstructions = {}
     if (individual_instructions && typeof individual_instructions === 'object') {
       for (const categoryKey in individual_instructions) {
         const instructionData = individual_instructions[categoryKey]
-        // Salva solo se ha entrambi player_id e instruction validi
-        if (instructionData && 
-            instructionData.player_id && 
-            instructionData.player_id.trim() !== '' && 
-            instructionData.instruction && 
-            instructionData.instruction.trim() !== '') {
-          sanitizedInstructions[categoryKey] = {
-            player_id: instructionData.player_id.trim(),
-            instruction: instructionData.instruction.trim(),
-            enabled: instructionData.enabled !== false // default true
-          }
+        if (!instructionData?.player_id?.trim() || !instructionData?.instruction?.trim()) continue
+        const pid = instructionData.player_id.trim()
+        if (!titolari.some(p => p.id === pid)) continue
+        sanitizedInstructions[categoryKey] = {
+          player_id: pid,
+          instruction: instructionData.instruction.trim(),
+          enabled: instructionData.enabled !== false
         }
       }
     }
@@ -198,7 +195,10 @@ export async function POST(req) {
         id: settings.id,
         team_playing_style: settings.team_playing_style,
         individual_instructions: settings.individual_instructions
-      }
+      },
+      ...(droppedInstructions.length > 0 && {
+        warning: 'Un\'istruzione è stata rimossa: il giocatore non è più in formazione. Assegna di nuovo un titolare se vuoi.'
+      })
     })
   } catch (err) {
     console.error('[save-tactical-settings] Error:', err)

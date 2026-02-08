@@ -101,6 +101,21 @@ export default function GestioneFormazionePage() {
   const [activeCoach, setActiveCoach] = React.useState(null)
   const [tacticalSettings, setTacticalSettings] = React.useState(null)
   const [savingTacticalSettings, setSavingTacticalSettings] = React.useState(false)
+  const titolariIds = React.useMemo(() => new Set((titolari || []).map(p => p.id)), [titolari])
+  const tacticalSettingsForPanel = React.useMemo(() => {
+    if (!tacticalSettings) return tacticalSettings
+    const ins = tacticalSettings.individual_instructions || {}
+    const filtered = {}
+    for (const k of Object.keys(ins)) {
+      const data = ins[k]
+      if (!data) continue
+      if (data.player_id && !titolariIds.has(data.player_id))
+        filtered[k] = { ...data, player_id: '' }
+      else
+        filtered[k] = data
+    }
+    return Object.keys(filtered).length ? { ...tacticalSettings, individual_instructions: { ...ins, ...filtered } } : tacticalSettings
+  }, [tacticalSettings, titolariIds])
   const [isEditMode, setIsEditMode] = React.useState(false)
   const [customPositions, setCustomPositions] = React.useState({}) // { slot_index: { x, y } }
   const [showPositionSelectionModal, setShowPositionSelectionModal] = React.useState(false)
@@ -1273,11 +1288,9 @@ export default function GestioneFormazionePage() {
 
       const data = await safeJsonResponse(res, t('errorSavingTacticalSettings'))
 
-      // Aggiorna state locale
       setTacticalSettings(data.settings)
-      
-      // Messaggio di successo
       showToast(t('tacticalSettingsSaved'), 'success')
+      if (data.warning) showToast(data.warning, 'error')
       
       // Ricarica dati senza reload pagina (solo per aggiornare eventuali dipendenze)
       await fetchData()
@@ -2458,7 +2471,7 @@ export default function GestioneFormazionePage() {
         {/* Pannello Impostazioni Tattiche - Collassabile sotto il campo */}
         <TacticalSettingsPanel
           titolari={titolari}
-          tacticalSettings={tacticalSettings}
+          tacticalSettings={tacticalSettingsForPanel ?? tacticalSettings}
           onSave={handleSaveTacticalSettings}
           saving={savingTacticalSettings}
         />
