@@ -72,6 +72,12 @@ export default function DashboardPage() {
     return () => clearInterval(interval)
   }, [showSetupReminder])
 
+  // Reset indice rotazione quando cambiano gli elementi mancanti, così la rotazione riparte coerente
+  const missingCount = [hasActiveCoach === false, !gameAnalysisLastCapture, stats.titolari < 11].filter(Boolean).length
+  React.useEffect(() => {
+    setReminderRotationIndex(0)
+  }, [missingCount])
+
   React.useEffect(() => {
     if (!supabase) {
       router.push('/login')
@@ -490,7 +496,7 @@ export default function DashboardPage() {
             fontSize: '14px'
           }}
         >
-          <span style={{ flex: '1 1 auto', minWidth: 0 }}>
+          <span key={reminderRotationIndex} style={{ flex: '1 1 auto', minWidth: 0 }}>
             {t('setupReminderIntro')}
             {' '}
             {lang === 'en' ? 'Missing:' : 'Manca:'}{' '}
@@ -506,7 +512,7 @@ export default function DashboardPage() {
               return rotated.reduce((acc, item, i) => {
                 const el = (
                   <button
-                    key={item.key}
+                    key={`${reminderRotationIndex}-${item.key}-${i}`}
                     type="button"
                     onClick={item.onClick}
                     style={{ background: 'none', border: 'none', color: 'var(--neon-blue)', textDecoration: 'underline', cursor: 'pointer', padding: 0, fontSize: 'inherit' }}
