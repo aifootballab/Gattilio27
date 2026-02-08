@@ -1,4 +1,4 @@
-**Versione**: 8.0.0 ENTERPRISE | **Data**: 2 Febbraio 2026 | **Lingua**: Italiano
+**Versione**: 8.2.0 ENTERPRISE | **Data**: 8 Febbraio 2026 | **Lingua**: Italiano
 **Fonti**: Manuale eFootball, Best Practices Community, Documentazione Tecnica Ufficiale
 
 # DATABASE MECCANICHE eFootball ENTERPRISE - RAG System
@@ -185,6 +185,8 @@ Comportamento quando IA controlla giocatore in possesso:
 
 **Definisce direzione tattica squadra. L'attitudine allenatore influenza competenza stile.**
 
+**CONFIGURABILI IN APP (team_playing_style)**: solo questi 5 → Possesso palla, Contropiede veloce, Contrattacco, Passaggio lungo, Vie laterali. Gli altri stili sotto (Pressing Alto, Gegenpressing, Tiki-Taka, ecc.) sono concetti/gameplay, **non** selezionabili come team_playing_style.
+
 ### 4.1 Stili Base (5 Tipologie)
 - **Possesso palla**: Gioco costruito con passaggi corti e pazienti. **Quando serve**: centrocampisti tecnici, trequartisti creativi. **Perché**: controllo partita, pazienza, circolazione palla.
 - **Contropiede veloce**: Ripartenze veloci sfruttando spazi lasciati. **Quando serve**: attaccanti veloci, difensori con recupero rapido. **Perché**: velocità, passaggi verticali diretti.
@@ -273,34 +275,36 @@ Comportamento quando IA controlla giocatore in possesso:
 
 ## 7. MECCANICHE DI GIOCO AVANZATE
 
-### 7.1 Difesa Manuale (Comandi Ufficiali)
-**Testa a Testa**: Premi ⚪ (PS) / B (XB) per seguire avversario con passetti. Fondamentale in difesa, più possibilità di bloccare tiri e passaggi.
+### 7.1 Difesa Manuale (azioni: SOLO cosa fare)
+**Nota**: qui descriviamo SOLO **azioni** e principi. **Mai** tasti/pulsanti/controller.
 
-**Contrasto di Spalla**: Premi R1 (PS) / RB (XB) per contrasto spalla a spalla. Utile quando corri accanto a avversario che prova dribbling.
+**Testa a Testa**: Segui l’avversario a passetti (senza buttarti), resta in traiettoria tra lui e la porta e chiudi linee di tiro/passaggio. Usalo nei 1v1 e quando difendi in area per non farti saltare.
 
-**Chiama Pressing**: Premi ⚪ (PS) / B (XB) per chiedere ai compagni di pressare. Considera rischio: se avversario mantiene possesso, lasci spazi.
+**Contrasto di Spalla**: Ingaggia spalla a spalla quando sei affiancato e in corsa: è l’opzione più “pulita” per rubare palla senza scivolate o contrasti rischiosi.
 
-**Protezione**: Durante dribbling, se avversario prova a rubare palla da dietro/lati, il giocante protegge automaticamente palla col corpo. Probabilità più alta se "Contatto fisico" > avversario.
+**Pressing coordinato**: Chiama un compagno a pressare per pochi secondi **solo** quando sei vicino al portatore e hai copertura dietro. Se lo fai da lontano o senza copertura, apri spazi.
 
-**Marcature**: Marcatura a uomo vs zona in calci piazzati difensivi.
+**Protezione**: Se ti pressano da dietro o di lato, usa il corpo per schermare palla e ruota per uscire dalla pressione. La riuscita aumenta se **Contatto fisico** è alto.
+
+**Marcature**: Su piazzati difensivi scegli marcatura a uomo o a zona in base ai tuoi difensori (AerialDef, Marcatura, Intercettazione).
 
 ### 7.2 Comandi Offensivi Avanzati
 
-**Uno-due in Avanti**: L1 + X (PS) / LB + A (XB) → Autore passaggio scatta in avanti dopo passaggio. Utile per far avanzare attacco.
+**Uno-due in Avanti**: Dopo un passaggio, manda l’autore a scattare in profondità e restituisci subito palla nello spazio. È una base per superare linee compatte.
 
-**Passaggio Sensazionale**: Premi a fondo R2 (PS) / RT (XB) durante passaggio → Passaggio rapido e incisivo. Palla si stacca più lentamente, usare dopo essersi smarcati.
+**Passaggio Sensazionale**: Passaggio più rapido e incisivo (rischio maggiore se sei chiuso). Usalo quando sei **smarcato** e hai una linea di passaggio chiara.
 
-**Tiro Sensazionale**: Premi R2 (PS) / RT (XB) mentre tiri → Tiro potente. Con "Tiro a scendere" o "Tiro a salire" → traiettorie speciali.
+**Tiro Sensazionale**: Tiro più potente. Rende di più con abilità tiro speciali (es. **Tiro a scendere** / **Tiro a salire**) e quando hai tempo per orientare il corpo.
 
-**Tiro Calibrato**: Barra potenza blu chiara → Tiro più delicato, enfasi su piazzamento. Con "A giro da distante" o "Esterno a giro" → traiettorie speciali.
+**Tiro Calibrato**: Tiro più “piazzato” e delicato. Rende di più con abilità come **A giro da distante** o **Esterno a giro**, e quando vuoi privilegiare precisione rispetto alla potenza.
 
-**Controllo Tocco di Palla**: Combinazioni L + R2 per varie mosse. Più fondo premi R2, più rapidamente dribbli. Doppio R2 = sposta pallone in avanti.
+**Controllo Tocco di Palla**: Alterna tocchi corti (controllo) e tocchi lunghi (cambio ritmo) per superare la pressione. Tocchi più lunghi espongono la palla: falli solo con spazio.
 
-**Dribbling di Precisione**: Tieni premuto L2, poi sfiora L per tocchi di fino. Efficace in spazi stretti e uno contro uno.
+**Dribbling di Precisione**: Conduzione a tocchi stretti mantenendo il corpo orientato verso l’attacco. È più efficace in spazi stretti o 1v1 controllati.
 
 ### 7.3 Finte e Skill Moves
 
-**Finte di Corpo**: Sposta R avanti e di lato per varie finte.
+**Finte di Corpo**: Usa cambi di direzione e finte di corpo per sbilanciare il difensore prima dello scatto o del passaggio.
 
 **Doppio Tocco**: Skill base per superare avversari.
 
@@ -325,22 +329,36 @@ Comportamento quando IA controlla giocatore in possesso:
 **Finta con stop**: Cambio direzione dopo stop.
 
 ### 7.5 Movimenti collettivi
-- **Triangolazione**: Tre giocatori formano triangolo per possesso; movimento continuo per opzioni passaggio. **Quando serve**: zona fitta, mantenere possesso sotto pressing.
-- **Sovrapposizione**: Giocatore supera compagno con palla; corsa oltre per ricevere o attirare marcatore. **Quando serve**: superiorità numerica su fascia, 1v1 su fascia.
-- **Taglio**: Movimento diagonale verso porta, corsa senza palla in spazio. **Quando serve**: ricevere passaggio filtrante, difesa schierata, spazio tra linee.
-- **Ampiezza**: Giocatori si allargano per occupare campo; stirare difesa avversaria. **Quando serve**: creare spazi centrali, difesa compatta da aprire.
-- **Compattezza**: Squadra si stringe in zona ristretta; linee ravvicinate. **Quando serve**: fase difensiva, proteggere risultato.
+- **Triangolazione**: Tre giocatori formano triangolo per possesso; movimento continuo per opzioni passaggio. **Quando serve**: zona fitta, mantenere possesso sotto pressing. **Rosa**: Regista creativo, Classico n° 10, Collante; Passaggio di prima, Passaggio filtrante. **Moduli**: 4-3-3, 4-2-3-1.
+- **Sovrapposizione**: Giocatore supera compagno con palla; corsa oltre per ricevere o attirare marcatore. **Quando serve**: superiorità numerica su fascia, 1v1 su fascia. **Rosa**: Terzino offensivo, Onnipresente, Specialista cross; Scatto, Cross preciso. **Moduli**: 4-3-3, 3-5-2.
+- **Taglio**: Movimento diagonale verso porta, corsa senza palla in spazio. **Quando serve**: ricevere passaggio filtrante, difesa schierata, spazio tra linee. **Rosa**: Ala prolifica + Regista creativo (chi taglia + chi passa); Passaggio filtrante, Scatto; vel 85+. **Moduli**: 4-3-3, 4-2-3-1.
+- **Ampiezza**: Giocatori si allargano per occupare campo; stirare difesa avversaria. **Quando serve**: creare spazi centrali, difesa compatta da aprire. **Rosa**: Specialista cross, Ala prolifica; moduli larghi (4-3-3, Vie laterali). **Moduli**: 4-3-3, 3-5-2.
+- **Compattezza**: Squadra si stringe in zona ristretta; linee ravvicinate. **Quando serve**: fase difensiva, proteggere risultato. **Rosa**: Incontrista, Collante, Rientro difensivo; res alta, tac alto. **Moduli**: tutti (gestione vantaggio).
 
 ### 7.6 Situazioni di gioco
-- **Transizione positiva** (riconquista → attacco): accelerazione immediata, passaggio verticale rapido; primi 5 secondi critici. **Quando serve**: riconquista alta o a metà campo.
-- **Transizione negativa** (perdita palla → difesa): ripiegamento immediato, pressione su portatore; primi 3 secondi per pressing, poi ripiegare. **Quando serve**: palla persa in zona offensiva.
-- **Finalizzazione**: 1v1 portiere (spiazzamento o potenza); area affollata (tiro al volo o deviazione); fuori area (tiro potente piazzato).
-- **Gestione vantaggio**: abbassare ritmo, possesso sicuro, passaggi corti; ultimi 10-15 minuti. **Quando serve**: vantaggio 1-2 goal.
-- **Recupero svantaggio**: aumentare ritmo, pressing alto, terzini alti; ultimi 10-20 minuti. **Quando serve**: svantaggio 1-2 goal.
+- **Transizione positiva** (riconquista → attacco): accelerazione immediata, passaggio verticale rapido; primi 5 secondi critici. **Rosa**: vel 90+, acc alto, Scatto, Passaggio filtrante; Opportunista, Punta avanzata, Giocatore chiave.
+- **Transizione negativa** (perdita palla → difesa): ripiegamento immediato, pressione su portatore; primi 3 secondi per pressing, poi ripiegare. **Rosa**: tac alto, Rientro difensivo, Intercettazione, Incontrista; res alto.
+- **Finalizzazione**: 1v1 portiere (spiazzamento o potenza); area affollata (tiro al volo o deviazione); fuori area (tiro potente piazzato). **Rosa**: Tiro al volo, fin alta; Tiro potente, Distanza per fuori area.
+- **Gestione vantaggio**: abbassare ritmo, possesso sicuro, passaggi corti; ultimi 10-15 minuti. **Rosa**: res alta, Rientro difensivo, Marcatura; Collante, Passaggio di prima; Compattezza.
+- **Recupero svantaggio**: aumentare ritmo, pressing alto, terzini alti; ultimi 10-20 minuti. **Rosa**: Giocatore chiave, Tiro potente, **Riserva di lusso (Super riserva)**; far entrare game changer; Sovrapposizione, Ampiezza.
 - **Superiorità numerica**: mantenere possesso, circolare palla, attendere varco.
 - **Inferiorità numerica**: compattezza estrema, difesa zona, contropiede.
 
-### 7.7 Principi tattici e best practices
+### 7.7 Matrice situazione × dati × movimenti (enterprise)
+Per ogni situazione: quali dati usare dalla rosa, quali movimenti, output consiglio.
+
+| Situazione | Dati rosa | Movimenti | Output |
+|------------|-----------|-----------|--------|
+| Transizione positiva | vel 90+, acc, Scatto, Passaggio filtrante, Opportunista/Giocatore chiave | Taglio, Passaggio filtrante | Chi mettere, chi dare palla |
+| Transizione negativa | tac, Intercettazione, Rientro difensivo, Incontrista, res | Compattezza, Ripiegamento | Chi pressare, chi coprire |
+| Corner attacco | Colpo di testa, Salto, Superiorità aerea, h alto | Area piccola, Scatta, Primo/Secondo palo | Chi sui pali, chi tira (Cross preciso) |
+| Punizione attacco | Calci da fermo, Specialista punizioni, Colpo di testa | Scatta, Sponda, Palla all'ariete | Chi tira, chi in area |
+| Gestione vantaggio | res, Rientro difensivo, Marcatura, Collante | Compattezza, Possesso sicuro | Chi tenere, istruzioni |
+| Recupero svantaggio | Giocatore chiave, Tiro potente, Riserva di lusso (Super riserva) | Sovrapposizione, Ampiezza | Chi far entrare |
+| Pressing alto | res 85+, Incontrista, Intercettazione | Pressing coordinato | Chi pressare, quando |
+| Difesa bassa | Regista creativo, Passaggio filtrante, Taglio | Triangolazione, Taglio | Chi crea, chi taglia |
+
+### 7.8 Principi tattici e best practices
 - **Occupazione spazio**: coprire larghezza e profondità campo; mai più di 4-5 giocatori in fase offensiva.
 - **Supporto palla**: sempre 2-3 opzioni passaggio vicine.
 - **Compattezza difensiva**: linee massimo 30-35 metri distanza.
@@ -369,18 +387,30 @@ Comportamento quando IA controlla giocatore in possesso:
 - **Tiro a salire**: Tiri con traiettoria ascendente. **Quando serve**: tiri speciali.
 - **A giro da distante**: Tiri a giro da fuori area. **Quando serve**: centrocampisti offensivi.
 - **Esterno a giro**: Tiri a giro con esterno piede. **Quando serve**: angolazioni particolari.
-- **Colpo di testa**: Conclusioni di testa più accurate. **Quando serve**: attaccanti fisici, cross; timing migliore su palloni aerei.
+- **Colpo di testa**: Conclusioni di testa più accurate *in fase d'attacco* (tiro di testa verso porta). **Quando serve**: attaccanti fisici, cross; timing migliore su palloni aerei. **NOTA**: NON è abilità difensiva; per duelli aerei in difesa vedi Dominio palle alte (§8.4). Dare Colpo di testa al difensore che mandi *in avanti* sui corner.
 - **Tiro acrobatico**: Tiri acrobatici (rovesciate, ecc.). **Quando serve**: area affollata, posizioni scomode.
 - **Finalizzazione**: Precisione in conclusione. **Quando serve**: attaccanti, punte.
 - **Distanza**: Tiri precisi da lontano. **Quando serve**: centrocampisti offensivi, tiri da fuori area.
 
 ### 8.2 Abilità Passaggio
+
+**Statistiche vs Abilità (Comunità)**: La statistica Passaggio 90+ aumenta la *velocità di esecuzione* del passaggio; le abilità Passaggio di prima e/o Passaggio filtrante ne migliorano *accuratezza* e sbloccano un'*animazione migliore*. Un giocatore con 90+ in passaggio ma senza abilità di passaggio rende meno di uno con abilità corrette.
+
+**Passaggio illuminante / Passaggio visionario** (Showtime): NON sostituiscono Passaggio filtrante, di prima o calibrato. Sono **cumulabili**; chi ha illuminante o visionario dovrebbe aggiungere (se non le ha) Passaggio di prima, Passaggio filtrante e Passaggio calibrato.
+
+**A chi dare abilità di passaggio (Comunità)**:
+- **Punte**: almeno Passaggio di prima (essenziale per scambi 1-2)
+- **DC**: almeno Passaggio di prima (animazione giusta per smistare subito dopo intercetto; Passaggio a scavalcare migliora anche disimpegno)
+- **MED e terzini**: obbligatorie tutte le abilità di passaggio; terzini offensivi aggiungere Cross calibrato
+- **CC**: si può fare a meno di Passaggio calibrato (ne usufruiscono meglio i mediani); aggiungere Cross calibrato (onnipresenti si trovano in fascia in attacco)
+- **TrQ e seconde punte**: come mediani, meglio se le hanno tutte (di prima, calibrato, a scavalcare, filtrante)
+
 - **Passaggio di prima**: Passaggi rapidi e diretti di prima intenzione. **Quando serve**: triangolazioni veloci, gioco di prima, contro difese compatte.
 - **Passaggio al volo**: Controllo e passaggio in un solo tocco. **Quando serve**: triangolazioni rapide, prima intenzione.
 - **Passaggio filtrante**: Passaggi in profondità precisi. **Quando serve**: registi, creatori; fondamentale per smarcare attaccanti.
 - **Lancio lungo preciso**: Passaggi lunghi accurati. **Quando serve**: costruzione dal basso, cambi gioco, contropiede.
 - **Cross preciso**: Cross dalla fascia più precisi. **Quando serve**: esterni, terzini offensivi; cross normali meno efficaci.
-- **Passaggio sensazionale**: Passaggi potenti (R2)
+- **Passaggio sensazionale**: Passaggi potenti e incisivi (più rischio se sei chiuso)
 - **Passaggio senza guardare**: Passaggio senza guardare ricevente; spiazza avversari. **Quando serve**: creatori, gioco imprevedibile.
 - **Passaggio dosato**: Passaggi lunghi/filtranti con backspin per migliore precisione. **Quando serve**: registi, cambi gioco.
 - **Passaggio alto rasoterra**: Passaggio lungo con traiettoria bassa quando appropriato. **Quando serve**: costruzione, contropiede.
@@ -395,7 +425,7 @@ Comportamento quando IA controlla giocatore in possesso:
 - **Stop acrobatico**: Controllo palla acrobatico. **Quando serve**: passaggi difficili, posizioni scomode.
 - **Finta tiro**: Finta tiro per ingannare difensore. **Quando serve**: 1v1 in area.
 - **Finta passaggio**: Finta passaggio. **Quando serve**: aprire linee di passaggio.
-- **Tocco secco**: Spinta palla rapida (R2 doppio). **Quando serve**: spazio davanti, accelerazione improvvisa.
+- **Tocco secco**: Spinta palla rapida in avanti per cambiare ritmo. **Quando serve**: spazio davanti, accelerazione improvvisa.
 - **Protezione**: Proteggere palla con corpo. **Quando serve**: pressione alta, spalle alla porta.
 
 ### 8.4 Abilità Difensive
@@ -408,6 +438,7 @@ Comportamento quando IA controlla giocatore in possesso:
 - **Blocco**: Maggiore efficacia nel bloccare passaggi e tiri. **Quando serve**: difensori centrali, mediani.
 - **Stoppaggio acrobatico**: Stoppate acrobatiche con i piedi. **Quando serve**: difensori, interventi di emergenza in area.
 - **Superiorità aerea**: Maggiore probabilità di vincere duelli aerei. **Quando serve**: difensori centrali, attaccanti fisici, cross.
+- **Dominio palle alte**: Abilità *difensiva* per duelli aerei; Colpo di testa (§8.1) è invece per tiro di testa in attacco. Su palla alta difensiva, con **posizionamento** e **timing** puoi anticipare l’avversario anche senza Dominio palle alte, ma l’abilità aumenta la probabilità di vincere il duello.
 
 ### 8.5 Abilità Portiere
 - **Riflessi Felini**: Parate ravvicinate miracolose. **Quando serve**: portieri, 1v1.
@@ -432,9 +463,9 @@ Comportamento quando IA controlla giocatore in possesso:
 - **Specialista rigori**: Rigori più sicuri. **Quando serve**: tiratori designati.
 - **Tiratore**: Tiri da fuori area più precisi. **Quando serve**: centrocampisti offensivi, tiri da distanza.
 - **Lancio lungo**: Maggiore ampiezza lancio dalle mani (laterali/portieri). **Quando serve**: rinvii rapidi.
-- **Super riserva**: Prestazioni migliorate quando subentra in corso partita. **Quando serve**: panchinari d’impatto, cambi tattici.
-- **Spirito combattivo**: Prestazioni migliori sotto pressione e fatica. **Quando serve**: Box-to-Box, mediani, pressing.
-- **Tattica**: Maggiore probabilità di ottenere falli quando appropriato. **Quando serve**: giocatori esperti, gestione tempo.
+- **Riserva di lusso** (Super riserva): Prestazioni migliorate quando subentra in corso partita. **Quando serve**: panchinari d’impatto, cambi tattici.
+- **Spirito combattivo**: Prestazioni migliori sotto pressione e fatica. **Quando serve**: Box-to-Box, mediani, pressing. **Comunità**: ideale per tutti gli 11; fondamentale per DC, MED e TrQ (smistano palloni in spazi ridotti). I TrQ hanno spesso Resistenza bassa: anche se li sostituisci al 46', Spirito combattivo li aiuta già al primo tempo (intorno al 30' la Resistenza cala e influisce su lucidità e rapidità). Riduce impatto fatica, migliora anche gestione Resistenza.
+- **Tattica** (astuzia): Maggiore probabilità di ottenere falli quando appropriato. **EVITARE su difensori**: Konami gestisce male l'abilità, effetto contrario – più falli a sfavore. Dare a centrocampisti/attaccanti se utile.
 
 ### 8.8 Programmi Aggiunta Abilità
 - **Disponibile per**: In evidenza, In risalto, Epico, Leggendario, Standard
@@ -443,7 +474,24 @@ Comportamento quando IA controlla giocatore in possesso:
 - **Max slot**: 6 abilità totali (native + aggiunte)
 
 ### 8.9 Priorità abilità per ruolo (per consigli)
-Quando si consigliano abilità da aggiungere (tramite Programmi, se non Trending): **Attaccanti** → Tiro al volo, Colpo di testa (se fisico), Tiro acrobatico, Controllo pallonetto; **Registi** → Passaggio filtrante, Passaggio di prima, Passaggio dosato; **Mediani** → Intercettazione, Contrasto Aggressivo, Rientro difensivo, Spirito combattivo; **Difensori** → Intercettazione, Marcatura, Colpo di testa, Superiorità aerea, Blocco; **Ali** → Doppio tocco, Cross preciso, Rientro difensivo; **Terzini** → Intercettazione, Cross preciso (se offensivi); **Riserve d'impatto** → Super riserva. Evitare abilità difensive su attaccanti puri; evitare abilità offensive su difensori centrali; max 2-3 abilità dribbling per giocatore.
+Quando si consigliano abilità da aggiungere (tramite Programmi, se non Trending): **Attaccanti** → Tiro al volo, Colpo di testa (se fisico), Tiro acrobatico, Controllo pallonetto; **Registi** → Passaggio filtrante, Passaggio di prima, Passaggio dosato; **Mediani** → Intercettazione, Contrasto Aggressivo, Rientro difensivo, Spirito combattivo; **Difensori** → Intercettazione, Marcatura, Colpo di testa, Superiorità aerea, Blocco; **Ali** → Doppio tocco, Cross preciso, Rientro difensivo; **Terzini** → Intercettazione, Cross preciso (se offensivi); **Riserve d'impatto** → **Riserva di lusso (Super riserva)**. Evitare abilità difensive su attaccanti puri; evitare abilità offensive su difensori centrali; max 2-3 abilità dribbling per giocatore.
+
+### 8.10 Abilità obbligatorie per ruolo (Comunità)
+Carta forte senza abilità corrette non renderà in game come dovrebbe. **Obbligatorie** per ruolo (il resto è di contorno):
+
+**LINEA DIFENSIVA**: muro, marcatore, intercettazione, dominio palle alte, scivolata, spirito combattivo. Almeno uno in squadra con Leader. **EVITARE Tattica** (astuzia) sui difensori: Konami gestisce male, falli a sfavore.
+
+**MEDIANA**: stesso blocco difesa + **Passaggio a scavalcare**. **EVITARE Tornante** su mediano centrale, soprattutto se Collante: lo trasforma in simil onnipresente, va a zonzo in zone non competenti.
+
+**CENTROCAMPO**: tornante, dominio palle alte, intercettazione, muro, passaggio di prima, passaggio filtrante. Se CC difensivo (quasi mediano): aggiungere marcatore. Opzionale: cross calibrato (onnipresenti in fascia), colpo di testa, tiro; Controllo di suola migliora animazioni anche senza skill input.
+
+**TREQUARTISTI e seconde punte**: passaggio di prima, passaggio filtrante, passaggio calibrato, tiro di prima, tiro dalla distanza, spirito combattivo. Opzionale: esterno a giro, A giro da distante (migliora uso piede forte), skill.
+
+**ATTACCANTI**: passaggio di prima (essenziale 1-2), tiro di prima, tiro dalla distanza, colpo di testa, A giro da distante, dominio palle alte (per sponda su lanci lunghi da portiere/difensori). Opzionale: passaggio filtrante. **A giro da distante**: su ribattuta tira con piede forte sul secondo palo invece che debole al primo palo.
+
+**SPIRITO COMBATTIVO**: ideale per tutti gli 11; fondamentale per DC, MED, TrQ (spazi ridotti; TrQ con Resistenza bassa calano già al 30' – Spirito combattivo aiuta anche se sostituiti al 46').
+
+**RISERVA DI LUSSO (Super riserva)**: agisce già dal primo minuto del secondo tempo (non solo dal 60'). Massima efficacia su game changer: farli subentrare al secondo tempo è molto più impattante che schierarli titolari.
 
 ---
 
@@ -579,6 +627,8 @@ CORRETTO: "Le statistiche (Overall, Finalizzazione, ecc.) sono FISSE. Puoi: 1) A
 
 ---
 
-**Versione**: 8.0.0 ENTERPRISE | **Data**: 2 Febbraio 2026
+**Versione**: 8.2.0 ENTERPRISE | **Data**: 8 Febbraio 2026
 **Principio**: FISSO vs CONFIGURABILE | **Terminologia**: Ufficiale eFootball
-**Changelog 8.0**: Descrizioni ricche §2 §4 §8 (quando serve, perché); §1.6 Soglie/build per ruolo; §9.4 Forza base/complessiva; §7.5-7.7 Movimenti collettivi, Situazioni, Principi tattici; §3.5 Ruoli e comportamenti; §6 Meccanica calci piazzati; §10 punti 10-13; §8.9 Priorità abilità; Frecce forma.
+**Changelog 8.2**: §7.5 Movimenti collegati a rosa (stili, abilità, moduli); §7.6 Situazioni collegati a rosa; §7.7 Matrice situazione×dati×movimenti enterprise; contesto buildPersonalContext: forma, h/w, avversario per partita, voti partita; output coach: solo soluzione, no ragionamento esposto.
+**Changelog 8.1**: Integrazione consigli community: §8.2 Passaggi (statistiche vs abilità, cumulabilità illuminante/visionario, a chi dare per ruolo); §8.1 Colpo di testa vs §8.4 Dominio palle alte; §8.7 Spirito combattivo, Riserva di lusso (Super riserva), Tattica (astuzia – evitare su difensori); §8.10 Abilità obbligatorie per ruolo (linea difensiva, mediana, centrocampo, trq, attaccanti), avvertimenti Tornante NO mediano/collante.
+**Changelog 8.0**: Descrizioni ricche §2 §4 §8; §1.6 Soglie/build; §9.4 Forza base/complessiva; §7.5-7.7 Movimenti, Situazioni; §8.9 Priorità abilità.

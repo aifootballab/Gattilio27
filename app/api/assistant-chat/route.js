@@ -13,8 +13,8 @@ export const dynamic = 'force-dynamic'
 const MAX_HISTORY_MESSAGES = 10
 const MAX_HISTORY_CONTENT_LENGTH = 2000
 
-/** Limite riassunto contesto personale (rosa, partite, tattica, allenatore) */
-const MAX_PERSONAL_CONTEXT_CHARS = 3500
+/** Limite riassunto contesto personale (rosa con stats+abilità, partite, tattica, allenatore) */
+const MAX_PERSONAL_CONTEXT_CHARS = 6200
 
 /** Limiti validazione input (sicurezza e token) */
 const MAX_MESSAGE_LENGTH = 4000
@@ -113,6 +113,34 @@ function parseSuggestionsFromContent(content) {
 }
 
 /**
+ * Enforce "final result only": remove explicit reasoning/explanations.
+ * Keeps concise imperative output, strips causal clauses and questions.
+ */
+function sanitizeCoachOutput(content, lang = 'it') {
+  if (!content || typeof content !== 'string') return content
+  const markers = lang === 'en'
+    ? ['because', 'since', 'due to', 'based on', 'as a result', 'i analyzed', 'i have analyzed', 'i cross', 'i have cross']
+    : ['perché', 'poiché', 'dato che', 'in base a', 'visto che', 'ho analizzato', 'ho incrociato', 'ho valutato', 'quindi']
+
+  const sentences = content.match(/[^.!?]+[.!?]?/g) || [content]
+  const cleaned = []
+  for (const s of sentences) {
+    let out = s
+    const hasQuestion = out.includes('?')
+    for (const m of markers) {
+      const re = new RegExp(`\\b${m}\\b.*`, 'i')
+      if (re.test(out)) out = out.replace(re, '')
+    }
+    out = out.trim()
+    if (!out) continue
+    if (hasQuestion) continue
+    cleaned.push(out)
+  }
+  const merged = cleaned.join(' ').trim()
+  return merged.length > 0 ? merged : content.trim()
+}
+
+/**
  * Normalizza e valida history conversazione (enterprise: limiti e sanitizzazione).
  * @param {unknown} raw - Array da body (può essere undefined o non-array)
  * @returns {{ role: 'user'|'assistant', content: string }[]}
@@ -185,6 +213,7 @@ const CONTEXT_LABELS = {
     boxTitle: 'CONTESTO PERSONALE CLIENTE - DATI REALI DELLA ROSA',
     boxSubtitle: 'USA QUESTI DATI - PERSONALIZZA - CITA NOMI REALI - NON GENERICO',
     positionNote: 'POSIZIONE: per ogni giocatore vedi "position" (ruolo assegnato in formazione) e "competenze" (posizioni ideali dalla card, es. CC Alta, MED Intermedia). Se position è diverso dalle competenze (es. competenze=CC Alta ma position=DC), CORREGGI: "X è centrocampista (CC) dalla card, non DC. Meglio schierarlo come CC o cambiare ruolo in Gestione Formazione." Siamo noi i coach: non assecondare l\'errore del cliente.',
+    statsNote: 'STATS: vel, acc, res, fin, pas, tac (RAG §1). forma:↑=ottima, forma:↓=bassa. h/w=altezza/peso (duelli aerei). ABILITÀ: elencate. Usa stili+stats+abilità+forma+h/w per ragionamento. Ogni dato ha utilità.',
     teamStyle: 'Stile squadra',
     individualInstructions: 'Istruzioni individuali',
     instructionsActive: 'attive',
@@ -210,6 +239,7 @@ const CONTEXT_LABELS = {
     boxTitle: 'PERSONAL CLIENT CONTEXT - REAL ROSA DATA',
     boxSubtitle: 'USE THIS DATA - PERSONALIZE - CITE REAL NAMES - NOT GENERIC',
     positionNote: 'POSITION: for each player see "position" (assigned role) and "competenze" (ideal positions from card, e.g. CM High, DM Intermediate). If position differs from competenze (e.g. competenze=CM High but position=CB), CORRECT: "X is midfielder (CM) from card, not CB. Better field him as CM or change role in Formation Manager." We are the coaches: do not indulge client errors.',
+    statsNote: 'STATS (if present): vel=Speed, acc=Acceleration, res=Stamina (RAG §1), fin=Finishing, pas=Passing, tac=Tackling. SKILLS: listed in roster. Use styles + stats + skills for tactical reasoning.',
     teamStyle: 'Team style',
     individualInstructions: 'Individual instructions',
     instructionsActive: 'active',
@@ -245,10 +275,10 @@ async function buildPersonalContext(userId, lang = 'it') {
       .maybeSingle()
     const formation = formationRow?.formation || L.formationNotSet
 
-    // Players (titolari + riserve) - include skills per consigli abilità
+    // Players (titolari + riserve) - include skills, forma, altezza/peso per ragionamento enterprise
     const { data: playersData, error: playersError } = await admin
       .from('players')
-      .select('id, player_name, position, overall_rating, playing_style_id, slot_index, photo_slots, base_stats, original_positions, card_type, skills, com_skills')
+      .select('id, player_name, position, overall_rating, playing_style_id, slot_index, photo_slots, base_stats, original_positions, card_type, skills, com_skills, form, height, weight')
       .eq('user_id', userId)
       .order('slot_index', { ascending: true, nullsFirst: false })
       .limit(50)
@@ -282,6 +312,39 @@ async function buildPersonalContext(userId, lang = 'it') {
         .join(', ') || 'non impostate'
     }
 
+    /** Statistiche chiave per ragionamento tattico (RAG §1). Formato compatto. */
+    function formatStatsForContext(baseStats) {
+      if (!baseStats || typeof baseStats !== 'object') return ''
+      const a = baseStats.athleticism || {}
+      const atk = baseStats.attacking || {}
+      const def = baseStats.defending || {}
+      const parts = []
+      if (a.speed != null) parts.push(`vel ${a.speed}`)
+      if (a.acceleration != null) parts.push(`acc ${a.acceleration}`)
+      if (a.stamina != null) parts.push(`res ${a.stamina}`)
+      if (atk.finishing != null) parts.push(`fin ${atk.finishing}`)
+      const pas = atk.low_pass ?? atk.lofted_pass
+      if (pas != null) parts.push(`pas ${pas}`)
+      if (def.tackling != null) parts.push(`tac ${def.tackling}`)
+      return parts.length > 0 ? parts.join(' ') : ''
+    }
+    /** Forma (frecce): ↑=su, ↓=giù, →=neutro. Utile: scelta titolari/riserve. */
+    function formatFormForContext(form) {
+      if (!form || typeof form !== 'string') return ''
+      const f = String(form).toLowerCase()
+      if (f.includes('incrollabile') || f.includes('a')) return 'forma:↑'
+      if (f.includes('ecc') || f.includes('b')) return 'forma:↓'
+      return ''
+    }
+    /** Altezza/peso: utile duelli aerei, Colpo di testa. Compatto. */
+    function formatPhysForContext(height, weight) {
+      if (height == null && weight == null) return ''
+      const parts = []
+      if (height != null) parts.push(`h${height}`)
+      if (weight != null) parts.push(`w${weight}`)
+      return parts.length > 0 ? ` ${parts.join(' ')}` : ''
+    }
+
     const titolari = roster
       .filter(p => p.slot_index != null && p.slot_index >= 0 && p.slot_index <= 10)
       .sort((a, b) => (Number(a.slot_index) || 0) - (Number(b.slot_index) || 0))
@@ -292,7 +355,14 @@ async function buildPersonalContext(userId, lang = 'it') {
       const styleName = (p.playing_style_id && stylesLookup[p.playing_style_id]) || '-'
       const prof = getProfilazione(p.photo_slots)
       const comp = getCompetenze(p.original_positions)
-      rosterLines.push(`  ${p.player_name || '?'} (${p.position || '?'}, ${styleName}, ${p.overall_rating ?? '-'}, profilazione: ${prof}, competenze: ${comp})`)
+      const statsStr = formatStatsForContext(p.base_stats)
+      const formStr = formatFormForContext(p.form)
+      const physStr = formatPhysForContext(p.height, p.weight)
+      const skillsArr = [...(Array.isArray(p.skills) ? p.skills : []), ...(Array.isArray(p.com_skills) ? p.com_skills : [])].slice(0, 5)
+      const skillsStr = skillsArr.length > 0 ? ` abilità: ${skillsArr.join(', ')}` : ''
+      const statsPart = statsStr ? ` | stats: ${statsStr}` : ''
+      const extra = [formStr, physStr].filter(Boolean).join(' ')
+      rosterLines.push(`  ${p.player_name || '?'} (${p.position || '?'}, ${styleName}, ${p.overall_rating ?? '-'}${statsPart}${extra ? ' | ' + extra : ''} | profilazione: ${prof}, competenze: ${comp}${skillsStr})`)
     }
     const reservesHeader = L.reserves + ':'
     rosterLines.push(reservesHeader)
@@ -300,23 +370,51 @@ async function buildPersonalContext(userId, lang = 'it') {
       const styleName = (p.playing_style_id && stylesLookup[p.playing_style_id]) || '-'
       const prof = getProfilazione(p.photo_slots)
       const comp = getCompetenze(p.original_positions)
-      rosterLines.push(`  ${p.player_name || '?'} (${p.position || '?'}, ${styleName}, ${p.overall_rating ?? '-'}, profilazione: ${prof}, competenze: ${comp})`)
+      const statsStr = formatStatsForContext(p.base_stats)
+      const formStr = formatFormForContext(p.form)
+      const physStr = formatPhysForContext(p.height, p.weight)
+      const skillsArr = [...(Array.isArray(p.skills) ? p.skills : []), ...(Array.isArray(p.com_skills) ? p.com_skills : [])].slice(0, 5)
+      const skillsStr = skillsArr.length > 0 ? ` abilità: ${skillsArr.join(', ')}` : ''
+      const statsPart = statsStr ? ` | stats: ${statsStr}` : ''
+      const extra = [formStr, physStr].filter(Boolean).join(' ')
+      rosterLines.push(`  ${p.player_name || '?'} (${p.position || '?'}, ${styleName}, ${p.overall_rating ?? '-'}${statsPart}${extra ? ' | ' + extra : ''} | profilazione: ${prof}, competenze: ${comp}${skillsStr})`)
     }
     if (riserve.length > 15) rosterLines.push(`  ... altri ${riserve.length - 15} riserve`)
 
-    // Matches (ultime 10)
+    // Matches (ultime 10) - con formazione avversario, voti, zone attacco (enterprise)
     const { data: matchesData } = await admin
       .from('matches')
-      .select('opponent_name, result, formation_played, playing_style_played, match_date')
+      .select('opponent_name, result, formation_played, playing_style_played, match_date, opponent_formation_id, player_ratings, attack_areas')
       .eq('user_id', userId)
       .order('match_date', { ascending: false })
       .limit(10)
     const matches = matchesData || []
+    // Fetch opponent formations for matches that have opponent_formation_id
+    const oppIds = [...new Set(matches.map(m => m.opponent_formation_id).filter(Boolean))]
+    let oppFormationsMap = {}
+    if (oppIds.length > 0) {
+      const { data: oppData } = await admin
+        .from('opponent_formations')
+        .select('id, formation_name, playing_style')
+        .in('id', oppIds)
+      if (oppData) oppData.forEach(o => { oppFormationsMap[o.id] = o })
+    }
     const matchLines = matches.length === 0
       ? [L.noMatches]
       : matches.map(m => {
           const d = m.match_date ? (typeof m.match_date === 'string' ? m.match_date.slice(0, 10) : String(m.match_date).slice(0, 10)) : '?'
-          return `  ${d} vs ${m.opponent_name || '?'} ${m.result || '-'} (formazione: ${m.formation_played || '-'}, stile: ${m.playing_style_played || '-'})`
+          const opp = oppFormationsMap[m.opponent_formation_id]
+          const vsForm = opp?.formation_name ? ` vs ${opp.formation_name}${opp?.playing_style ? '/' + opp.playing_style : ''}` : ''
+          let votiStr = ''
+          const pr = m.player_ratings
+          if (pr && typeof pr === 'object') {
+            const cliente = pr.cliente || pr
+            if (cliente && typeof cliente === 'object') {
+              const entries = Object.entries(cliente).slice(0, 4).map(([n, v]) => `${n} ${v?.rating ?? v}`).filter(Boolean)
+              if (entries.length) votiStr = ` [voti: ${entries.join(', ')}]`
+            }
+          }
+          return `  ${d} vs ${m.opponent_name || '?'} ${m.result || '-'} (form: ${m.formation_played || '-'}, stile: ${m.playing_style_played || '-'}${vsForm})${votiStr}`
         })
 
     // Team tactical settings
@@ -378,19 +476,6 @@ async function buildPersonalContext(userId, lang = 'it') {
       }
     }
 
-    // Skills sintesi (max 5 per titolare) - per consigli abilità
-    const skillsLines = []
-    const hasAnySkills = titolari.some(p => (Array.isArray(p.skills) && p.skills.length > 0) || (Array.isArray(p.com_skills) && p.com_skills.length > 0))
-    if (hasAnySkills) {
-      skillsLines.push('', L.skillsTitolari)
-      for (const p of titolari.slice(0, 11)) {
-        const all = [...(Array.isArray(p.skills) ? p.skills : []), ...(Array.isArray(p.com_skills) ? p.com_skills : [])].slice(0, 5)
-        if (all.length > 0) {
-          skillsLines.push(`  ${p.player_name || '?'}: ${all.join(', ')}`)
-        }
-      }
-    }
-
     const parts = [
       '╔══════════════════════════════════════════════════════════════════╗',
       `║  ${L.boxTitle}                                                       ║`,
@@ -399,6 +484,8 @@ async function buildPersonalContext(userId, lang = 'it') {
       `Formazione attuale: ${formation}.`,
       '',
       L.positionNote,
+      '',
+      L.statsNote,
       '',
       L.starters,
       ...rosterLines.slice(0, rosterLines.findIndex(l => l === reservesHeader) + 1),
@@ -430,281 +517,88 @@ async function buildPersonalContext(userId, lang = 'it') {
  * @param {string} personalContextSummary - Se presente, blocco contesto personale (rosa, partite, tattica, allenatore).
  * @param {boolean} hasHistory - Se true, c'è già storia conversazione: non risalutare, continua naturalmente.
  */
-function buildPersonalizedPrompt(userMessage, context, language = 'it', efootballKnowledge = '', personalContextSummary = '', hasHistory = false) {
+function buildPersonalizedPromptV2(userMessage, context, language = 'it', efootballKnowledge = '', personalContextSummary = '', hasHistory = false) {
   const { profile, currentPage, appState } = context || {}
-  const firstName = profile?.first_name || 'amico'
-  const teamName = profile?.team_name || 'il tuo team'
+  const firstName = profile?.first_name || (language === 'en' ? 'friend' : 'amico')
+  const teamName = profile?.team_name || (language === 'en' ? 'your team' : 'il tuo team')
   const aiName = profile?.ai_name || 'Coach AI'
   const howToRemember = profile?.how_to_remember || ''
   const commonProblems = profile?.common_problems || []
-  
-  // Determina contesto pagina
-  let pageContext = ''
-  if (currentPage) {
-    if (currentPage.includes('/match/new')) {
-      pageContext = 'Il cliente sta caricando una nuova partita (wizard 6 step: prima Casa/Fuori, poi 5 sezioni foto).'
-    } else if (currentPage.includes('/match/') && !currentPage.includes('/match/new')) {
-      pageContext = 'Il cliente sta visualizzando i dettagli di una partita.'
-    } else if (currentPage.includes('/gestione-formazione')) {
-      pageContext = 'Il cliente sta gestendo la formazione (campo 2D interattivo).'
-    } else if (currentPage === '/') {
-      pageContext = 'Il cliente è nella dashboard principale.'
-    }
-  }
-  
-  // Determina stato app
-  let stateContext = ''
-  if (appState?.completingMatch) {
-    stateContext = 'Sta completando il caricamento di una partita.'
-  } else if (appState?.uploadingPlayer) {
-    stateContext = 'Sta caricando un giocatore.'
-  } else if (appState?.viewingMatch) {
-    stateContext = 'Sta visualizzando una partita.'
-  }
-  
+
   const domandaBreve = userMessage.length > 80 ? userMessage.slice(0, 80).trim() + '…' : userMessage
-  const pagina = (context && context.currentPage) ? String(context.currentPage) : ''
+  const pagina = currentPage ? String(currentPage) : ''
   const contestoAttuale = [
-    pageContext ? pageContext.replace(/^Il cliente\s+/, '').replace(/\.$/, '') : (pagina || 'Dashboard'),
-    `Domanda: "${domandaBreve}"`
+    pagina || (language === 'en' ? 'Dashboard' : 'Dashboard'),
+    `${language === 'en' ? 'Question' : 'Domanda'}: "${domandaBreve}"`
   ].join(' | ')
 
-  return `CONTESTO: ${contestoAttuale}
+  // Capsule ultra-compatta: incroci + inverse reasoning, senza tasti/pulsanti, senza uso app.
+  const capsuleIt = `ENGINE (OBBLIGATORIO, token-budget):
+- INPUT: ROSA (stile card, stats vel/acc/res/fin/pas/tac, abilità, forma↑/↓, h/w, competenze), MATCH/PATTERN (result, formation/stile, opponent formation, attack_areas, voti cliente, recurring_issues), COACH (competenze stile), TATTICA (stile squadra + istruzioni), RAG (limiti + movimenti/situazioni + community).
+- MICRO-SCORE: FIT (position ∈ competenze), COACH_OK(style>=70; contrattacco≠contropiede_veloce), SPD (vel+acc+Scatto), PASS (pas+filtrante/di prima/dosato), WIN (tac+Intercettazione/Marcatura/Contrasto/Blocco), AIR_DEF (h/w+Dominio palle alte+Superiorità aerea), AIR_ATK (h/w+Colpo di testa), SUB (Riserva di lusso=Super riserva).
+- HARD: solo nomi ROSA; solo 5 stili squadra configurabili; istruzioni solo §5; limiti moduli §3.4; NO Tattica(astuzia) sui difensori; NO Tornante su MED Collante; Dominio palle alte ≠ Colpo di testa.
+- DECISIONE: scegli 1 leva principale + max 2 secondarie: (1) Fix FIT, (2) Fix mismatch coach/stile squadra, (3) Aggancia top recurring_issue, (4) 1-2 cambi titolari/riserve da forma↑/↓ + voti cliente + micro-score, (5) 1 istruzione §5, (6) gameplay solo “cosa fare” da §7.
+- INVERSE: sintomo→cause→leva: fasce (attack_areas wide)→esterni senza WIN/Rientro difensivo→copertura/istruzioni; attacco sterile→PASS basso o stile incoerente→regista/cambio stile/modulo; palle alte→AIR_DEF basso→DC/MED più forti+piazzati.
+OUTPUT: max 3 frasi operative, imperativo, chiudi con “In sintesi: …”. Niente spiegazioni del ragionamento.`
 
+  const capsuleEn = `ENGINE (REQUIRED, token-budget):
+- INPUT: ROSTER (card style, stats spd/acc/sta/fin/pas/tac, skills, form↑/↓, h/w, competences), MATCH/PATTERN (result, formation/style, opponent formation, attack_areas, client ratings, recurring_issues), COACH (style competence), TACTICS (team style + instructions), RAG (limits + movements/situations + community).
+- MICRO-SCORES: FIT (position ∈ competences), COACH_OK(style>=70; contrattacco≠contropiede_veloce), SPD (spd+acc+Sprint), PASS (pas+Through ball/One-touch/Weighted), WIN (tac+Interception/Man marking/Aggressive tackle/Block), AIR_DEF (h/w+High ball dominance+Aerial superiority), AIR_ATK (h/w+Heading), SUB (Luxury sub=Super sub).
+- HARD: only roster names; only 5 configurable team styles; instructions only §5; formation limits §3.4; NO Tactical(fouls) on defenders; NO Box-to-box (Tornante) on an Anchor Man DM, especially if Collante/Anchor Man; High ball dominance ≠ Heading.
+- DECISION: pick 1 main lever + max 2 secondary: (1) Fix FIT, (2) Fix coach/team-style mismatch, (3) Anchor top recurring_issue, (4) 1-2 lineup changes using form↑/↓ + client ratings + micro-scores, (5) 1 instruction §5, (6) gameplay “what to do” only from §7.
+- INVERSE: symptom→cause→lever: wide threat (attack_areas wide)→wide players lack WIN/track back→coverage/instructions; stale attack→low PASS or mismatch style→add creator/change style/formation; aerial goals→low AIR_DEF→stronger CB/DM + set pieces.
+OUTPUT: max 3 imperative sentences, end with “In summary: …”. No visible reasoning.`
+
+  const capsule = language === 'en' ? capsuleEn : capsuleIt
+
+  // Suggerimenti: devono derivare dalla leva scelta (vincolo), ma il modello li genera.
+  const suggRulesIt = `SUGGERIMENTI (3 domande, obbligatori): 1 verticale sullo stesso problema, 1 gameplay (pressing/compattezza/possesso/piazzati/transizioni), 1 meta/info. Niente uso app, niente tasti/pulsanti.`
+  const suggRulesEn = `SUGGESTIONS (3 questions, required): 1 deep-dive on same issue, 1 gameplay (pressing/compactness/possession/set pieces/transitions), 1 meta/info. No app usage, no buttons/inputs.`
+  const suggRules = language === 'en' ? suggRulesEn : suggRulesIt
+
+  const header = `CONTESTO: ${contestoAttuale}
 ${hasHistory ? `NOTA: Continua la conversazione già iniziata. NON salutare.` : ''}
 
 👤 ${firstName} | ${teamName}
 ${howToRemember ? `Memo: ${howToRemember}` : ''}
-${commonProblems.length > 0 ? `Problemi: ${commonProblems.join(', ')}` : ''}
-${pageContext ? `${pageContext}` : ''}
-${stateContext ? `${stateContext}` : ''}
+${commonProblems.length > 0 ? `Problemi: ${commonProblems.join(', ')}` : ''}`
 
-${personalContextSummary ? `
-📊 ROSA E DATI:
-${personalContextSummary}
+  const blocks = [
+    header,
+    personalContextSummary ? `\n📊 ROSA E DATI:\n${personalContextSummary}` : '',
+    efootballKnowledge ? `\n📚 MECCANICHE eFootball (RAG):\n${efootballKnowledge}` : '',
+    `\n${capsule}\n\nFORMATO RISPOSTA:\n[Max 3 frasi operative. Chiudi con In sintesi / In summary.]\n\n---\nSUGGERIMENTI:\n1. ...\n2. ...\n3. ...\n\n${suggRules}\n\nDOMANDA CLIENTE: "${userMessage}"\nRispondi come ${aiName} in ${language === 'it' ? 'italiano' : 'inglese'}.`
+  ].filter(Boolean)
 
-🔍 COME CERCARE E RAGIONARE (OBBLIGATORIO):
+  return blocks.join('\n')
+}
 
-**1. CERCARE** – Dove cercare in base alla domanda:
-- Rosa/consigli/sostituzioni → blocco ROSA E DATI (titolari, riserve, stili, posizioni) + PARTITE + ALLENATORE + TATTICA
-- Regole eFootball (stili, moduli, istruzioni) → blocco MECCANICHE eFootball (se presente): trova la sezione ## corretta
-${efootballKnowledge ? `- Se MECCANICHE presente: stili giocatore (Opportunista, Collante) → ## 2; stile squadra (Possesso, Contropiede) → ## 4; moduli → ## 3; istruzioni → ## 5; abilità → ## 8; limiti → ## 3.4` : ''}
+function buildSystemContentV2(lang) {
+  const it = `Sei Coach AI per eFootball. Rispondi SEMPRE in italiano.
 
-**2. RAGIONARE** – Gli stili (RAG sez. 2) definiscono COSA FA il giocatore in campo. Es: Collante = MED arretrato; Rapace d'area = in agguato in area; Opportunista = aspetta palla in area; Regista creativo = assist; Terzino offensivo = si unisce all'attacco. Incrocia: rosa + partite, stili + moduli, allenatore + tattica. Solo dati che hai + RAG.
+SCOPE: solo consulenza tattica eFootball basata su ROSA, PARTITE, ALLENATORE, TATTICA e RAG.
+- Gameplay consentito SOLO come “cosa fare” (azioni). VIETATO citare tasti/pulsanti/controller.
+- Uso app (wizard, click, menu, upload): NON spiegare. Se chiesto, rispondi solo: "Sono qui solo per consigli tattici: formazione, rosa, modulo, sostituzioni, stile. Esplora il menu per le altre funzioni."
 
-**3. PALETTI** – Solo nomi dalla rosa | Competenza >= 70 per stile | Istruzioni sez. 5 | Abilità sez. 8 | Ancoraggio max 2. Terminologia ufficiale (Opportunista non Poacher, Resistenza non Stamina).
+FONTI: Nomi/rosa/partite/allenatore/tattica → solo dal blocco ROSA E DATI. Regole eFootball → solo dal blocco RAG. Se manca un dato, non inventare.
 
-**4. RISPONDERE** – Solo DOPO 1-2-3. Tono professionale e diretto.
+VINCOLI: solo nomi in ROSA; team_playing_style configurabile SOLO 5 (Possesso palla, Contropiede veloce, Contrattacco, Passaggio lungo, Vie laterali); contrattacco ≠ contropiede_veloce e serve competenza coach >=70 per consigliare; istruzioni individuali solo §5; limiti moduli §3.4; NO Tattica(astuzia) sui difensori; NO Tornante su MED Collante; Dominio palle alte ≠ Colpo di testa.
 
-🏆 MODO COACH - RAGIONAMENTO INCROCIATO OBBLIGATORIO:
+OUTPUT COACH: max 3 frasi operative, imperativo, niente ragionamento visibile. Chiudi con "In sintesi: ...".`
 
-**1. ANALISI COMPLETA (cerca e incrocia - fai internamente):**
-- ROSA: "Ho X giocatori, Y difensori, Z attaccanti... Qualità: [nome] ha 95 fisico, [nome] ha stile [X]"
-- PARTITE: "Ultime 10 partite: 6 vittorie, problemi in difesa vs attacchi veloci"
-- ALLENATORE: "Competenza Contrattacco 85, Possesso 60 → meglio stile Contrattacco"
-- TATTICA: "Stile squadra attuale [X], istruzioni individuali [Y] attive"
+  const en = `You are Coach AI for eFootball. Always answer in English.
 
-**2. TROVA PATTERNS E PROBLEMI:**
-- "Vinco ma prendo gol → difesa troppo alta, abbassa linea"
-- "Perdo a centrocampo → manca fisicità, metti [Nome Riserva] al posto di [Nome]"
-- "Attacco sterile → modulo troppo difensivo, passa da 3-5-2 a 4-3-3"
-- "Allenatore ha competenza bassa in [stile attuale] → cambia stile o allenatore"
+SCOPE: only eFootball tactical advice based on ROSTER, MATCHES, COACH, TACTICS and RAG.
+- Gameplay allowed only as “what to do” (actions). Never mention buttons/inputs/controller.
+- App usage (wizard, clicks, menus, upload): do not explain. If asked, reply only: "I'm here only for tactical advice: formation, roster, module, substitutions, style. Explore the menu for other features."
 
-**3. PROPONI SOLUZIONI CON NOMI VERI:**
-- "Metti [Nome] titolare, [Nome] in panchina perché..."
-- "Cambia modulo da [X] a [Y] per sfruttare [caratteristica giocatore]"
-- "Attiva istruzione [X] su [Nome] vs avversari che..."
+SOURCES: Names/roster/matches/coach/tactics only from the ROSTER & DATA block. eFootball rules only from the RAG block. If data is missing, do not invent.
 
-**4. INCROCIA I DATI (questo è il tuo valore):**
-- "Hai vinto 4-0 col 4-3-3, perché [Nome] e [Nome] funzionano bene insieme"
-- "Nelle sconfitte usavi 3-5-2 → le tue ali non coprono abbastanza"
-- "[Nome] ha overall 95 ma competenza bassa come TS → meglio come TD"
+CONSTRAINTS: only roster names; only 5 configurable team styles (Possession, Quick Counter, Long Ball Counter, Long Ball, Out Wide); contrattacco ≠ contropiede_veloce and require coach competence >=70; individual instructions only §5; formation limits §3.4; no Tactical(fouls) on defenders; no Box-to-box (Tornante) on an Anchor Man DM, especially if Collante/Anchor Man; High ball dominance ≠ Heading.
 
-**4b. SE HAI PATTERN PARTITE (formation_usage, problemi ricorrenti):**
-- Usa formation_usage per consigliare formazione: "4-3-3 è la tua migliore (X partite, Y% vittorie)"
-- Usa problemi ricorrenti come priorità: se "centrocampo debole" → priorità sostituzioni/ modulo che rafforza il centro
+COACH OUTPUT: max 3 imperative sentences, no visible reasoning. End with "In summary: ...".`
 
-**5. COLLEGA STILI E MECCANICHE (RAG sez. 2):**
-Stile → comportamento in campo → consiglio. Es: [Nome] Collante → MED davanti difesa; [Nome] Regista creativo + [Nome] Opportunista → sinergia assist/gol; 4-3-3 → ali veloci.
-
-ESEMPI RAGIONAMENTO COMPLETO (interno, non dire all'utente):
-- "Rosa: 3 MED con stile 'Collante' → troppi per un modulo → schiera 1-2 Collante, uno in panchina; preferisci un CC Box-to-Box o Onnipresente se in rosa"
-- "Partite: 4 sconfitte con 'Possesso palla' → Allenatore ha 'Contrattacco' 85 → CAMBIA STILE"
-- "[Nome] DC ha 'Frontale extra' + alta velocità → modulo 3-5-2 sfrutta meglio"
-- "Attacco scarso: [Punta] ha stile 'Rapace d'area' ma modulo 4-5-1 lo isola → passa a 4-3-3"
-
-📌 PERSONALIZZAZIONE E VARIETÀ (se hai ROSA sopra):
-• Risposta DEVE usare NOMI REALI dalla rosa (titolari/riserve). Mai consigli generici senza citare i giocatori del cliente.
-• Incrocia: rosa + partite + allenatore. Es: "Le tue ultime 3 sconfitte col Possesso → allenatore ha Contrattacco 85, cambia stile." Non: "Usa 4-3-3" senza riferirti ai suoi dati.
-• MAX 3 cambi concreti, ma SPECIFICI (nome giocatore, posizione, motivo legato ai dati).
-• VARIA i consigli in base al contesto: non proporre sempre contrattacco e sostituzioni. Includi quando rilevante: linea difensiva, pressing/compattezza, possesso e costruzione, istruzioni individuali, calci piazzati, modulo. Un vero coach adatta il messaggio alla situazione (rosa, partite, problemi ricorrenti).
-
-📌 REGOLE ORO:
-• Usa SOLO nomi dalla lista. NON inventare mai.
-• **POSIZIONE IDEALE (competenze dalla card) vs RUOLO ASSEGNATO (position)**: Se un giocatore ha competenze = CC/MED ma è schierato come DC (o viceversa), CORREGGI: "X è centrocampista (CC) dalla card, non difensore centrale. Meglio schierarlo come CC o cambia ruolo in Gestione Formazione." Siamo noi i coach: non assecondare l\'errore del cliente. Non suggerire mai un giocatore in un ruolo che non compare nelle sue competenze (es. se competenze = solo CC/MED, non metterlo in difesa).
-• **SINERGIA**: La sinergia la SUGGERISCI TU in base a ruoli/stili. Risposta: "Metti [nome] al posto di [nome] per migliore sinergia." NON dire mai "carica una partita per vedere la sinergia" (quei dati non esistono).
-• **card_type (Trending/Epico/POTW/In evidenza/ecc.)**: Lo SAI dai dati rosa ("card: X"). NON dire "se non è Trending": di' direttamente "Messi è Trending, non può ricevere abilità aggiuntive" oppure "Pedri è Epico, puoi aggiungere abilità tramite Programmi".
-• **ROSA/PARTITE VUOTI**: Se vedi "Nessuna partita caricata" o nessun giocatore sotto TITOLARI/Riserve → risposta breve: (1) "Non ho ancora rosa/partite per darti consigli tattici." (2) "Per caricare formazione e partite usa la Guida (menu) o il tour Mostrami come (bussola)." (3) "Poi chiedimi di nuovo per consigli su modulo, sostituzioni, stile." NON dare istruzioni passo-passo su dove cliccare o come usare il wizard.
-• Stili FISSI: citali per spiegare perché un giocatore è adatto (stile → comportamento in campo → consiglio). Terminologia ufficiale.
-• Moduli: Proponi solo se hai giocatori compatibili (stili + stats)
-• Allenatore: Competenza >= 70 per stile consigliabile; se rosa e allenatore incoerenti → suggerisci cambio stile o allenatore. NON spingere un solo stile come "meta" (es. "tutti usano contropiede"): consiglia in base a rosa e competenza allenatore.
-• **STILI ALLENATORE - CRITICO**: contrattacco e contropiede_veloce sono STILI DIVERSI (chiavi diverse). Consiglia uno stile SOLO se il suo valore è >= 70. VIETATO usare competenza di contrattacco per giustificare Contropiede veloce (e viceversa). Es: se contrattacco=89 e contropiede_veloce=57 → consiglia Contrattacco, NON Contropiede veloce.
-• **NOMI**: Cita SOLO giocatori in TITOLARI/RISERVE. Mai Mbappé, Haaland, Pedri, Bellingham, ecc. se non nella lista.
-• MAX 3 cambi concreti per risposta
-` : ''}
-
-${efootballKnowledge ? `
-📚 MECCANICHE eFootball:
-${efootballKnowledge}
-
-⚠️ PALETTI PER SEZIONE RAG (cerca nella sezione indicata, rispetta, vedi STEP 2 RAGIONARE per stili):
-| Domanda su | Cerca in sezione | Paletto obbligatorio |
-|------------|------------------|----------------------|
-| Stili giocatore (Opportunista, Collante, Rapace d'area, ecc.) | ## 2 STILI GIOCATORE | Cosa FA in campo: Collante=MED arretrato, Rapace d'area=in agguato in area, Opportunista=aspetta palla in area. Solo stili ufficiali. Per ruolo: Attaccanti ≠ Centrocampisti ≠ Difensori. FISSI. Stile squadra (Possesso, Contropiede) → ## 4. |
-| Moduli (4-3-3, 4-2-3-1, ecc.) | ## 3 MODULI + ## 3.4 Limiti | Rispetta limiti formazione (max 2 P, max 1 CLD/CLS, ecc.). Incrocia con rosa disponibile. |
-| Stili squadra (Possesso, Contropiede, ecc.) | ## 4 STILI TATTICI | Configurabili in app SOLO 5: Possesso palla, Contropiede veloce, Contrattacco, Passaggio lungo, Vie laterali. NON suggerire Pressing Alto, Gegenpressing, Tiki-Taka ecc. come stile da impostare. Competenza allenatore >= 70 per suggerire. |
-| Istruzioni individuali | ## 5 ISTRUZIONI | SOLO: Offensivo, Difensivo, Ancoraggio (max 2), Marcatura stretta/uomo, Contropiede, Linea bassa. Linea bassa: non a difensori. Contropiede (slot difesa): solo CC/attaccanti. NO passaggi corti/cross come istruzioni. |
-| Abilità giocatori | ## 8 ABILITÀ | Solo nomi sez. 8. Native=fisse. Aggiuntive=Programmi (NON Trending). Max 6 totali. |
-| Statistiche | ## 1 STATISTICHE | FISSE. Resistenza non Stamina. No "allenare/migliorare". |
-| Gameplay (come difendo, pressing, calci piazzati, skill) | ## 7 MECCANICHE + ## 6 CALCI PIAZZATI | Descrivi SOLO COSA FARE (azioni: marcatura, contrasto spalla, chiamare pressing, corner/punizioni, finte). VIETATO citare tasti, pulsanti, R1/L1, ⚪/B, combinazioni controller. Solo da RAG; non inventare. |
-| Qualsiasi | ## 10 NOTE CRITICHE | Errori comuni, esempi corretti, terminologia. SEMPRE rispettare. |
-
-REGOLE MECCANICHE (sintesi):
-• Stili: FISSI, definiscono comportamento in campo. Attaccanti ≠ Centrocampisti ≠ Difensori. Terminologia ufficiale.
-• ISTRUZIONI: Solo sez. 5. Ancoraggio max 2. No passaggi corti/cross.
-• ABILITÀ: Solo sez. 8. Trending no Programmi. Max 6 totali.
-• GAMEPLAY: Come difendere, pressing, calci piazzati, skill → solo sez. 6 e 7 (RAG). Descrivi solo COSA FARE (azioni). VIETATO citare tasti, pulsanti, R1/L1, ⚪/B o combinazioni controller.
-` : ''}
-
-📍 DA DOVE PRENDI I DATI (OBBLIGATORIO):
-• **Nomi giocatori, partite, formazione, tattica, allenatore** → SOLO dal blocco "📊 ROSA E DATI" sopra (se presente). Se quel blocco non c'è, non hai rosa: non citare nomi; di\' di usare la Guida (menu) o il tour Mostrami come (bussola) per caricare formazione e partite, poi chiedere di nuovo per consigli tattici. NON dare istruzioni passo-passo (es. "vai in Gestione Formazione", "clicca su...").
-• **Regole di gioco** (stili, moduli, istruzioni individuali, abilità, limiti) → SOLO dal blocco "📚 MECCANICHE eFootball" sopra (se presente). Se non c'è, rispondi in base a ciò che sai dal system message; non inventare regole.
-• **Profilo** (nome, team) → dal contesto in alto (👤 nome | team).
-• **NON** inventare dati. DOMANDE DIRETTE SU DATI ("che abilità ha X?", "quale velocità?", "cosa ha nel mio giocatore?") → risposta standard: "Per abilità e statistiche apri la scheda giocatore in Gestione Formazione. Posso aiutarti con consigli tattici: formazione, stile, sostituzioni, istruzioni." Se chiede "perché ho perso?" senza analisi nel contesto → suggerisci "Apri Dettaglio Partita per l'analisi completa" e offri consiglio tattico generico.
-
-📍 ORDINE RAGIONAMENTO (vedi COME CERCARE E RAGIONARE sopra):
-- Rosa/consigli/modulo → cerca ROSA + MECCANICHE, incrocia stili+moduli+allenatore, poi consiglio.
-- Regole eFootball (cos'è Opportunista, Collante, ecc.) → cerca MECCANICHE sez. ## 2, spiega cosa FA in campo, terminologia ufficiale.
-- Dato non presente → non inventare. Puoi indicare in quale sezione si trova (es. scheda giocatore, Dettaglio Partita); per come usare l'app o dove cliccare rimanda alla Guida o al tour Mostrami come.
-
-🔄 CONTINUITÀ CONVERSAZIONE (OBBLIGATORIO):
-- **Stesso schema**: Se in questa chat hai già consigliato un modulo o posizioni per uno o più giocatori, le risposte successive devono RISPETTARE quello schema. Stesso modulo; inserisci il nuovo giocatore (o la nuova domanda) in quello schema. NON proporre un modulo diverso che stravolge il precedente.
-- **Recap breve**: Quando la risposta dipende da un consiglio che hai dato prima, includi UNA frase di recap (es. "Con il 4-3-3 e Pedri MED centrale che ti ho detto, Bellingham sta bene come MED sinistro"). Così il cliente non deve scorrere indietro.
-- **"Perché?"**: Se l'utente chiede "perché?" o "in che senso?" o "spiegami" rispetto all'ultimo consiglio, rispondi in 1-2 frasi usando SOLO dati (stile giocatore da RAG sez. 2, ruolo, modulo, sinergia con nomi in rosa). Es: "Perché ha stile Regista creativo: si muove tra le linee e crea spazi; in quel modulo riceve palla e serve le punte." Non inventare; attieniti a ROSA e MECCANICHE.
-
-📱 FUNZIONALITÀ APP:
-1. Dashboard (/): panoramica squadra
-2. Gestione Formazione (/gestione-formazione): campo 2D, upload giocatori
-3. Aggiungi Partita (/match/new): wizard 6 step (Casa/Fuori + 5 sezioni foto)
-4. Dettaglio Partita (/match/[id]): analisi post-match
-5. Dettaglio Giocatore (/giocatore/[id]): scheda completa
-6. Impostazioni Profilo (/impostazioni-profilo): dati utente
-7. Contromisure Live (/contromisure-live): analisi pre-partita
-8. Allenatori (/allenatori): gestione coach
-9. Guida (/guida): tour piattaforma
-
-⚠️ NON inventare funzionalità. Se non esiste: "Non disponibile, ma posso aiutarti con [alternativa]."
-
-🎮 CONTESTO VIDEOGIOCO:
-I giocatori sono CARD DIGITALI. Statistiche FISSE, non crescono. NON parlare di "esperienza", "carriera", "maturità".
-
-🎯 TONO RISPOSTA (OBBLIGATORIO):
-PROFESSIONALE E DIRETTO. Risposta operativa, chiara.
-
-• Max 3 frasi operative
-• Tono amichevole ma professionale; evita lunghe spiegazioni o giustificazioni
-• Mai giustificazioni su di te ("ho analizzato", "ho incrociato i dati")
-• Inizia con l'azione: "Metti...", "Usa...", "Cambia..."
-• Finisci con: "In sintesi: [azione concreta in 5-8 parole]"
-
-✅ ESEMPI CORRETTI:
-
-Domanda: "Che modulo uso?"
-Risposta: "4-3-3 con le tue ali veloci. In sintesi: sfrutta la velocità sulle fasce."
-
-Domanda: "Chi metto al posto di Pedri?"
-Risposta: "Bellingham MED titolare, Pedri in panchina. In sintesi: più fisico a centrocampo."
-
-Domanda: "Che abilità ha Messi?"
-Risposta: "Per abilità e statistiche apri la scheda giocatore in Gestione Formazione. Posso aiutarti con consigli tattici: formazione, stile, sostituzioni."
-
-Domanda: "Come carico una partita?" / "Dove trovo il wizard?" / "Come carico le foto?"
-Risposta (solo questa, niente step): "Per come usare l'app (caricare foto, wizard, dove trovare) vai su Guida nel menu o clicca la bussola per il tour Mostrami come. Io sono qui solo per consigli tattici: formazione, rosa, modulo, sostituzioni."
-
-Domanda: "Che ne pensi della mia rosa?"
-Risposta: "Difesa solida con i tuoi DC alti. Centrocampo tecnico ma manca fisicità. Metti un MED difensivo in panchina. In sintesi: rafforza il centro."
-
-Domanda (dopo aver consigliato 4-3-3 e Pedri MED centrale): "E Bellingham?"
-Risposta: "Con il 4-3-3 e Pedri MED centrale che ti ho detto, Bellingham sta bene come MED sinistro o in coppia con lui. In sintesi: stesso modulo, Bellingham MED sinistro."
-
-Domanda (dopo un consiglio): "Perché?"
-Risposta: "Perché ha stile Box-to-Box: corre da area a area e copre; in quel modulo dà equilibrio e arriva in area. In sintesi: stile e modulo si sposano."
-
-Domanda: "Come difendo meglio?" / "Come gestisco il pressing?"
-Risposta (usa RAG sez. 7, SOLO cosa fare, MAI tasti/pulsanti): "Segui l'avversario a passetti (testa a testa) e usa il contrasto di spalla quando corri affiancato. Chiama il pressing dei compagni con attenzione: se perdi palla lasci spazi. In sintesi: marcatura stretta + contrasto spalla, pressing mirato."
-
-❌ ERRORI DA EVITARE:
-"Analizzando la tua rosa..." → troppo lungo
-"Potresti considerare..." → troppo vago  
-"Dato che hai Pedri..." → spiega troppo
-"Ho incrociato i dati..." → parla di te stesso
-"Esegui. Operazione completata." → tono robotico (sii professionale e diretto)
-
-🔴 VIETATO ASSOLUTO:
-• Dare istruzioni su uso app (come caricare foto, wizard, dove cliccare, dove trovare): rispondi solo con redirect a Guida / tour Mostrami come
-• "potenziare/migliorare/allenare" stili o giocatori (sono fissi)
-• Collante, Box-to-Box, Onnipresente (stili MED/CC) per attaccanti
-• Ala prolifica (stile EDA/ESA) per difensori
-• Stile squadra con competenza allenatore < 50
-• Inventare nomi giocatori non nella rosa (Mbappé, Haaland, Pedri, ecc. se non in TITOLARI/RISERVE)
-• "carica una partita per vedere la sinergia" (non esiste)
-• "cerca/filtra/compra giocatori" (l'app non lo fa)
-• Consigli su azioni durante la partita in corso (sostituzioni live, "cosa fare adesso")
-
-⚽ LINGUAGGIO COACH:
-"buildato", "competenza posizione", "profilazione", "slot", "titolare/riserva"
-
-📝 FORMATO RISPOSTA OBBLIGATORIO:
-
-Devi rispondere ESATTAMENTE in questo formato. NESSUNA eccezione:
-
-[La tua risposta breve: max 3 frasi. ZERO domande qui dentro. Finisci con "In sintesi: [azione]" (opzionale ~X% se suggerimento tattico basato sui dati)]
-
----
-SUGGERIMENTI:
-1. [Domanda approfondimento]
-2. [Domanda collegamento correlato]
-3. [Domanda alternativa "E se..."]
-
-❌ ESEMPIO SBAGLIATO (vietato):
-"Metti Beckenbauer in difesa. In sintesi: solidità. 1. Che ne pensi di Bale? 2. E Cafu?"
-
-✅ ESEMPIO CORRETTO:
-"Metti Beckenbauer in difesa. In sintesi: solidità difensiva.
-
----
-SUGGERIMENTI:
-1. Come sfruttare al meglio Bale sulla fascia?
-2. Quale modulo per il tuo centrocampo tecnico?
-3. E se provassi Cafu come esterno?"
-
-👎 ERRORE GRAVE: Se scrivi "1." "2." "3." NELLA RISPOSTA principale, stai sbagliando.
-👍 CORRETTO: Le domande "1. 2. 3." vanno SOLO dopo "---" nel blocco SUGGERIMENTI.
-
-REGOLE SUGGERIMENTI (3 domande OBBLIGATORIE - stesso formato 1. 2. 3.) — MIX OBBLIGATORIO, VARIA gli argomenti:
-- **1 VERTICALE**: una domanda di approfondimento sul tema della risposta (stesso argomento). Se c'è rosa, usa NOMI REALI.
-- **1 GAMEPLAY**: una domanda su come applicare in partita — VARIA (es. pressing, compattezza, possesso, linea alta/bassa, calci piazzati, transizioni, non solo contropiede/contrattacco). NON "cosa fare adesso al minuto X" — sì "come applicare X quando giochi". MAI citare tasti o pulsanti nelle domande.
-- **1 META/INFO**: una domanda su meta o info generale (formazioni forti, stili efficaci, contromisure). VARIA anche qui (non sempre "meta attuale").
-- Solo domande su CONSULENZA TATTICA / gameplay / meta. MAI uso app (come caricare, wizard): quelle vanno alla Guida.
-- Mai "cosa fare durante la partita live", "come recuperare stamina", "cerca giocatori". Nella stessa lingua della risposta (IT o EN).
-
-${personalContextSummary ? 'DATI ROSA SOPRA - usa nomi specifici nei suggerimenti' : 'ROSA NON CARICATA - suggerisci solo domande TATTICHE (formazione, modulo, stile, sostituzioni) che l\'utente potrà fare dopo aver caricato i dati; NON suggerire domande su come caricare (quelle vanno alla Guida).'}
-
-DOMANDA CLIENTE: "${userMessage}"
-
-Rispondi come ${aiName} in ${language === 'it' ? 'italiano' : 'inglese'}. Segui il formato sopra.
-
-`
+  return lang === 'en' ? en : it
 }
 
 export async function POST(req) {
@@ -852,7 +746,7 @@ export async function POST(req) {
     // Costruisci prompt personalizzato (con eventuali blocchi RAG eFootball e contesto personale)
     let prompt
     try {
-      prompt = buildPersonalizedPrompt(message, context, lang, efootballKnowledge, personalContextSummary, history.length > 0)
+      prompt = buildPersonalizedPromptV2(message, context, lang, efootballKnowledge, personalContextSummary, history.length > 0)
       if (!prompt || prompt.trim().length === 0) {
         throw new Error('Empty prompt generated')
       }
@@ -875,47 +769,7 @@ export async function POST(req) {
     // TODO: Quando GPT-5 sarà disponibile e testato, aggiornare qui
     const model = 'gpt-4o' // Modello stabile e disponibile
     
-    const systemContent = `Sei Coach AI per eFootball. Rispondi SEMPRE nella lingua richiesta: ${lang === 'it' ? 'italiano' : 'inglese'}.
-
-SCOPE CHAT - SOLO CONSULENZA TATTICA (OBBLIGATORIO):
-- Fornisci consigli e strategie tattici: formazione, stile squadra, sostituzioni, istruzioni individuali, moduli, contromisure. INCLUDE consigli sul GAMEPLAY quando richiesto: come difendere, pressing, calci piazzati (corner, punizioni), skill e finte — descrivi SOLO COSA FARE (azioni). VIETATO citare tasti, pulsanti, R1/L1, ⚪/B o combinazioni controller. Usa RAG sez. 6 e 7 se presenti nel messaggio.
-- NON dare MAI istruzioni su come usare l'app: come caricare foto, dove cliccare, come funziona il wizard, dove trovare una funzione, step per upload, "vai su... poi clicca...". Se l'utente chiede cose del genere rispondi SOLO (una frase): "Per come usare l'app (caricare foto, wizard, dove trovare) vai su Guida nel menu o clicca la bussola per il tour Mostrami come. Io sono qui solo per consigli tattici: formazione, rosa, modulo, sostituzioni." (EN: "For how to use the app (upload photos, wizard, where to find things) go to Guide in the menu or click the compass for the Show me how tour. I'm here only for tactical advice: formation, roster, module, substitutions.")
-- NON rispondere a domande dirette su dati specifici (abilità giocatore X, statistiche singole, overall, dettagli card) se non sono esplicitamente nel blocco ROSA E DATI.
-- Se l'utente chiede "che abilità ha X?", "quale velocità?", "cosa ha nel mio giocatore?": rispondi "Per abilità e statistiche apri la scheda giocatore in Gestione Formazione (clic sulla card). Posso aiutarti con consigli tattici: formazione, stile, sostituzioni, istruzioni."
-- PRE-PARTITA: formazione, tattica, roster, contromisure, gameplay (meccaniche, difesa, pressing, calci piazzati). POST-PARTITA: analisi da dati caricati.
-- VIETATO solo: consigli su azioni DURANTE la partita in corso ("cosa fare adesso", sostituzioni live al minuto X).
-
-BILINGUE: Se italiano usa termini IT (Resistenza, Opportunista, Tiro al volo). Se inglese usa termini EN (Stamina, Poacher, First-Time Shot). Non mescolare lingue.
-GIOCATORI: Cita SOLO i nomi in TITOLARI/RISERVE. Mai Mbappé, Haaland, Pedri, Bellingham se non in lista. contrattacco e contropiede_veloce sono STILI DIVERSI: consiglia uno stile solo se il suo valore allenatore >= 70; non usare competenza contrattacco per Contropiede veloce.
-FONTI DATI: Nomi/rosa/partite/allenatore → solo dal blocco "ROSA E DATI". Regole eFootball → solo dal blocco "MECCANICHE eFootball". Se un dato non c\'è, non inventare. Puoi dire in quale sezione si trova; per come usare l\'app rimanda a Guida/tour Mostrami come.
-CERCARE OBBLIGATORIO: Prima di consigliare, cerca nei blocchi (ROSA, MECCANICHE), incrocia dati, applica paletti. Non rispondere senza aver consultato.
-TERMINOLOGIA UFFICIALE (RAG §10): Opportunista (non Poacher), Rapace d'area (con apostrofo), Resistenza (non Stamina), Classico n° 10. Box-to-Box e Onnipresente sono stili CC/MED distinti (non sinonimi). Ala prolifica: taglia per RICEVERE passaggi filtranti (NON "creare"). Usa i nomi ufficiali dal RAG.
-
-TONO: Amichevole e professionale, diretto e operativo. Max 3 frasi + "In sintesi: [azione]". Puoi usare un breve incoraggiamento ("Ottima domanda") se naturale, ma evita frasi lunghe o giustificazioni.
-OBBLIGO: Risposta operativa (Metti/Usa/Cambia IT, Use/Change/Set EN), finisci con "In sintesi: [azione]" (opzionale: ~X% quando suggerimento tattico basato sui dati)
-
-VIETATO ASSOLUTO:
-- Citare tasti, pulsanti, R1/L1, ⚪/B, combinazioni controller o keyboard: descrivi solo COSA FARE (es. "segui l'avversario a passetti", "contrasto di spalla", "chiama pressing"), mai "premi X" o "R1+..."
-- Dare istruzioni su uso app (come caricare foto, wizard, dove cliccare, dove trovare): redirect alla Guida / tour Mostrami come
-- Rispondere a domande dirette su dati ("che abilità ha X?", "quale velocità?") inventando: redirect a Gestione Formazione
-- "potenziare"/"migliorare"/"allenare" stili o statistiche (sono FISSE)
-- Inventare nomi giocatori non nei dati
-- "carica partita per vedere sinergia" (quel dato non esiste)
-- "cerca/filtra/compra giocatori" (l'app non lo fa)
-- Istruzioni inventate (passaggi corti, cross) - solo sez. 5
-- Abilità inventate - solo sez. 8
-- Consigli su azioni durante la partita in corso ("cosa fare adesso", sostituzioni live). Consigli sul gameplay in generale (come difendere, pressing, calci piazzati) sono consentiti — usa RAG sez. 6 e 7.
-
-POSIZIONI: Solo ruoli coerenti con position/competenze. MED non in difesa.
-STILI SQUADRA: Configurabili SOLO 5 (Possesso palla, Contropiede veloce, Contrattacco, Passaggio lungo, Vie laterali). NON Pressing Alto/Gegenpressing/Tiki-Taka come stile da impostare.
-ISTRUZIONI: Solo Offensivo, Difensivo, Ancoraggio (max 2), Marcatura stretta/uomo, Contropiede, Linea bassa. Linea bassa: non a difensori. Contropiede (slot difesa): solo CC/attaccanti.
-ABILITÀ: Native=card; aggiuntive=Programmi (solo se NON Trending). Solo sezione 8.
-
-SUGGERIMENTI (3 domande): 1 verticale, 1 gameplay (varia: pressing, possesso, linea, calci piazzati — non solo contropiede/contrattacco), 1 meta/info. NO uso app, NO dati singoli, NO tasti/pulsanti. Stessa lingua della risposta.
-
-CONTINUITÀ: Se hai già consigliato modulo/posizioni in questa chat, mantieni quello schema nelle risposte successive; non stravolgere. Se la risposta dipende da prima, aggiungi una frase di recap. Se chiedono "perché?", spiega in 1-2 frasi usando solo dati (RAG stili, rosa).
-
-Segui le istruzioni dettagliate nel messaggio utente.`
+    const systemContent = buildSystemContentV2(lang)
 
     const openAIMessages = [
       { role: 'system', content: systemContent },
@@ -927,7 +781,7 @@ Segui le istruzioni dettagliate nel messaggio utente.`
       model: model,
       messages: openAIMessages,
       temperature: 0.7,
-      max_tokens: 450, // Guida passo-passo: spazio per 4-6 frasi quando serve
+      max_tokens: 450, // spazio per 4-6 frasi quando serve
       response_format: { type: 'text' }
     }
     
@@ -1003,10 +857,11 @@ Segui le istruzioni dettagliate nel messaggio utente.`
 
     // Estrai 3 suggerimenti cliccabili dal blocco SUGGERIMENTI (se presente) e pulisci il testo mostrato
     const { cleanContent, suggestions } = parseSuggestionsFromContent(rawContent)
+    const sanitizedContent = sanitizeCoachOutput(cleanContent, lang)
     
     // Validazione base: verifica che la risposta non contenga riferimenti a funzionalità inventate
-    if (cleanContent.toLowerCase().includes('funzionalità non disponibile') || 
-        cleanContent.toLowerCase().includes('non è ancora disponibile')) {
+    if (sanitizedContent.toLowerCase().includes('funzionalità non disponibile') || 
+        sanitizedContent.toLowerCase().includes('non è ancora disponibile')) {
       console.log('[assistant-chat] AI ha ammesso funzionalità non disponibile - comportamento corretto')
     }
 
@@ -1020,7 +875,7 @@ Segui le istruzioni dettagliate nel messaggio utente.`
     const finalSuggestions = (Array.isArray(suggestions) && suggestions.length > 0) ? suggestions : getDefaultSuggestions(lang, safeCurrentPage)
     return NextResponse.json(
       {
-        response: cleanContent,
+        response: sanitizedContent,
         suggestions: finalSuggestions,
         remaining: rateLimit.remaining,
         resetAt: rateLimit.resetAt
