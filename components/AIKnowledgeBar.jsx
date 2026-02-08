@@ -150,11 +150,12 @@ export default function AIKnowledgeBar() {
     }
   }
 
-  const getColorForScore = (score) => {
-    if (score >= 81) return '#00ff88' // Verde
-    if (score >= 61) return '#00d4ff' // Blu
-    if (score >= 31) return '#ffaa00' // Arancione
-    return '#ff6b00' // Rosso/Arancione
+  /** Zero → Hero: gradienti enterprise (da freddo/zero a caldo/ero) */
+  const getBarGradient = (score) => {
+    if (score >= 81) return 'linear-gradient(90deg, #0d3d0d 0%, #1a7a32 50%, #00e676 100%)'
+    if (score >= 61) return 'linear-gradient(90deg, #0d2d3d 0%, #0d7a9e 50%, #00d4ff 100%)'
+    if (score >= 31) return 'linear-gradient(90deg, #3d2d0d 0%, #b8860b 50%, #ffc107 100%)'
+    return 'linear-gradient(90deg, #3d1a1a 0%, #b84d4d 50%, #ff6b6b 100%)'
   }
 
   const getLevelText = (level) => {
@@ -237,41 +238,41 @@ export default function AIKnowledgeBar() {
 
   return (
     <div style={{
-      backgroundColor: '#1a1a1a',
-      borderRadius: '12px',
-      padding: 'clamp(16px, 4vw, 20px)',
+      background: 'linear-gradient(145deg, #1a1d24 0%, #15181e 100%)',
+      borderRadius: '16px',
+      padding: 'clamp(18px, 4vw, 24px)',
       marginBottom: '24px',
-      border: '1px solid #2a2a2a'
+      border: '1px solid rgba(255,255,255,0.06)',
+      boxShadow: '0 4px 24px rgba(0,0,0,0.2)'
     }}>
-      {/* Header */}
+      {/* Header: titolo + % */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        marginBottom: '12px',
+        marginBottom: '14px',
         flexWrap: 'wrap',
         gap: '8px'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Brain size={20} color="#00d4ff" />
-          <h2 style={{
-            margin: 0,
-            fontSize: 'clamp(16px, 4vw, 18px)',
-            fontWeight: '600'
-          }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <Brain size={22} style={{ color: 'var(--neon-blue, #00d4ff)', filter: 'drop-shadow(0 0 8px rgba(0,212,255,0.3))' }} />
+          <h2 style={{ margin: 0, fontSize: 'clamp(17px, 4vw, 19px)', fontWeight: '600', letterSpacing: '-0.02em' }}>
             {t('aiKnowledge') || 'Conoscenza AI'}
           </h2>
         </div>
         <span style={{
-          fontSize: 'clamp(14px, 3vw, 16px)',
-          color: '#888',
-          fontWeight: '600'
+          fontSize: 'clamp(18px, 4vw, 22px)',
+          fontWeight: '700',
+          background: getBarGradient(score),
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text'
         }}>
           {Math.round(score)}%
         </span>
       </div>
 
-      {/* Progress Bar - IDENTICO a profilazione; ARIA per accessibilità */}
+      {/* Barra Zero → Hero: gradiente + animazione fill */}
       <div
         role="progressbar"
         aria-valuenow={Math.round(score)}
@@ -280,96 +281,86 @@ export default function AIKnowledgeBar() {
         aria-label={`${t('aiKnowledge') || 'Conoscenza AI'}: ${Math.round(score)}%`}
         style={{
           width: '100%',
-          height: '24px',
-          backgroundColor: '#2a2a2a',
-          borderRadius: '12px',
+          height: '28px',
+          backgroundColor: 'rgba(0,0,0,0.35)',
+          borderRadius: '14px',
           overflow: 'hidden',
           marginBottom: '12px',
-          position: 'relative'
+          position: 'relative',
+          boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.3)'
         }}
       >
-        <div style={{
-          width: `${score}%`,
-          height: '100%',
-          backgroundColor: getColorForScore(score),
-          transition: 'width 0.3s ease',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'flex-end',
-          paddingRight: '8px',
-          fontSize: '12px',
-          fontWeight: '600',
-          color: '#000'
-        }}>
-          {score > 10 && `${Math.round(score)}%`}
+        <div
+          style={{
+            width: `${score}%`,
+            height: '100%',
+            background: getBarGradient(score),
+            transition: 'width 0.7s cubic-bezier(0.4, 0, 0.2, 1)',
+            borderRadius: '14px',
+            position: 'relative',
+            boxShadow: '0 0 20px rgba(255,255,255,0.08)',
+            animation: 'heroBarFill 0.8s ease-out'
+          }}
+        >
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            borderRadius: '14px',
+            background: 'linear-gradient(105deg, transparent 0%, rgba(255,255,255,0.12) 50%, transparent 100%)',
+            animation: 'heroBarShine 2.5s ease-in-out infinite',
+            pointerEvents: 'none'
+          }} />
+          {score > 12 && (
+            <span style={{
+              position: 'absolute',
+              right: '10px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              fontSize: '12px',
+              fontWeight: '700',
+              color: 'rgba(0,0,0,0.7)',
+              textShadow: '0 0 1px rgba(255,255,255,0.5)'
+            }}>
+              {Math.round(score)}%
+            </span>
+          )}
         </div>
       </div>
 
-      {/* Level Badge */}
-      <div style={{
-        fontSize: 'clamp(12px, 3vw, 14px)',
-        color: '#888',
-        marginBottom: '8px'
+      {/* Una sola riga: livello + messaggio breve */}
+      <p style={{
+        fontSize: 'clamp(12px, 2.8vw, 14px)',
+        color: 'rgba(255,255,255,0.7)',
+        margin: '0 0 10px 0',
+        lineHeight: 1.4
       }}>
-        {getLevelText(level)} - {getDescriptionText(level)}
-      </div>
+        {getLevelText(level)} — {getDescriptionText(level)}
+      </p>
 
-      {/* Nesso obiettivi → score */}
-      <div style={{
-        fontSize: 'clamp(11px, 2.5vw, 12px)',
-        color: '#666',
-        marginBottom: '8px'
-      }}>
-        {t('goalsContributeToBar') || 'Gli obiettivi completati contribuiscono a questo score.'}
-      </div>
-
-      {/* Breakdown (Espandibile) */}
-      <details 
-        style={{
-          fontSize: 'clamp(11px, 3vw, 13px)',
-          color: '#666',
-          marginTop: '8px'
-        }}
+      {/* Dettagli compatti: una riga, espandibile */}
+      <details
+        style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}
         open={showDetails}
         onToggle={(e) => setShowDetails(e.target.open)}
       >
-        <summary style={{
-          cursor: 'pointer',
-          marginBottom: '8px',
-          color: '#888',
-          userSelect: 'none'
-        }}>
+        <summary style={{ cursor: 'pointer', userSelect: 'none', marginBottom: '6px' }}>
           {t('viewDetails') || 'Vedi dettagli'}
         </summary>
-        <div style={{
-          marginTop: '8px',
-          paddingLeft: '16px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '4px'
-        }}>
-          <div>{t('aiKnowledgeProfile')}: {Math.round(breakdown.profile || 0)}/20</div>
-          <div>{t('aiKnowledgeRoster')}: {Math.round(breakdown.roster || 0)}/25</div>
-          <div>{t('aiKnowledgeMatches')}: {Math.round(breakdown.matches || 0)}/30</div>
-          <div title={t('aiKnowledgePatternsHint')}>{t('aiKnowledgePatterns')}: {Math.round(breakdown.patterns || 0)}/15</div>
-          <div>{t('aiKnowledgeCoach')}: {Math.round(breakdown.coach || 0)}/10</div>
-          <div>{t('aiKnowledgeUsage')}: {Math.round(breakdown.usage || 0)}/10</div>
-          <div title={t('aiKnowledgeSuccessHint')}>{t('aiKnowledgeSuccess')}: {Math.round(breakdown.success || 0)}/15</div>
-        </div>
+        <p style={{ margin: '6px 0 0 0', fontSize: '11px', lineHeight: 1.5 }}>
+          {t('aiKnowledgeProfile')} {Math.round(breakdown.profile || 0)}/20 · {t('aiKnowledgeRoster')} {Math.round(breakdown.roster || 0)}/25 · {t('aiKnowledgeMatches')} {Math.round(breakdown.matches || 0)}/30 · {t('aiKnowledgePatterns')} {Math.round(breakdown.patterns || 0)}/15 · {t('aiKnowledgeCoach')} {Math.round(breakdown.coach || 0)}/10 · {t('aiKnowledgeUsage')} {Math.round(breakdown.usage || 0)}/10 · {t('aiKnowledgeSuccess')} {Math.round(breakdown.success || 0)}/15
+        </p>
       </details>
 
-      {/* CTA dinamica: primo step sotto il massimo (non sempre "Completa il profilo") */}
+      {/* CTA una riga, solo se score < 50 */}
       {score < 50 && (
-        <div style={{
-          marginTop: '12px',
-          padding: '12px',
-          backgroundColor: 'rgba(255, 165, 0, 0.1)',
-          borderRadius: '8px',
-          fontSize: 'clamp(11px, 3vw, 13px)',
-          color: '#ffaa00'
+        <p style={{
+          marginTop: '10px',
+          fontSize: '12px',
+          color: 'rgba(255, 193, 7, 0.95)',
+          fontWeight: '500'
         }}>
           💡 {t(getNextStepCtaKey())}
-        </div>
+        </p>
       )}
     </div>
   )

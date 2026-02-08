@@ -460,6 +460,16 @@ body > * {
   }
 }
 
+/* Zero → Hero: barra Conoscenza (fill + glow) */
+@keyframes heroBarFill {
+  from { width: 0; }
+}
+@keyframes heroBarShine {
+  0% { opacity: 0.4; }
+  50% { opacity: 0.9; }
+  100% { opacity: 0.4; }
+}
+
 /* Toast Animation */
 @keyframes slideInRight {
   from {
