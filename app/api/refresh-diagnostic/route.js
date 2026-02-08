@@ -85,10 +85,10 @@ export async function POST(req) {
       admin.from('formation_layout').select('formation').eq('user_id', userId).maybeSingle(),
       admin.from('players').select('id, player_name, position, overall_rating, playing_style_id, role, slot_index, skills, com_skills').eq('user_id', userId).order('slot_index', { ascending: true, nullsFirst: false }).limit(50),
       admin.from('playing_styles').select('id, name'),
-      admin.from('matches').select('opponent_name, result, formation_played, playing_style_played, match_date, opponent_formation_id').eq('user_id', userId).order('match_date', { ascending: false }).limit(20),
+      admin.from('matches').select('opponent_name, result, formation_played, playing_style_played, match_date, opponent_formation_id, player_ratings, attack_areas, team_stats').eq('user_id', userId).order('match_date', { ascending: false }).limit(20),
       admin.from('team_tactical_settings').select('team_playing_style, individual_instructions').eq('user_id', userId).maybeSingle(),
       admin.from('coaches').select('coach_name, playing_style_competence, connection, stat_boosters').eq('user_id', userId).eq('is_active', true).maybeSingle(),
-      admin.from('team_tactical_patterns').select('formation_usage, playing_style_usage, recurring_issues').eq('user_id', userId).maybeSingle(),
+      admin.from('team_tactical_patterns').select('formation_usage, playing_style_usage, recurring_issues, attack_areas_avg, recovery_zones_avg').eq('user_id', userId).maybeSingle(),
       admin.from('user_game_analysis').select('stats, captured_at').eq('user_id', userId).maybeSingle()
     ])
 

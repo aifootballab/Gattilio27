@@ -3,7 +3,7 @@
 import React, { useState, useRef } from 'react'
 import { useTranslation } from '@/lib/i18n'
 import { supabase } from '@/lib/supabaseClient'
-import { BarChart3, X, Upload, Image as ImageIcon } from 'lucide-react'
+import { BarChart3, X, Upload, Image as ImageIcon, RefreshCw, CheckCircle2 } from 'lucide-react'
 
 const MAX_FILES = 2
 const MAX_SIZE_MB = 10
@@ -15,6 +15,35 @@ function fileToDataUrl(file) {
     reader.onerror = reject
     reader.readAsDataURL(file)
   })
+}
+
+// Stili allineati ai modali gestione rosa (UploadPlayerModal, AssignModal): card, header, body, footer, responsive
+// Allineato a gestione-formazione: overlay e card responsive (padding, maxHeight)
+const overlayStyle = {
+  position: 'fixed',
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  background: 'rgba(0, 0, 0, 0.8)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  zIndex: 1001,
+  padding: 'clamp(16px, 4vw, 24px)',
+  boxSizing: 'border-box'
+}
+
+const boxStyle = {
+  maxWidth: '520px',
+  width: '100%',
+  maxHeight: '90vh',
+  overflowY: 'auto',
+  padding: 'clamp(16px, 4vw, 24px)',
+  background: 'rgba(10, 14, 39, 0.95)',
+  border: '2px solid var(--neon-blue)',
+  borderRadius: '12px',
+  boxSizing: 'border-box'
 }
 
 export default function GameAnalysisModal({ show, onClose, onSuccess }) {
@@ -65,7 +94,6 @@ export default function GameAnalysisModal({ show, onClose, onSuccess }) {
       if (res.ok && data.success) {
         setSuccess(true)
         onSuccess?.()
-        // Aggiorna il riassunto (diagnostic) così la chat vede subito le nuove statistiche
         try {
           await fetch('/api/refresh-diagnostic', {
             method: 'POST',
@@ -97,118 +125,225 @@ export default function GameAnalysisModal({ show, onClose, onSuccess }) {
 
   if (!show) return null
 
-  const modalStyle = {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 10000,
-    padding: '16px'
-  }
-  const boxStyle = {
-    background: 'var(--card-bg, #1a1a2e)',
-    border: '1px solid rgba(0, 212, 255, 0.25)',
-    borderRadius: '12px',
-    maxWidth: '440px',
-    width: '100%',
-    overflow: 'hidden'
-  }
-  const headerStyle = {
-    padding: '16px 20px',
-    borderBottom: '1px solid rgba(255,255,255,0.08)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: '12px'
-  }
-  const bodyStyle = { padding: '20px' }
-  const hintStyle = { fontSize: '13px', color: 'rgba(255,255,255,0.7)', marginBottom: '16px' }
-  const inputWrapStyle = {
-    marginBottom: '16px',
-    minHeight: '48px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    border: '2px dashed rgba(255,255,255,0.2)',
-    borderRadius: '12px',
-    padding: '16px',
-    cursor: 'pointer',
-    background: 'rgba(0,0,0,0.2)'
-  }
-  const previewStyle = { display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '12px' }
-  const previewItemStyle = {
-    fontSize: '12px',
-    color: 'rgba(255,255,255,0.8)',
-    background: 'rgba(0,212,255,0.15)',
-    padding: '8px 12px',
-    borderRadius: '8px',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px'
-  }
-
   return (
-    <div style={modalStyle} onClick={(e) => e.target === e.currentTarget && onClose?.()}>
-      <div style={boxStyle} onClick={e => e.stopPropagation()}>
-        <div style={headerStyle}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <BarChart3 size={20} style={{ color: 'var(--neon-blue)' }} />
-            <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 600 }}>{t('gameAnalysisTitle')}</h2>
-          </div>
-          <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', padding: '4px' }} aria-label={t('close')}>
-            <X size={22} />
+    <div
+      style={overlayStyle}
+      onClick={(e) => e.target === e.currentTarget && !loading && onClose?.()}
+    >
+      <div
+        className="card"
+        style={boxStyle}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header: allineato a UploadPlayerModal / AssignModal */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '20px'
+        }}>
+          <h2 style={{
+            fontSize: 'clamp(18px, 4vw, 20px)',
+            fontWeight: 700,
+            margin: 0,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px'
+          }}>
+            <BarChart3 size={22} style={{ color: 'var(--neon-blue)', flexShrink: 0 }} />
+            {t('gameAnalysisTitle')}
+          </h2>
+          <button
+            type="button"
+            onClick={() => !loading && onClose?.()}
+            disabled={loading}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'rgba(255, 255, 255, 0.7)',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              padding: '8px',
+              opacity: loading ? 0.5 : 1,
+              minWidth: 44,
+              minHeight: 44
+            }}
+            aria-label={t('close')}
+          >
+            <X size={20} />
           </button>
         </div>
-        <div style={bodyStyle}>
-          <p style={hintStyle}>{t('gameAnalysisUploadHint')}</p>
-          <form onSubmit={handleSubmit}>
-            <label style={{ display: 'block' }}>
-              <div
-                style={inputWrapStyle}
-                onClick={() => inputRef.current?.click()}
-              >
-                <input
-                  ref={inputRef}
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  style={{ display: 'none' }}
-                  onChange={handleFileChange}
-                />
-                <Upload size={24} style={{ opacity: 0.8 }} />
-                <span style={{ marginLeft: '8px' }}>
-                  {files.length === 0
-                    ? (lang === 'en' ? 'Choose 1 or 2 images' : 'Scegli 1 o 2 immagini')
-                    : `${files.length} ${lang === 'en' ? 'image(s)' : 'immagine/i'}`}
-                </span>
-              </div>
-            </label>
-            {files.length > 0 && (
-              <div style={previewStyle}>
-                {files.map((f, i) => (
-                  <div key={i} style={previewItemStyle}>
-                    <ImageIcon size={14} />
-                    {f.name}
-                    <button type="button" onClick={() => removeFile(i)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.8)', cursor: 'pointer', padding: '0 4px' }}>×</button>
-                  </div>
-                ))}
-              </div>
-            )}
-            {error && <p style={{ color: '#ef4444', fontSize: '13px', marginTop: '12px' }}>{error}</p>}
-            {success && <p style={{ color: 'var(--neon-blue)', fontSize: '13px', marginTop: '12px' }}>{t('gameAnalysisSuccess')}</p>}
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '20px', flexWrap: 'wrap' }}>
-              <button type="button" className="btn secondary" onClick={onClose} disabled={loading}>{t('close')}</button>
-              <button type="submit" className="btn primary" disabled={loading || files.length === 0}>
-                {loading ? t('gameAnalysisAnalyzing') : t('gameAnalysisUpload')}
-              </button>
-            </div>
-          </form>
+
+        {/* Istruzione: stile unico step come in UploadPlayerModal */}
+        <div style={{
+          fontSize: '14px',
+          opacity: 0.9,
+          marginBottom: '20px',
+          textAlign: 'center',
+          lineHeight: 1.5
+        }}>
+          {t('gameAnalysisUploadHint')}
         </div>
+
+        <form onSubmit={handleSubmit}>
+          {/* Zona drop: card come gestione rosa (stesso look delle card vuote) */}
+          <label style={{ display: 'block', marginBottom: '16px' }}>
+            <div
+              style={{
+                padding: '20px 16px',
+                minHeight: '56px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '12px',
+                border: '2px dashed rgba(0, 212, 255, 0.3)',
+                borderRadius: '12px',
+                background: 'rgba(0, 212, 255, 0.05)',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                transition: 'all 0.2s ease',
+                opacity: loading ? 0.7 : 1
+              }}
+              onMouseEnter={(e) => {
+                if (!loading) {
+                  e.currentTarget.style.background = 'rgba(0, 212, 255, 0.1)'
+                  e.currentTarget.style.borderColor = 'rgba(0, 212, 255, 0.5)'
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(0, 212, 255, 0.05)'
+                e.currentTarget.style.borderColor = 'rgba(0, 212, 255, 0.3)'
+              }}
+              onClick={() => !loading && inputRef.current?.click()}
+            >
+              <input
+                ref={inputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                style={{ display: 'none' }}
+                onChange={handleFileChange}
+                disabled={loading}
+              />
+              <Upload size={24} style={{ color: 'var(--neon-blue)', flexShrink: 0 }} />
+              <span style={{ fontSize: '14px', fontWeight: 600 }}>
+                {files.length === 0
+                  ? (lang === 'en' ? 'Choose 1 or 2 images' : 'Scegli 1 o 2 immagini')
+                  : `${files.length} ${lang === 'en' ? 'image(s)' : 'immagine/i'}`}
+              </span>
+            </div>
+          </label>
+
+          {/* Preview: chip come in gestione rosa (verde check, rimuovi) */}
+          {files.length > 0 && (
+            <div style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '10px',
+              marginBottom: '16px'
+            }}>
+              {files.map((f, i) => (
+                <div
+                  key={i}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '10px 14px',
+                    background: 'rgba(34, 197, 94, 0.15)',
+                    border: '1px solid rgba(34, 197, 94, 0.35)',
+                    borderRadius: '10px',
+                    fontSize: '13px',
+                    color: 'rgba(255,255,255,0.95)'
+                  }}
+                >
+                  <ImageIcon size={16} style={{ flexShrink: 0, opacity: 0.9 }} />
+                  <span style={{ maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
+                  <span style={{ fontSize: '11px', padding: '2px 6px', background: 'var(--neon-green)', color: '#000', borderRadius: '4px', fontWeight: 700 }}>✓</span>
+                  <button
+                    type="button"
+                    onClick={() => removeFile(i)}
+                    disabled={loading}
+                    style={{
+                      background: 'rgba(239, 68, 68, 0.2)',
+                      border: '1px solid rgba(239, 68, 68, 0.4)',
+                      color: '#ef4444',
+                      padding: '4px 8px',
+                      borderRadius: '6px',
+                      cursor: loading ? 'not-allowed' : 'pointer',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      minWidth: 32,
+                      minHeight: 32
+                    }}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {error && (
+            <p style={{ color: '#ef4444', fontSize: '13px', marginBottom: '12px' }}>{error}</p>
+          )}
+          {success && (
+            <p style={{ color: 'var(--neon-green)', fontSize: '13px', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <CheckCircle2 size={16} />
+              {t('gameAnalysisSuccess')}
+            </p>
+          )}
+
+          {/* Footer: stesso layout di UploadPlayerModal (border-top, flex-end, wrap) */}
+          <div style={{
+            display: 'flex',
+            gap: '12px',
+            justifyContent: 'flex-end',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            borderTop: '1px solid rgba(255,255,255,0.1)',
+            paddingTop: '20px',
+            marginTop: '20px'
+          }}>
+            <div style={{ marginRight: 'auto', fontSize: '13px', opacity: 0.7 }}>
+              {files.length === 0
+                ? (lang === 'en' ? 'No images selected' : 'Nessuna immagine selezionata')
+                : <span style={{ color: 'var(--neon-green)' }}>{files.length} {files.length === 1 ? (lang === 'en' ? 'image' : 'immagine') : (lang === 'en' ? 'images' : 'immagini')}</span>}
+            </div>
+            <button
+              type="button"
+              className="btn"
+              onClick={onClose}
+              disabled={loading}
+              style={{ padding: '12px 24px', minHeight: 44 }}
+            >
+              {t('close')}
+            </button>
+            <button
+              type="submit"
+              className="btn primary"
+              disabled={loading || files.length === 0}
+              style={{
+                padding: '12px 24px',
+                minHeight: 44,
+                opacity: loading ? 0.6 : 1,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              {loading ? (
+                <>
+                  <RefreshCw size={16} className="spin" />
+                  {t('gameAnalysisAnalyzing')}
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 size={16} />
+                  {t('gameAnalysisUpload')}
+                </>
+              )}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   )

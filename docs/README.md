@@ -2,6 +2,15 @@
 
 Solo documenti utili e di riferimento per produzione.
 
+## Diagnostic, chat e riassunto
+- **IMPLEMENTAZIONE_DIAGNOSTIC_CHAT.md** – Piano e implementazione: diagnostic, "Aggiorna analisi", cache, suggerimenti (stato: implementato)
+- **DIAGNOSTIC_DOCUMENTO_ANALISI_DIFFICOLTA.md** – Dati, flussi, difficoltà e struttura del riassunto analisi
+- **CONTROLLO_E2E_DIAGNOSTIC_CHAT.md** – Controllo end-to-end: auth, flussi (diagnostic, Informazioni IA, Statistiche di gioco, partite inserite), sicurezza, coerenza
+- **RIASSUNTO_E_NUOVE_INFORMAZIONI_CHAT.md** – Da dove arrivano le informazioni (Informazioni IA, Statistiche di gioco), come entrano nel riassunto, come la chat le usa; RAG vs riassunto; partite inserite vs statistiche screenshot (nessun conflitto)
+- **ROADMAP_ENTERPRISE_COACH.md** – Roadmap prodotto enterprise e coach vero (priorità profilo, freschezza dati, UX/responsivo)
+- **AUDIT_SUPABASE_TABELLE_E_ALLINEAMENTO.md** – Allineamento DB/codice, tabelle public, quando si popolano (auth/storage/realtime/vault), sottotabelle (players ↔ playing_styles)
+- **AUDIT_IA_RAG.md** – RAG eFootball, info_rag.md, classificazione domande
+
 ## Auth e email
 - **RECUPERO_PASSWORD.md** – Flusso recupero password, configurazione Supabase, task SMTP
 - **AUTH_EMAIL_ENTERPRISE_E_REDIRECT.md** – Redirect email, Site URL, NEXT_PUBLIC_APP_URL
@@ -18,5 +27,9 @@ Solo documenti utili e di riferimento per produzione.
 
 ## Riferimento e audit
 - **GESTIONE_ROSA_FUNZIONI.md** – Funzioni gestione rosa, formazione
-- **AUDIT_CHAT_COACH.md** – Audit chat coach (ripetitivita, tasti, varieta consigli)
-- **SERVIZI_CLIENTE_EFOOTBALL_AI_COACH_DESCRIZIONE_COMPLETA.md** – Descrizione precisa di ogni cartella e ogni funzione, nominata in base al servizio al cliente (pagine, API, lib, components)
+- **TASK_E_KNOWLEDGE_ESPERIENZA_CLIENTE.md** – Task (obiettivi settimanali), barra Conoscenza, cosa succede quando il cliente completa un task
+- **AUDIT_CHAT_COACH.md** – Audit chat coach (ripetività, tasti, varietà consigli)
+- **SERVIZI_CLIENTE_EFOOTBALL_AI_COACH_DESCRIZIONE_COMPLETA.md** – Descrizione cartelle e funzioni per servizio al cliente (pagine, API, lib, components)
+- **AUDIT_BARRA_CONOSCENZA_AI.md** – Barra Conoscenza AI
+- **AUDIT_UX_IMPOSTAZIONI_PROFILO_E_HERO_POINTS.md** – UX impostazioni profilo e Hero Points
+- **AUDIT_ENTERPRISE_TASK_FONTI_VERITA.md** – Enterprise task e fonti di verità

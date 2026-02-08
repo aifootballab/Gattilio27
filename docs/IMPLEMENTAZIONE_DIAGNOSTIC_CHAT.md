@@ -1,7 +1,9 @@
 # Piano implementazione: Documento di analisi (diagnostic) + Chat + Suggerimenti
 
+**Stato**: **Implementato** (2026-02-08). **E2E e sicurezza**: `CONTROLLO_E2E_DIAGNOSTIC_CHAT.md`. **Riassunto e nuove informazioni**: `RIASSUNTO_E_NUOVE_INFORMAZIONI_CHAT.md`. DB: `AUDIT_SUPABASE_TABELLE_E_ALLINEAMENTO.md`.
+
 **Obiettivo**: introdurre il riassunto enterprise (diagnostic), il tasto “Aggiorna analisi” con rate limit, l’uso del diagnostic in chat al posto del blocco grezzo quando presente, e la formula suggerimenti.  
-**Riferimenti**: `DIAGNOSTIC_DOCUMENTO_ANALISI_DIFFICOLTA.md`, `FORMULA_SUGGERIMENTI_CHAT.md`.
+**Riferimenti**: `DIAGNOSTIC_DOCUMENTO_ANALISI_DIFFICOLTA.md`. Flussi e sicurezza: `CONTROLLO_E2E_DIAGNOSTIC_CHAT.md`.
 
 ---
 
@@ -27,8 +29,7 @@
 
 | Dove | Da rimuovere (non usare più) | Sostituire con |
 |------|------------------------------|----------------|
-| **suggRulesIt** (circa riga 555) | `SUGGERIMENTI (3 domande, obbligatori): 1 verticale sullo stesso problema, 1 gameplay (pressing/compattezza/possesso/piazzati/transizioni), 1 meta/info. Niente uso app, niente tasti/pulsanti.` | Formula da `FORMULA_SUGGERIMENTI_CHAT.md`: (1) approfondimento stessa leva + suoi dati, (2) gameplay legato a formazione/stile/risposta, (3) prossimo passo con rosa/partite/allenatore; divieti: meta, "perché ho perso", "migliorare giocatore". |
-| **suggRulesEn** (circa riga 556) | `SUGGESTIONS (3 questions, required): 1 deep-dive on same issue, 1 gameplay (pressing/compactness/possession/set pieces/transitions), 1 meta/info. No app usage, no buttons/inputs.` | Stessa formula in inglese (approfondimento, gameplay legato, prossimo passo con roster/matches/coach; no meta, no "why did I lose", no "improve player"). |
+| **suggRulesIt** / **suggRulesEn** | (obsoleto: verticale + gameplay + meta) | (1) Approfondimento stessa leva + dati utente, (2) gameplay legato alla risposta, (3) prossimo passo con rosa/partite/allenatore. Divieti: meta, "perché ho perso", "migliorare giocatore". |
 
 #### getDefaultSuggestions – voci da rimuovere/sostituire
 
@@ -43,7 +44,7 @@ Domande che **non** devono più comparire (meta, "perché ho perso", generiche "
 | `contromisure` | "Quali contromisure sono più efficaci?" (se inteso come meta) | "Which countermeasures are most effective?" |
 | `allenatori` | "Quali stili sono più efficaci?" | "Which styles are most effective?" |
 
-Sostituire con frasi **concrete e legate ai dati** come in `FORMULA_SUGGERIMENTI_CHAT.md` §4 (es. "Cosa correggere dopo questa partita?", "Quale modulo abbinare al mio allenatore con la rosa attuale?", "Come organizzare pressing e compattezza con la mia rosa?").
+Sostituire con domande **utili e legate ai dati** (es. analisi vs rosa, uso comandi/abilità, priorità): vedi `getDefaultSuggestions` in `assistant-chat/route.js` e `initialSuggestions` in `AssistantChat.jsx`.
 
 #### Chiamate – quando non eseguire più
 
@@ -238,17 +239,18 @@ La parte più delicata è il **diagnosticBuilder** (completezza, coerenza con RA
 
 ## 9. Checklist finale
 
-- [ ] Migration `user_diagnostic_cache` creata e applicata
-- [ ] RLS attivo su `user_diagnostic_cache`
-- [ ] `lib/diagnosticBuilder.js` implementato (almeno v1 con sezioni principali)
-- [ ] `app/api/refresh-diagnostic/route.js` implementato (auth, rate limit 2/min, 429 + Retry-After)
-- [ ] `RATE_LIMIT_CONFIG['/api/refresh-diagnostic']` aggiunto
-- [ ] `assistant-chat`: lettura cache diagnostic, uso nel prompt; fallback a buildPersonalContext
-- [ ] suggRules e getDefaultSuggestions aggiornati secondo FORMULA_SUGGERIMENTI_CHAT
-- [ ] Bottone “Aggiorna analisi” in UI (dashboard o chat)
-- [ ] Gestione 429 con messaggio “max 2 volte al minuto”
-- [ ] Chiavi i18n per bottone e messaggi
-- [ ] Doc AUDIT, REFACTOR, DIAGNOSTIC aggiornate
+- [x] Migration `user_diagnostic_cache` creata e applicata
+- [x] RLS attivo su `user_diagnostic_cache`
+- [x] `lib/diagnosticBuilder.js` implementato (sezioni principali, connection, boosters, sinergie, leve, fallback role)
+- [x] `app/api/refresh-diagnostic/route.js` implementato (auth, rate limit 2/min, 429 + Retry-After)
+- [x] `RATE_LIMIT_CONFIG['/api/refresh-diagnostic']` aggiunto
+- [x] `assistant-chat`: lettura cache diagnostic, uso nel prompt; fallback a buildPersonalContext
+- [x] suggRules e getDefaultSuggestions aggiornati secondo FORMULA_SUGGERIMENTI_CHAT
+- [x] Bottone “Aggiorna analisi” in UI (dashboard)
+- [x] Gestione 429 con messaggio “max 2 volte al minuto”
+- [x] Chiavi i18n per bottone e messaggi
+- [x] Doc AUDIT, REFACTOR, DIAGNOSTIC aggiornate
+- [x] save-player: lookup `playing_style_id` da `role`; backfill migration per righe già salvate
 
 ---
 

@@ -21,23 +21,23 @@ export default function AssistantChat() {
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
   
-  // Suggerimenti: 1 verticale (pagina), 1 gameplay (uso in partita), 1 meta/info
+  // Suggerimenti utili: analisi vs rosa, uso comandi/abilità, priorità concrete
   const initialSuggestions = useMemo(() => {
     const page = (currentPage || '').toLowerCase()
     if (lang === 'en') {
-      if (page.includes('gestione-formazione')) return ['Which formation for my roster?', 'How to manage pressing and compactness in a match?', 'Which individual instructions do you recommend?']
-      if (page.includes('match/new')) return ['Which formation for my next match?', 'How to defend better in a match?', 'Which formations are strongest?']
-      if (page.includes('match/') && !page.includes('new')) return ['Why did I lose this match?', 'How to handle set pieces?', 'Which styles work best?']
-      if (page.includes('contromisure')) return ['Which formation against 4-3-3?', 'How to close down space in defence?', 'Which countermeasures are most effective?']
-      if (page.includes('allenatori')) return ['What style fits my coach?', 'High or deep line with this style?', 'Which styles are most effective?']
-      return ['Which formation for my roster?', 'How to improve build-up and possession?', 'Want info on meta?']
+      if (page.includes('gestione-formazione')) return ['Do my analysis stats match the roster I have?', 'Am I using passing and shooting in line with my players\' skills?', 'Based on roster and matches, what should I work on first?']
+      if (page.includes('match/new')) return ['What to prepare for the next match with my roster?', 'What priorities in defence and attack with the players I use?', 'How to get the most from my roster\'s skills in a match?']
+      if (page.includes('match/') && !page.includes('new')) return ['What to fix after this match based on how I played?', 'Do my stats (passing, shot, defence) fit my roster?', 'What priorities for the next matches?']
+      if (page.includes('contromisure')) return ['How to counter aggressive formations with my roster?', 'What priorities in defence and attack?', 'What to prepare on set pieces with my players?']
+      if (page.includes('allenatori')) return ['What style fits my coach with my roster?', 'Do my game stats suit the players I have?', 'What priorities with this coach?']
+      return ['Do my analysis stats match the roster I have?', 'Am I using commands (passing, shot, defence) in line with my roster\'s skills?', 'Based on matches and data, what should I work on first?']
     }
-    if (page.includes('gestione-formazione')) return ['Quale modulo per la mia rosa?', 'Come gestire pressing e compattezza in partita?', 'Quali istruzioni individuali mi consigli?']
-    if (page.includes('match/new')) return ['Quale modulo per la prossima partita?', 'Come difendere meglio in partita?', 'Quali formazioni sono più forti?']
-    if (page.includes('match/') && !page.includes('new')) return ['Perché ho perso questa partita?', 'Come gestire i calci piazzati?', 'Quali stili funzionano meglio?']
-    if (page.includes('contromisure')) return ['Quale formazione contro il 4-3-3?', 'Come chiudere gli spazi in difesa?', 'Quali contromisure sono più efficaci?']
-    if (page.includes('allenatori')) return ['Quale stile abbinare al mio allenatore?', 'Linea alta o bassa con questo stile?', 'Quali stili sono più efficaci?']
-    return ['Quale modulo per la mia rosa?', 'Come migliorare costruzione e possesso?', 'Vuoi informazioni sul meta?']
+    if (page.includes('gestione-formazione')) return ['Le mie statistiche di analisi sono adatte alla rosa che ho?', 'Uso passaggio e tiro in modo coerente con le abilità dei miei giocatori?', 'In base a rosa e partite, qual è la prima cosa su cui lavorare?']
+    if (page.includes('match/new')) return ['Cosa preparare per la prossima partita con la mia rosa?', 'Quali priorità in difesa e attacco con i giocatori che schiero?', 'Come sfruttare al meglio le abilità della rosa in partita?']
+    if (page.includes('match/') && !page.includes('new')) return ['Cosa correggere dopo questa partita in base a come ho giocato?', 'Le mie statistiche (passaggio, tiro, difesa) vanno d\'accordo con la rosa?', 'Quali priorità per le prossime partite?']
+    if (page.includes('contromisure')) return ['Come contrastare formazioni aggressive con la mia rosa?', 'Quali priorità in difesa e attacco?', 'Cosa preparare sui piazzati con i miei giocatori?']
+    if (page.includes('allenatori')) return ['Quale stile abbinare al mio allenatore con la rosa?', 'Le mie statistiche di gioco sono adatte ai giocatori che ho?', 'Quali priorità con questo allenatore?']
+    return ['Le mie statistiche di analisi sono adatte alla rosa che ho?', 'Uso i comandi (passaggio, tiro, difesa) in modo coerente con le abilità della rosa?', 'In base a partite e dati, su cosa mi conviene lavorare prima?']
   }, [currentPage, lang])
   
   // Carica profilo utente al mount
