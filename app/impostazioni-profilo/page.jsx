@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { useTranslation } from '@/lib/i18n'
 import LanguageSwitch from '@/components/LanguageSwitch'
-import { ArrowLeft, Save, SkipForward, RefreshCw, User, Gamepad2, Brain, Clock, CheckCircle2, AlertCircle, BarChart3, X, Wallet } from 'lucide-react'
+import { ArrowLeft, Save, SkipForward, RefreshCw, User, Gamepad2, Brain, CheckCircle2, AlertCircle, BarChart3, X, Wallet } from 'lucide-react'
 import Link from 'next/link'
 
 export default function ImpostazioniProfiloPage() {
@@ -34,16 +34,6 @@ export default function ImpostazioniProfiloPage() {
   
   // Divisioni disponibili
   const divisions = ['Division 1', 'Division 2', 'Division 3', 'Division 4', 'Division 5', 'Division 6', 'Division 7', 'Division 8', 'Division 9', 'Division 10']
-  
-  // Problemi comuni: value = valore salvato in DB (invariato), key = chiave i18n per etichetta
-  const availableProblems = [
-    { value: 'Passaggi', key: 'problemPassaggi' },
-    { value: 'Difesa', key: 'problemDifesa' },
-    { value: 'Centrocampo', key: 'problemCentrocampo' },
-    { value: 'Attacco', key: 'problemAttacco' },
-    { value: 'Formazione', key: 'problemFormazione' },
-    { value: 'Istruzioni tattiche', key: 'problemIstruzioniTattiche' }
-  ]
 
   // Carica profilo esistente
   React.useEffect(() => {
@@ -169,16 +159,6 @@ export default function ImpostazioniProfiloPage() {
   const handleSkip = (sectionName) => {
     setSuccess(`${t('skipped')} ${sectionName}`)
     setTimeout(() => setSuccess(null), 2000)
-  }
-
-  // Toggle problema comune
-  const toggleProblem = (problem) => {
-    setProfile(prev => ({
-      ...prev,
-      common_problems: prev.common_problems.includes(problem)
-        ? prev.common_problems.filter(p => p !== problem)
-        : [...prev.common_problems, problem]
-    }))
   }
 
   // Calcola percentuale completamento (se disponibile)
@@ -748,120 +728,9 @@ export default function ImpostazioniProfiloPage() {
         </div>
       </div>
 
-      {/* Sezione: Esperienza Gioco */}
-      <div data-tour-id="tour-profile-exp" style={{
-        backgroundColor: '#1a1a1a',
-        borderRadius: '12px',
-        padding: '20px',
-        marginBottom: '24px',
-        border: '1px solid #2a2a2a'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-          <Clock size={20} color="#00d4ff" />
-          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>{t('gameExperience')}</h2>
-        </div>
-
-        <div style={{ marginBottom: '16px' }}>
-          <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#888' }}>
-            {t('hoursPerWeek')}
-          </label>
-          <input
-            type="number"
-            value={profile.hours_per_week || ''}
-            onChange={(e) => setProfile(prev => ({ ...prev, hours_per_week: e.target.value ? parseInt(e.target.value) : null }))}
-            placeholder={t('hoursPerWeekPlaceholder')}
-            min="0"
-            max="168"
-            style={{
-              width: '100%',
-              padding: '12px',
-              backgroundColor: '#0a0a0a',
-              border: '1px solid #2a2a2a',
-              borderRadius: '8px',
-              color: '#ffffff',
-              fontSize: '16px'
-            }}
-          />
-        </div>
-
-        <div style={{ marginBottom: '20px' }}>
-          <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#888' }}>
-            {t('whichProblems')}
-          </label>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {availableProblems.map(problem => (
-              <label
-                key={problem.value}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  padding: '12px',
-                  backgroundColor: '#0a0a0a',
-                  border: '1px solid #2a2a2a',
-                  borderRadius: '8px',
-                  cursor: 'pointer'
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={profile.common_problems.includes(problem.value)}
-                  onChange={() => toggleProblem(problem.value)}
-                  style={{
-                    width: '20px',
-                    height: '20px',
-                    cursor: 'pointer'
-                  }}
-                />
-                <span style={{ fontSize: '16px' }}>{t(problem.key)}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <button
-            onClick={() => handleSave(t('gameExperience'))}
-            disabled={saving}
-            style={{
-              flex: 1,
-              padding: '12px',
-              backgroundColor: saving ? '#2a2a2a' : '#00d4ff',
-              color: '#000',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '16px',
-              fontWeight: '600',
-              cursor: saving ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px'
-            }}
-          >
-            <Save size={18} />
-            {saving ? t('saving') : t('save')}
-          </button>
-          <button
-            onClick={() => handleSkip(t('gameExperience'))}
-            style={{
-              padding: '12px 20px',
-              backgroundColor: 'transparent',
-              color: '#888',
-              border: '1px solid #2a2a2a',
-              borderRadius: '8px',
-              fontSize: '16px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}
-          >
-            <SkipForward size={18} />
-            {t('skip')}
-          </button>
-        </div>
-      </div>
+      <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.6)', marginBottom: '24px' }}>
+        {t('aiInfoHintInProfile')}
+      </p>
 
       {/* Bottone Completa Profilo */}
       <button

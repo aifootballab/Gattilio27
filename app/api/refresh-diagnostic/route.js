@@ -80,7 +80,7 @@ export async function POST(req) {
       auth: { autoRefreshToken: false, persistSession: false }
     })
 
-    const [profileRes, formationRes, playersRes, stylesRes, matchesRes, tacticalRes, coachRes, patternsRes] = await Promise.all([
+    const [profileRes, formationRes, playersRes, stylesRes, matchesRes, tacticalRes, coachRes, patternsRes, gameAnalysisRes] = await Promise.all([
       admin.from('user_profiles').select('first_name, last_name, team_name, common_problems, ai_name, current_division, hours_per_week, connection_quality, slow_opponent_connection_issues, input_delay, pass_level, smart_assist, platform, favourite_player_name, ai_weak_point, ai_learn_goals, ai_notes').eq('user_id', userId).maybeSingle(),
       admin.from('formation_layout').select('formation').eq('user_id', userId).maybeSingle(),
       admin.from('players').select('id, player_name, position, overall_rating, playing_style_id, role, slot_index, skills, com_skills').eq('user_id', userId).order('slot_index', { ascending: true, nullsFirst: false }).limit(50),
@@ -88,7 +88,8 @@ export async function POST(req) {
       admin.from('matches').select('opponent_name, result, formation_played, playing_style_played, match_date, opponent_formation_id').eq('user_id', userId).order('match_date', { ascending: false }).limit(20),
       admin.from('team_tactical_settings').select('team_playing_style, individual_instructions').eq('user_id', userId).maybeSingle(),
       admin.from('coaches').select('coach_name, playing_style_competence, connection, stat_boosters').eq('user_id', userId).eq('is_active', true).maybeSingle(),
-      admin.from('team_tactical_patterns').select('formation_usage, playing_style_usage, recurring_issues').eq('user_id', userId).maybeSingle()
+      admin.from('team_tactical_patterns').select('formation_usage, playing_style_usage, recurring_issues').eq('user_id', userId).maybeSingle(),
+      admin.from('user_game_analysis').select('stats, captured_at').eq('user_id', userId).maybeSingle()
     ])
 
     const profile = profileRes.data || {}
@@ -123,7 +124,8 @@ export async function POST(req) {
       numInstructions,
       individualInstructions: indInstr && typeof indInstr === 'object' ? indInstr : {},
       coachRow,
-      patternsRow
+      patternsRow,
+      gameAnalysisRow: gameAnalysisRes.data || null
     }
 
     const content = buildDiagnostic(lang, diagnosticData)

@@ -7,6 +7,7 @@ import { useTranslation } from '@/lib/i18n'
 import LanguageSwitch from '@/components/LanguageSwitch'
 import AIKnowledgeBar from '@/components/AIKnowledgeBar'
 import AiInfoModal from '@/components/AiInfoModal'
+import GameAnalysisModal from '@/components/GameAnalysisModal'
 import CreditsBar from '@/components/CreditsBar'
 import TaskWidget from '@/components/TaskWidget'
 import { safeJsonResponse } from '@/lib/fetchHelper'
@@ -56,6 +57,8 @@ export default function DashboardPage() {
   const [refreshDiagnosticLoading, setRefreshDiagnosticLoading] = React.useState(false)
   const [refreshDiagnosticMessage, setRefreshDiagnosticMessage] = React.useState(null) // 'success' | 'rate_limit' | null
   const [showAiInfoModal, setShowAiInfoModal] = React.useState(false)
+  const [showGameAnalysisModal, setShowGameAnalysisModal] = React.useState(false)
+  const [gameAnalysisLastCapture, setGameAnalysisLastCapture] = React.useState(null)
 
   React.useEffect(() => {
     if (!supabase) {
@@ -201,6 +204,30 @@ export default function DashboardPage() {
       subscription?.unsubscribe()
     }
   }, [router])
+
+  const fetchGameAnalysisCapture = React.useCallback(async () => {
+    if (!supabase) return
+    try {
+      const { data: session } = await supabase.auth.getSession()
+      if (!session?.session?.access_token) return
+      const res = await fetch('/api/extract-game-analysis', {
+        headers: { Authorization: `Bearer ${session.session.access_token}` }
+      })
+      const data = await res.json().catch(() => ({}))
+      if (data.captured_at) {
+        const d = new Date(data.captured_at)
+        setGameAnalysisLastCapture(isNaN(d.getTime()) ? data.captured_at : d.toLocaleDateString(lang === 'en' ? 'en-GB' : 'it-IT', { day: 'numeric', month: 'short', year: 'numeric' }))
+      } else {
+        setGameAnalysisLastCapture(null)
+      }
+    } catch (_) {
+      setGameAnalysisLastCapture(null)
+    }
+  }, [lang])
+
+  React.useEffect(() => {
+    if (!loading && supabase) fetchGameAnalysisCapture()
+  }, [loading, supabase, fetchGameAnalysisCapture])
 
   const handleLogout = async () => {
     if (supabase) {
@@ -427,6 +454,7 @@ export default function DashboardPage() {
       </div>
 
       <AiInfoModal show={showAiInfoModal} onClose={() => setShowAiInfoModal(false)} />
+      <GameAnalysisModal show={showGameAnalysisModal} onClose={() => setShowGameAnalysisModal(false)} onSuccess={fetchGameAnalysisCapture} />
 
       {/* Credits Bar: montata in layout per aggiornamento immediato dopo ogni API (credits-consumed) */}
 
@@ -482,6 +510,39 @@ export default function DashboardPage() {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Statistiche di gioco (Analisi eFootball) */}
+        <div className="card" style={{ padding: '24px' }}>
+          <h2 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <BarChart3 size={24} color="var(--neon-blue)" />
+            {t('gameAnalysisTitle')}
+          </h2>
+          <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.7)', marginBottom: '16px' }}>
+            {t('gameAnalysisDescription')}
+          </p>
+          {gameAnalysisLastCapture && (
+            <p style={{ fontSize: '13px', color: 'var(--neon-blue)', marginBottom: '12px' }}>
+              {t('gameAnalysisLastCapture')}: {gameAnalysisLastCapture}
+            </p>
+          )}
+          <button
+            type="button"
+            className="btn primary"
+            onClick={() => setShowGameAnalysisModal(true)}
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              padding: '12px 16px',
+              minHeight: '44px'
+            }}
+          >
+            <BarChart3 size={18} />
+            {t('gameAnalysisUpload')}
+          </button>
         </div>
 
         {/* Quick Links */}

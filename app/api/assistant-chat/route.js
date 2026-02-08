@@ -57,24 +57,24 @@ function getApiError(key, lang) {
   return entry[lang] ?? entry.en
 }
 
-/** Suggerimenti di fallback: formula (approfondimento stessa leva, gameplay legato, prossimo passo con rosa/partite/allenatore). Niente meta, niente "perché ho perso", niente "migliorare giocatore". */
+/** Suggerimenti di fallback: tono da allenatore, GENERALI (non incentrati sulla formazione: quella la chiede il cliente). Approfondimento, priorità, cosa lavorare, pressing/compattezza/piazzati. Niente meta, niente "perché ho perso", niente "migliorare giocatore". */
 function getDefaultSuggestions(lang, currentPage = '') {
   const page = (currentPage || '').toLowerCase()
   const it = [
-    { page: 'gestione-formazione', q: ['Quale modulo per la mia rosa?', 'Quali istruzioni con la formazione che uso?', 'Come organizzare pressing e compattezza con la mia rosa?'] },
-    { page: 'match/new', q: ['Quale modulo per la prossima partita?', 'Come difendere meglio con la mia rosa?', 'Cosa preparare su piazzati e transizioni?'] },
-    { page: 'match/', q: ['Cosa correggere dopo questa partita?', 'Come gestire i calci piazzati con la mia rosa?', 'Quale modulo o stile provare dopo?'] },
-    { page: 'contromisure', q: ['Quale formazione contro il 4-3-3 con i miei giocatori?', 'Come chiudere gli spazi in difesa?', 'Quali istruzioni per contrastare questo stile?'] },
-    { page: 'allenatori', q: ['Quale stile abbinare al mio allenatore con la rosa attuale?', 'Linea alta o bassa con questo stile?', 'Quali istruzioni con questo allenatore?'] },
-    { page: '', q: ['Quale modulo per la mia rosa?', 'Quali istruzioni con la formazione che uso?', 'Come organizzare pressing e compattezza con la mia rosa?'] }
+    { page: 'gestione-formazione', q: ['Su cosa lavorare per migliorare con la mia rosa?', 'Quali priorità mi consigli in base alle partite?', 'Come organizzare pressing e compattezza con i miei giocatori?'] },
+    { page: 'match/new', q: ['Cosa preparare per la prossima partita?', 'Quali priorità con la mia rosa?', 'Come difendere e attaccare con i miei giocatori?'] },
+    { page: 'match/', q: ['Cosa correggere dopo questa partita?', 'Su cosa lavorare in base a come ho giocato?', 'Quali priorità per le prossime partite?'] },
+    { page: 'contromisure', q: ['Come contrastare formazioni aggressive con la mia rosa?', 'Quali priorità in difesa e attacco?', 'Cosa preparare sui piazzati con i miei giocatori?'] },
+    { page: 'allenatori', q: ['Quale stile abbinare al mio allenatore con la rosa?', , 'Quali priorità con questo allenatore?'] },
+    { page: '', q: ['Su cosa lavorare per migliorare con la mia rosa?', 'Quali priorità mi consigli in base alle partite?', 'Come organizzare pressing e compattezza con i miei giocatori?'] }
   ]
   const en = [
-    { page: 'gestione-formazione', q: ['Which formation for my roster?', 'Which instructions with the formation I use?', 'How to organise pressing and compactness with my roster?'] },
-    { page: 'match/new', q: ['Which formation for my next match?', 'How to defend better with my roster?', 'What to prepare on set pieces and transitions?'] },
-    { page: 'match/', q: ['What to fix after this match?', 'How to handle set pieces with my roster?', 'Which formation or style to try next?'] },
-    { page: 'contromisure', q: ['Which formation against 4-3-3 with my players?', 'How to close down space in defence?', 'Which instructions to counter this style?'] },
-    { page: 'allenatori', q: ['What style fits my coach with my current roster?', 'High or deep line with this style?', 'Which instructions with this coach?'] },
-    { page: '', q: ['Which formation for my roster?', 'Which instructions with the formation I use?', 'How to organise pressing and compactness with my roster?'] }
+    { page: 'gestione-formazione', q: ['What should I work on to improve with my roster?', 'What priorities do you suggest based on my matches?', 'How to organise pressing and compactness with my players?'] },
+    { page: 'match/new', q: ['What to prepare for the next match?', 'What priorities with my roster?', 'How to defend and attack with my players?'] },
+    { page: 'match/', q: ['What to fix after this match?', 'What to work on based on how I played?', 'What priorities for the next matches?'] },
+    { page: 'contromisure', q: ['How to counter aggressive formations with my roster?', 'What priorities in defence and attack?', 'What to prepare on set pieces with my players?'] },
+    { page: 'allenatori', q: ['What style fits my coach with my roster?', 'High or deep line with my players?', 'What priorities with this coach?'] },
+    { page: '', q: ['What should I work on to improve with my roster?', 'What priorities do you suggest based on my matches?', 'How to organise pressing and compactness with my players?'] }
   ]
   const list = lang === 'en' ? en : it
   for (const { page: p, q } of list) {
@@ -552,9 +552,9 @@ OUTPUT: max 3 imperative sentences, end with “In summary: …”. No visible r
 
   const capsule = language === 'en' ? capsuleEn : capsuleIt
 
-  // Suggerimenti: formula (1) approfondimento stessa leva + suoi dati, (2) gameplay legato a formazione/stile/risposta, (3) prossimo passo con rosa/partite/allenatore. Vietato: meta, "perché ho perso", "migliorare giocatore".
-  const suggRulesIt = `SUGGERIMENTI (3 domande, obbligatori): (1) una che approfondisce la stessa leva che hai appena consigliato, legata ai SUOI dati (rosa/formazione); (2) una su gameplay (pressing/compattezza/possesso/piazzati/transizioni) legata alla formazione/stile/risposta; (3) una sul prossimo passo con rosa/partite/allenatore. VIETATO: "qual è il meta?", "perché ho perso?", "migliorare un giocatore", domande vaghe senza rosa/partite/allenatore. Niente uso app, niente tasti/pulsanti.`
-  const suggRulesEn = `SUGGESTIONS (3 questions, required): (1) one that deep-dives on the same lever you just advised, tied to THEIR data (roster/formation); (2) one on gameplay (pressing/compactness/possession/set pieces/transitions) tied to formation/style/answer; (3) one on next step with roster/matches/coach. FORBIDDEN: "what's the meta?", "why did I lose?", "improve a player", vague questions without roster/matches/coach. No app usage, no buttons/inputs.`
+  // Suggerimenti: tono da ALLENATORE, GENERALI (priorità, su cosa lavorare, pressing/compattezza/piazzati). NON incentrati sulla formazione: quella la chiede il cliente. Vietato: meta, "perché ho perso", "migliorare giocatore".
+  const suggRulesIt = `SUGGERIMENTI (3 domande, obbligatori): tono da ALLENATORE, domande GENERALI (priorità, su cosa lavorare, pressing/compattezza/piazzati/transizioni, cosa correggere). (1) approfondimento sulla stessa leva appena consigliata, legata ai SUOI dati; (2) gameplay (pressing/compattezza/possesso/piazzati) legato alla risposta; (3) prossimo passo con rosa/partite/allenatore. NON mettere come prima opzione "Quale modulo/formazione": la formazione la chiede il cliente quando vuole. VIETATO: "qual è il meta?", "perché ho perso?", "migliorare un giocatore", domande vaghe. Niente uso app, niente tasti.`
+  const suggRulesEn = `SUGGESTIONS (3 questions, required): COACH tone, GENERAL questions (priorities, what to work on, pressing/compactness/set pieces/transitions, what to fix). (1) deep-dive on the same lever you just advised, tied to THEIR data; (2) gameplay (pressing/compactness/possession/set pieces) tied to your answer; (3) next step with roster/matches/coach. Do NOT lead with "Which formation/module": the client asks for formation when they want. FORBIDDEN: "what's the meta?", "why did I lose?", "improve a player", vague questions. No app usage, no buttons.`
   const suggRules = language === 'en' ? suggRulesEn : suggRulesIt
 
   const header = `CONTESTO: ${contestoAttuale}
@@ -582,6 +582,7 @@ SCOPE: solo consulenza tattica eFootball basata su ROSA, PARTITE, ALLENATORE, TA
 - Uso app (wizard, click, menu, upload): NON spiegare. Se chiesto, rispondi solo: "Sono qui solo per consigli tattici: formazione, rosa, modulo, sostituzioni, stile. Esplora il menu per le altre funzioni."
 
 FONTI: Nomi/rosa/partite/allenatore/tattica → solo dal blocco contesto sotto (ROSA E DATI o RIASSUNTO ANALISI). Regole eFootball → solo dal blocco RAG. Se manca un dato, non inventare.
+Se nel RIASSUNTO ANALISI è presente la sezione "Statistiche di gioco (Analisi eFootball, ultime 10 partite)" (tipo gol, tiro, passaggio, dribbling, difesa, comandi speciali), usala per consigli mirati: es. diversificare tipi di tiro, aumentare uso pressing/comandi, lavorare su passaggio o difesa in base alle percentuali reali.
 REGOLA ORO (RAG §10): MAI suggerire di potenziare, migliorare o far crescere un giocatore; statistiche e card sono FISSE.
 
 VINCOLI: solo nomi in ROSA; team_playing_style configurabile SOLO 5 (Possesso palla, Contropiede veloce, Contrattacco, Passaggio lungo, Vie laterali); contrattacco ≠ contropiede_veloce e serve competenza coach >=70 per consigliare; istruzioni individuali solo §5; limiti moduli §3.4; NO Tattica(astuzia) sui difensori; NO Tornante su MED Collante; Dominio palle alte ≠ Colpo di testa.
@@ -595,6 +596,7 @@ SCOPE: only eFootball tactical advice based on ROSTER, MATCHES, COACH, TACTICS a
 - App usage (wizard, clicks, menus, upload): do not explain. If asked, reply only: "I'm here only for tactical advice: formation, roster, module, substitutions, style. Explore the menu for other features."
 
 SOURCES: Names/roster/matches/coach/tactics only from the context block below (ROSTER & DATA or ANALYSIS SUMMARY). eFootball rules only from the RAG block. If data is missing, do not invent.
+If the ANALYSIS SUMMARY includes "Game stats (eFootball Analisi, last 10 matches)" (goal types, shot, passing, dribbling, defense, special commands), use it for targeted advice: e.g. diversify shot types, increase pressing/command usage, work on passing or defense based on actual percentages.
 GOLDEN RULE (RAG §10): NEVER suggest improving, boosting or training a player; stats and card are FIXED.
 
 CONSTRAINTS: only roster names; only 5 configurable team styles (Possession, Quick Counter, Long Ball Counter, Long Ball, Out Wide); contrattacco ≠ contropiede_veloce and require coach competence >=70; individual instructions only §5; formation limits §3.4; no Tactical(fouls) on defenders; no Box-to-box (Tornante) on an Anchor Man DM, especially if Collante/Anchor Man; High ball dominance ≠ Heading.
