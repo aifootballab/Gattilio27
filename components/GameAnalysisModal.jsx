@@ -283,7 +283,12 @@ export default function GameAnalysisModal({ show, onClose, onSuccess }) {
           )}
 
           {error && (
-            <p style={{ color: '#ef4444', fontSize: '13px', marginBottom: '12px' }}>{error}</p>
+            <p style={{ color: '#ef4444', fontSize: '13px', marginBottom: '12px' }}>
+              {error}
+              {files.length === 2 && t('gameAnalysisRetryOne') && (
+                <span style={{ display: 'block', marginTop: '8px', opacity: 0.95 }}>{t('gameAnalysisRetryOne')}</span>
+              )}
+            </p>
           )}
           {success && (
             <p style={{ color: 'var(--neon-green)', fontSize: '13px', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>

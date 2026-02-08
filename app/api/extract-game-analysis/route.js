@@ -57,8 +57,49 @@ Formato JSON richiesto (usa null per categorie non presenti nell'immagine):
 Regole:
 - Le chiavi devono essere le etichette esatte lette dallo schermo (in italiano).
 - I valori sono numeri (percentuali o conteggi).
-- Includi solo le voci effettivamente visibili.
+- Includi solo le voci effettivamente visibili in QUESTA immagine (usa null per categorie non presenti).
 - Restituisci SOLO JSON valido, senza altro testo.`
+
+const KEYS = ['goal_types', 'shot_usage', 'special_commands', 'passing', 'dribbling', 'defense']
+
+function emptyStats() {
+  return Object.fromEntries(KEYS.map(k => [k, {}]))
+}
+
+function mergeStats(acc, next) {
+  const out = { ...acc }
+  for (const k of KEYS) {
+    const a = acc[k] && typeof acc[k] === 'object' ? acc[k] : {}
+    const b = next[k] && typeof next[k] === 'object' ? next[k] : {}
+    out[k] = { ...a, ...b }
+  }
+  return out
+}
+
+async function extractFromOneImage(apiKey, imageDataUrl, lang) {
+  const content = [
+    { type: 'text', text: PROMPT },
+    { type: 'image_url', image_url: { url: imageDataUrl, detail: 'high' } }
+  ]
+  const requestBody = {
+    model: 'gpt-4o',
+    messages: [{ role: 'user', content }],
+    response_format: { type: 'json_object' },
+    temperature: 0,
+    max_tokens: 2000
+  }
+  const openaiRes = await callOpenAIWithRetry(apiKey, requestBody, 'extract-game-analysis')
+  const parsed = await parseOpenAIResponse(openaiRes, 'extract-game-analysis')
+  if (!parsed || typeof parsed !== 'object') return emptyStats()
+  return {
+    goal_types: parsed.goal_types && typeof parsed.goal_types === 'object' ? parsed.goal_types : {},
+    shot_usage: parsed.shot_usage && typeof parsed.shot_usage === 'object' ? parsed.shot_usage : {},
+    special_commands: parsed.special_commands && typeof parsed.special_commands === 'object' ? parsed.special_commands : {},
+    passing: parsed.passing && typeof parsed.passing === 'object' ? parsed.passing : {},
+    dribbling: parsed.dribbling && typeof parsed.dribbling === 'object' ? parsed.dribbling : {},
+    defense: parsed.defense && typeof parsed.defense === 'object' ? parsed.defense : {}
+  }
+}
 
 /** GET: restituisce captured_at (e se ci sono dati) per mostrare in UI "Ultima analisi: data". */
 export async function GET(req) {
@@ -155,31 +196,17 @@ export async function POST(req) {
       }
     }
 
-    const content = [{ type: 'text', text: PROMPT }]
-    imageDataUrls.forEach(u => {
-      if (u && typeof u === 'string') content.push({ type: 'image_url', image_url: { url: u, detail: 'high' } })
-    })
-
-    let stats = {}
+    const urls = imageDataUrls.filter(u => u && typeof u === 'string')
+    let stats = emptyStats()
     try {
-      const requestBody = {
-        model: 'gpt-4o',
-        messages: [{ role: 'user', content }],
-        response_format: { type: 'json_object' },
-        temperature: 0,
-        max_tokens: 2000
-      }
-      const openaiRes = await callOpenAIWithRetry(apiKey, requestBody, 'extract-game-analysis')
-      const parsed = await parseOpenAIResponse(openaiRes, 'extract-game-analysis')
-      if (parsed && typeof parsed === 'object') {
-        stats = {
-          goal_types: parsed.goal_types && typeof parsed.goal_types === 'object' ? parsed.goal_types : {},
-          shot_usage: parsed.shot_usage && typeof parsed.shot_usage === 'object' ? parsed.shot_usage : {},
-          special_commands: parsed.special_commands && typeof parsed.special_commands === 'object' ? parsed.special_commands : {},
-          passing: parsed.passing && typeof parsed.passing === 'object' ? parsed.passing : {},
-          dribbling: parsed.dribbling && typeof parsed.dribbling === 'object' ? parsed.dribbling : {},
-          defense: parsed.defense && typeof parsed.defense === 'object' ? parsed.defense : {}
-        }
+      if (urls.length === 2) {
+        const [a, b] = await Promise.all([
+          extractFromOneImage(apiKey, urls[0], lang),
+          extractFromOneImage(apiKey, urls[1], lang)
+        ])
+        stats = mergeStats(a, b)
+      } else if (urls.length === 1) {
+        stats = await extractFromOneImage(apiKey, urls[0], lang)
       }
     } catch (parseErr) {
       console.error('[extract-game-analysis] Parse error:', parseErr)

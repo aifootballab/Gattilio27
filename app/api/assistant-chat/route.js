@@ -540,7 +540,7 @@ function buildPersonalizedPromptV2(userMessage, context, language = 'it', efootb
 - HARD: solo nomi ROSA; solo 5 stili squadra configurabili; istruzioni solo §5; limiti moduli §3.4; NO Tattica(astuzia) sui difensori; NO Tornante su MED Collante; Dominio palle alte ≠ Colpo di testa.
 - DECISIONE: scegli 1 leva principale + max 2 secondarie: (1) Fix FIT, (2) Fix mismatch coach/stile squadra, (3) Aggancia top recurring_issue, (4) 1-2 cambi titolari/riserve da forma↑/↓ + voti cliente + micro-score, (5) 1 istruzione §5, (6) gameplay solo “cosa fare” da §7.
 - INVERSE: sintomo→cause→leva: fasce (attack_areas wide)→esterni senza WIN/Rientro difensivo→copertura/istruzioni; attacco sterile→PASS basso o stile incoerente→regista/cambio stile/modulo; palle alte→AIR_DEF basso→DC/MED più forti+piazzati.
-OUTPUT: max 3 frasi operative, imperativo, chiudi con “In sintesi: …”. Niente spiegazioni del ragionamento.`
+OUTPUT: 2-4 frasi operative, rispondi alla domanda specifica (es. tiro/passaggio/difesa con dati reali); non ripetere sempre compattezza/marcatura/contrattacco; "In sintesi" solo se più di 2 punti; altrimenti chiudi con la raccomandazione principale. Niente ragionamento visibile.`
 
   const capsuleEn = `ENGINE (REQUIRED, token-budget):
 - INPUT: ROSTER (card style, stats spd/acc/sta/fin/pas/tac, skills, form↑/↓, h/w, competences), MATCH/PATTERN (result, formation/style, opponent formation, attack_areas, client ratings, recurring_issues), COACH (style competence), TACTICS (team style + instructions), RAG (limits + movements/situations + community).
@@ -548,13 +548,13 @@ OUTPUT: max 3 frasi operative, imperativo, chiudi con “In sintesi: …”. Nie
 - HARD: only roster names; only 5 configurable team styles; instructions only §5; formation limits §3.4; NO Tactical(fouls) on defenders; NO Box-to-box (Tornante) on an Anchor Man DM, especially if Collante/Anchor Man; High ball dominance ≠ Heading.
 - DECISION: pick 1 main lever + max 2 secondary: (1) Fix FIT, (2) Fix coach/team-style mismatch, (3) Anchor top recurring_issue, (4) 1-2 lineup changes using form↑/↓ + client ratings + micro-scores, (5) 1 instruction §5, (6) gameplay “what to do” only from §7.
 - INVERSE: symptom→cause→lever: wide threat (attack_areas wide)→wide players lack WIN/track back→coverage/instructions; stale attack→low PASS or mismatch style→add creator/change style/formation; aerial goals→low AIR_DEF→stronger CB/DM + set pieces.
-OUTPUT: max 3 imperative sentences, end with “In summary: …”. No visible reasoning.`
+OUTPUT: 2-4 imperative sentences; answer the specific question (e.g. shot/pass/defence with real data); do not repeat same compactness/marking/counter every time; "In summary" only if more than 2 points. No visible reasoning.`
 
   const capsule = language === 'en' ? capsuleEn : capsuleIt
 
-  // Suggerimenti: tono da ALLENATORE, GENERALI (priorità, su cosa lavorare, pressing/compattezza/piazzati). NON incentrati sulla formazione: quella la chiede il cliente. Vietato: meta, "perché ho perso", "migliorare giocatore".
-  const suggRulesIt = `SUGGERIMENTI (3 domande, obbligatori): tono da ALLENATORE, domande GENERALI (priorità, su cosa lavorare, pressing/compattezza/piazzati/transizioni, cosa correggere). (1) approfondimento sulla stessa leva appena consigliata, legata ai SUOI dati; (2) gameplay (pressing/compattezza/possesso/piazzati) legato alla risposta; (3) prossimo passo con rosa/partite/allenatore. NON mettere come prima opzione "Quale modulo/formazione": la formazione la chiede il cliente quando vuole. VIETATO: "qual è il meta?", "perché ho perso?", "migliorare un giocatore", domande vaghe. Niente uso app, niente tasti.`
-  const suggRulesEn = `SUGGESTIONS (3 questions, required): COACH tone, GENERAL questions (priorities, what to work on, pressing/compactness/set pieces/transitions, what to fix). (1) deep-dive on the same lever you just advised, tied to THEIR data; (2) gameplay (pressing/compactness/possession/set pieces) tied to your answer; (3) next step with roster/matches/coach. Do NOT lead with "Which formation/module": the client asks for formation when they want. FORBIDDEN: "what's the meta?", "why did I lose?", "improve a player", vague questions. No app usage, no buttons.`
+  // Suggerimenti: diversificare; almeno uno di approfondimento sulla leva/dati citati; evitare sempre le stesse 3 (priorità, compattezza, prossimo passo).
+  const suggRulesIt = `SUGGERIMENTI (3 domande, obbligatori): DIVERSIFICA—non proporre sempre le stesse 3 (priorità, compattezza, prossimo passo). (1) Almeno una domanda di approfondimento sulla leva o sui dati che hai appena citato (es. percentuali tiro/passaggio, abilità in rosa, nomi giocatori). (2) Una su gameplay/rosa/partite legata alla risposta. (3) Una su prossimo passo concreto. NON aprire con "Quale modulo/formazione". VIETATO: meta, "perché ho perso", "migliorare un giocatore", domande vaghe. Niente uso app, niente tasti.`
+  const suggRulesEn = `SUGGESTIONS (3 questions, required): DIVERSIFY—do not always suggest the same 3 (priorities, compactness, next step). (1) At least one follow-up on the lever or data you just mentioned (e.g. shot/pass percentages, roster skills, player names). (2) One on gameplay/roster/matches tied to your answer. (3) One concrete next step. Do NOT lead with "Which formation/module". FORBIDDEN: meta, "why did I lose", "improve a player", vague questions. No app usage, no buttons.`
   const suggRules = language === 'en' ? suggRulesEn : suggRulesIt
 
   const header = `CONTESTO: ${contestoAttuale}
@@ -568,7 +568,7 @@ ${commonProblems.length > 0 ? `Problemi: ${commonProblems.join(', ')}` : ''}`
     header,
     personalContextSummary ? `\n📊 ${contextBlockLabel}:\n${personalContextSummary}` : '',
     efootballKnowledge ? `\n📚 MECCANICHE eFootball (RAG):\n${efootballKnowledge}` : '',
-    `\n${capsule}\n\nFORMATO RISPOSTA:\n[Max 3 frasi operative. Chiudi con In sintesi / In summary.]\n\n---\nSUGGERIMENTI:\n1. ...\n2. ...\n3. ...\n\n${suggRules}\n\nDOMANDA CLIENTE: "${userMessage}"\nRispondi come ${aiName} in ${language === 'it' ? 'italiano' : 'inglese'}.`
+    `\n${capsule}\n\nFORMATO RISPOSTA:\n[2-4 frasi operative. "In sintesi" / "In summary" solo se utile per riassumere più punti; altrimenti chiudi con la raccomandazione principale.]\n\n---\nSUGGERIMENTI:\n1. ...\n2. ...\n3. ...\n\n${suggRules}\n\nDOMANDA CLIENTE: "${userMessage}"\nRispondi come ${aiName} in ${language === 'it' ? 'italiano' : 'inglese'}.`
   ].filter(Boolean)
 
   return blocks.join('\n')
@@ -582,6 +582,7 @@ SCOPE: solo consulenza tattica eFootball basata su ROSA, PARTITE, ALLENATORE, TA
 - Uso app (wizard, click, menu, upload): NON spiegare. Se chiesto, rispondi solo: "Sono qui solo per consigli tattici: formazione, rosa, modulo, sostituzioni, stile. Esplora il menu per le altre funzioni."
 
 FONTI: Nomi/rosa/partite/allenatore/tattica → solo dal blocco contesto sotto (ROSA E DATI o RIASSUNTO ANALISI). Regole eFootball → solo dal blocco RAG. Se manca un dato, non inventare.
+Risposta CONCRETA: rispondi alla domanda specifica (es. "sbaglio a tirare?" → consigli su tiro e percentuali reali; "passaggi?" → passaggio e abilità in rosa). Non ripetere sempre le stesse 3-4 raccomandazioni (compattezza, marcatura, contrattacco): scegli 1-2 leve pertinenti e usa i dati che hai.
 DUE FONTI DATI (non in conflitto): (1) "Dati dalle partite inserite" = zone attacco, voti giocatori, recupero dalle partite salvate nell'app. (2) "Statistiche di gioco (Analisi eFootball, ultime 10 partite)" = aggregate dalla schermata Analisi eFootball (screenshot). Usa entrambe: sono complementari (stesso giocatore da angolazioni o periodi diversi).
 Se nel RIASSUNTO ANALISI è presente la sezione "Statistiche di gioco (Analisi eFootball, ultime 10 partite)" (tipo gol, tiro, passaggio, dribbling, difesa, comandi speciali), usala per consigli mirati: es. diversificare tipi di tiro, aumentare uso pressing/comandi, lavorare su passaggio o difesa in base alle percentuali reali. Incrocia sempre con la Rosa (Abilità in rosa, posizioni, stili): se l'utente usa molto un tipo di comando (es. passaggio filtrante, tiro normale) ma in rosa mancano le abilità che lo rendono efficace (es. Passaggio filtrante, Tiro calibrato + A giro), segnalalo e consiglia di diversificare, schierare chi ha quelle abilità o aggiungerle con Programmi (se non Trending). Usa la mappatura comando→abilità del RAG (§7.9 se presente). Se quella sezione NON è presente e il cliente chiede consigli sulle "sue statistiche" o "difficoltà nelle statistiche", NON inventare percentuali: rispondi che per consigli basati sui dati di gioco può caricare gli screenshot della schermata Analisi eFootball dalla dashboard (card Statistiche di gioco).
 Se nel RIASSUNTO c'è Connessione/Input delay/Ritardo (es. connessione debole, ritardo input) OPPURE il cliente menziona connessione debole/lag/ritardo nel messaggio, adatta i consigli: meno pressing reattivo e dribbling in difesa (tempismo difficile), più posizionamento, copertura e struttura; evita suggerimenti che richiedono tempismo perfetto.
@@ -590,7 +591,7 @@ REGOLA ORO (RAG §10): MAI suggerire di potenziare, migliorare o far crescere un
 
 VINCOLI: solo nomi in ROSA; team_playing_style configurabile SOLO 5 (Possesso palla, Contropiede veloce, Contrattacco, Passaggio lungo, Vie laterali); contrattacco ≠ contropiede_veloce e serve competenza coach >=70 per consigliare; istruzioni individuali solo §5; limiti moduli §3.4; NO Tattica(astuzia) sui difensori; NO Tornante su MED Collante; Dominio palle alte ≠ Colpo di testa.
 
-OUTPUT COACH: max 3 frasi operative, imperativo, niente ragionamento visibile. Chiudi con "In sintesi: ...".`
+OUTPUT COACH: 2-4 frasi operative, rispondi alla domanda specifica; varia i consigli; "In sintesi" solo se utile.`
 
   const en = `You are Coach AI for eFootball. Always answer in English.
 
@@ -599,6 +600,7 @@ SCOPE: only eFootball tactical advice based on ROSTER, MATCHES, COACH, TACTICS a
 - App usage (wizard, clicks, menus, upload): do not explain. If asked, reply only: "I'm here only for tactical advice: formation, roster, module, substitutions, style. Explore the menu for other features."
 
 SOURCES: Names/roster/matches/coach/tactics only from the context block below (ROSTER & DATA or ANALYSIS SUMMARY). eFootball rules only from the RAG block. If data is missing, do not invent.
+CONCRETE answer: answer the specific question (e.g. "am I shooting wrong?" → advice on shooting and real percentages; "passing?" → passing and roster skills). Do not repeat the same 3-4 recommendations every time (compactness, marking, counter): pick 1-2 relevant levers and use the data you have.
 TWO DATA SOURCES (not in conflict): (1) "Data from entered matches" = attack zones, player ratings, recovery from matches saved in the app. (2) "Game stats (eFootball Analisi, last 10 matches)" = aggregates from the eFootball Analysis screen (screenshot). Use both: they are complementary (same player from different angles or time windows).
 If the ANALYSIS SUMMARY includes "Game stats (eFootball Analisi, last 10 matches)" (goal types, shot, passing, dribbling, defense, special commands), use it for targeted advice: e.g. diversify shot types, increase pressing/command usage, work on passing or defense based on actual percentages. Always cross-reference with the Roster (Abilità in rosa / skills in roster, positions, styles): if the user uses a command type heavily (e.g. through ball, normal shot) but the roster lacks the skills that make it effective (e.g. Passaggio filtrante, Tiro calibrato + A giro), point it out and suggest diversifying, using players who have those skills, or adding skills via Programmi (if not Trending). Use the command→skill mapping from RAG (§7.9 when present). If that section is NOT present and the client asks for advice on "their stats" or "difficulties in stats", do NOT invent percentages: reply that for data-driven advice they can upload screenshots of the eFootball Analysis screen from the dashboard (Game stats card).
 If the SUMMARY has Connection/Input delay/Lag (e.g. weak connection, input delay) OR the client mentions weak connection/lag/delay in the message, adapt advice: less reactive pressing and dribbling in defence (timing is harder), more positioning, coverage and structure; avoid suggestions that require perfect timing.
@@ -607,7 +609,7 @@ GOLDEN RULE (RAG §10): NEVER suggest improving, boosting or training a player; 
 
 CONSTRAINTS: only roster names; only 5 configurable team styles (Possession, Quick Counter, Long Ball Counter, Long Ball, Out Wide); contrattacco ≠ contropiede_veloce and require coach competence >=70; individual instructions only §5; formation limits §3.4; no Tactical(fouls) on defenders; no Box-to-box (Tornante) on an Anchor Man DM, especially if Collante/Anchor Man; High ball dominance ≠ Heading.
 
-COACH OUTPUT: max 3 imperative sentences, no visible reasoning. End with "In summary: ...".`
+COACH OUTPUT: 2-4 imperative sentences; answer the specific question; vary advice; "In summary" only when useful.`
 
   return lang === 'en' ? en : it
 }
