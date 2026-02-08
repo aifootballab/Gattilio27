@@ -62,15 +62,16 @@ export default function DashboardPage() {
   const [hasActiveCoach, setHasActiveCoach] = React.useState(false)
   const [reminderRotationIndex, setReminderRotationIndex] = React.useState(0)
 
-  // Rotazione continua ordine promemoria setup (ogni 3 s, solo client-side, nessuna chiamata API)
-  const showSetupReminder = !loading && (hasActiveCoach === false || !gameAnalysisLastCapture || stats.titolari < 11)
+  // Banner setup: sempre visibile quando non in loading. Se manca qualcosa: link a rotazione; altrimenti "Setup completo"
+  const hasMissingSetup = hasActiveCoach === false || !gameAnalysisLastCapture || stats.titolari < 11
+  const showSetupBanner = !loading
   React.useEffect(() => {
-    if (!showSetupReminder) return
+    if (!showSetupBanner || !hasMissingSetup) return
     const interval = setInterval(() => {
       setReminderRotationIndex((i) => i + 1)
     }, 3000)
     return () => clearInterval(interval)
-  }, [showSetupReminder])
+  }, [showSetupBanner, hasMissingSetup])
 
   // Reset indice quando cambiano gli elementi mancanti
   const reminderItems = [
@@ -485,8 +486,8 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* Promemoria setup: manca allenatore, statistiche o rosa completa (sempre visibile quando manca qualcosa, nessun nascondi) */}
-      {showSetupReminder && (
+      {/* Banner setup: sempre visibile (no salto layout). Se manca qualcosa: intro + link a rotazione; altrimenti "Setup completo" */}
+      {showSetupBanner && (
         <div
           style={{
             display: 'flex',
@@ -494,31 +495,38 @@ export default function DashboardPage() {
             alignItems: 'center',
             gap: '10px',
             padding: '12px 16px',
-            background: 'rgba(0, 212, 255, 0.08)',
-            border: '1px solid rgba(0, 212, 255, 0.25)',
+            background: missingCount > 0 ? 'rgba(0, 212, 255, 0.08)' : 'rgba(0, 200, 100, 0.08)',
+            border: `1px solid ${missingCount > 0 ? 'rgba(0, 212, 255, 0.25)' : 'rgba(0, 200, 100, 0.3)'}`,
             borderRadius: '10px',
             marginBottom: '16px',
             fontSize: '14px'
           }}
         >
-          <span key={reminderRotationIndex} style={{ flex: '1 1 auto', minWidth: 0 }}>
+          <span key={missingCount > 0 ? reminderRotationIndex : 'complete'} style={{ flex: '1 1 auto', minWidth: 0 }}>
             {t('setupReminderIntro')}
-            {' '}
-            {lang === 'en' ? 'Missing:' : 'Manca:'}{' '}
-            {missingCount > 0 && (() => {
-              const idx = reminderRotationIndex % missingCount
-              const item = reminderItems[idx]
-              return (
-                <button
-                  key={`${reminderRotationIndex}-${item.key}`}
-                  type="button"
-                  onClick={item.onClick}
-                  style={{ background: 'none', border: 'none', color: 'var(--neon-blue)', textDecoration: 'underline', cursor: 'pointer', padding: 0, fontSize: 'inherit' }}
-                >
-                  {item.label}
-                </button>
-              )
-            })()}
+            {missingCount > 0 ? (
+              <>
+                {' '}
+                {lang === 'en' ? 'Missing:' : 'Manca:'}{' '}
+                {(() => {
+                  const idx = reminderRotationIndex % Math.max(missingCount, 1)
+                  const item = reminderItems[idx]
+                  if (!item) return null
+                  return (
+                    <button
+                      key={`${reminderRotationIndex}-${item.key}`}
+                      type="button"
+                      onClick={item.onClick}
+                      style={{ background: 'none', border: 'none', color: 'var(--neon-blue)', textDecoration: 'underline', cursor: 'pointer', padding: 0, fontSize: 'inherit' }}
+                    >
+                      {item.label}
+                    </button>
+                  )
+                })()}
+              </>
+            ) : (
+              <> · {t('setupReminderComplete')}</>
+            )}
           </span>
         </div>
       )}
