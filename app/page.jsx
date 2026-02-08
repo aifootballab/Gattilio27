@@ -72,8 +72,13 @@ export default function DashboardPage() {
     return () => clearInterval(interval)
   }, [showSetupReminder])
 
-  // Reset indice rotazione quando cambiano gli elementi mancanti, così la rotazione riparte coerente
-  const missingCount = [hasActiveCoach === false, !gameAnalysisLastCapture, stats.titolari < 11].filter(Boolean).length
+  // Reset indice quando cambiano gli elementi mancanti
+  const reminderItems = [
+    !hasActiveCoach && { key: 'coach', label: t('setupReminderMissingCoach'), onClick: () => router.push('/allenatori') },
+    !gameAnalysisLastCapture && { key: 'stats', label: t('setupReminderMissingStats'), onClick: () => setShowGameAnalysisModal(true) },
+    stats.titolari < 11 && { key: 'roster', label: t('setupReminderMissingRoster'), onClick: () => router.push('/gestione-formazione') }
+  ].filter(Boolean)
+  const missingCount = reminderItems.length
   React.useEffect(() => {
     setReminderRotationIndex(0)
   }, [missingCount])
@@ -500,28 +505,19 @@ export default function DashboardPage() {
             {t('setupReminderIntro')}
             {' '}
             {lang === 'en' ? 'Missing:' : 'Manca:'}{' '}
-            {(() => {
-              const items = [
-                !hasActiveCoach && { key: 'coach', label: t('setupReminderMissingCoach'), onClick: () => router.push('/allenatori') },
-                !gameAnalysisLastCapture && { key: 'stats', label: t('setupReminderMissingStats'), onClick: () => setShowGameAnalysisModal(true) },
-                stats.titolari < 11 && { key: 'roster', label: t('setupReminderMissingRoster'), onClick: () => router.push('/gestione-formazione') }
-              ].filter(Boolean)
-              const n = items.length
-              const offset = n ? reminderRotationIndex % n : 0
-              const rotated = n ? [...items.slice(offset), ...items.slice(0, offset)] : []
-              return rotated.reduce((acc, item, i) => {
-                const el = (
-                  <button
-                    key={`${reminderRotationIndex}-${item.key}-${i}`}
-                    type="button"
-                    onClick={item.onClick}
-                    style={{ background: 'none', border: 'none', color: 'var(--neon-blue)', textDecoration: 'underline', cursor: 'pointer', padding: 0, fontSize: 'inherit' }}
-                  >
-                    {item.label}
-                  </button>
-                )
-                return i === 0 ? [el] : [...acc, ', ', el]
-              }, [])
+            {missingCount > 0 && (() => {
+              const idx = reminderRotationIndex % missingCount
+              const item = reminderItems[idx]
+              return (
+                <button
+                  key={`${reminderRotationIndex}-${item.key}`}
+                  type="button"
+                  onClick={item.onClick}
+                  style={{ background: 'none', border: 'none', color: 'var(--neon-blue)', textDecoration: 'underline', cursor: 'pointer', padding: 0, fontSize: 'inherit' }}
+                >
+                  {item.label}
+                </button>
+              )
             })()}
           </span>
         </div>
