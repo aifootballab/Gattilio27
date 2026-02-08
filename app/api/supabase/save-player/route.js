@@ -49,9 +49,9 @@ export async function POST(req) {
       return NextResponse.json({ error: 'Player data is required' }, { status: 400 })
     }
 
-    // Lookup playing_style_id se presente
+    // Lookup playing_style_id: da player.playing_style oppure da player.role (es. "Collante" spesso arriva solo in role)
     let playingStyleId = null
-    const playingStyleName = toText(player.playing_style)
+    const playingStyleName = toText(player.playing_style) || toText(player.role)
     if (playingStyleName) {
       const { data: playingStyle } = await admin
         .from('playing_styles')

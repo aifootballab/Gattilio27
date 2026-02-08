@@ -278,7 +278,7 @@ async function buildPersonalContext(userId, lang = 'it') {
     // Players (titolari + riserve) - include skills, forma, altezza/peso per ragionamento enterprise
     const { data: playersData, error: playersError } = await admin
       .from('players')
-      .select('id, player_name, position, overall_rating, playing_style_id, slot_index, photo_slots, base_stats, original_positions, card_type, skills, com_skills, form, height, weight')
+      .select('id, player_name, position, overall_rating, playing_style_id, role, slot_index, photo_slots, base_stats, original_positions, card_type, skills, com_skills, form, height, weight')
       .eq('user_id', userId)
       .order('slot_index', { ascending: true, nullsFirst: false })
       .limit(50)
@@ -352,7 +352,7 @@ async function buildPersonalContext(userId, lang = 'it') {
 
     let rosterLines = []
     for (const p of titolari) {
-      const styleName = (p.playing_style_id && stylesLookup[p.playing_style_id]) || '-'
+      const styleName = (p.playing_style_id && stylesLookup[p.playing_style_id]) || (p.role ? String(p.role).trim() : '') || '-'
       const prof = getProfilazione(p.photo_slots)
       const comp = getCompetenze(p.original_positions)
       const statsStr = formatStatsForContext(p.base_stats)
@@ -367,7 +367,7 @@ async function buildPersonalContext(userId, lang = 'it') {
     const reservesHeader = L.reserves + ':'
     rosterLines.push(reservesHeader)
     for (const p of riserve.slice(0, 15)) {
-      const styleName = (p.playing_style_id && stylesLookup[p.playing_style_id]) || '-'
+      const styleName = (p.playing_style_id && stylesLookup[p.playing_style_id]) || (p.role ? String(p.role).trim() : '') || '-'
       const prof = getProfilazione(p.photo_slots)
       const comp = getCompetenze(p.original_positions)
       const statsStr = formatStatsForContext(p.base_stats)

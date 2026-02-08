@@ -83,7 +83,7 @@ export async function POST(req) {
     const [profileRes, formationRes, playersRes, stylesRes, matchesRes, tacticalRes, coachRes, patternsRes] = await Promise.all([
       admin.from('user_profiles').select('first_name, team_name, common_problems').eq('user_id', userId).maybeSingle(),
       admin.from('formation_layout').select('formation').eq('user_id', userId).maybeSingle(),
-      admin.from('players').select('id, player_name, position, overall_rating, playing_style_id, slot_index, skills, com_skills').eq('user_id', userId).order('slot_index', { ascending: true, nullsFirst: false }).limit(50),
+      admin.from('players').select('id, player_name, position, overall_rating, playing_style_id, role, slot_index, skills, com_skills').eq('user_id', userId).order('slot_index', { ascending: true, nullsFirst: false }).limit(50),
       admin.from('playing_styles').select('id, name'),
       admin.from('matches').select('opponent_name, result, formation_played, playing_style_played, match_date, opponent_formation_id').eq('user_id', userId).order('match_date', { ascending: false }).limit(20),
       admin.from('team_tactical_settings').select('team_playing_style, individual_instructions').eq('user_id', userId).maybeSingle(),
@@ -99,7 +99,7 @@ export async function POST(req) {
     stylesData.forEach(s => { stylesLookup[s.id] = s.name || '' })
     const matches = matchesRes.data || []
     const tacticalRow = tacticalRes.data
-    const teamStyle = tacticalRow?.team_playing_style || formation
+    const teamStyle = tacticalRow?.team_playing_style?.trim() || (lang === 'en' ? 'not set' : 'non impostato')
     const indInstr = tacticalRow?.individual_instructions
     const numInstructions = Array.isArray(indInstr) ? indInstr.length : (indInstr && typeof indInstr === 'object' ? Object.keys(indInstr).length : 0)
     const coachRow = coachRes.data || null
@@ -121,6 +121,7 @@ export async function POST(req) {
       oppFormationsMap,
       teamStyle,
       numInstructions,
+      individualInstructions: indInstr && typeof indInstr === 'object' ? indInstr : {},
       coachRow,
       patternsRow
     }
