@@ -5,8 +5,11 @@ import { useTranslation } from '@/lib/i18n'
 import { supabase } from '@/lib/supabaseClient'
 import { BarChart3, X, Upload, Image as ImageIcon, RefreshCw, CheckCircle2 } from 'lucide-react'
 
-const MAX_FILES = 2
 const MAX_SIZE_MB = 10
+const SLOTS = [
+  { key: 'slot1', labelKey: 'gameAnalysisSlot1', descKey: 'gameAnalysisSlot1Desc' },
+  { key: 'slot2', labelKey: 'gameAnalysisSlot2', descKey: 'gameAnalysisSlot2Desc' }
+]
 
 function fileToDataUrl(file) {
   return new Promise((resolve, reject) => {
@@ -17,8 +20,6 @@ function fileToDataUrl(file) {
   })
 }
 
-// Stili allineati ai modali gestione rosa (UploadPlayerModal, AssignModal): card, header, body, footer, responsive
-// Allineato a gestione-formazione: overlay e card responsive (padding, maxHeight)
 const overlayStyle = {
   position: 'fixed',
   top: 0,
@@ -48,25 +49,44 @@ const boxStyle = {
 
 export default function GameAnalysisModal({ show, onClose, onSuccess }) {
   const { t, lang } = useTranslation()
-  const [files, setFiles] = useState([])
+  const [slot1, setSlot1] = useState(null) // { file, dataUrl, name }
+  const [slot2, setSlot2] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(false)
-  const inputRef = useRef(null)
+  const inputRef1 = useRef(null)
+  const inputRef2 = useRef(null)
 
-  const handleFileChange = (e) => {
+  const getSlot = (key) => (key === 'slot1' ? slot1 : slot2)
+  const setSlot = (key, value) => (key === 'slot1' ? setSlot1(value) : setSlot2(value))
+
+  const handleFileSelect = (e, key) => {
     setError(null)
-    const chosen = Array.from(e.target.files || []).slice(0, MAX_FILES)
-    const valid = chosen.filter(f => f.size <= MAX_SIZE_MB * 1024 * 1024)
-    if (chosen.length !== valid.length) {
+    const file = e.target.files?.[0]
+    if (!file || !file.type.startsWith('image/')) return
+    if (file.size > MAX_SIZE_MB * 1024 * 1024) {
       setError(lang === 'en' ? `Max ${MAX_SIZE_MB}MB per image.` : `Max ${MAX_SIZE_MB}MB per immagine.`)
+      return
     }
-    setFiles(valid)
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      setSlot(key, { file, dataUrl: ev.target.result, name: file.name })
+    }
+    reader.readAsDataURL(file)
+    e.target.value = ''
+  }
+
+  const removeSlot = (key) => {
+    setSlot(key, null)
+    setError(null)
+    if (key === 'slot1' && inputRef1.current) inputRef1.current.value = ''
+    if (key === 'slot2' && inputRef2.current) inputRef2.current.value = ''
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (files.length === 0) {
+    const urls = [slot1?.dataUrl, slot2?.dataUrl].filter(Boolean)
+    if (urls.length === 0) {
       setError(lang === 'en' ? 'Select at least one image.' : 'Seleziona almeno un\'immagine.')
       return
     }
@@ -74,7 +94,6 @@ export default function GameAnalysisModal({ show, onClose, onSuccess }) {
     setError(null)
     setSuccess(false)
     try {
-      const dataUrls = await Promise.all(files.map(fileToDataUrl))
       const { data: session } = await supabase?.auth.getSession() ?? {}
       if (!session?.session?.access_token) {
         setError(t('gameAnalysisError'))
@@ -88,7 +107,7 @@ export default function GameAnalysisModal({ show, onClose, onSuccess }) {
           Authorization: `Bearer ${session.session.access_token}`,
           'Accept-Language': lang === 'en' ? 'en' : 'it'
         },
-        body: JSON.stringify({ imageDataUrls: dataUrls })
+        body: JSON.stringify({ imageDataUrls: urls })
       })
       const data = await res.json().catch(() => ({}))
       if (res.ok && data.success) {
@@ -105,7 +124,8 @@ export default function GameAnalysisModal({ show, onClose, onSuccess }) {
         } catch (_) { /* non bloccare */ }
         setTimeout(() => {
           setSuccess(false)
-          setFiles([])
+          setSlot1(null)
+          setSlot2(null)
           onClose?.()
         }, 1800)
       } else {
@@ -118,38 +138,19 @@ export default function GameAnalysisModal({ show, onClose, onSuccess }) {
     }
   }
 
-  const removeFile = (index) => {
-    setFiles(prev => prev.filter((_, i) => i !== index))
-    if (inputRef.current) inputRef.current.value = ''
-  }
-
   if (!show) return null
+
+  const hasAny = !!slot1 || !!slot2
+  const hasBoth = !!slot1 && !!slot2
 
   return (
     <div
       style={overlayStyle}
       onClick={(e) => e.target === e.currentTarget && !loading && onClose?.()}
     >
-      <div
-        className="card"
-        style={boxStyle}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header: allineato a UploadPlayerModal / AssignModal */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '20px'
-        }}>
-          <h2 style={{
-            fontSize: 'clamp(18px, 4vw, 20px)',
-            fontWeight: 700,
-            margin: 0,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px'
-          }}>
+      <div className="card" style={boxStyle} onClick={(e) => e.stopPropagation()}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <h2 style={{ fontSize: 'clamp(18px, 4vw, 20px)', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
             <BarChart3 size={22} style={{ color: 'var(--neon-blue)', flexShrink: 0 }} />
             {t('gameAnalysisTitle')}
           </h2>
@@ -157,135 +158,92 @@ export default function GameAnalysisModal({ show, onClose, onSuccess }) {
             type="button"
             onClick={() => !loading && onClose?.()}
             disabled={loading}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: 'rgba(255, 255, 255, 0.7)',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              padding: '8px',
-              opacity: loading ? 0.5 : 1,
-              minWidth: 44,
-              minHeight: 44
-            }}
+            style={{ background: 'transparent', border: 'none', color: 'rgba(255, 255, 255, 0.7)', cursor: loading ? 'not-allowed' : 'pointer', padding: '8px', opacity: loading ? 0.5 : 1, minWidth: 44, minHeight: 44 }}
             aria-label={t('close')}
           >
             <X size={20} />
           </button>
         </div>
 
-        {/* Istruzione: stile unico step come in UploadPlayerModal */}
-        <div style={{
-          fontSize: '14px',
-          opacity: 0.9,
-          marginBottom: '20px',
-          textAlign: 'center',
-          lineHeight: 1.5
-        }}>
+        <div style={{ fontSize: '14px', opacity: 0.9, marginBottom: '20px', textAlign: 'center', lineHeight: 1.5 }}>
           {t('gameAnalysisUploadHint')}
         </div>
 
         <form onSubmit={handleSubmit}>
-          {/* Zona drop: card come gestione rosa (stesso look delle card vuote) */}
-          <label style={{ display: 'block', marginBottom: '16px' }}>
-            <div
-              style={{
-                padding: '20px 16px',
-                minHeight: '56px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '12px',
-                border: '2px dashed rgba(0, 212, 255, 0.3)',
-                borderRadius: '12px',
-                background: 'rgba(0, 212, 255, 0.05)',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                transition: 'all 0.2s ease',
-                opacity: loading ? 0.7 : 1
-              }}
-              onMouseEnter={(e) => {
-                if (!loading) {
-                  e.currentTarget.style.background = 'rgba(0, 212, 255, 0.1)'
-                  e.currentTarget.style.borderColor = 'rgba(0, 212, 255, 0.5)'
-                }
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(0, 212, 255, 0.05)'
-                e.currentTarget.style.borderColor = 'rgba(0, 212, 255, 0.3)'
-              }}
-              onClick={() => !loading && inputRef.current?.click()}
-            >
-              <input
-                ref={inputRef}
-                type="file"
-                accept="image/*"
-                multiple
-                style={{ display: 'none' }}
-                onChange={handleFileChange}
-                disabled={loading}
-              />
-              <Upload size={24} style={{ color: 'var(--neon-blue)', flexShrink: 0 }} />
-              <span style={{ fontSize: '14px', fontWeight: 600 }}>
-                {files.length === 0
-                  ? (lang === 'en' ? 'Choose 1 or 2 images' : 'Scegli 1 o 2 immagini')
-                  : `${files.length} ${lang === 'en' ? 'image(s)' : 'immagine/i'}`}
-              </span>
-            </div>
-          </label>
-
-          {/* Preview: chip come in gestione rosa (verde check, rimuovi) */}
-          {files.length > 0 && (
-            <div style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: '10px',
-              marginBottom: '16px'
-            }}>
-              {files.map((f, i) => (
+          {/* Due slot distinti come gestione rosa: il cliente vede sempre quale ha caricato e quale manca */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
+            {SLOTS.map(({ key, labelKey, descKey }) => {
+              const value = getSlot(key)
+              const ref = key === 'slot1' ? inputRef1 : inputRef2
+              const color = 'var(--neon-blue)'
+              return (
                 <div
-                  key={i}
+                  key={key}
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '10px 14px',
-                    background: 'rgba(34, 197, 94, 0.15)',
-                    border: '1px solid rgba(34, 197, 94, 0.35)',
-                    borderRadius: '10px',
-                    fontSize: '13px',
-                    color: 'rgba(255,255,255,0.95)'
+                    padding: '16px',
+                    background: value ? 'rgba(34, 197, 94, 0.08)' : 'rgba(0, 212, 255, 0.05)',
+                    border: `1px solid ${value ? 'rgba(34, 197, 94, 0.35)' : 'rgba(0, 212, 255, 0.2)'}`,
+                    borderRadius: '12px',
+                    cursor: loading ? 'default' : 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!loading && !value) {
+                      e.currentTarget.style.background = 'rgba(0, 212, 255, 0.1)'
+                      e.currentTarget.style.borderColor = 'rgba(0, 212, 255, 0.4)'
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!value) {
+                      e.currentTarget.style.background = 'rgba(0, 212, 255, 0.05)'
+                      e.currentTarget.style.borderColor = 'rgba(0, 212, 255, 0.2)'
+                    }
                   }}
                 >
-                  <ImageIcon size={16} style={{ flexShrink: 0, opacity: 0.9 }} />
-                  <span style={{ maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
-                  <span style={{ fontSize: '11px', padding: '2px 6px', background: 'var(--neon-green)', color: '#000', borderRadius: '4px', fontWeight: 700 }}>✓</span>
-                  <button
-                    type="button"
-                    onClick={() => removeFile(i)}
-                    disabled={loading}
-                    style={{
-                      background: 'rgba(239, 68, 68, 0.2)',
-                      border: '1px solid rgba(239, 68, 68, 0.4)',
-                      color: '#ef4444',
-                      padding: '4px 8px',
-                      borderRadius: '6px',
-                      cursor: loading ? 'not-allowed' : 'pointer',
-                      fontSize: '12px',
-                      fontWeight: 600,
-                      minWidth: 32,
-                      minHeight: 32
-                    }}
-                  >
-                    ×
-                  </button>
+                  {value ? (
+                    <>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <BarChart3 size={20} style={{ color: 'var(--neon-green)', flexShrink: 0 }} />
+                          <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--neon-green)' }}>{t(labelKey)}</span>
+                          <span style={{ fontSize: '11px', padding: '2px 6px', background: 'var(--neon-green)', color: '#000', borderRadius: '4px', fontWeight: 700 }}>✓</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); removeSlot(key) }}
+                          disabled={loading}
+                          style={{ background: 'rgba(239, 68, 68, 0.2)', border: '1px solid rgba(239, 68, 68, 0.4)', color: '#ef4444', padding: '4px 10px', borderRadius: '6px', cursor: loading ? 'not-allowed' : 'pointer', fontSize: '12px', fontWeight: 600 }}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                      <img src={value.dataUrl} alt={t(labelKey)} style={{ width: '100%', maxHeight: '140px', objectFit: 'cover', borderRadius: '8px', marginBottom: '8px' }} />
+                      <span style={{ fontSize: '13px', opacity: 0.85 }}>{value.name}</span>
+                    </>
+                  ) : (
+                    <label style={{ display: 'block', cursor: loading ? 'not-allowed' : 'pointer' }}>
+                      <input type="file" accept="image/*" ref={ref} style={{ display: 'none' }} onChange={(e) => handleFileSelect(e, key)} disabled={loading} />
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <Upload size={22} style={{ color, flexShrink: 0, opacity: 0.8 }} />
+                          <div>
+                            <div style={{ fontSize: '15px', fontWeight: 700, marginBottom: '4px', color }}>{t(labelKey)}</div>
+                            <div style={{ fontSize: '13px', opacity: 0.8 }}>{t(descKey)}</div>
+                          </div>
+                        </div>
+                        <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>{t('gameAnalysisSlotMissing')}</span>
+                      </div>
+                    </label>
+                  )}
                 </div>
-              ))}
-            </div>
-          )}
+              )
+            })}
+          </div>
 
           {error && (
             <p style={{ color: '#ef4444', fontSize: '13px', marginBottom: '12px' }}>
               {error}
-              {files.length === 2 && t('gameAnalysisRetryOne') && (
+              {hasBoth && t('gameAnalysisRetryOne') && (
                 <span style={{ display: 'block', marginTop: '8px', opacity: 0.95 }}>{t('gameAnalysisRetryOne')}</span>
               )}
             </p>
@@ -297,43 +255,20 @@ export default function GameAnalysisModal({ show, onClose, onSuccess }) {
             </p>
           )}
 
-          {/* Footer: stesso layout di UploadPlayerModal (border-top, flex-end, wrap) */}
-          <div style={{
-            display: 'flex',
-            gap: '12px',
-            justifyContent: 'flex-end',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            borderTop: '1px solid rgba(255,255,255,0.1)',
-            paddingTop: '20px',
-            marginTop: '20px'
-          }}>
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', alignItems: 'center', flexWrap: 'wrap', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '20px', marginTop: '20px' }}>
             <div style={{ marginRight: 'auto', fontSize: '13px', opacity: 0.7 }}>
-              {files.length === 0
-                ? (lang === 'en' ? 'No images selected' : 'Nessuna immagine selezionata')
-                : <span style={{ color: 'var(--neon-green)' }}>{files.length} {files.length === 1 ? (lang === 'en' ? 'image' : 'immagine') : (lang === 'en' ? 'images' : 'immagini')}</span>}
+              {!hasAny
+                ? (lang === 'en' ? 'No image selected' : 'Nessuna immagine selezionata')
+                : <span style={{ color: 'var(--neon-green)' }}>{[slot1, slot2].filter(Boolean).length} / 2 {(lang === 'en' ? 'screens' : 'schermate')}</span>}
             </div>
-            <button
-              type="button"
-              className="btn"
-              onClick={onClose}
-              disabled={loading}
-              style={{ padding: '12px 24px', minHeight: 44 }}
-            >
+            <button type="button" className="btn" onClick={onClose} disabled={loading} style={{ padding: '12px 24px', minHeight: 44 }}>
               {t('close')}
             </button>
             <button
               type="submit"
               className="btn primary"
-              disabled={loading || files.length === 0}
-              style={{
-                padding: '12px 24px',
-                minHeight: 44,
-                opacity: loading ? 0.6 : 1,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}
+              disabled={loading || !hasAny}
+              style={{ padding: '12px 24px', minHeight: 44, opacity: loading ? 0.6 : 1, display: 'flex', alignItems: 'center', gap: '8px' }}
             >
               {loading ? (
                 <>
