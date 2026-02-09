@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { useTranslation } from '@/lib/i18n'
 import LanguageSwitch from '@/components/LanguageSwitch'
-import { ArrowLeft, Save, SkipForward, RefreshCw, User, Gamepad2, Brain, CheckCircle2, AlertCircle, BarChart3, X, Wallet } from 'lucide-react'
+import { ArrowLeft, Save, SkipForward, RefreshCw, User, Gamepad2, Brain, CheckCircle2, AlertCircle, BarChart3, X, Wallet, Trophy } from 'lucide-react'
 import Link from 'next/link'
 
 export default function ImpostazioniProfiloPage() {
@@ -22,7 +22,9 @@ export default function ImpostazioniProfiloPage() {
     ai_name: '',
     how_to_remember: '',
     hours_per_week: null,
-    common_problems: []
+    common_problems: [],
+    leaderboard_consent: false,
+    nickname: ''
   })
   
   const [profileData, setProfileData] = React.useState(null) // Dati completi dal server
@@ -75,7 +77,9 @@ export default function ImpostazioniProfiloPage() {
             ai_name: profileData.ai_name || '',
             how_to_remember: profileData.how_to_remember || '',
             hours_per_week: profileData.hours_per_week || null,
-            common_problems: profileData.common_problems || []
+            common_problems: profileData.common_problems || [],
+            leaderboard_consent: Boolean(profileData.leaderboard_consent),
+            nickname: profileData.nickname || ''
           })
         }
       } catch (err) {
@@ -627,6 +631,74 @@ export default function ImpostazioniProfiloPage() {
             {t('skip')}
           </button>
         </div>
+      </div>
+
+      {/* Sezione: Classifica mensile (From Zero to Hero) */}
+      <div style={{
+        backgroundColor: '#1a1a1a',
+        borderRadius: '12px',
+        padding: '20px',
+        marginBottom: '24px',
+        border: '1px solid #2a2a2a'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+          <Trophy size={20} color="var(--neon-orange)" />
+          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>{t('classificaMensile')}</h2>
+        </div>
+        <div style={{ marginBottom: '16px' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', marginBottom: '8px' }}>
+            <input
+              type="checkbox"
+              checked={!!profile.leaderboard_consent}
+              onChange={(e) => setProfile(prev => ({ ...prev, leaderboard_consent: e.target.checked }))}
+              style={{ width: '20px', height: '20px', accentColor: 'var(--neon-orange)' }}
+            />
+            <span style={{ fontSize: '15px', color: '#fff' }}>{t('leaderboardConsent')}</span>
+          </label>
+          <p style={{ margin: 0, fontSize: '13px', color: '#888', marginLeft: '32px' }}>{t('leaderboardConsentHint')}</p>
+        </div>
+        <div style={{ marginBottom: '20px' }}>
+          <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#888' }}>
+            {t('nickname')}
+          </label>
+          <input
+            type="text"
+            value={profile.nickname}
+            onChange={(e) => setProfile(prev => ({ ...prev, nickname: e.target.value.trim().slice(0, 255) }))}
+            placeholder={t('nicknamePlaceholder')}
+            maxLength={255}
+            style={{
+              width: '100%',
+              padding: '12px',
+              backgroundColor: '#0a0a0a',
+              border: '1px solid #2a2a2a',
+              borderRadius: '8px',
+              color: '#ffffff',
+              fontSize: '16px'
+            }}
+          />
+          <p style={{ margin: '6px 0 0', fontSize: '12px', color: '#666' }}>{t('nicknameHint')}</p>
+        </div>
+        <button
+          onClick={() => handleSave(t('classificaMensile'))}
+          disabled={saving}
+          style={{
+            padding: '12px 20px',
+            backgroundColor: saving ? '#2a2a2a' : 'var(--neon-orange)',
+            color: '#000',
+            border: 'none',
+            borderRadius: '8px',
+            fontSize: '16px',
+            fontWeight: '600',
+            cursor: saving ? 'not-allowed' : 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}
+        >
+          <Save size={18} />
+          {saving ? t('saving') : t('save')}
+        </button>
       </div>
 
       {/* Sezione: Preferenze IA */}

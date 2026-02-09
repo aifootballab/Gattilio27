@@ -66,7 +66,13 @@ export default function ClassificaPage() {
   }
 
   const currentUser = data.currentUser
-  const rankings = data.rankings || []
+  const rankingsRaw = data.rankings || []
+  // Se l'API restituisce la tua posizione ma la lista è vuota (es. snapshot non sincronizzato), mostra almeno te
+  const rankings = rankingsRaw.length > 0
+    ? rankingsRaw
+    : currentUser
+      ? [{ rank: currentUser.rank, nickname: t('you') || 'Tu', points: currentUser.points }]
+      : []
 
   return (
     <main style={{
