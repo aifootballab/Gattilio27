@@ -31,6 +31,10 @@ Da analisi esterna su sicurezza e robustezza del codice.
   Aggiunto try/catch su `req.json()` per ritornare 400 invece di 500.  
   *File:* `save-profile`, `save-coach`, `set-active-coach`, `extract-player`
 
+- [x] **Log client rimossi in produzione**  
+  Log condizionati a `NODE_ENV !== 'production'`.  
+  *File:* `app/page.jsx`, `components/AIKnowledgeBar.jsx`
+
 ---
 
 ## ⏳ Da fare

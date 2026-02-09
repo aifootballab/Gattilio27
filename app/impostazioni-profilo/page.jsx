@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { useTranslation } from '@/lib/i18n'
 import LanguageSwitch from '@/components/LanguageSwitch'
-import { ArrowLeft, Save, SkipForward, RefreshCw, User, Gamepad2, Brain, CheckCircle2, AlertCircle, BarChart3, X, Wallet, Trophy } from 'lucide-react'
+import { ArrowLeft, Save, SkipForward, RefreshCw, User, Gamepad2, Brain, CheckCircle2, AlertCircle, BarChart3, X, Wallet, Trophy, Image } from 'lucide-react'
 import Link from 'next/link'
 
 export default function ImpostazioniProfiloPage() {
@@ -24,7 +24,8 @@ export default function ImpostazioniProfiloPage() {
     hours_per_week: null,
     common_problems: [],
     leaderboard_consent: false,
-    nickname: ''
+    nickname: '',
+    background_key: 'default'
   })
   
   const [profileData, setProfileData] = React.useState(null) // Dati completi dal server
@@ -79,7 +80,8 @@ export default function ImpostazioniProfiloPage() {
             hours_per_week: profileData.hours_per_week || null,
             common_problems: profileData.common_problems || [],
             leaderboard_consent: Boolean(profileData.leaderboard_consent),
-            nickname: profileData.nickname || ''
+            nickname: profileData.nickname || '',
+            background_key: profileData.background_key || 'default'
           })
         }
       } catch (err) {
@@ -129,11 +131,16 @@ export default function ImpostazioniProfiloPage() {
         setProfileData(prev => prev ? {
           ...prev,
           profile_completion_score: data.profile.profile_completion_score,
-          profile_completion_level: data.profile.profile_completion_level
+          profile_completion_level: data.profile.profile_completion_level,
+          background_key: data.profile.background_key ?? prev.background_key
         } : {
           profile_completion_score: data.profile.profile_completion_score,
-          profile_completion_level: data.profile.profile_completion_level
+          profile_completion_level: data.profile.profile_completion_level,
+          background_key: data.profile.background_key ?? 'default'
         })
+        if (data.profile.background_key !== undefined && typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('background-changed'))
+        }
       }
       const successMsg = data.profile
         ? `${sectionName} ${t('profileSectionSaved')}`
@@ -685,6 +692,79 @@ export default function ImpostazioniProfiloPage() {
           style={{
             padding: '12px 20px',
             backgroundColor: saving ? '#2a2a2a' : 'var(--neon-orange)',
+            color: '#000',
+            border: 'none',
+            borderRadius: '8px',
+            fontSize: '16px',
+            fontWeight: '600',
+            cursor: saving ? 'not-allowed' : 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}
+        >
+          <Save size={18} />
+          {saving ? t('saving') : t('save')}
+        </button>
+      </div>
+
+      {/* Sezione: Sfondo app */}
+      <div style={{
+        backgroundColor: '#1a1a1a',
+        borderRadius: '12px',
+        padding: '20px',
+        marginBottom: '24px',
+        border: '1px solid #2a2a2a'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+          <Image size={20} color="#00d4ff" />
+          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>{t('backgroundChoice')}</h2>
+        </div>
+        <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#888' }}>{t('backgroundChoiceHint')}</p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '20px' }}>
+          {[
+            { key: 'default', label: t('backgroundDefault'), url: '/backgrounds/sfondo.png' },
+            { key: 'sfondo2', label: t('backgroundOption2'), url: '/backgrounds/sfondo%202.jpg' },
+            { key: 'sfondo3', label: t('backgroundOption3'), url: '/backgrounds/sfondo%203.jpg' }
+          ].map(({ key, label, url }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setProfile(prev => ({ ...prev, background_key: key }))}
+              style={{
+                width: '100%',
+                maxWidth: '160px',
+                padding: 0,
+                border: `2px solid ${profile.background_key === key ? 'var(--neon-blue)' : '#2a2a2a'}`,
+                borderRadius: '12px',
+                overflow: 'hidden',
+                background: '#0a0a0a',
+                cursor: 'pointer',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'stretch'
+              }}
+            >
+              <div
+                style={{
+                  height: '80px',
+                  backgroundImage: `url(${url})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center'
+                }}
+              />
+              <span style={{ padding: '10px', fontSize: '14px', color: '#fff', fontWeight: profile.background_key === key ? 600 : 400 }}>
+                {label}
+              </span>
+            </button>
+          ))}
+        </div>
+        <button
+          onClick={() => handleSave(t('backgroundChoice'))}
+          disabled={saving}
+          style={{
+            padding: '12px 20px',
+            backgroundColor: saving ? '#2a2a2a' : 'var(--neon-blue)',
             color: '#000',
             border: 'none',
             borderRadius: '8px',
