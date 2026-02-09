@@ -45,6 +45,9 @@ export async function GET(req) {
     return NextResponse.json({ error: 'Invalid month; use YYYY-MM' }, { status: 400 })
   }
 
+  const endOfMonth = getMonthBounds(month)
+  const daysLeftInMonth = endOfMonth ? Math.max(0, Math.ceil((new Date(endOfMonth.end) - new Date()) / (24 * 60 * 60 * 1000))) : null
+
   const token = extractBearerToken(req)
   let authUserId = null
   if (token && anonKey) {
@@ -89,39 +92,49 @@ export async function GET(req) {
     )
   }
 
-  // Fallback: se la SELECT diretta restituisce 0 righe (es. anon key / RLS), usa RPC SECURITY DEFINER
+  // Fallback: se la SELECT diretta restituisce 0 righe (es. anon key / RLS), usa RPC SECURITY DEFINER.
+  // Se RPC non esiste o fallisce, restituiamo 200 con rankings vuoti (evitiamo di chiamare computeLeaderboardForMonth con anon e 500).
   if ((snapshots || []).length === 0) {
+    const supabaseProject = supabaseUrl ? (() => { try { return new URL(supabaseUrl).hostname.split('.')[0] } catch { return 'invalid-url' } })() : 'not-set'
     const { data: rpcRankings, error: rpcErr } = await admin.rpc('get_leaderboard_for_month', { month_param: month })
-    if (!rpcErr && rpcRankings?.length > 0) {
-      const rankingsFromRpc = rpcRankings.map((r, idx) => ({
-        rank: r.rank ?? idx + 1,
-        nickname: r.nickname ?? '—',
-        points: r.points ?? 0
-      }))
-      let currentUserFromRpc = null
-      if (authUserId) {
-        const { data: cuRows } = await admin.rpc('get_leaderboard_current_user', {
-          month_param: month,
-          user_id_param: authUserId
-        })
-        const cu = Array.isArray(cuRows) ? cuRows[0] : cuRows
-        if (cu) currentUserFromRpc = { rank: cu.rank, points: cu.points, pointsBreakdown: cu.points_breakdown || {} }
-      }
-      const supabaseProject = supabaseUrl ? (() => { try { return new URL(supabaseUrl).hostname.split('.')[0] } catch { return 'invalid-url' } })() : 'not-set'
+    if (rpcErr) {
+      console.warn('[leaderboard] RPC get_leaderboard_for_month failed:', rpcErr.message)
       return NextResponse.json({
         month,
-        rankings: rankingsFromRpc,
-        currentUser: currentUserFromRpc,
+        rankings: [],
         daysLeftInMonth,
-        _debug: {
-          month,
-          snapshotsFound: 0,
-          source: 'rpc',
-          supabaseProject,
-          expectedProject: 'zliuuorrwdetylollrua'
-        }
+        _debug: { month, snapshotsFound: 0, source: 'rpc_fallback', rpcError: rpcErr.message, supabaseProject, expectedProject: 'zliuuorrwdetylollrua' }
       })
     }
+    if (!rpcRankings?.length) {
+      return NextResponse.json({
+        month,
+        rankings: [],
+        daysLeftInMonth,
+        _debug: { month, snapshotsFound: 0, source: 'rpc_fallback', empty: true, supabaseProject, expectedProject: 'zliuuorrwdetylollrua' }
+      })
+    }
+    const rankingsFromRpc = rpcRankings.map((r, idx) => ({
+      rank: r.rank ?? idx + 1,
+      nickname: r.nickname ?? '—',
+      points: r.points ?? 0
+    }))
+    let currentUserFromRpc = null
+    if (authUserId) {
+      const { data: cuRows } = await admin.rpc('get_leaderboard_current_user', {
+        month_param: month,
+        user_id_param: authUserId
+      })
+      const cu = Array.isArray(cuRows) ? cuRows[0] : cuRows
+      if (cu) currentUserFromRpc = { rank: cu.rank, points: cu.points, pointsBreakdown: cu.points_breakdown || {} }
+    }
+    return NextResponse.json({
+      month,
+      rankings: rankingsFromRpc,
+      currentUser: currentUserFromRpc,
+      daysLeftInMonth,
+      _debug: { month, snapshotsFound: 0, source: 'rpc', supabaseProject, expectedProject: 'zliuuorrwdetylollrua' }
+    })
   }
 
   const snapshotUserIds = new Set((snapshots || []).map(s => s.user_id))
@@ -210,15 +223,12 @@ export async function GET(req) {
     }
   }
 
-  const endOfMonth = getMonthBounds(month)
-  const daysLeft = endOfMonth ? Math.max(0, Math.ceil((new Date(endOfMonth.end) - new Date()) / (24 * 60 * 60 * 1000))) : null
-
   const supabaseProject = supabaseUrl ? (() => { try { return new URL(supabaseUrl).hostname.split('.')[0] } catch { return 'invalid-url' } })() : 'not-set'
   const body = {
     month,
     rankings,
     ...(currentUser && { currentUser }),
-    daysLeftInMonth: daysLeft
+    daysLeftInMonth
   }
   if (rankings.length === 0) {
     body._debug = {
