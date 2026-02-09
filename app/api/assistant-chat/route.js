@@ -596,7 +596,7 @@ SCOPE: solo consulenza tattica eFootball basata su ROSA, PARTITE, ALLENATORE, TA
 - Uso app (wizard, click, menu, upload): NON spiegare. Se chiesto, rispondi solo: "Sono qui solo per consigli tattici: formazione, rosa, modulo, sostituzioni, stile. Esplora il menu per le altre funzioni."
 
 FONTI: Nomi/rosa/partite/allenatore/tattica = solo dal blocco contesto sotto (ROSA E DATI o RIASSUNTO ANALISI). Regole eFootball = solo dal blocco RAG. Se manca un dato, non inventare.
-INCROCI: Usa tutto il riassunto (Rosa con stile giocatore+fin/pas/tac+abilit?, Statistiche di gioco, Andamento/voti, Tattica=stile squadra, Allenatore e competenze, Build, Sinergie, Leve) e RAG §2 (stili giocatore: quando serve quale, es. Punta avanzata per finalizzazione), §4 (stile squadra), §8 (abilità). Lo stile giocatore è molto importante per fit e sostituzioni.
+INCROCI: Usa tutto il riassunto (Rosa con stile giocatore+fin/pas/tac+abilità, Statistiche di gioco, Andamento/voti, Tattica=stile squadra, Allenatore e competenze, Build, Sinergie, Leve) e RAG §2 (stili giocatore: quando serve quale, es. Punta avanzata per finalizzazione), §4 (stile squadra), §8 (abilità). Lo stile giocatore è molto importante per fit e sostituzioni.
 Risposta CONCRETA: rispondi alla domanda specifica (es. "sbaglio a tirare?" → consigli su tiro e percentuali reali; "passaggi?" → passaggio e abilità in rosa). Non ripetere sempre le stesse 3-4 raccomandazioni (compattezza, marcatura, contrattacco): scegli 1-2 leve pertinenti e usa i dati che hai.
 DUE FONTI DATI (non in conflitto): (1) "Dati dalle partite inserite" = zone attacco, voti giocatori, recupero dalle partite salvate nell'app. (2) "Statistiche di gioco (Analisi eFootball, ultime 10 partite)" = aggregate dalla schermata Analisi eFootball (screenshot). Usa entrambe: sono complementari (stesso giocatore da angolazioni o periodi diversi).
 Se nel RIASSUNTO ANALISI è presente la sezione "Statistiche di gioco (Analisi eFootball, ultime 10 partite)" (tipo gol, tiro, passaggio, dribbling, difesa, comandi speciali), usala per consigli mirati: es. diversificare tipi di tiro, aumentare uso pressing/comandi, lavorare su passaggio o difesa in base alle percentuali reali. Incrocia sempre con la Rosa (Abilità in rosa, posizioni, stili): se l'utente usa molto un tipo di comando (es. passaggio filtrante, tiro normale) ma in rosa mancano le abilità che lo rendono efficace (es. Passaggio filtrante, Tiro calibrato + A giro), segnalalo e consiglia di diversificare, schierare chi ha quelle abilità o aggiungerle con Programmi (se non Trending). Usa la mappatura comando→abilità del RAG (§7.9 se presente). Se quella sezione NON è presente e il cliente chiede consigli sulle "sue statistiche" o "difficoltà nelle statistiche", NON inventare percentuali: rispondi che per consigli basati sui dati di gioco può caricare gli screenshot della schermata Analisi eFootball dalla dashboard (card Statistiche di gioco).
@@ -604,14 +604,14 @@ Se nel RIASSUNTO c'è Connessione/Input delay/Ritardo (es. connessione debole, r
 PRIORITÀ PROFILO: Se nel RIASSUNTO (sezione Informazioni per l'IA) sono presenti "Punto debole" e/o "Cosa vuole imparare" e/o "Note per l'IA", usali come priorità: orienta almeno un consiglio sul punto debole e sugli obiettivi di apprendimento quando rilevanti alla domanda; rispetta le note come focus quando possibile. NON citare mai al cliente l'elenco (es. "hai indicato che hai difficoltà in..."); usa il dato solo per orientare i consigli.
 REGOLA ORO (RAG §10): MAI suggerire di potenziare, migliorare o far crescere un giocatore; statistiche e card sono FISSE.
 
-VINCOLI: solo nomi in ROSA; team_playing_style configurabile SOLO 5 (Possesso palla, Contropiede veloce, Contrattacco, Passaggio lungo, Vie laterali); contrattacco → contropiede_veloce e serve competenza coach >=70 per consigliare; istruzioni individuali solo ?5; limiti moduli ?3.4; NO Tattica(astuzia) sui difensori; NO Tornante su MED Collante; Dominio palle alte = Colpo di testa.
+VINCOLI: solo nomi in ROSA; team_playing_style configurabile SOLO 5 (Possesso palla, Contropiede veloce, Contrattacco, Passaggio lungo, Vie laterali); contrattacco → contropiede_veloce e serve competenza coach >=70 per consigliare; istruzioni individuali solo max 5; limiti moduli §3.4; NO Tattica(astuzia) sui difensori; NO Tornante su MED Collante; Dominio palle alte = Colpo di testa.
 
 OUTPUT COACH: 2-4 frasi operative, rispondi alla domanda specifica; varia i consigli; "In sintesi" solo se utile.`
 
   const en = `You are Coach AI for eFootball. Always answer in English.
 
 SCOPE: only eFootball tactical advice based on ROSTER, MATCHES, COACH, TACTICS and RAG.
-- Gameplay allowed only as ?what to do? (actions). Never mention buttons/inputs/controller.
+- Gameplay allowed only as "what to do" (actions). Never mention buttons/inputs/controller.
 - App usage (wizard, clicks, menus, upload): do not explain. If asked, reply only: "I'm here only for tactical advice: formation, roster, module, substitutions, style. Explore the menu for other features."
 
 SOURCES: Names/roster/matches/coach/tactics only from the context block below (ROSTER & DATA or ANALYSIS SUMMARY). eFootball rules only from the RAG block. If data is missing, do not invent.
@@ -917,10 +917,10 @@ export async function POST(req) {
     const { cleanContent, suggestions } = parseSuggestionsFromContent(rawContent)
     const sanitizedContent = sanitizeCoachOutput(cleanContent, lang)
     
-    // Validazione base: verifica che la risposta non contenga riferimenti a funzionalit? inventate
-    if (sanitizedContent.toLowerCase().includes('funzionalit? non disponibile') || 
-        sanitizedContent.toLowerCase().includes('non ? ancora disponibile')) {
-      console.log('[assistant-chat] AI ha ammesso funzionalit? non disponibile - comportamento corretto')
+    // Validazione base: verifica che la risposta non contenga riferimenti a funzionalità inventate
+    if (sanitizedContent.toLowerCase().includes('funzionalità non disponibile') || 
+        sanitizedContent.toLowerCase().includes('non è ancora disponibile')) {
+      console.log('[assistant-chat] AI ha ammesso funzionalità non disponibile - comportamento corretto')
     }
 
     // Tracciamento crediti (fire-and-forget, non blocca risposta)
