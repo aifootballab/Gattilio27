@@ -133,12 +133,10 @@ export default function CreditsBar() {
       ? t('creditsError') || 'Error'
       : `${used}/${included}`
 
-  const triggerAriaLabel = open
-    ? (lang === 'en' ? 'Close credits' : 'Chiudi crediti')
-    : (lang === 'en' ? 'View AI credits' : 'Vedi crediti AI')
+  const triggerAriaLabel = open ? (t('creditsCloseAria') || (lang === 'en' ? 'Close credits' : 'Chiudi crediti')) : (t('creditsViewAria') || (lang === 'en' ? 'View AI credits' : 'Vedi crediti AI'))
 
   return (
-    <div ref={containerRef} style={{ position: 'fixed', top: '12px', right: '12px', zIndex: 1000 }}>
+    <div ref={containerRef} className="credits-bar-pill-wrap">
       <button
         type="button"
         data-tour-id="tour-dashboard-credits"

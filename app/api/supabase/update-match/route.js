@@ -172,7 +172,9 @@ async function calculateTacticalPatterns(admin, userId) {
       return null
     }
 
-    console.log(`[update-match] Tactical patterns calculated and saved for user ${userId}`)
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[update-match] Tactical patterns calculated and saved`)
+    }
     return { formation_usage: formationUsage, playing_style_usage: playingStyleUsage, recurring_issues: recurringIssues }
   } catch (err) {
     console.error('[update-match] Error calculating tactical patterns:', err)

@@ -119,7 +119,9 @@ export async function DELETE(req) {
         if (instruction && instruction.player_id === playerIdStr) {
           delete cleanedInstructions[category]
           hasChanges = true
-          console.log(`[delete-player] Removed individual_instruction ${category} for deleted player ${playerIdStr}`)
+          if (process.env.NODE_ENV !== 'production') {
+            console.log(`[delete-player] Removed individual_instruction ${category}`)
+          }
         }
       })
 

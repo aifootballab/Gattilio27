@@ -486,6 +486,19 @@ body > * {
   animation: spin 1s linear infinite;
 }
 
+/* Credits bar pill (a sinistra di "Mostrami come", z sotto al launcher) */
+.credits-bar-pill-wrap {
+  position: fixed;
+  top: 12px;
+  right: 170px;
+  z-index: 800;
+}
+@media (max-width: 520px) {
+  .credits-bar-pill-wrap {
+    right: 56px;
+  }
+}
+
 /* Guide Tour Launcher (Mostrami come) */
 .guide-tour-launcher {
   position: fixed;
