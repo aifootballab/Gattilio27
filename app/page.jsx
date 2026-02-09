@@ -33,8 +33,7 @@ import {
   Zap,
   Shield,
   BookOpen,
-  Info,
-  Trophy
+  Info
 } from 'lucide-react'
 
 export default function DashboardPage() {
