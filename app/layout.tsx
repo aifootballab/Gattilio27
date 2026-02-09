@@ -22,7 +22,7 @@ export default function RootLayout({
         <LanguageProviderWrapper>
           {/* Custom Background Layer - scelta utente da Profilo (BackgroundLoader applica background_key) */}
           <div className="custom-background" />
-          <BackgroundLoader />
+          {/* BackgroundLoader rimosso temporaneamente per debug */}
           {/* Barra utility in-flow (scrolla con la pagina): Crediti AI + Mostrami come - stile coerente con altri btn */}
           <header className="top-utility-bar" aria-label="Crediti e guida">
             <CreditsBar />

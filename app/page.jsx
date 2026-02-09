@@ -95,6 +95,7 @@ export default function DashboardPage() {
 
   React.useEffect(() => {
     if (!supabase) {
+      setLoading(false)
       router.push('/login')
       return
     }
@@ -107,6 +108,7 @@ export default function DashboardPage() {
         const { data: session, error: sessionError } = await supabase.auth.getSession()
         
         if (sessionError || !session?.session) {
+          setLoading(false)
           router.push('/login')
           return
         }
@@ -235,7 +237,13 @@ export default function DashboardPage() {
       }
     }
 
-    fetchData()
+    const timeoutId = setTimeout(() => {
+      setLoading((prev) => {
+        if (prev) setError(t('coachDataLoadError') || 'Caricamento troppo lento. Riprova.')
+        return false
+      })
+    }, 20000)
+    fetchData().finally(() => clearTimeout(timeoutId))
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
