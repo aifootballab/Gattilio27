@@ -17,7 +17,7 @@ export default function ClassificaPage() {
   const [data, setData] = React.useState({ month: '', rankings: [], currentUser: null, daysLeftInMonth: null })
   const [showBreakdown, setShowBreakdown] = React.useState(false)
 
-  const fetchLeaderboard = React.useCallback(async () => {
+  const fetchLeaderboard = React.useCallback(async (signal) => {
     setLoading(true)
     setError(null)
     try {
@@ -28,13 +28,15 @@ export default function ClassificaPage() {
 
       const res = await fetch('/api/leaderboard?' + new URLSearchParams({ month: getCurrentMonth() }), {
         headers,
-        cache: 'no-store'
+        cache: 'no-store',
+        ...(signal && { signal })
       })
-      const payload = await safeJsonResponse(res, t('errorLoadingUsage'))
+      const payload = await safeJsonResponse(res, t('errorLoadingLeaderboard'))
       if (payload?.error) {
         setError(payload.error)
         return
       }
+      if (signal?.aborted) return
       setData({
         month: payload.month || '',
         rankings: payload.rankings || [],
@@ -42,15 +44,18 @@ export default function ClassificaPage() {
         daysLeftInMonth: payload.daysLeftInMonth ?? null
       })
     } catch (e) {
+      if (e?.name === 'AbortError') return
       console.error('[Classifica]', e)
-      setError(t('errorLoadingUsage'))
+      setError(t('errorLoadingLeaderboard'))
     } finally {
-      setLoading(false)
+      if (!signal?.aborted) setLoading(false)
     }
   }, [t])
 
   React.useEffect(() => {
-    fetchLeaderboard()
+    const ac = new AbortController()
+    fetchLeaderboard(ac.signal)
+    return () => ac.abort()
   }, [fetchLeaderboard])
 
   function getCurrentMonth() {
@@ -127,7 +132,7 @@ export default function ClassificaPage() {
           gap: '8px'
         }}>
           <span>{error}</span>
-          <button type="button" onClick={() => { setError(null); fetchLeaderboard() }} className="btn" style={{ padding: '6px 12px', fontSize: '14px' }}>
+          <button type="button" onClick={() => { setError(null); fetchLeaderboard(null) }} className="btn" style={{ padding: '6px 12px', fontSize: '14px' }}>
             {t('retry')}
           </button>
         </div>
