@@ -121,6 +121,10 @@ export default function GameAnalysisModal({ show, onClose, onSuccess }) {
               'Accept-Language': lang === 'en' ? 'en' : 'it'
             }
           })
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('knowledge-should-refresh'))
+            window.dispatchEvent(new CustomEvent('diagnostic-updated'))
+          }
         } catch (_) { /* non bloccare */ }
         setTimeout(() => {
           setSuccess(false)

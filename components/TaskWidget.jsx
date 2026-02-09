@@ -20,22 +20,20 @@ export default function TaskWidget() {
     fetchTasks()
     
     // FIX: Ascolta eventi di salvataggio partita per ricaricare task
-    const handleMatchSaved = () => {
-      // Delay per permettere salvataggio DB
-      setTimeout(() => {
-        console.log('[TaskWidget] Match saved event received, refreshing tasks...')
-        fetchTasks()
-      }, 1500)
+    const refreshTasksWithDelay = () => {
+      setTimeout(() => fetchTasks(), 1500)
     }
-    
-    // Solo lato client
+    const handleMatchSaved = () => refreshTasksWithDelay()
+    const handleDiagnosticUpdated = () => refreshTasksWithDelay()
+
     if (typeof window !== 'undefined') {
       window.addEventListener('match-saved', handleMatchSaved)
+      window.addEventListener('diagnostic-updated', handleDiagnosticUpdated)
     }
-    
     return () => {
       if (typeof window !== 'undefined') {
         window.removeEventListener('match-saved', handleMatchSaved)
+        window.removeEventListener('diagnostic-updated', handleDiagnosticUpdated)
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
