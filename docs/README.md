@@ -12,6 +12,7 @@ Solo documenti utili e di riferimento per produzione.
 | [Auth e email](#auth-e-email) | Recupero password, SMTP, redirect |
 | [Crediti e business](#crediti-e-business) | Crediti AI, Hero Points, pagamenti |
 | [Classifica](#classifica) | Audit e design classifica mensile |
+| [UX enterprise e guida cliente](#ux-enterprise-e-guida-cliente) | Guida cliente, fiducia, profilazione, responsività, linee guida UX/responsive |
 | [Riferimento e audit](#riferimento-e-audit) | Rosa, task, chat, UX, servizio cliente |
 | [Backlog](#backlog) | Cose da fare (priorità) |
 
@@ -53,6 +54,10 @@ Solo documenti utili e di riferimento per produzione.
 ## Classifica
 - **CLASSIFICA_AUDIT.md** – Audit classifica
 - **DESIGN_CLASSIFICA_MENSILE_E_PREMI.md** – Design classifica mensile e premi
+
+## UX enterprise e guida cliente
+- **PIANO_UX_ENTERPRISE_GUIDA_CLIENTE.md** – Piano enterprise: guida il cliente, fiducia (ragionamenti/calcoli da conoscenza), importanza profilazione, responsività, priorità P0–P3
+- **UX_RESPONSIVE_LINEE_GUIDA.md** – Linee guida obbligatorie: responsività (breakpoint, touch target, overflow), UX “siamo una guida”, checklist pre-release
 
 ## Riferimento e audit
 - **GESTIONE_ROSA_FUNZIONI.md** – Funzioni gestione rosa, formazione

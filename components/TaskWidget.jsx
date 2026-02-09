@@ -165,32 +165,39 @@ export default function TaskWidget() {
     >
       {/* Header come Classifica: icon + title + subtitle + chevron */}
       <div
+        role="button"
+        tabIndex={0}
+        aria-expanded={isExpanded}
+        aria-label={isExpanded ? t('collapseSectionGoals') : t('expandSectionGoals')}
         onClick={() => setIsExpanded(!isExpanded)}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setIsExpanded(!isExpanded) } }}
         style={{
           display: 'flex',
           alignItems: 'center',
           gap: '16px',
-          padding: '20px',
+          padding: 'clamp(16px, 4vw, 20px)',
           cursor: 'pointer',
           userSelect: 'none',
-          color: '#fff'
+          color: '#fff',
+          minHeight: '44px',
+          boxSizing: 'border-box'
         }}
       >
         <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(255,165,0,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <Trophy size={26} color="var(--neon-orange)" />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 700, marginBottom: '4px', fontSize: '18px' }}>
+          <div style={{ fontWeight: 700, marginBottom: '4px', fontSize: 'clamp(16px, 4vw, 18px)' }}>
             {t('weeklyGoals') || 'Obiettivi Settimanali'}
           </div>
-          <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.85)' }}>
+          <div style={{ fontSize: 'clamp(13px, 3vw, 14px)', color: 'rgba(255,255,255,0.85)' }}>
             {summaryText}
           </div>
         </div>
         {isExpanded ? (
-          <ChevronUp size={22} color="var(--neon-orange)" style={{ flexShrink: 0 }} />
+          <ChevronUp size={22} color="var(--neon-orange)" style={{ flexShrink: 0 }} aria-hidden />
         ) : (
-          <ChevronDown size={22} color="var(--neon-orange)" style={{ flexShrink: 0 }} />
+          <ChevronDown size={22} color="var(--neon-orange)" style={{ flexShrink: 0 }} aria-hidden />
         )}
       </div>
 

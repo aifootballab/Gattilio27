@@ -1076,32 +1076,39 @@ export default function DashboardPage() {
         }}
       >
         <div
+          role="button"
+          tabIndex={0}
+          aria-expanded={matchesExpanded}
+          aria-label={matchesExpanded ? t('collapseSectionMatches') : t('expandSectionMatches')}
           onClick={() => setMatchesExpanded(!matchesExpanded)}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setMatchesExpanded(!matchesExpanded) } }}
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: '16px',
-            padding: '20px',
+            padding: 'clamp(16px, 4vw, 20px)',
             cursor: 'pointer',
             userSelect: 'none',
-            color: '#fff'
+            color: '#fff',
+            minHeight: '44px',
+            boxSizing: 'border-box'
           }}
         >
           <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(255,165,0,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <Calendar size={26} color="var(--neon-orange)" />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontWeight: 700, marginBottom: '4px', fontSize: '18px' }}>
+            <div style={{ fontWeight: 700, marginBottom: '4px', fontSize: 'clamp(16px, 4vw, 18px)' }}>
               {t('recentMatches') || 'Ultime Partite'}
             </div>
-            <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.85)' }}>
+            <div style={{ fontSize: 'clamp(13px, 3vw, 14px)', color: 'rgba(255,255,255,0.85)' }}>
               {recentMatches.length === 0 ? t('noMatchesSaved') : `${recentMatches.length} ${recentMatches.length === 1 ? (t('match') || 'partita') : (t('matches') || 'partite')}`}
             </div>
           </div>
           {matchesExpanded ? (
-            <ChevronUp size={22} color="var(--neon-orange)" style={{ flexShrink: 0 }} />
+            <ChevronUp size={22} color="var(--neon-orange)" style={{ flexShrink: 0 }} aria-hidden />
           ) : (
-            <ChevronDown size={22} color="var(--neon-orange)" style={{ flexShrink: 0 }} />
+            <ChevronDown size={22} color="var(--neon-orange)" style={{ flexShrink: 0 }} aria-hidden />
           )}
         </div>
 

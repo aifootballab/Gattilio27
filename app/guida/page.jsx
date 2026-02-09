@@ -686,8 +686,8 @@ export default function GuidaPage() {
 
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
-            gap: '24px'
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
+            gap: 'clamp(16px, 4vw, 24px)'
           }}>
             {pageGuides.map((guide) => {
               const Icon = guide.icon
@@ -696,13 +696,19 @@ export default function GuidaPage() {
               return (
                 <div
                   key={guide.id}
+                  role="button"
+                  tabIndex={0}
+                  aria-expanded={isExpanded}
+                  aria-label={isExpanded ? `${t('collapseGuideCard')}: ${guide.title}` : `${t('expandGuideCard')}: ${guide.title}`}
                   className="card"
                   style={{
-                    padding: '24px',
+                    padding: 'clamp(16px, 4vw, 24px)',
                     border: `2px solid ${guide.color}`,
                     background: `rgba(${guide.color === 'var(--neon-blue)' ? '0, 212, 255' : guide.color === 'var(--neon-purple)' ? '168, 85, 247' : guide.color === 'var(--neon-orange)' ? '255, 107, 53' : guide.color === 'var(--neon-pink)' ? '236, 72, 153' : '0, 245, 255'}, 0.05)`,
                     transition: 'all 0.3s ease',
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    minHeight: '44px',
+                    boxSizing: 'border-box'
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.boxShadow = `0 0 20px ${guide.color.replace('var(--', '').replace(')', '')}40, 0 0 40px ${guide.color.replace('var(--', '').replace(')', '')}20`
@@ -713,11 +719,12 @@ export default function GuidaPage() {
                     e.currentTarget.style.transform = 'translateY(0)'
                   }}
                   onClick={() => toggleSection(guide.id)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleSection(guide.id) } }}
                 >
                   <div style={{
                     display: 'flex',
                     alignItems: 'flex-start',
-                    gap: '16px',
+                    gap: 'clamp(12px, 3vw, 16px)',
                     marginBottom: '16px'
                   }}>
                     <div style={{
@@ -733,18 +740,19 @@ export default function GuidaPage() {
                     }}>
                       <Icon size={24} color="white" />
                     </div>
-                    <div style={{ flex: 1 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
                       <h3 style={{
-                        fontSize: '20px',
+                        fontSize: 'clamp(18px, 4vw, 20px)',
                         fontWeight: 700,
                         color: 'white',
                         marginBottom: '8px',
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'space-between'
+                        justifyContent: 'space-between',
+                        gap: '8px'
                       }}>
                         <span>{guide.title}</span>
-                        {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                        {isExpanded ? <ChevronUp size={20} aria-hidden /> : <ChevronDown size={20} aria-hidden />}
                       </h3>
                       <p style={{
                         fontSize: '14px',
@@ -819,6 +827,7 @@ export default function GuidaPage() {
                         ))}
                       </ul>
                       <button
+                        type="button"
                         onClick={(e) => {
                           e.stopPropagation()
                           router.push(guide.path)
@@ -826,20 +835,23 @@ export default function GuidaPage() {
                         style={{
                           marginTop: '16px',
                           width: '100%',
-                          padding: '12px',
+                          padding: 'clamp(12px, 3vw, 14px)',
+                          minHeight: '44px',
                           background: guide.color,
                           border: 'none',
                           borderRadius: '8px',
                           color: 'white',
-                          fontSize: '14px',
+                          fontSize: 'clamp(13px, 3vw, 14px)',
                           fontWeight: 600,
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           gap: '8px',
-                          transition: 'all 0.2s'
+                          transition: 'all 0.2s',
+                          boxSizing: 'border-box'
                         }}
+                        aria-label={`${t('guideGoToPage')}: ${guide.title}`}
                         onMouseEnter={(e) => {
                           e.currentTarget.style.transform = 'scale(1.02)'
                           e.currentTarget.style.boxShadow = `0 0 20px ${guide.color}60`
