@@ -447,6 +447,31 @@ Stringa `—` usata come default nickname: indica file non UTF-8.
 - Verificare che in produzione (Vercel) le variabili `NEXT_PUBLIC_SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` puntino allo stesso progetto usato in sviluppo (dove è presente lo snapshot).
 - Per evitare che un utente con consenso e snapshot venga rimosso al prossimo recompute: o eseguire il recompute solo quando l’utente ha ≥3 partite complete nel mese, o mantenere in snapshot gli utenti già presenti anche se sotto soglia (policy di business da definire). Vedi `lib/leaderboardHelper.js` `isEligibleForLeaderboard` e `MIN_MATCHES_ELIGIBILITY`.
 
+### 19.9 ODIT flussi – Perché la classifica è ancora a 0 (attiliomazzetti@gmail.com)
+
+**Stato verificato nel progetto Supabase `zliuuorrwdetylollrua` (stesso di `.env.local`):**
+- **auth.users:** `attiliomazzetti@gmail.com` → `user_id = 357c0b71-09fc-4aec-b0e6-7aac08107575`.
+- **user_profiles:** `leaderboard_consent = true`, `nickname = 'Attilio'`, `profile_completion_score = 100`.
+- **leaderboard_snapshots (2026-02):** 3 righe; prima riga = questo utente, **rank 1, 28 punti**.
+- **matches (feb 2026):** 1 partita `data_completeness = 'complete'`.
+
+Quindi **nel DB collegato a questo progetto i dati sono corretti**: l'utente è in classifica con 28 punti.
+
+**Flusso end-to-end (dove può rompersi):**
+
+1. **Frontend (dashboard o pagina Classifica)**  
+   Chiama `GET /api/leaderboard` con header `Authorization: Bearer <token>`. Se non c'è sessione, l'API non può associare `currentUser` ma può restituire `rankings`.
+
+2. **API `/api/leaderboard`**  
+   Legge `process.env.NEXT_PUBLIC_SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` dall'**ambiente server** (dove gira Next.js: Vercel o `next dev`). Crea client admin con quella URL. Se **quel** progetto ha righe in `leaderboard_snapshots` per il mese → `rankings` e `currentUser` vengono compilati. Se **quel** progetto è diverso o vuoto → `rankings = []`, `currentUser = null` → in UI: classifica a 0.
+
+3. **Conclusione:**  
+   La classifica è ancora a 0 perché l'ambiente in cui giri l'app (o il deploy) **non** usa il progetto `zliuuorrwdetylollrua` dove i dati sono stati verificati. Es.: Vercel con env che puntano a un altro progetto; oppure locale senza `.env.local` corretto.
+
+**Checklist:** (1) Dove vedi "classifica a 0"? (localhost / Vercel). (2) In quell'ambiente verificare che `NEXT_PUBLIC_SUPABASE_URL` sia `https://zliuuorrwdetylollrua.supabase.co` e che `SUPABASE_SERVICE_ROLE_KEY` sia dello stesso progetto. (3) Su Vercel: Settings → Environment Variables per Production/Preview.
+
+**Riepilogo:** Non è un bug di logica. I dati per attiliomazzetti@gmail.com nel progetto corretto ci sono. Allineare le env al progetto `zliuuorrwdetylollrua` risolve.
+
 ---
 
 ## 20) Classifica UI (app/classifica)
