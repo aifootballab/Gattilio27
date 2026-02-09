@@ -195,7 +195,7 @@ export async function POST(req) {
 
     console.log(`[save-profile] Profile saved: id=${savedProfile.id}, completion_score=${savedProfile.profile_completion_score}%, level=${savedProfile.profile_completion_level}`)
 
-    // Aggiorna AI Knowledge Score (async, non blocca risposta) — prima del return altrimenti non viene eseguito
+    // Aggiorna AI Knowledge Score (async, non blocca risposta)
     if (supabaseUrl && serviceKey) {
       import('../../../../lib/aiKnowledgeHelper').then(({ updateAIKnowledgeScore }) => {
         updateAIKnowledgeScore(userId, supabaseUrl, serviceKey).catch(err => {
@@ -205,6 +205,17 @@ export async function POST(req) {
         console.error('[save-profile] Failed to import aiKnowledgeHelper (non-blocking):', err)
       })
     }
+
+    // Ricomputa classifica mensile (profile_completion_score incide sui punti)
+    import('@/lib/leaderboardHelper').then(({ computeLeaderboardForMonth, saveLeaderboardSnapshot }) => {
+      const now = new Date()
+      const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+      computeLeaderboardForMonth(month, admin)
+        .then((computed) => {
+          if (computed?.length) return saveLeaderboardSnapshot(month, computed, admin)
+        })
+        .catch(err => console.error('[save-profile] Leaderboard recompute (non-blocking):', err?.message || err))
+    }).catch(() => {})
 
     return NextResponse.json({
       success: true,

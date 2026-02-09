@@ -270,6 +270,27 @@ export default function DashboardPage() {
     return () => { cancelled = true }
   }, [loading, supabase])
 
+  React.useEffect(() => {
+    if (typeof window === 'undefined' || !supabase) return
+    const onLeaderboardUpdated = async () => {
+      try {
+        const { data: session } = await supabase.auth.getSession()
+        const token = session?.session?.access_token
+        if (!token) return
+        const res = await fetch('/api/leaderboard', { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' })
+        const payload = await res.json().catch(() => ({}))
+        if (payload.rankings) {
+          setLeaderboardData({
+            currentUser: payload.currentUser || null,
+            daysLeftInMonth: payload.daysLeftInMonth ?? null
+          })
+        }
+      } catch (_) {}
+    }
+    window.addEventListener('leaderboard-updated', onLeaderboardUpdated)
+    return () => window.removeEventListener('leaderboard-updated', onLeaderboardUpdated)
+  }, [supabase])
+
   const handleLogout = async () => {
     if (supabase) {
       await supabase.auth.signOut()

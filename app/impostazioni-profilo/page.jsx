@@ -137,7 +137,10 @@ export default function ImpostazioniProfiloPage() {
       setSuccess(successMsg)
       setToast({ message: successMsg, type: 'success' })
       setTimeout(() => setSuccess(null), 3000)
-      if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('knowledge-should-refresh'))
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('knowledge-should-refresh'))
+        setTimeout(() => window.dispatchEvent(new CustomEvent('leaderboard-updated')), 1500)
+      }
     } catch (err) {
       console.error('[Impostazioni Profilo] Error saving profile:', err)
       const errMsg = err.message || t('errorProfileSave')

@@ -65,6 +65,27 @@ export default function GestioneProfiloPage() {
     fetchData()
   }, [fetchData])
 
+  React.useEffect(() => {
+    if (typeof window === 'undefined' || !supabase) return
+    const onLeaderboardUpdated = async () => {
+      const { data: session } = await supabase.auth.getSession()
+      const token = session?.session?.access_token
+      if (!token) return
+      try {
+        const [lbRes, meRes] = await Promise.all([
+          fetch('/api/leaderboard', { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' }),
+          fetch('/api/leaderboard/me', { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' })
+        ])
+        const lb = await lbRes.json().catch(() => ({}))
+        const me = await meRes.json().catch(() => ({}))
+        if (lb.currentUser) setLeaderboardMe(prev => ({ ...prev, currentUser: lb.currentUser }))
+        if (me.history) setLeaderboardMe(prev => ({ ...prev, history: me.history || [] }))
+      } catch (_) {}
+    }
+    window.addEventListener('leaderboard-updated', onLeaderboardUpdated)
+    return () => window.removeEventListener('leaderboard-updated', onLeaderboardUpdated)
+  }, [supabase])
+
   const balance = usage?.balance_remaining ?? (usage ? Math.max(0, (usage.credits_included || 0) - (usage.credits_used || 0)) : 0)
   const rankLabel = balance >= 150 ? t('rankPlatinum') : balance >= 80 ? t('rankGold') : balance >= 30 ? t('rankSilver') : t('rankBronze')
 
