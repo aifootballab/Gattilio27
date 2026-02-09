@@ -1,4 +1,3 @@
-import type { Metadata } from 'next'
 import './globals.css'
 import LanguageProviderWrapper from '@/components/LanguageProviderWrapper'
 import AssistantChat from '@/components/AssistantChat'
@@ -6,23 +5,19 @@ import CreditsBar from '@/components/CreditsBar'
 import GuideTour from '@/components/GuideTour'
 import BackgroundLoader from '@/components/BackgroundLoader'
 
-export const metadata: Metadata = {
+export const metadata = {
   title: 'Gattilio27 - Rosa (Production)',
   description: 'Carica screenshot giocatori → estrazione dati → salvataggio in Supabase',
 }
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }) {
   return (
     <html lang="it">
       <body>
         <LanguageProviderWrapper>
           {/* Custom Background Layer - scelta utente da Profilo (BackgroundLoader applica background_key) */}
           <div className="custom-background" />
-          {/* BackgroundLoader rimosso temporaneamente per debug */}
+          <BackgroundLoader />
           {/* Barra utility in-flow (scrolla con la pagina): Crediti AI + Mostrami come - stile coerente con altri btn */}
           <header className="top-utility-bar" aria-label="Crediti e guida">
             <CreditsBar />

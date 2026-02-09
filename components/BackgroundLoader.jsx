@@ -64,7 +64,15 @@ export default function BackgroundLoader() {
     const unsub = supabase?.auth?.onAuthStateChange?.(() => apply())
     const onBackgroundChanged = (e) => {
       const key = e?.detail?.background_key
-      apply(key)
+      if (key != null && BACKGROUND_URLS[key]) {
+        const el = document.querySelector('.custom-background')
+        if (el && el instanceof HTMLElement) {
+          el.style.backgroundImage = `url(${BACKGROUND_URLS[key]})`
+          void el.offsetHeight
+        }
+      } else {
+        apply()
+      }
     }
     window.addEventListener('background-changed', onBackgroundChanged)
     return () => {

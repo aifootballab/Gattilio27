@@ -128,18 +128,19 @@ export default function ImpostazioniProfiloPage() {
 
       const data = await response.json()
       if (data.profile) {
+        const newBackgroundKey = data.profile.background_key ?? profile.background_key ?? 'default'
         setProfileData(prev => prev ? {
           ...prev,
           profile_completion_score: data.profile.profile_completion_score,
           profile_completion_level: data.profile.profile_completion_level,
-          background_key: data.profile.background_key ?? prev.background_key
+          background_key: newBackgroundKey
         } : {
           profile_completion_score: data.profile.profile_completion_score,
           profile_completion_level: data.profile.profile_completion_level,
-          background_key: data.profile.background_key ?? 'default'
+          background_key: newBackgroundKey
         })
-        if (data.profile.background_key !== undefined && typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('background-changed', { detail: { background_key: data.profile.background_key } }))
+        if (typeof window !== 'undefined' && newBackgroundKey) {
+          window.dispatchEvent(new CustomEvent('background-changed', { detail: { background_key: newBackgroundKey } }))
         }
       }
       const successMsg = data.profile
