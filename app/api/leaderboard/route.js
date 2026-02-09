@@ -108,18 +108,25 @@ export async function GET(req) {
     }
   }
 
+  const snapshotByUserForCurrent = {} // rank/points per currentUser dopo eventuale filtro consenso
   if (snapshotsToUse?.length) {
     const { data: profiles } = await admin
       .from('user_profiles')
       .select('user_id, nickname')
       .in('user_id', snapshotsToUse.map(s => s.user_id))
+      .eq('leaderboard_consent', true)
+    const consentedIds = new Set((profiles || []).map(p => p.user_id))
     const nicknameByUser = {}
     ;(profiles || []).forEach(p => { nicknameByUser[p.user_id] = p.nickname || null })
-    rankings = snapshotsToUse.map(s => ({
-      rank: s.rank,
-      nickname: nicknameByUser[s.user_id] ?? '—',
-      points: s.points
-    }))
+    const filtered = snapshotsToUse.filter(s => consentedIds.has(s.user_id))
+    rankings = filtered.map((s, idx) => {
+      snapshotByUserForCurrent[s.user_id] = { rank: idx + 1, points: s.points, points_breakdown: s.points_breakdown || {} }
+      return {
+        rank: idx + 1,
+        nickname: nicknameByUser[s.user_id] ?? '—',
+        points: s.points
+      }
+    })
   } else {
     const computed = await computeLeaderboardForMonth(month, admin)
     if (computed.length) {
@@ -136,17 +143,18 @@ export async function GET(req) {
   let currentUser = null
   if (authUserId) {
     const uid = authUserId
-    const snapshotRow = snapshotsToUse?.find(s => s.user_id === uid)
-    if (snapshotRow) {
-      currentUser = {
-        rank: snapshotRow.rank,
-        points: snapshotRow.points,
-        pointsBreakdown: snapshotRow.points_breakdown || {}
+    if (Object.keys(snapshotByUserForCurrent).length > 0) {
+      const from = snapshotByUserForCurrent[uid]
+      if (from) currentUser = { rank: from.rank, points: from.points, pointsBreakdown: from.points_breakdown || {} }
+    } else {
+      const snapshotRow = snapshotsToUse?.find(s => s.user_id === uid)
+      if (snapshotRow) {
+        currentUser = { rank: snapshotRow.rank, points: snapshotRow.points, pointsBreakdown: snapshotRow.points_breakdown || {} }
       }
-    }
-    if (!currentUser && computedForCurrentUser) {
-      const me = computedForCurrentUser.find(r => r.user_id === uid)
-      if (me) currentUser = { rank: me.rank, points: me.points, pointsBreakdown: me.points_breakdown || {} }
+      if (!currentUser && computedForCurrentUser) {
+        const me = computedForCurrentUser.find(r => r.user_id === uid)
+        if (me) currentUser = { rank: me.rank, points: me.points, pointsBreakdown: me.points_breakdown || {} }
+      }
     }
   }
 
