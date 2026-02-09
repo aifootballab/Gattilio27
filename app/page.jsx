@@ -564,6 +564,43 @@ export default function DashboardPage() {
         <TaskWidget />
       </div>
 
+      {/* Classifica mensile - in evidenza fuori dalla Navigazione */}
+      <Link
+        href="/classifica"
+        data-tour-id="tour-dashboard-classifica"
+        className="card"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '16px',
+          padding: '20px',
+          marginBottom: '24px',
+          textDecoration: 'none',
+          background: 'linear-gradient(135deg, rgba(255,140,0,0.12), rgba(0,212,255,0.06))',
+          border: '1px solid rgba(255,165,0,0.4)',
+          color: '#fff',
+          borderRadius: '12px'
+        }}
+      >
+        <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(255,165,0,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <Trophy size={26} color="var(--neon-orange)" />
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 700, marginBottom: '4px', fontSize: '18px' }}>{t('classificaMensile')}</div>
+          <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.85)' }}>
+            {leaderboardData.currentUser
+              ? `${t('laTuaPosizione')}: ${leaderboardData.currentUser.rank}° · ${leaderboardData.currentUser.points} ${t('puntiCoach')}`
+              : t('fromZeroToHero')}
+          </div>
+          {leaderboardData.daysLeftInMonth != null && (
+            <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)', marginTop: '4px' }}>
+              {leaderboardData.daysLeftInMonth} {t('giorniAllaFineMese')}
+            </div>
+          )}
+        </div>
+        <ArrowRight size={22} color="var(--neon-orange)" style={{ flexShrink: 0 }} />
+      </Link>
+
       {/* Grid Layout */}
       <div style={{ 
         display: 'grid', 
@@ -681,38 +718,6 @@ export default function DashboardPage() {
               </span>
               <ArrowRight size={18} />
             </button>
-            <Link
-              href="/classifica"
-              className="card"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '16px',
-                padding: '20px',
-                textDecoration: 'none',
-                background: 'linear-gradient(135deg, rgba(255,140,0,0.12), rgba(0,212,255,0.06))',
-                borderColor: 'rgba(255,165,0,0.4)',
-                color: '#fff'
-              }}
-            >
-              <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(255,165,0,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Trophy size={26} color="var(--neon-orange)" />
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 700, marginBottom: '4px' }}>{t('classificaMensile')}</div>
-                <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.8)' }}>
-                  {leaderboardData.currentUser
-                    ? `${t('laTuaPosizione')}: ${leaderboardData.currentUser.rank}° · ${leaderboardData.currentUser.points} ${t('puntiCoach')}`
-                    : t('fromZeroToHero')}
-                </div>
-                {leaderboardData.daysLeftInMonth != null && (
-                  <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', marginTop: '4px' }}>
-                    {leaderboardData.daysLeftInMonth} {t('giorniAllaFineMese')}
-                  </div>
-                )}
-              </div>
-              <ArrowRight size={20} color="var(--neon-orange)" />
-            </Link>
             <button
               onClick={() => router.push('/gestione-formazione')}
               className="btn primary"
