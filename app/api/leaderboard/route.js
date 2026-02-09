@@ -89,6 +89,41 @@ export async function GET(req) {
     )
   }
 
+  // Fallback: se la SELECT diretta restituisce 0 righe (es. anon key / RLS), usa RPC SECURITY DEFINER
+  if ((snapshots || []).length === 0) {
+    const { data: rpcRankings, error: rpcErr } = await admin.rpc('get_leaderboard_for_month', { month_param: month })
+    if (!rpcErr && rpcRankings?.length > 0) {
+      const rankingsFromRpc = rpcRankings.map((r, idx) => ({
+        rank: r.rank ?? idx + 1,
+        nickname: r.nickname ?? '—',
+        points: r.points ?? 0
+      }))
+      let currentUserFromRpc = null
+      if (authUserId) {
+        const { data: cuRows } = await admin.rpc('get_leaderboard_current_user', {
+          month_param: month,
+          user_id_param: authUserId
+        })
+        const cu = Array.isArray(cuRows) ? cuRows[0] : cuRows
+        if (cu) currentUserFromRpc = { rank: cu.rank, points: cu.points, pointsBreakdown: cu.points_breakdown || {} }
+      }
+      const supabaseProject = supabaseUrl ? (() => { try { return new URL(supabaseUrl).hostname.split('.')[0] } catch { return 'invalid-url' } })() : 'not-set'
+      return NextResponse.json({
+        month,
+        rankings: rankingsFromRpc,
+        currentUser: currentUserFromRpc,
+        daysLeftInMonth,
+        _debug: {
+          month,
+          snapshotsFound: 0,
+          source: 'rpc',
+          supabaseProject,
+          expectedProject: 'zliuuorrwdetylollrua'
+        }
+      })
+    }
+  }
+
   const snapshotUserIds = new Set((snapshots || []).map(s => s.user_id))
   const authUserHasConsentButNotInSnapshot = authUserId &&
     snapshotUserIds.size > 0 &&
