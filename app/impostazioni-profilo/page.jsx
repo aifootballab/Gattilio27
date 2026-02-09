@@ -139,7 +139,7 @@ export default function ImpostazioniProfiloPage() {
           background_key: data.profile.background_key ?? 'default'
         })
         if (data.profile.background_key !== undefined && typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('background-changed'))
+          window.dispatchEvent(new CustomEvent('background-changed', { detail: { background_key: data.profile.background_key } }))
         }
       }
       const successMsg = data.profile

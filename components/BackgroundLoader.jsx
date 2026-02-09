@@ -21,9 +21,16 @@ export default function BackgroundLoader() {
 
     let cancelled = false
 
-    const apply = async () => {
+    const apply = async (keyFromEvent) => {
       const el = document.querySelector('.custom-background')
       if (!el || !(el instanceof HTMLElement)) return
+
+      // Se l'evento ha passato la chiave (es. dopo salvataggio in Profilo), applica subito senza rileggere da DB
+      if (keyFromEvent != null && BACKGROUND_URLS[keyFromEvent]) {
+        el.style.backgroundImage = `url(${BACKGROUND_URLS[keyFromEvent]})`
+        setApplied(true)
+        return
+      }
 
       try {
         const { data: session } = await supabase?.auth.getSession() ?? {}
@@ -55,7 +62,10 @@ export default function BackgroundLoader() {
 
     apply()
     const unsub = supabase?.auth?.onAuthStateChange?.(() => apply())
-    const onBackgroundChanged = () => apply()
+    const onBackgroundChanged = (e) => {
+      const key = e?.detail?.background_key
+      apply(key)
+    }
     window.addEventListener('background-changed', onBackgroundChanged)
     return () => {
       cancelled = true
