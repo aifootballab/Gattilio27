@@ -63,9 +63,9 @@ export default function TaskWidget() {
 
       const token = session.access_token
 
-      // Chiama API
+      // Chiama API (signal solo se fornito, per evitare problemi su alcuni ambienti di deploy)
       const response = await fetch(`/api/tasks/list?lang=${lang === 'en' ? 'en' : 'it'}`, {
-        signal,
+        ...(signal && { signal }),
         headers: {
           'Authorization': `Bearer ${token}`
         }

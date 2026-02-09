@@ -128,7 +128,7 @@ export default function AIKnowledgeBar() {
       const token = session.session.access_token
       const res = await fetch('/api/ai-knowledge', {
         method: 'GET',
-        signal,
+        ...(signal && { signal }),
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
