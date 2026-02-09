@@ -69,7 +69,7 @@ export default function AIKnowledgeBar() {
           // Se lo score è cambiato, aggiorna e ferma retry
           if (ac.signal.aborted) return
           if (Math.abs(newScore - previousScoreRef.current) > 0.01) {
-            if (process.env.NODE_ENV !== 'production') console.log(`[AIKnowledgeBar] Score updated: ${previousScoreRef.current} → ${newScore}`)
+            console.log(`[AIKnowledgeBar] Score updated: ${previousScoreRef.current} → ${newScore}`)
             setScore(newScore)
             setLevel(data.level || 'beginner')
             setBreakdown(data.breakdown || {})
@@ -77,7 +77,7 @@ export default function AIKnowledgeBar() {
           }
           
           // Se score non cambiato, programma prossimo tentativo
-          if (process.env.NODE_ENV !== 'production') console.log(`[AIKnowledgeBar] Score unchanged (${newScore}), scheduling next retry...`)
+          console.log(`[AIKnowledgeBar] Score unchanged (${newScore}), scheduling next retry...`)
           if (attempt < retryDelays.length) {
             retryTimeoutRef.current = setTimeout(attemptRefresh, retryDelays[attempt])
           }
