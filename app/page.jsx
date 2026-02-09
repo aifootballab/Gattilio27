@@ -635,37 +635,45 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Statistiche di gioco (Analisi eFootball) */}
-        <div className="card" style={{ padding: '24px' }}>
-          <h2 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <BarChart3 size={24} color="var(--neon-blue)" />
-            {t('gameAnalysisTitle')}
-          </h2>
-          <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.7)', marginBottom: '16px' }}>
-            {t('gameAnalysisDescription')}
-          </p>
-          {gameAnalysisLastCapture && (
-            <p style={{ fontSize: '13px', color: 'var(--neon-blue)', marginBottom: '12px' }}>
-              {t('gameAnalysisLastCapture')}: {gameAnalysisLastCapture}
-            </p>
-          )}
-          <button
-            type="button"
-            className="btn primary"
-            onClick={() => setShowGameAnalysisModal(true)}
-            style={{
-              width: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              padding: '12px 16px',
-              minHeight: '44px'
-            }}
-          >
-            <BarChart3 size={18} />
-            {t('gameAnalysisUpload')}
-          </button>
+        {/* Statistiche di gioco - stesso stile card di Classifica/Obiettivi/Ultime partite */}
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => setShowGameAnalysisModal(true)}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setShowGameAnalysisModal(true) } }}
+          style={{
+            marginBottom: 0,
+            width: '100%',
+            boxSizing: 'border-box',
+            background: 'linear-gradient(135deg, rgba(255,140,0,0.12), rgba(0,212,255,0.06))',
+            border: '1px solid rgba(255,165,0,0.4)',
+            borderRadius: '12px',
+            overflow: 'hidden',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '16px',
+            padding: '20px',
+            color: '#fff',
+            transition: 'opacity 0.2s ease'
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.95' }}
+          onMouseLeave={(e) => { e.currentTarget.style.opacity = '1' }}
+        >
+          <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(255,165,0,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <BarChart3 size={26} color="var(--neon-orange)" />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: 700, marginBottom: '4px', fontSize: '18px' }}>
+              {t('gameAnalysisTitle')}
+            </div>
+            <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.85)' }}>
+              {gameAnalysisLastCapture
+                ? `${t('gameAnalysisLastCapture')}: ${gameAnalysisLastCapture}`
+                : t('gameAnalysisDescription')}
+            </div>
+          </div>
+          <ArrowRight size={22} color="var(--neon-orange)" style={{ flexShrink: 0 }} />
         </div>
 
         {/* Quick Links */}
