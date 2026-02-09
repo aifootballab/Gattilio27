@@ -10,7 +10,7 @@ export default function TaskWidget() {
   const [tasks, setTasks] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [isExpanded, setIsExpanded] = useState(true) // Stato per collassare/espandere
+  const [isExpanded, setIsExpanded] = useState(false) // Chiuso di default come Classifica, meno scroll
   const [completedFeedbackToast, setCompletedFeedbackToast] = useState(null)
   const previousCompletedIdsRef = useRef([])
   const hasFetchedBeforeRef = useRef(false)
@@ -145,93 +145,63 @@ export default function TaskWidget() {
   }
 
   const activeTasksCount = tasks.filter(task => task.status === 'active').length
+  const completedCount = tasks.filter(task => task.status === 'completed').length
+  const summaryText = tasks.length === 0
+    ? (t('noGoalsThisWeek') || 'Nessun obiettivo')
+    : activeTasksCount > 0
+      ? `${activeTasksCount} ${t('active') || 'attivi'}`
+      : `${completedCount} ${t('goalCompleted') || 'completati'}`
 
   return (
     <div
-      className="card"
       style={{
-        padding: 'clamp(16px, 4vw, 24px)',
-        marginBottom: 'clamp(16px, 4vw, 24px)',
+        marginBottom: '24px',
         width: '100%',
         maxWidth: '100%',
-        boxSizing: 'border-box'
+        boxSizing: 'border-box',
+        background: 'linear-gradient(135deg, rgba(255,140,0,0.12), rgba(0,212,255,0.06))',
+        border: '1px solid rgba(255,165,0,0.4)',
+        borderRadius: '12px',
+        overflow: 'hidden'
       }}
     >
-      {/* Header - Clickable per collassare/espandere */}
-      <div 
+      {/* Header come Classifica: icon + title + subtitle + chevron */}
+      <div
         onClick={() => setIsExpanded(!isExpanded)}
-        style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'space-between', 
-          marginBottom: isExpanded ? 'clamp(12px, 3vw, 16px)' : '0',
-          flexWrap: 'wrap',
-          gap: 'clamp(6px, 2vw, 8px)',
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '16px',
+          padding: '20px',
           cursor: 'pointer',
           userSelect: 'none',
-          transition: 'margin-bottom 0.2s ease'
+          color: '#fff'
         }}
       >
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: 'clamp(6px, 2vw, 8px)', 
-          flex: 1, 
-          minWidth: '150px' 
-        }}>
-          <Trophy 
-            size={20} 
-            color="#00d4ff" 
-            style={{ 
-              width: 'clamp(18px, 4vw, 22px)', 
-              height: 'clamp(18px, 4vw, 22px)',
-              flexShrink: 0
-            }} 
-          />
-          <h2 style={{ 
-            margin: 0, 
-            fontSize: 'clamp(14px, 3.5vw, 18px)', 
-            fontWeight: '600',
-            lineHeight: '1.2'
-          }}>
+        <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(255,165,0,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <Trophy size={26} color="var(--neon-orange)" />
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 700, marginBottom: '4px', fontSize: '18px' }}>
             {t('weeklyGoals') || 'Obiettivi Settimanali'}
-          </h2>
+          </div>
+          <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.85)' }}>
+            {summaryText}
+          </div>
         </div>
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: 'clamp(6px, 2vw, 8px)',
-          flexShrink: 0
-        }}>
-          <span style={{ 
-            fontSize: 'clamp(11px, 2.5vw, 12px)', 
-            color: '#888', 
-            whiteSpace: 'nowrap' 
-          }}>
-            {activeTasksCount} {t('active') || 'attivi'}
-          </span>
-          {isExpanded ? (
-            <ChevronUp 
-              size={18} 
-              color="#888" 
-              style={{ flexShrink: 0, width: 'clamp(16px, 3.5vw, 18px)', height: 'clamp(16px, 3.5vw, 18px)' }} 
-            />
-          ) : (
-            <ChevronDown 
-              size={18} 
-              color="#888" 
-              style={{ flexShrink: 0, width: 'clamp(16px, 3.5vw, 18px)', height: 'clamp(16px, 3.5vw, 18px)' }} 
-            />
-          )}
-        </div>
+        {isExpanded ? (
+          <ChevronUp size={22} color="var(--neon-orange)" style={{ flexShrink: 0 }} />
+        ) : (
+          <ChevronDown size={22} color="var(--neon-orange)" style={{ flexShrink: 0 }} />
+        )}
       </div>
 
-      {/* Nesso task → barra Conoscenza */}
+      {/* Sottotitolo solo quando espanso */}
       {isExpanded && (
         <p style={{
-          fontSize: 'clamp(11px, 2.5vw, 12px)',
-          color: '#666',
-          margin: '0 0 clamp(10px, 2.5vw, 12px) 0',
+          fontSize: '12px',
+          color: 'rgba(255,255,255,0.6)',
+          margin: '0 20px 12px',
           lineHeight: '1.4'
         }}>
           {t('goalsIncreaseKnowledge') || 'Completare gli obiettivi aumenta la conoscenza che l\'IA ha di te.'}
@@ -261,30 +231,22 @@ export default function TaskWidget() {
         </div>
       )}
 
-      {/* Lista Task - Collassabile */}
+      {/* Lista task compatta (stile Formazioni più usate) - solo quando espanso */}
       {isExpanded && (
-        <>
+        <div style={{ padding: '0 20px 20px' }}>
           {tasks.length === 0 ? (
-            <div style={{ 
-              fontSize: 'clamp(12px, 3vw, 14px)', 
-              color: '#888', 
-              textAlign: 'center', 
-              padding: 'clamp(16px, 4vw, 20px)',
-              lineHeight: '1.5'
-            }}>
+            <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)', textAlign: 'center', padding: '16px', lineHeight: '1.5' }}>
               {t('noGoalsThisWeek') || 'Nessun obiettivo questa settimana'}
-              <br />
-              <span style={{ fontSize: 'clamp(11px, 2.5vw, 12px)', color: '#666' }}>
+              <span style={{ display: 'block', fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginTop: '4px' }}>
                 {t('goalsWillBeGenerated') || 'Gli obiettivi verranno generati automaticamente ogni domenica'}
               </span>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(10px, 2.5vw, 14px)' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {tasks.map(task => {
                 const isCompleted = task.status === 'completed'
                 const isFailed = task.status === 'failed'
                 const isActive = task.status === 'active'
-                const borderColor = isCompleted ? 'rgba(34, 197, 94, 0.5)' : isFailed ? 'rgba(239, 68, 68, 0.5)' : 'rgba(0, 212, 255, 0.35)'
                 const progressPct = isActive && task.target_value > 0
                   ? Math.min(100, Math.max(0, ((typeof task.current_value === 'number' ? task.current_value : 0) / task.target_value) * 100))
                   : 0
@@ -293,123 +255,55 @@ export default function TaskWidget() {
                   medium: { bg: 'rgba(251, 146, 60, 0.2)', color: '#fb923c', label: t('goalDifficultyMedium') },
                   hard: { bg: 'rgba(239, 68, 68, 0.2)', color: '#f87171', label: t('goalDifficultyHard') }
                 }
-                const diffStyle = task.difficulty ? difficultyStyles[task.difficulty] || difficultyStyles.medium : null
+                const diffStyle = task.difficulty ? difficultyStyles[task.difficulty] : difficultyStyles.medium
                 return (
                   <div
                     key={task.id}
                     style={{
-                      padding: 'clamp(14px, 3vw, 18px)',
-                      backgroundColor: isCompleted
-                        ? 'rgba(34, 197, 94, 0.08)'
-                        : isFailed
-                        ? 'rgba(239, 68, 68, 0.06)'
-                        : 'rgba(255, 255, 255, 0.04)',
-                      borderRadius: '12px',
-                      border: `1px solid ${isCompleted ? 'rgba(34, 197, 94, 0.25)' : isFailed ? 'rgba(239, 68, 68, 0.25)' : 'rgba(255, 255, 255, 0.08)'}`,
-                      borderLeft: `4px solid ${borderColor}`,
-                      width: '100%',
-                      boxSizing: 'border-box',
-                      transition: 'border-color 0.2s ease, background 0.2s ease'
+                      padding: '12px',
+                      background: isCompleted ? 'rgba(34, 197, 94, 0.08)' : isFailed ? 'rgba(239, 68, 68, 0.06)' : 'rgba(255, 165, 0, 0.05)',
+                      border: `1px solid ${isCompleted ? 'rgba(34, 197, 94, 0.2)' : isFailed ? 'rgba(239, 68, 68, 0.2)' : 'rgba(255, 165, 0, 0.2)'}`,
+                      borderRadius: '8px',
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '8px'
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap' }}>
-                      {/* Status icon */}
-                      <div style={{ flexShrink: 0, marginTop: '2px' }}>
-                        {isCompleted ? (
-                          <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'rgba(34, 197, 94, 0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <CheckCircle2 size={16} color="#22c55e" />
-                          </div>
-                        ) : isFailed ? (
-                          <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'rgba(239, 68, 68, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <XCircle size={16} color="#ef4444" />
-                          </div>
-                        ) : (
-                          <div style={{ width: 24, height: 24, borderRadius: '50%', border: '2px solid rgba(0, 212, 255, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <Circle size={12} color="rgba(0, 212, 255, 0.7)" style={{ fill: 'transparent' }} />
-                          </div>
-                        )}
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{
-                          margin: 0,
-                          fontSize: 'clamp(13px, 3.2vw, 15px)',
-                          fontWeight: isActive ? '600' : '500',
-                          color: isCompleted ? 'rgba(255,255,255,0.9)' : '#fff',
-                          wordBreak: 'break-word',
-                          lineHeight: '1.45'
-                        }}>
-                          {task.goal_description}
-                        </p>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '10px', flexWrap: 'wrap' }}>
-                          {task.difficulty && diffStyle && (
-                            <span style={{
-                              fontSize: '11px',
-                              fontWeight: '600',
-                              textTransform: 'uppercase',
-                              letterSpacing: '0.04em',
-                              padding: '4px 8px',
-                              borderRadius: '6px',
-                              background: diffStyle.bg,
-                              color: diffStyle.color
-                            }}>
-                              {diffStyle.label}
-                            </span>
-                          )}
-                          {isActive && task.target_value > 0 && (
-                            <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.7)' }}>
-                              {typeof task.current_value === 'number' ? task.current_value.toFixed(1) : 0} / {task.target_value}
-                            </span>
-                          )}
-                        </div>
-                      </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1 1 200px', minWidth: 0 }}>
+                      {isCompleted ? (
+                        <CheckCircle2 size={16} color="#22c55e" style={{ flexShrink: 0 }} />
+                      ) : isFailed ? (
+                        <XCircle size={16} color="#ef4444" style={{ flexShrink: 0 }} />
+                      ) : (
+                        <Circle size={16} color="rgba(0, 212, 255, 0.6)" style={{ flexShrink: 0 }} />
+                      )}
+                      <span style={{ fontWeight: 600, fontSize: '14px', color: '#fff', wordBreak: 'break-word' }}>
+                        {task.goal_description}
+                      </span>
                     </div>
-
-                    {/* Progress bar - solo active */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0, fontSize: '13px' }}>
+                      {diffStyle && (
+                        <span style={{ fontSize: '10px', fontWeight: '600', textTransform: 'uppercase', padding: '3px 6px', borderRadius: '4px', background: diffStyle.bg, color: diffStyle.color }}>
+                          {diffStyle.label}
+                        </span>
+                      )}
+                      {isActive && task.target_value > 0 && (
+                        <span style={{ color: 'rgba(255,255,255,0.8)' }}>
+                          {typeof task.current_value === 'number' ? task.current_value.toFixed(1) : 0}/{task.target_value}
+                        </span>
+                      )}
+                      {isCompleted && task.completed_at && (
+                        <span style={{ color: '#22c55e', fontSize: '12px' }}>
+                          {new Date(task.completed_at).toLocaleDateString(lang === 'it' ? 'it-IT' : 'en-US')}
+                        </span>
+                      )}
+                      {isFailed && <span style={{ color: '#ef4444', fontSize: '12px' }}>{t('goalFailed')}</span>}
+                    </div>
                     {isActive && task.target_value > 0 && (
-                      <div style={{
-                        marginTop: '12px',
-                        height: '6px',
-                        backgroundColor: 'rgba(255,255,255,0.08)',
-                        borderRadius: '3px',
-                        overflow: 'hidden'
-                      }}>
-                        <div style={{
-                          width: `${progressPct}%`,
-                          height: '100%',
-                          background: 'linear-gradient(90deg, rgba(0,212,255,0.8), var(--neon-blue))',
-                          borderRadius: '3px',
-                          transition: 'width 0.4s ease'
-                        }} />
-                      </div>
-                    )}
-
-                    {/* Completed / Failed footer */}
-                    {isCompleted && task.completed_at && (
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        marginTop: '10px',
-                        fontSize: '12px',
-                        color: '#22c55e',
-                        fontWeight: '500'
-                      }}>
-                        <CheckCircle2 size={14} />
-                        {t('goalCompleted')} · {new Date(task.completed_at).toLocaleDateString(lang === 'it' ? 'it-IT' : 'en-US')}
-                      </div>
-                    )}
-                    {isFailed && (
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        marginTop: '10px',
-                        fontSize: '12px',
-                        color: '#ef4444',
-                        fontWeight: '500'
-                      }}>
-                        <XCircle size={14} />
-                        {t('goalFailed')}
+                      <div style={{ width: '100%', height: '4px', background: 'rgba(255,255,255,0.08)', borderRadius: '2px', overflow: 'hidden', marginTop: '4px' }}>
+                        <div style={{ width: `${progressPct}%`, height: '100%', background: 'var(--neon-blue)', borderRadius: '2px', transition: 'width 0.3s ease' }} />
                       </div>
                     )}
                   </div>
@@ -417,7 +311,7 @@ export default function TaskWidget() {
               })}
             </div>
           )}
-        </>
+        </div>
       )}
     </div>
   )

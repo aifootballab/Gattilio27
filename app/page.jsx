@@ -47,7 +47,6 @@ export default function DashboardPage() {
     riserve: 0,
     formation: null
   })
-  const [topPlayers, setTopPlayers] = React.useState([])
   const [recentMatches, setRecentMatches] = React.useState([])
   const [matchesExpanded, setMatchesExpanded] = React.useState(false)
   const [deletingMatchId, setDeletingMatchId] = React.useState(null)
@@ -130,20 +129,6 @@ export default function DashboardPage() {
           riserve: riserve.length,
           formation: layoutData?.formation || null
         })
-
-        // Top 3 giocatori per rating
-        const top = playersArray
-          .filter(p => p.overall_rating)
-          .sort((a, b) => (b.overall_rating || 0) - (a.overall_rating || 0))
-          .slice(0, 3)
-          .map(p => ({
-            id: p.id,
-            name: p.player_name,
-            rating: p.overall_rating,
-            position: p.position
-          }))
-
-        setTopPlayers(top)
 
         // 3. Carica ultime partite (RLS filtra automaticamente per user_id tramite auth.uid())
         const userId = session.session.user.id
@@ -1277,58 +1262,6 @@ export default function DashboardPage() {
             </div>
           )}
         </div>
-
-      {/* Top Players */}
-      {topPlayers.length > 0 && (
-        <div className="card" style={{ padding: '24px' }}>
-          <h2 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Trophy size={24} color="var(--neon-orange)" />
-            {t('topPlayers')}
-          </h2>
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: '16px'
-          }}>
-            {topPlayers.map((player) => (
-              <div
-                key={player.id}
-                onClick={() => router.push(`/giocatore/${player.id}`)}
-                className="card"
-                style={{
-                  padding: '16px',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease',
-                  background: 'rgba(0, 212, 255, 0.05)',
-                  border: '1px solid rgba(0, 212, 255, 0.2)'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-2px)'
-                  e.currentTarget.style.boxShadow = 'var(--glow-blue)'
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)'
-                  e.currentTarget.style.boxShadow = 'none'
-                }}
-              >
-                <div style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px', color: 'var(--neon-blue)' }}>
-                  {player.name}
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  {player.position && (
-                    <span style={{ fontSize: '14px', opacity: 0.8 }}>{player.position}</span>
-                  )}
-                  {player.rating && (
-                    <span style={{ fontSize: '20px', fontWeight: 700, color: 'var(--neon-blue)' }}>
-                      {player.rating}
-                    </span>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       <style jsx>{`
         @keyframes spin {
