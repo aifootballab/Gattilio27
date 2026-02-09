@@ -178,9 +178,9 @@ export default function CreditsBar() {
           aria-label={t('creditsTitle')}
           style={{
             position: 'absolute',
-            top: '100%',
-            right: 0,
-            marginTop: '8px',
+            top: 0,
+            right: '100%',
+            marginRight: '8px',
             width: 'min(360px, calc(100vw - 24px))',
             maxHeight: 'min(85vh, 420px)',
             overflowY: 'auto',
