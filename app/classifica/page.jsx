@@ -80,7 +80,7 @@ export default function ClassificaPage() {
       : []
 
   return (
-    <main style={{
+    <main data-tour-id="tour-classifica-intro" style={{
       padding: 'clamp(12px, 4vw, 24px)',
       minHeight: '100vh',
       maxWidth: '900px',
@@ -170,7 +170,7 @@ export default function ClassificaPage() {
 
           {/* La tua posizione */}
           {currentUser && (
-            <div className="card" style={{
+            <div data-tour-id="tour-classifica-your-position" className="card" style={{
               background: 'linear-gradient(135deg, rgba(0,212,255,0.12), rgba(0,212,255,0.04))',
               borderColor: 'rgba(0,212,255,0.45)',
               marginBottom: '24px',
@@ -247,7 +247,7 @@ export default function ClassificaPage() {
           )}
 
           {/* Tabella classifica */}
-          <section className="card" style={{ padding: '0', marginBottom: '24px', overflow: 'hidden' }}>
+          <section data-tour-id="tour-classifica-rankings" className="card" style={{ padding: '0', marginBottom: '24px', overflow: 'hidden' }}>
             <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Target size={20} color="var(--neon-orange)" />

@@ -24,7 +24,8 @@ import {
   ArrowLeft,
   Compass,
   Shield,
-  UserRound
+  UserRound,
+  Wallet
 } from 'lucide-react'
 
 export default function GuidaPage() {
@@ -99,8 +100,11 @@ export default function GuidaPage() {
       description: t('guideDashboardDesc') || 'Panoramica completa della tua squadra',
       steps: [
         t('guideDashboardStep1') || 'Visualizza statistiche squadra (titolari, riserve, totale)',
-        t('guideDashboardStep2') || 'Consulta i top 3 giocatori per rating',
-        t('guideDashboardStep3'),
+        t('guideDashboardStepBanner') || 'Barra Conoscenza, "Informazioni IA" e "Aggiorna analisi"',
+        t('guideDashboardStepObiettivi') || 'Obiettivi settimanali: espandi la card per vedere i task',
+        t('guideDashboardStepClassifica') || 'Classifica mensile: clicca per posizione e punti',
+        t('guideDashboardStep3') || 'Ultime partite: espandi la card per vedere l\'elenco',
+        t('guideDashboardStepStatistiche') || 'Statistiche di gioco: carica le 2 schermate Analisi',
         t('guideDashboardStep4') || 'Naviga rapidamente alle altre sezioni'
       ]
     },
@@ -201,6 +205,32 @@ export default function GuidaPage() {
         t('guideCoachesStep1') || 'Carica 1 o 2 screenshot (foto principale e connessione)',
         t('guideCoachesStep2') || 'L\'IA estrae nome, squadra e competenze',
         t('guideCoachesStep3') || 'Imposta un allenatore come attivo; vedi dettagli o elimina'
+      ]
+    },
+    {
+      id: 'classifica',
+      icon: Trophy,
+      color: 'var(--neon-orange)',
+      path: '/classifica',
+      title: t('guideClassificaTitle') || 'Classifica mensile',
+      description: t('guideClassificaDesc') || 'Classifica From Zero to Hero: punti da partite, obiettivi e utilizzo IA.',
+      steps: [
+        t('guideClassificaStep1') || 'Consulta la tua posizione e i punti del mese',
+        t('guideClassificaStep2') || 'Espandi "Dettaglio punti" per vedere come vengono calcolati',
+        t('guideClassificaStep3') || 'Partecipa con almeno 3 partite complete e consenso attivo'
+      ]
+    },
+    {
+      id: 'gestione-profilo',
+      icon: Wallet,
+      color: 'var(--neon-orange)',
+      path: '/gestione-profilo',
+      title: t('guideGestioneProfiloTitle') || 'Gestione profilo (Hero Points)',
+      description: t('guideGestioneProfiloDesc') || 'Crediti residui, analisi totali, rank e classifica.',
+      steps: [
+        t('guideGestioneProfiloStep1') || 'Visualizza crediti residui e rank',
+        t('guideGestioneProfiloStep2') || 'Consulta posizione in classifica e storico',
+        t('guideGestioneProfiloStep3') || 'Controlla le transazioni (utilizzo crediti)'
       ]
     }
   ]

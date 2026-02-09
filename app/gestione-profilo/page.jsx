@@ -115,7 +115,7 @@ export default function GestioneProfiloPage() {
   if (!supabase) return null
 
   return (
-    <main style={{
+    <main data-tour-id="tour-gestione-profilo-intro" style={{
       padding: 'clamp(12px, 4vw, 24px)',
       minHeight: '100vh',
       maxWidth: '1200px',
@@ -215,7 +215,7 @@ export default function GestioneProfiloPage() {
       ) : (
         <>
           {/* Box Crediti residui + Acquista - CTA principale (stile coerente con CreditsBar/theme) */}
-          <div className="card" style={{
+          <div data-tour-id="tour-gestione-profilo-balance" className="card" style={{
             background: 'linear-gradient(135deg, rgba(255,140,0,0.12), rgba(200,100,0,0.06))',
             borderColor: 'rgba(255,165,0,0.4)',
             marginBottom: '24px',
@@ -278,7 +278,7 @@ export default function GestioneProfiloPage() {
           </div>
 
           {/* Classifica mensile + Risultati + Premi */}
-          <section className="card" style={{ padding: '24px', marginBottom: '24px' }}>
+          <section data-tour-id="tour-gestione-profilo-leaderboard" className="card" style={{ padding: '24px', marginBottom: '24px' }}>
             <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Trophy size={20} color="var(--neon-orange)" />
               {t('classificaMensile')}
@@ -367,7 +367,7 @@ export default function GestioneProfiloPage() {
           )}
 
           {/* Attività recente - card come dashboard */}
-          <section className="card" style={{ padding: '24px', marginBottom: '24px' }}>
+          <section data-tour-id="tour-gestione-profilo-transactions" className="card" style={{ padding: '24px', marginBottom: '24px' }}>
             <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <BarChart3 size={20} color="var(--neon-blue)" />
               {t('attivitaRecente')}

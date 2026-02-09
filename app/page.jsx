@@ -18,6 +18,7 @@ import {
   LogOut, 
   RefreshCw, 
   AlertCircle,
+  CheckCircle2,
   ArrowRight,
   Settings,
   BarChart3,
@@ -81,6 +82,14 @@ export default function DashboardPage() {
     stats.titolari < 11 && { key: 'roster', label: t('setupReminderMissingRoster'), onClick: () => router.push('/gestione-formazione') }
   ].filter(Boolean)
   const missingCount = reminderItems.length
+  // Notifica setup: priorità (rosso = alta, giallo = media, verde = completo). Non invasiva, icona responsive, messaggio = importanza di completare.
+  const setupStatus = missingCount >= 2 ? 'critical' : missingCount === 1 ? 'partial' : 'complete'
+  const setupStatusConfig = {
+    critical: { color: '#ef4444', bg: 'rgba(239, 68, 68, 0.08)', border: 'rgba(239, 68, 68, 0.35)', icon: AlertCircle, labelKey: 'setupStatusCritical', iconOpacity: 1 },
+    partial: { color: '#eab308', bg: 'rgba(234, 179, 8, 0.08)', border: 'rgba(234, 179, 8, 0.35)', icon: AlertCircle, labelKey: 'setupStatusPartial', iconOpacity: 1 },
+    complete: { color: '#22c55e', bg: 'rgba(34, 200, 100, 0.06)', border: 'rgba(34, 200, 100, 0.25)', icon: CheckCircle2, labelKey: 'setupStatusComplete', iconOpacity: 0.85 }
+  }
+  const statusCfg = setupStatusConfig[setupStatus]
   React.useEffect(() => {
     setReminderRotationIndex(0)
   }, [missingCount])
@@ -536,22 +545,47 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* Banner setup: sempre visibile (no salto layout). Se manca qualcosa: intro + link a rotazione; altrimenti "Setup completo" */}
+      {/* Banner setup: icona priorità (non invasiva, responsive, comunica importanza di completare). */}
       {showSetupBanner && (
         <div
+          role="status"
+          aria-live="polite"
           style={{
             display: 'flex',
             flexWrap: 'wrap',
             alignItems: 'center',
-            gap: '10px',
-            padding: '12px 16px',
-            background: missingCount > 0 ? 'rgba(0, 212, 255, 0.08)' : 'rgba(0, 200, 100, 0.08)',
-            border: `1px solid ${missingCount > 0 ? 'rgba(0, 212, 255, 0.25)' : 'rgba(0, 200, 100, 0.3)'}`,
+            gap: 'clamp(8px, 2vw, 12px)',
+            padding: 'clamp(10px, 2.5vw, 12px) clamp(14px, 3vw, 16px)',
+            background: statusCfg.bg,
+            border: `1px solid ${statusCfg.border}`,
             borderRadius: '10px',
             marginBottom: '16px',
-            fontSize: '14px'
+            fontSize: 'clamp(13px, 3vw, 14px)',
+            lineHeight: 1.45
           }}
         >
+          {(() => {
+            const Icon = statusCfg.icon
+            return (
+              <span
+                role="img"
+                aria-label={t(statusCfg.labelKey)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  width: 'clamp(20px, 5vw, 24px)',
+                  height: 'clamp(20px, 5vw, 24px)',
+                  minWidth: 20,
+                  minHeight: 20
+                }}
+                title={t(statusCfg.labelKey)}
+              >
+                <Icon size={18} color={statusCfg.color} strokeWidth={setupStatus === 'complete' ? 2 : 2.5} style={{ opacity: statusCfg.iconOpacity }} />
+              </span>
+            )
+          })()}
           <span key={missingCount > 0 ? reminderRotationIndex : 'complete'} style={{ flex: '1 1 auto', minWidth: 0 }}>
             {t('setupReminderIntro')}
             {missingCount > 0 ? (

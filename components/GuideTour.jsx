@@ -6,7 +6,7 @@ import { useTranslation } from '@/lib/i18n'
 import { Compass } from 'lucide-react'
 import { getTourSteps } from '@/lib/guideTours'
 
-const PAGES_WITH_TOUR = ['/', '/gestione-formazione', '/match/new', '/guida', '/impostazioni-profilo', '/contromisure-live', '/allenatori']
+const PAGES_WITH_TOUR = ['/', '/gestione-formazione', '/match/new', '/guida', '/impostazioni-profilo', '/contromisure-live', '/allenatori', '/classifica', '/gestione-profilo']
 
 function hasTourForPath(pathname) {
   const base = (pathname || '/').replace(/\/$/, '') || '/'
