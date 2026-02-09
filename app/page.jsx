@@ -1012,256 +1012,134 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Ultime Partite - Fuori dal grid per essere sempre visibile su mobile */}
-      <div data-tour-id="tour-dashboard-matches" className="card" style={{ padding: '24px', marginBottom: '32px' }}>
-          <div style={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center',
-            marginBottom: '20px',
-            cursor: 'pointer'
-          }}
+      {/* Ultime Partite - stesso stile card di Classifica/Obiettivi */}
+      <div
+        data-tour-id="tour-dashboard-matches"
+        style={{
+          marginBottom: '24px',
+          width: '100%',
+          boxSizing: 'border-box',
+          background: 'linear-gradient(135deg, rgba(255,140,0,0.12), rgba(0,212,255,0.06))',
+          border: '1px solid rgba(255,165,0,0.4)',
+          borderRadius: '12px',
+          overflow: 'hidden'
+        }}
+      >
+        <div
           onClick={() => setMatchesExpanded(!matchesExpanded)}
-          >
-            <h2 style={{ fontSize: '20px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Calendar size={24} color="var(--neon-orange)" />
-              Ultime Partite
-            </h2>
-            <button
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: 'var(--neon-orange)',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center'
-              }}
-            >
-              {matchesExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-            </button>
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '16px',
+            padding: '20px',
+            cursor: 'pointer',
+            userSelect: 'none',
+            color: '#fff'
+          }}
+        >
+          <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(255,165,0,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Calendar size={26} color="var(--neon-orange)" />
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: 700, marginBottom: '4px', fontSize: '18px' }}>
+              {t('recentMatches') || 'Ultime Partite'}
+            </div>
+            <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.85)' }}>
+              {recentMatches.length === 0 ? t('noMatchesSaved') : `${recentMatches.length} ${recentMatches.length === 1 ? (t('match') || 'partita') : (t('matches') || 'partite')}`}
+            </div>
+          </div>
+          {matchesExpanded ? (
+            <ChevronUp size={22} color="var(--neon-orange)" style={{ flexShrink: 0 }} />
+          ) : (
+            <ChevronDown size={22} color="var(--neon-orange)" style={{ flexShrink: 0 }} />
+          )}
+        </div>
+
+        {matchesExpanded && (
+          <div style={{ padding: '0 20px 20px' }}>
             {recentMatches.length === 0 ? (
-              <div style={{ 
-                padding: '24px', 
-                textAlign: 'center', 
-                opacity: 0.7,
-                fontSize: '14px'
-              }}>
+              <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)', textAlign: 'center', padding: '16px' }}>
                 {t('noMatchesSaved')}
               </div>
             ) : (
-              (matchesExpanded ? recentMatches : recentMatches.slice(0, 5)).map((match) => {
-                const matchDate = match.match_date ? new Date(match.match_date) : null
-                const dateStr = matchDate ? matchDate.toLocaleDateString('it-IT', { 
-                  day: '2-digit', 
-                  month: '2-digit',
-                  year: 'numeric'
-                }) : t('dateNotAvailable')
-                const timeStr = matchDate ? matchDate.toLocaleTimeString('it-IT', { 
-                  hour: '2-digit', 
-                  minute: '2-digit' 
-                }) : ''
-                const displayResult = match.result || 'N/A'
-                const displayOpponent = match.opponent_name || t('unknownOpponent')
-                const isComplete = match.data_completeness === 'complete'
-                const missingCount = match.missing_photos?.length || 0
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {recentMatches.map((match) => {
+                  const matchDate = match.match_date ? new Date(match.match_date) : null
+                  const dateStr = matchDate ? matchDate.toLocaleDateString(lang === 'it' ? 'it-IT' : 'en-US', { day: '2-digit', month: '2-digit', year: 'numeric' }) : t('dateNotAvailable')
+                  const displayResult = match.result || 'N/A'
+                  const displayOpponent = match.opponent_name || t('unknownOpponent')
+                  const isComplete = match.data_completeness === 'complete'
 
-                return (
-                  <div
-                    key={match.id}
-                    onClick={() => router.push(`/match/${match.id}`)}
-                    className="clickable-card"
-                    style={{
-                      padding: '16px',
-                      background: 'rgba(255, 165, 0, 0.05)',
-                      border: '1px solid rgba(255, 165, 0, 0.2)',
-                      borderRadius: '12px',
-                      cursor: 'pointer',
-                      transition: 'all 0.3s ease'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = 'rgba(255, 165, 0, 0.1)'
-                      e.currentTarget.style.boxShadow = 'var(--glow-orange)'
-                      e.currentTarget.style.transform = 'translateY(-2px)'
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'rgba(255, 165, 0, 0.05)'
-                      e.currentTarget.style.boxShadow = 'none'
-                      e.currentTarget.style.transform = 'translateY(0)'
-                    }}
-                    onTouchStart={(e) => {
-                      e.currentTarget.style.background = 'rgba(255, 165, 0, 0.1)'
-                    }}
-                    onTouchEnd={(e) => {
-                      e.currentTarget.style.background = 'rgba(255, 165, 0, 0.05)'
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
-                      <div style={{ flex: 1, minWidth: '200px' }}>
-                        <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--neon-orange)', marginBottom: '4px' }}>
-                          {editingOpponentId === match.id ? (
-                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                              <input
-                                type="text"
-                                value={editingOpponentName}
-                                onChange={(e) => setEditingOpponentName(e.target.value)}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') {
-                                    handleSaveOpponentName(match.id, e)
-                                  } else if (e.key === 'Escape') {
-                                    setEditingOpponentId(null)
-                                    setEditingOpponentName('')
-                                  }
-                                }}
-                                autoFocus
-                                maxLength={255}
-                                style={{
-                                  flex: 1,
-                                  padding: '6px 10px',
-                                  background: 'rgba(255, 165, 0, 0.2)',
-                                  border: '1px solid rgba(255, 165, 0, 0.5)',
-                                  borderRadius: '6px',
-                                  color: '#ffa500',
-                                  fontSize: '14px',
-                                  outline: 'none'
-                                }}
-                                disabled={savingOpponentName}
-                              />
-                              <button
-                                onClick={(e) => handleSaveOpponentName(match.id, e)}
-                                disabled={savingOpponentName}
-                                style={{
-                                  padding: '6px 10px',
-                                  background: 'rgba(34, 197, 94, 0.2)',
-                                  border: '1px solid rgba(34, 197, 94, 0.5)',
-                                  borderRadius: '6px',
-                                  color: '#86efac',
-                                  cursor: savingOpponentName ? 'not-allowed' : 'pointer',
-                                  fontSize: '12px',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center'
-                                }}
-                              >
-                                {savingOpponentName ? '...' : '✓'}
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  setEditingOpponentId(null)
-                                  setEditingOpponentName('')
-                                }}
-                                style={{
-                                  padding: '6px 10px',
-                                  background: 'rgba(239, 68, 68, 0.2)',
-                                  border: '1px solid rgba(239, 68, 68, 0.5)',
-                                  borderRadius: '6px',
-                                  color: '#fca5a5',
-                                  cursor: 'pointer',
-                                  fontSize: '12px',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center'
-                                }}
-                              >
-                                ✕
-                              </button>
-                            </div>
-                          ) : (
-                            <div 
-                              style={{ 
-                                display: 'flex', 
-                                alignItems: 'center', 
-                                gap: '8px',
-                                cursor: 'pointer'
+                  return (
+                    <div
+                      key={match.id}
+                      style={{
+                        padding: '12px',
+                        background: 'rgba(255, 165, 0, 0.05)',
+                        border: '1px solid rgba(255, 165, 0, 0.2)',
+                        borderRadius: '8px',
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '8px',
+                        cursor: 'pointer',
+                        transition: 'background 0.2s ease'
+                      }}
+                      onClick={() => router.push(`/match/${match.id}`)}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255, 165, 0, 0.1)' }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255, 165, 0, 0.05)' }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1 1 180px', minWidth: 0 }} onClick={(e) => e.stopPropagation()}>
+                        {editingOpponentId === match.id ? (
+                          <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+                            <input
+                              type="text"
+                              value={editingOpponentName}
+                              onChange={(e) => setEditingOpponentName(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleSaveOpponentName(match.id, e)
+                                else if (e.key === 'Escape') { setEditingOpponentId(null); setEditingOpponentName('') }
                               }}
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                setEditingOpponentId(match.id)
-                                setEditingOpponentName(match.opponent_name || '')
-                              }}
-                              title={t('clickToEditOpponentName')}
-                            >
-                              <span>{displayOpponent}</span>
-                              <span style={{ fontSize: '12px', opacity: 0.6 }}>✏️</span>
-                            </div>
-                          )}
-                        </div>
-                        <div style={{ fontSize: '14px', opacity: 0.8, marginBottom: '4px' }}>
-                          {dateStr} {timeStr && `• ${timeStr}`}
-                        </div>
-                        <div style={{ fontSize: '14px', fontWeight: 600 }}>
-                          {t('result')}: <span style={{ color: 'var(--neon-blue)' }}>{displayResult}</span>
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px', flexShrink: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span className={`completeness-badge ${isComplete ? 'complete' : 'incomplete'}`}>
-                            {isComplete ? t('matchComplete') : `${match.photos_uploaded || 0}/5`}
-                          </span>
-                          <button
-                            onClick={(e) => handleDeleteMatch(match.id, e)}
-                            disabled={deletingMatchId === match.id}
-                            style={{
-                              background: 'rgba(239, 68, 68, 0.2)',
-                              border: '1px solid rgba(239, 68, 68, 0.5)',
-                              borderRadius: '6px',
-                              padding: '6px',
-                              color: '#fca5a5',
-                              cursor: deletingMatchId === match.id ? 'not-allowed' : 'pointer',
-                              opacity: deletingMatchId === match.id ? 0.5 : 1,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              transition: 'all 0.2s ease'
-                            }}
-                            onMouseEnter={(e) => {
-                              if (deletingMatchId !== match.id) {
-                                e.currentTarget.style.background = 'rgba(239, 68, 68, 0.3)'
-                              }
-                            }}
-                            onMouseLeave={(e) => {
-                              if (deletingMatchId !== match.id) {
-                                e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)'
-                              }
-                            }}
-                            title={t('deleteMatch')}
-                          >
-                            {deletingMatchId === match.id ? (
-                              <RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} />
-                            ) : (
-                              <Trash2 size={14} />
-                            )}
-                          </button>
-                        </div>
-                        {missingCount > 0 && (
-                          <span style={{ fontSize: '12px', opacity: 0.7, color: 'var(--neon-orange)' }}>
-                            {missingCount} mancanti
-                          </span>
+                              autoFocus
+                              maxLength={255}
+                              style={{ flex: 1, minWidth: '100px', padding: '6px 8px', background: 'rgba(255,165,0,0.2)', border: '1px solid rgba(255,165,0,0.5)', borderRadius: '6px', color: '#ffa500', fontSize: '13px', outline: 'none' }}
+                              disabled={savingOpponentName}
+                            />
+                            <button type="button" onClick={(e) => handleSaveOpponentName(match.id, e)} disabled={savingOpponentName} style={{ padding: '6px 8px', background: 'rgba(34,197,94,0.3)', border: 'none', borderRadius: '6px', color: '#86efac', cursor: savingOpponentName ? 'not-allowed' : 'pointer', fontSize: '12px' }}>{savingOpponentName ? '...' : '✓'}</button>
+                            <button type="button" onClick={() => { setEditingOpponentId(null); setEditingOpponentName('') }} style={{ padding: '6px 8px', background: 'rgba(239,68,68,0.3)', border: 'none', borderRadius: '6px', color: '#fca5a5', cursor: 'pointer', fontSize: '12px' }}>✕</button>
+                          </div>
+                        ) : (
+                          <>
+                            <span style={{ fontWeight: 600, fontSize: '14px', color: '#fff' }}>{displayOpponent}</span>
+                            <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>{dateStr}</span>
+                            <span style={{ fontSize: '12px', opacity: 0.6 }} title={t('clickToEditOpponentName')} onClick={(e) => { e.stopPropagation(); setEditingOpponentId(match.id); setEditingOpponentName(match.opponent_name || '') }}>✏️</span>
+                          </>
                         )}
                       </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
+                        <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--neon-blue)' }}>{displayResult}</span>
+                        <span className={`completeness-badge ${isComplete ? 'complete' : 'incomplete'}`} style={{ fontSize: '11px' }}>
+                          {isComplete ? t('matchComplete') : `${match.photos_uploaded || 0}/5`}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={(e) => handleDeleteMatch(match.id, e)}
+                          disabled={deletingMatchId === match.id}
+                          style={{ background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.4)', borderRadius: '6px', padding: '6px', color: '#fca5a5', cursor: deletingMatchId === match.id ? 'not-allowed' : 'pointer', opacity: deletingMatchId === match.id ? 0.5 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                          title={t('deleteMatch')}
+                        >
+                          {deletingMatchId === match.id ? <RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Trash2 size={14} />}
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                )
-              })
+                  )
+                })}
+              </div>
             )}
           </div>
-          {recentMatches.length > 5 && !matchesExpanded && (
-            <div style={{ 
-              marginTop: '12px', 
-              textAlign: 'center', 
-              fontSize: '14px', 
-              opacity: 0.7,
-              cursor: 'pointer',
-              padding: '8px'
-            }}
-            onClick={() => setMatchesExpanded(true)}
-            >
-              {t('showMoreMatches', { count: recentMatches.length - 5 }).replace('{count}', recentMatches.length - 5)}
-            </div>
-          )}
-        </div>
+        )}
+      </div>
 
       <style jsx>{`
         @keyframes spin {
