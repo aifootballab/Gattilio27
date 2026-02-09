@@ -5,6 +5,7 @@ import CreditsBar from '@/components/CreditsBar'
 import GuideTour from '@/components/GuideTour'
 import BackgroundLoader from '@/components/BackgroundLoader'
 
+// Layout unico: usare solo questo file. Non creare layout.tsx (conflitti / layout sbagliato = dashboard non carica).
 export const metadata = {
   title: 'Gattilio27 - Rosa (Production)',
   description: 'Carica screenshot giocatori → estrazione dati → salvataggio in Supabase',

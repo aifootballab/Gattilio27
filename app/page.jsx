@@ -39,6 +39,7 @@ import {
 export default function DashboardPage() {
   const { t, lang } = useTranslation()
   const router = useRouter()
+  const mountedRef = React.useRef(true)
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState(null)
   const [stats, setStats] = React.useState({
@@ -94,6 +95,7 @@ export default function DashboardPage() {
   }, [missingCount])
 
   React.useEffect(() => {
+    mountedRef.current = true
     if (!supabase) {
       setLoading(false)
       router.push('/login')
@@ -238,10 +240,12 @@ export default function DashboardPage() {
     }
 
     const timeoutId = setTimeout(() => {
-      setLoading((prev) => {
-        if (prev) setError(t('coachDataLoadError') || 'Caricamento troppo lento. Riprova.')
-        return false
-      })
+      if (mountedRef.current) {
+        setLoading((prev) => {
+          if (prev) setError(t('coachDataLoadError') || 'Caricamento troppo lento. Riprova.')
+          return false
+        })
+      }
     }, 20000)
     fetchData().finally(() => clearTimeout(timeoutId))
 
@@ -254,6 +258,8 @@ export default function DashboardPage() {
     )
 
     return () => {
+      mountedRef.current = false
+      clearTimeout(timeoutId)
       subscription?.unsubscribe()
     }
   }, [router])
