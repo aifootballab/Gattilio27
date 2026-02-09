@@ -30,7 +30,7 @@
 | 11 | Rate limit endpoint Supabase (save-player, save-ai-info, save-formation-layout, save-opponent-formation, assign-player-to-slot, remove-player-from-slot) | `app/api/supabase/*`, `lib/rateLimiter.js` | ✅ |
 | 12 | Fetch client con AbortController (AssistantChat, TaskWidget, AIKnowledgeBar) | `components/AssistantChat.jsx`, `components/TaskWidget.jsx`, `components/AIKnowledgeBar.jsx` | ✅ |
 
-**Coerenza flussi (verifica 2026-02):** Rate limit e fetch abort applicati su tutti gli endpoint e componenti previsti. **RLS weekly_goals** e **task team1** (P1/P2) lasciati invariati per evitare rotture; da valutare con migration/trigger e test dedicati.
+**Coerenza flussi (verifica 2026-02):** Rate limit e fetch abort applicati. **Task team1 (P2)** fix applicato 2026-02: `lib/taskHelper.js` ora considera `match.is_home` in `calculateAvgGoalsConceded` e in vittorie/sconfitte (`isWinForUser` / `isLossForUser`). **RLS weekly_goals** lasciato invariato; da valutare con migration/trigger e test dedicati.
 
 ---
 
@@ -67,9 +67,10 @@
    - **Fix applicato:** `credits_included` ora somma: `(existing.credits_included || 0) + amount`
 
 ### P2 � Stabilit� / Logica
-5) **Task: risultati assumono sempre team1 = utente**
+5) ✅ **Task: risultati assumono sempre team1 = utente**
    - Rischio: progressi errati se utente � team2/away.
    - File: `lib/taskHelper.js`
+   - Fix (2026-02): calculateAvgGoalsConceded e increase_wins usano match.is_home; isWinForUser/isLossForUser.
 6) ✅ **AI Knowledge: usa `overall` invece di `overall_rating`**
    - Rischio: score sottostimato.
    - File: `lib/aiKnowledgeHelper.js`
