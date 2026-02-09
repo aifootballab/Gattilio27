@@ -85,9 +85,9 @@ export default function DashboardPage() {
   // Notifica setup: priorità (rosso = alta, giallo = media, verde = completo). Non invasiva, icona responsive, messaggio = importanza di completare.
   const setupStatus = missingCount >= 2 ? 'critical' : missingCount === 1 ? 'partial' : 'complete'
   const setupStatusConfig = {
-    critical: { color: '#ef4444', bg: 'rgba(239, 68, 68, 0.08)', border: 'rgba(239, 68, 68, 0.35)', icon: AlertCircle, labelKey: 'setupStatusCritical', iconOpacity: 1 },
-    partial: { color: '#eab308', bg: 'rgba(234, 179, 8, 0.08)', border: 'rgba(234, 179, 8, 0.35)', icon: AlertCircle, labelKey: 'setupStatusPartial', iconOpacity: 1 },
-    complete: { color: '#22c55e', bg: 'rgba(34, 200, 100, 0.06)', border: 'rgba(34, 200, 100, 0.25)', icon: CheckCircle2, labelKey: 'setupStatusComplete', iconOpacity: 0.85 }
+    critical: { color: '#ef4444', bg: 'rgba(239, 68, 68, 0.18)', border: 'rgba(239, 68, 68, 0.55)', icon: AlertCircle, labelKey: 'setupStatusCritical', iconOpacity: 1 },
+    partial: { color: '#eab308', bg: 'rgba(234, 179, 8, 0.18)', border: 'rgba(234, 179, 8, 0.55)', icon: AlertCircle, labelKey: 'setupStatusPartial', iconOpacity: 1 },
+    complete: { color: '#22c55e', bg: 'rgba(34, 200, 100, 0.14)', border: 'rgba(34, 200, 100, 0.45)', icon: CheckCircle2, labelKey: 'setupStatusComplete', iconOpacity: 1 }
   }
   const statusCfg = setupStatusConfig[setupStatus]
   React.useEffect(() => {
@@ -545,9 +545,10 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* Banner setup: icona priorità (non invasiva, responsive, comunica importanza di completare). */}
+      {/* Banner setup: visibile in UX, icona priorità (rosso/giallo/verde), comunica importanza di completare. */}
       {showSetupBanner && (
         <div
+          id="setup-status-banner"
           role="status"
           aria-live="polite"
           style={{
@@ -555,13 +556,15 @@ export default function DashboardPage() {
             flexWrap: 'wrap',
             alignItems: 'center',
             gap: 'clamp(8px, 2vw, 12px)',
-            padding: 'clamp(10px, 2.5vw, 12px) clamp(14px, 3vw, 16px)',
+            padding: 'clamp(12px, 2.5vw, 14px) clamp(16px, 3vw, 20px)',
             background: statusCfg.bg,
             border: `1px solid ${statusCfg.border}`,
-            borderRadius: '10px',
-            marginBottom: '16px',
+            borderRadius: '12px',
+            marginBottom: '20px',
             fontSize: 'clamp(13px, 3vw, 14px)',
-            lineHeight: 1.45
+            lineHeight: 1.45,
+            color: 'rgba(255, 255, 255, 0.95)',
+            boxShadow: '0 2px 12px rgba(0, 0, 0, 0.25)'
           }}
         >
           {(() => {
