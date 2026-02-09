@@ -202,20 +202,13 @@ export async function POST(req) {
       }
       profileUpdate.nickname = nickname
     }
-    if (profileData.background_key !== undefined) {
-      const v = toText(profileData.background_key)
-      if (v === null || v === 'default' || v === 'sfondo2' || v === 'sfondo3') {
-        profileUpdate.background_key = v || 'default'
-      }
-    }
-
     // Upsert profilo (crea se non esiste, aggiorna se esiste)
     const { data: savedProfile, error: upsertError } = await admin
       .from('user_profiles')
       .upsert(profileUpdate, {
         onConflict: 'user_id'
       })
-      .select('id, profile_completion_score, profile_completion_level, first_name, last_name, current_division, favorite_team, team_name, ai_name, how_to_remember, hours_per_week, common_problems, leaderboard_consent, nickname, background_key')
+      .select('id, profile_completion_score, profile_completion_level, first_name, last_name, current_division, favorite_team, team_name, ai_name, how_to_remember, hours_per_week, common_problems, leaderboard_consent, nickname')
       .single()
 
     if (upsertError) {
@@ -268,8 +261,7 @@ export async function POST(req) {
         hours_per_week: savedProfile.hours_per_week,
         common_problems: savedProfile.common_problems,
         leaderboard_consent: savedProfile.leaderboard_consent ?? false,
-        nickname: savedProfile.nickname ?? null,
-        background_key: savedProfile.background_key ?? 'default'
+        nickname: savedProfile.nickname ?? null
       }
     })
 
