@@ -204,11 +204,13 @@ export async function POST(req) {
       update[key] = v
     }
 
-    // ai_weak_point: whitelist o testo libero
+    // ai_weak_point: whitelist o testo libero; sincronizza common_problems così l'IA e i task vedono solo ciò che è selezionato
+    const WEAK_POINT_TO_LABEL = { defence: 'Difesa', attack: 'Attacco', set_pieces: 'Piazzati', transitions: 'Transizioni', final_minutes: 'Finale partita' }
     if (body.ai_weak_point !== undefined) {
       const raw = (body.ai_weak_point || '').trim().toLowerCase()
       if (WHITELIST.ai_weak_point.includes(raw)) {
         update.ai_weak_point = raw
+        update.common_problems = [WEAK_POINT_TO_LABEL[raw] || raw]
       } else {
         const v = toText(body.ai_weak_point)
         if (v && v.length > MAX_TEXT) {
@@ -218,6 +220,7 @@ export async function POST(req) {
           )
         }
         update.ai_weak_point = v
+        update.common_problems = v ? [v] : []
       }
     }
 

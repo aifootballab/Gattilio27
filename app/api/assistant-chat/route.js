@@ -175,10 +175,10 @@ async function buildAssistantContext(userId, currentPage, appState) {
       auth: { autoRefreshToken: false, persistSession: false }
     })
     
-    // Recupera profilo utente (nome, team, preferenze)
+    // Recupera profilo utente (nome, team, preferenze, Informazioni IA)
     const { data: profile } = await admin
       .from('user_profiles')
-      .select('first_name, team_name, ai_name, how_to_remember, common_problems')
+      .select('first_name, team_name, ai_name, how_to_remember, common_problems, ai_weak_point, ai_learn_goals, ai_notes')
       .eq('user_id', userId)
       .maybeSingle()
     
@@ -524,7 +524,13 @@ function buildPersonalizedPromptV2(userMessage, context, language = 'it', efootb
   const teamName = profile?.team_name || (language === 'en' ? 'your team' : 'il tuo team')
   const aiName = profile?.ai_name || 'Coach AI'
   const howToRemember = profile?.how_to_remember || ''
-  const commonProblems = profile?.common_problems || []
+  const aiWeakPoint = profile?.ai_weak_point || ''
+  const aiLearnGoals = profile?.ai_learn_goals || ''
+  const aiNotes = profile?.ai_notes || ''
+  const WEAK_POINT_LABELS = language === 'en'
+    ? { defence: 'Defence', attack: 'Attack', set_pieces: 'Set pieces', transitions: 'Transitions', final_minutes: 'Final minutes' }
+    : { defence: 'Difesa', attack: 'Attacco', set_pieces: 'Piazzati', transitions: 'Transizioni', final_minutes: 'Finale partita' }
+  const weakPointLabel = aiWeakPoint && WEAK_POINT_LABELS[aiWeakPoint] ? WEAK_POINT_LABELS[aiWeakPoint] : (aiWeakPoint || '')
 
   const domandaBreve = userMessage.length > 80 ? userMessage.slice(0, 80).trim() + '?' : userMessage
   const pagina = currentPage ? String(currentPage) : ''
@@ -559,12 +565,18 @@ OUTPUT: 2-4 imperative sentences; answer the specific question (e.g. shot/pass/d
   const suggRulesEn = `SUGGESTIONS (3 questions, required): DIVERSIFY?do not always suggest the same 3 (priorities, compactness, next step). (1) At least one follow-up on the lever or data you just mentioned (e.g. shot/pass percentages, roster skills, player names). (2) One on gameplay/roster/matches tied to your answer. (3) One concrete next step. Do NOT lead with "Which formation/module". FORBIDDEN: meta, "why did I lose", "improve a player", vague questions. No app usage, no buttons.`
   const suggRules = language === 'en' ? suggRulesEn : suggRulesIt
 
+  // Solo dati da Informazioni IA: niente lista "Problemi" da citare; se togli la spunta, l'IA non vede pi? quel problema
+  const profileLines = [
+    `?? ${firstName} | ${teamName}`,
+    howToRemember ? `Memo: ${howToRemember}` : '',
+    weakPointLabel ? (language === 'en' ? `Weak point (what makes you lose): ${weakPointLabel}` : `Punto debole (cosa ti fa perdere): ${weakPointLabel}`) : '',
+    aiLearnGoals ? (language === 'en' ? `Learn goals: ${aiLearnGoals}` : `Cosa vuole imparare: ${aiLearnGoals}`) : '',
+    aiNotes ? (language === 'en' ? `Notes for AI: ${aiNotes}` : `Note per l'IA: ${aiNotes}`) : ''
+  ].filter(Boolean)
   const header = `CONTESTO: ${contestoAttuale}
 ${hasHistory ? `NOTA: Continua la conversazione gi? iniziata. NON salutare.` : ''}
 
-?? ${firstName} | ${teamName}
-${howToRemember ? `Memo: ${howToRemember}` : ''}
-${commonProblems.length > 0 ? `Problemi: ${commonProblems.join(', ')}` : ''}`
+${profileLines.join('\n')}`
 
   const blocks = [
     header,
@@ -589,7 +601,7 @@ Risposta CONCRETA: rispondi alla domanda specifica (es. "sbaglio a tirare?" ? co
 DUE FONTI DATI (non in conflitto): (1) "Dati dalle partite inserite" = zone attacco, voti giocatori, recupero dalle partite salvate nell'app. (2) "Statistiche di gioco (Analisi eFootball, ultime 10 partite)" = aggregate dalla schermata Analisi eFootball (screenshot). Usa entrambe: sono complementari (stesso giocatore da angolazioni o periodi diversi).
 Se nel RIASSUNTO ANALISI ? presente la sezione "Statistiche di gioco (Analisi eFootball, ultime 10 partite)" (tipo gol, tiro, passaggio, dribbling, difesa, comandi speciali), usala per consigli mirati: es. diversificare tipi di tiro, aumentare uso pressing/comandi, lavorare su passaggio o difesa in base alle percentuali reali. Incrocia sempre con la Rosa (Abilit? in rosa, posizioni, stili): se l'utente usa molto un tipo di comando (es. passaggio filtrante, tiro normale) ma in rosa mancano le abilit? che lo rendono efficace (es. Passaggio filtrante, Tiro calibrato + A giro), segnalalo e consiglia di diversificare, schierare chi ha quelle abilit? o aggiungerle con Programmi (se non Trending). Usa la mappatura comando?abilit? del RAG (?7.9 se presente). Se quella sezione NON ? presente e il cliente chiede consigli sulle "sue statistiche" o "difficolt? nelle statistiche", NON inventare percentuali: rispondi che per consigli basati sui dati di gioco pu? caricare gli screenshot della schermata Analisi eFootball dalla dashboard (card Statistiche di gioco).
 Se nel RIASSUNTO c'? Connessione/Input delay/Ritardo (es. connessione debole, ritardo input) OPPURE il cliente menziona connessione debole/lag/ritardo nel messaggio, adatta i consigli: meno pressing reattivo e dribbling in difesa (tempismo difficile), pi? posizionamento, copertura e struttura; evita suggerimenti che richiedono tempismo perfetto.
-PRIORIT? PROFILO: Se nel RIASSUNTO (sezione Informazioni per l'IA) sono presenti "Punto debole" e/o "Cosa vuole imparare" e/o "Note per l'IA", usali come priorit?: orienta almeno un consiglio sul punto debole e sugli obiettivi di apprendimento quando rilevanti alla domanda; rispetta le note come focus quando possibile.
+PRIORIT? PROFILO: Se nel RIASSUNTO (sezione Informazioni per l'IA) sono presenti "Punto debole" e/o "Cosa vuole imparare" e/o "Note per l'IA", usali come priorit?: orienta almeno un consiglio sul punto debole e sugli obiettivi di apprendimento quando rilevanti alla domanda; rispetta le note come focus quando possibile. NON citare mai al cliente l'elenco (es. "hai indicato che hai difficolt? in..."); usa il dato solo per orientare i consigli.
 REGOLA ORO (RAG ?10): MAI suggerire di potenziare, migliorare o far crescere un giocatore; statistiche e card sono FISSE.
 
 VINCOLI: solo nomi in ROSA; team_playing_style configurabile SOLO 5 (Possesso palla, Contropiede veloce, Contrattacco, Passaggio lungo, Vie laterali); contrattacco ? contropiede_veloce e serve competenza coach >=70 per consigliare; istruzioni individuali solo ?5; limiti moduli ?3.4; NO Tattica(astuzia) sui difensori; NO Tornante su MED Collante; Dominio palle alte ? Colpo di testa.
@@ -603,12 +615,12 @@ SCOPE: only eFootball tactical advice based on ROSTER, MATCHES, COACH, TACTICS a
 - App usage (wizard, clicks, menus, upload): do not explain. If asked, reply only: "I'm here only for tactical advice: formation, roster, module, substitutions, style. Explore the menu for other features."
 
 SOURCES: Names/roster/matches/coach/tactics only from the context block below (ROSTER & DATA or ANALYSIS SUMMARY). eFootball rules only from the RAG block. If data is missing, do not invent.
-CROSS-CHECKS: Use the full summary (Roster with player style+fin/pas/tac+skills, Game stats, Form/ratings, Tactics=team style, Coach and competences, Build, Synergies, Levers) and RAG §2 (player styles: when to use which, e.g. Adv Striker for finishing), §4 (team style), §8 (skills). Player style is very important for fit and substitutions.
+CROSS-CHECKS: Use the full summary (Roster with player style+fin/pas/tac+skills, Game stats, Form/ratings, Tactics=team style, Coach and competences, Build, Synergies, Levers) and RAG ?2 (player styles: when to use which, e.g. Adv Striker for finishing), ?4 (team style), ?8 (skills). Player style is very important for fit and substitutions.
 CONCRETE answer: answer the specific question (e.g. "am I shooting wrong?" ? advice on shooting and real percentages; "passing?" ? passing and roster skills). Do not repeat the same 3-4 recommendations every time (compactness, marking, counter): pick 1-2 relevant levers and use the data you have.
 TWO DATA SOURCES (not in conflict): (1) "Data from entered matches" = attack zones, player ratings, recovery from matches saved in the app. (2) "Game stats (eFootball Analisi, last 10 matches)" = aggregates from the eFootball Analysis screen (screenshot). Use both: they are complementary (same player from different angles or time windows).
 If the ANALYSIS SUMMARY includes "Game stats (eFootball Analisi, last 10 matches)" (goal types, shot, passing, dribbling, defense, special commands), use it for targeted advice: e.g. diversify shot types, increase pressing/command usage, work on passing or defense based on actual percentages. Always cross-reference with the Roster (Abilit? in rosa / skills in roster, positions, styles): if the user uses a command type heavily (e.g. through ball, normal shot) but the roster lacks the skills that make it effective (e.g. Passaggio filtrante, Tiro calibrato + A giro), point it out and suggest diversifying, using players who have those skills, or adding skills via Programmi (if not Trending). Use the command?skill mapping from RAG (?7.9 when present). If that section is NOT present and the client asks for advice on "their stats" or "difficulties in stats", do NOT invent percentages: reply that for data-driven advice they can upload screenshots of the eFootball Analysis screen from the dashboard (Game stats card).
 If the SUMMARY has Connection/Input delay/Lag (e.g. weak connection, input delay) OR the client mentions weak connection/lag/delay in the message, adapt advice: less reactive pressing and dribbling in defence (timing is harder), more positioning, coverage and structure; avoid suggestions that require perfect timing.
-PROFILE PRIORITY: If the SUMMARY (Informazioni per l'IA / AI info section) includes "Punto debole" (Weak point) and/or "Cosa vuole imparare" (Learn goals) and/or "Note per l'IA" (Notes for AI), use them as priorities: steer at least one piece of advice toward the weak point and learning goals when relevant to the question; respect the notes as focus when possible.
+PROFILE PRIORITY: If the SUMMARY (Informazioni per l'IA / AI info section) includes "Punto debole" (Weak point) and/or "Cosa vuole imparare" (Learn goals) and/or "Note per l'IA" (Notes for AI), use them as priorities: steer at least one piece of advice toward the weak point and learning goals when relevant to the question; respect the notes as focus when possible. Never quote the list back to the client (e.g. "you indicated you have difficulties in..."); use the data only to steer advice.
 GOLDEN RULE (RAG ?10): NEVER suggest improving, boosting or training a player; stats and card are FIXED.
 
 CONSTRAINTS: only roster names; only 5 configurable team styles (Possession, Quick Counter, Long Ball Counter, Long Ball, Out Wide); contrattacco ? contropiede_veloce and require coach competence >=70; individual instructions only ?5; formation limits ?3.4; no Tactical(fouls) on defenders; no Box-to-box (Tornante) on an Anchor Man DM, especially if Collante/Anchor Man; High ball dominance ? Heading.
