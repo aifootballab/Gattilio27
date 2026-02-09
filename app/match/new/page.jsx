@@ -328,6 +328,14 @@ export default function NewMatchPage() {
         window.dispatchEvent(new CustomEvent('match-saved'))
       }
 
+      // Aggiorna riassunto analisi (diagnostic) per la chat
+      try {
+        await fetch('/api/refresh-diagnostic', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      } catch (_) { /* non bloccare redirect */ }
+
       // Redirect dopo 2 secondi con refresh dati
       setTimeout(() => {
         router.push('/')

@@ -760,6 +760,17 @@ export async function POST(req) {
           personalContextSummary = raw.length > MAX_PERSONAL_CONTEXT_CHARS ? raw.slice(0, MAX_PERSONAL_CONTEXT_CHARS) + '\n... (riassunto troncato).' : raw
           contextBlockLabel = 'RIASSUNTO ANALISI'
           if (personalContextSummary) console.log('[assistant-chat] Diagnostic from cache used')
+          // Tattica live: la cache può essere vecchia; l'IA deve vedere sempre stile/istruzioni salvati in Supabase
+          const { data: tacticalRow } = await admin.from('team_tactical_settings').select('team_playing_style, individual_instructions').eq('user_id', userId).maybeSingle()
+          const liveStyle = tacticalRow?.team_playing_style?.trim()
+          const liveInstr = tacticalRow?.individual_instructions
+          const numLive = (liveInstr && typeof liveInstr === 'object') ? Object.keys(liveInstr).length : 0
+          if (liveStyle || numLive > 0) {
+            const liveLine = lang === 'en'
+              ? `[LIVE] Team style: ${liveStyle || 'not set'}. Individual instructions: ${numLive} active.\n\n`
+              : `[AGGIORNAMENTO LIVE] Stile squadra: ${liveStyle || 'non impostato'}. Istruzioni individuali: ${numLive} attive.\n\n`
+            personalContextSummary = liveLine + personalContextSummary
+          }
         }
       }
       if (!personalContextSummary) {

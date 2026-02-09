@@ -275,6 +275,19 @@ export default function GestioneFormazionePage() {
     setToast({ message, type })
   }, [])
 
+  /** Aggiorna il riassunto analisi (diagnostic) in cache dopo un salvataggio che modifica rosa/tattica/formazione. Fire-and-forget. */
+  const refreshDiagnosticAfterSave = React.useCallback(async () => {
+    try {
+      const { data: session } = await supabase?.auth?.getSession?.()
+      if (session?.session?.access_token) {
+        await fetch('/api/refresh-diagnostic', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${session.session.access_token}` }
+        })
+      }
+    } catch (_) { /* non bloccare UI */ }
+  }, [supabase])
+
   // Auto-dismiss toast
   React.useEffect(() => {
     if (toast) {
@@ -589,6 +602,7 @@ export default function GestioneFormazionePage() {
       
       // Ricarica dati senza reload pagina
       await fetchData()
+      refreshDiagnosticAfterSave()
     } catch (err) {
       console.error('[GestioneFormazione] Assign error:', err)
       const { message } = mapErrorToUserMessage(err, t('errorAssigningPlayer'))
@@ -691,6 +705,7 @@ export default function GestioneFormazionePage() {
       
       // Ricarica dati senza reload pagina
       await fetchData()
+      refreshDiagnosticAfterSave()
     } catch (err) {
       console.error('[GestioneFormazione] Remove error:', err)
       const { message } = mapErrorToUserMessage(err, t('errorMovingPlayer'))
@@ -730,6 +745,7 @@ export default function GestioneFormazionePage() {
 
       showToast(t('playerDeletedSuccessfully'), 'success')
       await fetchData()
+      refreshDiagnosticAfterSave()
     } catch (err) {
       console.error('[GestioneFormazione] Delete error:', err)
       const { message } = mapErrorToUserMessage(err, t('errorDeletingPlayer'))
@@ -1147,6 +1163,7 @@ export default function GestioneFormazionePage() {
               
               showToast(t('photoUploadedSuccessfully'), 'success')
               await fetchData()
+              refreshDiagnosticAfterSave()
             } catch (err) {
               console.error('[GestioneFormazione] Confirm duplicate error:', err)
               const { message } = mapErrorToUserMessage(err, t('errorUploadingPhoto'))
@@ -1195,6 +1212,7 @@ export default function GestioneFormazionePage() {
       
       // Ricarica dati senza reload pagina
       await fetchData()
+      refreshDiagnosticAfterSave()
     } catch (err) {
       console.error('[GestioneFormazione] Save player with positions error:', err)
       const { message } = mapErrorToUserMessage(err, t('errorUploadingPhoto'))
@@ -1294,6 +1312,7 @@ export default function GestioneFormazionePage() {
       
       // Ricarica dati senza reload pagina (solo per aggiornare eventuali dipendenze)
       await fetchData()
+      refreshDiagnosticAfterSave()
     } catch (err) {
       console.error('[GestioneFormazione] Save tactical settings error:', err)
       setError(err.message || t('errorSavingTacticalSettings'))
@@ -1385,6 +1404,7 @@ export default function GestioneFormazionePage() {
       
       // Ricarica dati senza reload pagina
       await fetchData()
+      refreshDiagnosticAfterSave()
     } catch (err) {
       console.error('[GestioneFormazione] Manual formation error:', err)
       const { message } = mapErrorToUserMessage(err, t('errorSavingFormation'))
@@ -1897,6 +1917,7 @@ export default function GestioneFormazionePage() {
       
       // Ricarica dati senza reload pagina
       await fetchData()
+      refreshDiagnosticAfterSave()
     } catch (err) {
       console.error('[GestioneFormazione] Upload reserve error:', err)
       setError(err.message || t('errorLoadingReserve'))
