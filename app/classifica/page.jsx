@@ -243,9 +243,16 @@ export default function ClassificaPage() {
 
           {/* Tabella classifica */}
           <section className="card" style={{ padding: '0', marginBottom: '24px', overflow: 'hidden' }}>
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Target size={20} color="var(--neon-orange)" />
-              <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 600 }}>{t('classifica')}</h2>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Target size={20} color="var(--neon-orange)" />
+                <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 600 }}>{t('classifica')}</h2>
+              </div>
+              {rankings.length > 0 && (
+                <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)' }}>
+                  {rankings.length} {rankings.length === 1 ? (t('leaderboardParticipant') || 'iscritto') : (t('leaderboardParticipants') || 'iscritti')}
+                </span>
+              )}
             </div>
             {rankings.length === 0 ? (
               <div style={{ padding: '32px 20px', textAlign: 'center', color: 'rgba(255,255,255,0.7)', fontSize: '15px' }}>
