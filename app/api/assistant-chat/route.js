@@ -120,7 +120,7 @@ function sanitizeCoachOutput(content, lang = 'it') {
   if (!content || typeof content !== 'string') return content
   const markers = lang === 'en'
     ? ['because', 'since', 'due to', 'based on', 'as a result', 'i analyzed', 'i have analyzed', 'i cross', 'i have cross']
-    : ['perché', 'poiché', 'dato che', 'in base a', 'visto che', 'ho analizzato', 'ho incrociato', 'ho valutato', 'quindi']
+    : ['poiché', 'dato che', 'in base a', 'visto che', 'ho analizzato', 'ho incrociato', 'ho valutato'] // Rimosso 'perché' e 'quindi' per non troncare frasi utili
 
   const sentences = content.match(/[^.!?]+[.!?]?/g) || [content]
   const cleaned = []
@@ -840,7 +840,7 @@ export async function POST(req) {
       model: model,
       messages: openAIMessages,
       temperature: 0.7,
-      max_tokens: 450 // spazio per 4-6 frasi quando serve; response_format rimosso (default OpenAI è text)
+      max_tokens: 800 // Aumentato da 450 per evitare risposte troncate; response_format rimosso (default OpenAI è text)
     }
     
     // Chiama OpenAI con retry (gestisce anche fallback GPT-4o se GPT-5 non disponibile)
