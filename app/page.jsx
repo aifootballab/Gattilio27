@@ -9,7 +9,6 @@ import Link from 'next/link'
 import AIKnowledgeBar from '@/components/AIKnowledgeBar'
 import AiInfoModal from '@/components/AiInfoModal'
 import GameAnalysisModal from '@/components/GameAnalysisModal'
-import CreditsBar from '@/components/CreditsBar'
 import TaskWidget from '@/components/TaskWidget'
 import { safeJsonResponse } from '@/lib/fetchHelper'
 import { 

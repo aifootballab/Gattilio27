@@ -1,16 +1,15 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useTranslation } from '@/lib/i18n'
 import { supabase, getValidAccessToken } from '@/lib/supabaseClient'
 import { safeJsonResponse } from '@/lib/fetchHelper'
-import { Zap, RefreshCw, AlertCircle, Info } from 'lucide-react'
+import { Zap, RefreshCw, AlertCircle, Info, ChevronDown } from 'lucide-react'
 
 /**
- * Barra crediti AI – utilizzo mensile (inclusi + overage).
+ * Crediti AI – versione compatta: icona fissa in alto a destra, clic apre popover con dettaglio.
+ * Non occupa spazio in pagina; responsive (solo icona + numeri su mobile).
  * Legge POST /api/credits/usage (Bearer). Doc: docs/SISTEMA_CREDITI_AI.md
- * Design enterprise, orientato al cliente: chiarezza su usati/inclusi e periodo.
- * Stile coerente con AIKnowledgeBar (card scura, bordo, neon).
  */
 export default function CreditsBar() {
   const { t, lang } = useTranslation()
@@ -18,6 +17,8 @@ export default function CreditsBar() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [noSession, setNoSession] = useState(false)
+  const [open, setOpen] = useState(false)
+  const containerRef = useRef(null)
 
   const fetchUsage = useCallback(async (signal) => {
     try {
@@ -84,6 +85,23 @@ export default function CreditsBar() {
     }
   }, [fetchUsage])
 
+  // Chiudi popover su click fuori o Escape
+  useEffect(() => {
+    if (!open) return
+    const onDocClick = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) setOpen(false)
+    }
+    const onKey = (e) => {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('click', onDocClick, true)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('click', onDocClick, true)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open])
+
   const formatPeriod = (periodKey) => {
     if (!periodKey || periodKey.length < 7) return periodKey
     const [y, m] = periodKey.split('-')
@@ -94,7 +112,7 @@ export default function CreditsBar() {
   }
 
   const getBarColor = (percentUsed, overage) => {
-    if (overage > 0) return '#ffaa00' // amber quando oltre il piano
+    if (overage > 0) return '#ffaa00'
     if (percentUsed >= 95) return '#ff6b00'
     if (percentUsed >= 75) return '#ffaa00'
     return '#00ff88'
@@ -102,160 +120,194 @@ export default function CreditsBar() {
 
   if (noSession) return null
 
-  if (loading) {
-    return (
-      <div
-        style={{
-          backgroundColor: '#1a1a1a',
-          borderRadius: '12px',
-          padding: 'clamp(16px, 4vw, 20px)',
-          marginBottom: '24px',
-          border: '1px solid #2a2a2a'
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <RefreshCw size={20} color="#00d4ff" style={{ animation: 'spin 1s linear infinite' }} />
-          <span style={{ fontSize: 'clamp(14px, 3vw, 16px)', color: '#888' }}>
-            {t('creditsLoading')}
-          </span>
-        </div>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div
-        style={{
-          backgroundColor: '#1a1a1a',
-          borderRadius: '12px',
-          padding: 'clamp(16px, 4vw, 20px)',
-          marginBottom: '24px',
-          border: '1px solid #2a2a2a'
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ff6b00' }}>
-          <AlertCircle size={18} />
-          <span style={{ fontSize: 'clamp(13px, 3vw, 14px)' }}>{error}</span>
-        </div>
-      </div>
-    )
-  }
-
   const used = Number.isFinite(Number(data?.credits_used)) ? Number(data.credits_used) : 0
   const included = Number.isFinite(Number(data?.credits_included)) ? Number(data.credits_included) : 200
   const overage = Math.max(0, Number(data?.overage) || 0)
   const percentIncluded = included > 0 ? Math.min(100, Math.round((used / included) * 100)) : 0
   const periodLabel = formatPeriod(data?.period_key)
+  const barColor = data ? getBarColor(percentIncluded, overage) : '#00d4ff'
+
+  const compactLabel = loading
+    ? null
+    : error
+      ? t('creditsError') || 'Error'
+      : `${used}/${included}`
+
+  const triggerAriaLabel = open
+    ? (lang === 'en' ? 'Close credits' : 'Chiudi crediti')
+    : (lang === 'en' ? 'View AI credits' : 'Vedi crediti AI')
 
   return (
-    <div
-      data-tour-id="tour-dashboard-credits"
-      style={{
-        backgroundColor: '#1a1a1a',
-        borderRadius: '12px',
-        padding: 'clamp(16px, 4vw, 20px)',
-        marginBottom: '24px',
-        border: '1px solid #2a2a2a'
-      }}
-    >
-      <div
+    <div ref={containerRef} style={{ position: 'fixed', top: '12px', right: '12px', zIndex: 1000 }}>
+      <button
+        type="button"
+        data-tour-id="tour-dashboard-credits"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-haspopup="true"
+        aria-label={triggerAriaLabel}
         style={{
           display: 'flex',
-          alignItems: 'flex-start',
-          justifyContent: 'space-between',
-          marginBottom: '8px',
-          flexWrap: 'wrap',
-          gap: '8px'
+          alignItems: 'center',
+          gap: '6px',
+          padding: '8px 12px',
+          borderRadius: '9999px',
+          backgroundColor: '#1a1a1a',
+          border: '1px solid #2a2a2a',
+          color: '#e5e5e5',
+          cursor: 'pointer',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+          fontSize: 'clamp(13px, 2.5vw, 14px)',
+          minHeight: '40px'
         }}
       >
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-            <Zap size={20} color="#00ff88" />
-            <h2 style={{ margin: 0, fontSize: 'clamp(16px, 4vw, 18px)', fontWeight: '600' }}>
-              {t('creditsTitle')}
-            </h2>
-          </div>
-          <p
-            style={{
-              margin: 0,
-              fontSize: 'clamp(12px, 2.5vw, 13px)',
-              color: '#888',
-              maxWidth: '420px'
-            }}
-          >
-            {t('creditsSubtitle')}
-          </p>
-        </div>
-        <div
-          style={{
-            fontSize: 'clamp(13px, 3vw, 14px)',
-            color: '#888',
-            whiteSpace: 'nowrap'
-          }}
-        >
-          {t('creditsPeriod')}: {periodLabel}
-        </div>
-      </div>
-
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'baseline',
-          marginBottom: '10px',
-          flexWrap: 'wrap',
-          gap: '4px'
-        }}
-      >
-        <span style={{ fontSize: 'clamp(14px, 3vw, 16px)', color: '#ccc' }}>
-          <strong style={{ color: '#fff' }}>{used}</strong> {t('creditsUsed')} /{' '}
-          <strong style={{ color: 'var(--neon-blue)' }}>{included}</strong> {t('creditsIncluded')}
-        </span>
-        {overage > 0 && (
-          <span style={{ fontSize: 'clamp(13px, 3vw, 14px)', color: '#ffaa00' }}>
-            +{overage} {t('creditsOverage')}
-          </span>
+        {loading ? (
+          <RefreshCw size={18} color="#00d4ff" style={{ animation: 'spin 1s linear infinite' }} />
+        ) : error ? (
+          <AlertCircle size={18} color="#ff6b00" />
+        ) : (
+          <Zap size={18} color={barColor} />
         )}
-      </div>
-
-      <div
-        style={{
-          width: '100%',
-          height: '20px',
-          backgroundColor: '#2a2a2a',
-          borderRadius: '10px',
-          overflow: 'hidden',
-          position: 'relative'
-        }}
-      >
-        <div
+        {compactLabel != null && (
+          <span style={{ fontWeight: 500, whiteSpace: 'nowrap' }}>{compactLabel}</span>
+        )}
+        <ChevronDown
+          size={16}
+          color="#888"
           style={{
-            width: `${percentIncluded}%`,
-            height: '100%',
-            backgroundColor: getBarColor(percentIncluded, overage),
-            transition: 'width 0.35s ease, background-color 0.2s ease',
-            borderRadius: '10px 0 0 10px'
+            transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+            transition: 'transform 0.2s ease'
           }}
         />
-      </div>
+      </button>
 
-      {overage > 0 && (
+      {open && (
         <div
+          role="dialog"
+          aria-label={t('creditsTitle')}
           style={{
-            marginTop: '12px',
-            padding: '10px 12px',
-            backgroundColor: 'rgba(255, 170, 0, 0.08)',
-            borderRadius: '8px',
-            fontSize: 'clamp(11px, 2.5vw, 13px)',
-            color: '#ffaa00',
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: '8px'
+            position: 'absolute',
+            top: '100%',
+            right: 0,
+            marginTop: '8px',
+            width: 'min(360px, calc(100vw - 24px))',
+            maxHeight: 'min(85vh, 420px)',
+            overflowY: 'auto',
+            backgroundColor: '#1a1a1a',
+            borderRadius: '12px',
+            padding: 'clamp(16px, 4vw, 20px)',
+            border: '1px solid #2a2a2a',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.4)'
           }}
+          onClick={(e) => e.stopPropagation()}
         >
-          <Info size={16} style={{ flexShrink: 0, marginTop: '1px' }} />
-          <span>{t('creditsOverageHint')}</span>
+          {loading && !data && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#888' }}>
+              <RefreshCw size={20} color="#00d4ff" style={{ animation: 'spin 1s linear infinite' }} />
+              <span>{t('creditsLoading')}</span>
+            </div>
+          )}
+
+          {error && !data && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ff6b00' }}>
+              <AlertCircle size={18} />
+              <span style={{ fontSize: '14px' }}>{error}</span>
+            </div>
+          )}
+
+          {data && (
+            <>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  justifyContent: 'space-between',
+                  marginBottom: '8px',
+                  flexWrap: 'wrap',
+                  gap: '8px'
+                }}
+              >
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                    <Zap size={20} color={getBarColor(percentIncluded, overage)} />
+                    <h2 style={{ margin: 0, fontSize: '16px', fontWeight: '600' }}>{t('creditsTitle')}</h2>
+                  </div>
+                  <p style={{ margin: 0, fontSize: '12px', color: '#888', maxWidth: '320px' }}>
+                    {t('creditsSubtitle')}
+                  </p>
+                </div>
+                <div style={{ fontSize: '12px', color: '#888', whiteSpace: 'nowrap' }}>
+                  {t('creditsPeriod')}: {periodLabel}
+                </div>
+              </div>
+
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'baseline',
+                  marginBottom: '10px',
+                  flexWrap: 'wrap',
+                  gap: '4px'
+                }}
+              >
+                <span style={{ fontSize: '14px', color: '#ccc' }}>
+                  <strong style={{ color: '#fff' }}>{used}</strong> {t('creditsUsed')} /{' '}
+                  <strong style={{ color: 'var(--neon-blue)' }}>{included}</strong> {t('creditsIncluded')}
+                </span>
+                {overage > 0 && (
+                  <span style={{ fontSize: '13px', color: '#ffaa00' }}>
+                    +{overage} {t('creditsOverage')}
+                  </span>
+                )}
+              </div>
+
+              <div
+                style={{
+                  width: '100%',
+                  height: '20px',
+                  backgroundColor: '#2a2a2a',
+                  borderRadius: '10px',
+                  overflow: 'hidden',
+                  position: 'relative'
+                }}
+                role="progressbar"
+                aria-valuenow={used}
+                aria-valuemin={0}
+                aria-valuemax={included}
+                aria-label={`${used} ${t('creditsUsed')} ${included} ${t('creditsIncluded')}`}
+              >
+                <div
+                  style={{
+                    width: `${percentIncluded}%`,
+                    height: '100%',
+                    backgroundColor: getBarColor(percentIncluded, overage),
+                    transition: 'width 0.35s ease, background-color 0.2s ease',
+                    borderRadius: '10px 0 0 10px'
+                  }}
+                />
+              </div>
+
+              {overage > 0 && (
+                <div
+                  style={{
+                    marginTop: '12px',
+                    padding: '10px 12px',
+                    backgroundColor: 'rgba(255, 170, 0, 0.08)',
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                    color: '#ffaa00',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '8px'
+                  }}
+                >
+                  <Info size={16} style={{ flexShrink: 0, marginTop: '1px' }} />
+                  <span>{t('creditsOverageHint')}</span>
+                </div>
+              )}
+            </>
+          )}
         </div>
       )}
     </div>
