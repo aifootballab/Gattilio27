@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { validateToken, extractBearerToken } from '../../../../lib/authHelper'
+import { checkRateLimit, RATE_LIMIT_CONFIG } from '../../../../lib/rateLimiter'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -77,12 +78,25 @@ export async function POST(req) {
     }
 
     const userId = userData.user.id
+
+    // Rate limiting
+    const rlConfig = RATE_LIMIT_CONFIG['/api/supabase/save-profile'] || { maxRequests: 30, windowMs: 60000 }
+    const rateLimit = await checkRateLimit(userId, '/api/supabase/save-profile', rlConfig.maxRequests, rlConfig.windowMs)
+    if (!rateLimit.allowed) {
+      return NextResponse.json({ error: 'Too many requests. Please try again later.', resetAt: rateLimit.resetAt }, { status: 429 })
+    }
     
     const admin = createClient(supabaseUrl, serviceKey, {
       auth: { autoRefreshToken: false, persistSession: false }
     })
 
-    const profileData = await req.json()
+    // JSON parsing con gestione errore 400
+    let profileData
+    try {
+      profileData = await req.json()
+    } catch (parseError) {
+      return NextResponse.json({ error: 'Invalid JSON in request body' }, { status: 400 })
+    }
 
     // Validazione e normalizzazione campi
     const profileUpdate = {
@@ -193,7 +207,10 @@ export async function POST(req) {
       }, { status: 500 })
     }
 
-    console.log(`[save-profile] Profile saved: id=${savedProfile.id}, completion_score=${savedProfile.profile_completion_score}%, level=${savedProfile.profile_completion_level}`)
+    // Log senza PII (rimosso nome utente)
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[save-profile] Profile saved: completion_score=${savedProfile.profile_completion_score}%, level=${savedProfile.profile_completion_level}`)
+    }
 
     // Aggiorna AI Knowledge Score (async, non blocca risposta)
     if (supabaseUrl && serviceKey) {
