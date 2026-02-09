@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { validateToken, extractBearerToken } from '../../../../lib/authHelper'
 import { checkRateLimit, RATE_LIMIT_CONFIG } from '../../../../lib/rateLimiter'
-import { getCurrentWeek, generateWeeklyTasksForUser } from '../../../../lib/taskHelper'
+import { getCurrentWeek, generateWeeklyTasksForUser, updateTasksProgressAfterMatch } from '../../../../lib/taskHelper'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -209,6 +209,28 @@ export async function GET(request) {
           console.error('[tasks/list] Error auto-generating tasks:', genError)
           console.error('[tasks/list] Error stack:', genError.stack)
           // Non bloccare, restituisci task esistenti o array vuoto
+        }
+      }
+    }
+
+    // 5b. Ricalcola progresso per settimana corrente quando l'utente apre la lista
+    // (altrimenti il progresso si aggiorna solo al salvataggio partita; es. "usa chat 2 volte" resterebbe 0)
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    if (isCurrentWeek && tasks && tasks.length > 0 && serviceKey) {
+      try {
+        await updateTasksProgressAfterMatch(user_id, supabaseUrl, serviceKey, { id: 'list-sync' })
+        const { data: refreshedTasks, error: refErr } = await supabase
+          .from('weekly_goals')
+          .select('*')
+          .eq('user_id', user_id)
+          .eq('week_start_date', weekStartDate)
+          .order('created_at', { ascending: true })
+        if (!refErr && refreshedTasks && refreshedTasks.length > 0) {
+          tasks = refreshedTasks
+        }
+      } catch (syncErr) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn('[tasks/list] Progress sync failed (non-blocking):', syncErr?.message)
         }
       }
     }
