@@ -1,14 +1,19 @@
 'use client'
 
-import React, { useState, useEffect, useCallback, useRef } from 'react'
+import React, { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from '@/lib/i18n'
 import { supabase, getValidAccessToken } from '@/lib/supabaseClient'
 import { safeJsonResponse } from '@/lib/fetchHelper'
 import { Zap, RefreshCw, AlertCircle, Info, ChevronDown } from 'lucide-react'
 
+const POPOVER_WIDTH = 360
+const POPOVER_Z_INDEX = 10001
+
 /**
- * Crediti AI – versione compatta: icona fissa in alto a destra, clic apre popover con dettaglio.
- * Non occupa spazio in pagina; responsive (solo icona + numeri su mobile).
+ * Crediti AI – versione compatta: icona in barra utility, clic apre popover con dettaglio.
+ * Popover renderizzato in portal (document.body) con z-index alto così resta sempre sopra
+ * barra Conoscenza IA, Mostrami come e ogni altro contenuto. Posizionamento sotto il bottone.
  * Legge POST /api/credits/usage (Bearer). Doc: docs/SISTEMA_CREDITI_AI.md
  */
 export default function CreditsBar() {
@@ -18,7 +23,9 @@ export default function CreditsBar() {
   const [error, setError] = useState(null)
   const [noSession, setNoSession] = useState(false)
   const [open, setOpen] = useState(false)
+  const [popoverPosition, setPopoverPosition] = useState(null)
   const containerRef = useRef(null)
+  const popoverRef = useRef(null)
 
   const fetchUsage = useCallback(async (signal) => {
     try {
@@ -85,11 +92,38 @@ export default function CreditsBar() {
     }
   }, [fetchUsage])
 
-  // Chiudi popover su click fuori o Escape
+  // Posizione popover: sotto il bottone, sempre in viewport; aggiornata su scroll/resize
+  const updatePopoverPosition = useCallback(() => {
+    if (!containerRef.current || typeof window === 'undefined') return
+    const rect = containerRef.current.getBoundingClientRect()
+    const gap = 8
+    const maxLeft = Math.max(12, window.innerWidth - POPOVER_WIDTH - 12)
+    const left = Math.max(12, Math.min(rect.right - POPOVER_WIDTH, maxLeft))
+    const top = rect.bottom + gap
+    setPopoverPosition({ top, left })
+  }, [])
+
+  useLayoutEffect(() => {
+    if (!open) {
+      setPopoverPosition(null)
+      return
+    }
+    updatePopoverPosition()
+    window.addEventListener('scroll', updatePopoverPosition, true)
+    window.addEventListener('resize', updatePopoverPosition)
+    return () => {
+      window.removeEventListener('scroll', updatePopoverPosition, true)
+      window.removeEventListener('resize', updatePopoverPosition)
+    }
+  }, [open, updatePopoverPosition])
+
+  // Chiudi popover su click fuori (bottone o popover) o Escape
   useEffect(() => {
     if (!open) return
     const onDocClick = (e) => {
-      if (containerRef.current && !containerRef.current.contains(e.target)) setOpen(false)
+      const inTrigger = containerRef.current?.contains(e.target)
+      const inPopover = popoverRef.current?.contains(e.target)
+      if (!inTrigger && !inPopover) setOpen(false)
     }
     const onKey = (e) => {
       if (e.key === 'Escape') setOpen(false)
@@ -172,16 +206,17 @@ export default function CreditsBar() {
         />
       </button>
 
-      {open && (
+      {open && popoverPosition && typeof document !== 'undefined' && createPortal(
         <div
+          ref={popoverRef}
           role="dialog"
           aria-label={t('creditsTitle')}
           style={{
-            position: 'absolute',
-            top: 0,
-            right: '100%',
-            marginRight: '8px',
-            width: 'min(360px, calc(100vw - 24px))',
+            position: 'fixed',
+            top: popoverPosition.top,
+            left: popoverPosition.left,
+            zIndex: POPOVER_Z_INDEX,
+            width: `${Math.min(POPOVER_WIDTH, window.innerWidth - 24)}px`,
             maxHeight: 'min(85vh, 420px)',
             overflowY: 'auto',
             backgroundColor: '#1a1a1a',
@@ -299,7 +334,8 @@ export default function CreditsBar() {
               )}
             </>
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )
