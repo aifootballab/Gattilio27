@@ -400,6 +400,7 @@ Questo trasforma un dato �da card� in un dato �modificato dall�utente�
 
 ### 19.1 Bug di sintassi bloccante
 In `app/api/leaderboard/route.js` manca una graffa di chiusura dopo `if (snapshots?.length) { ... }` ? **errore di build**.
+- **Verificato (2026-02):** nel codice attuale la sintassi è corretta; blocchi `if (snapshotsToUse?.length)` e `else` sono chiusi correttamente.
 
 ### 19.2 Side-effect su GET
 `GET /api/leaderboard` calcola e **scrive snapshot** se mancanti. � un side-effect non idempotente su GET (pu� essere invocato da bot/crawler).
@@ -408,8 +409,9 @@ In `app/api/leaderboard/route.js` manca una graffa di chiusura dopo `if (snapsho
 `getCurrentMonth()` usa time locale, ma i bounds in `leaderboardHelper` sono UTC. Possibile mismatch in cambio mese.
 - File: `app/api/leaderboard/route.js`, `lib/leaderboardHelper.js`
 
-### 19.4 Consenso revocato non rispettato
+### 19.4 Consenso revocato non rispettato ✅
 Se un utente revoca `leaderboard_consent` dopo il salvataggio snapshot, la classifica continua a mostrarlo perch� i snapshot non vengono filtrati per consenso.
+- **Fix (2026-02):** in `app/api/leaderboard/route.js` i `rankings` sono costruiti solo da utenti con `leaderboard_consent = true` (query profili con `.eq('leaderboard_consent', true)` e filtro su `consentedIds`). Chi revoca non compare più; `currentUser` è allineato alla stessa lista filtrata. In `lib/leaderboardHelper.js` i punti sono salvati come intero (`Math.round`) in `saveLeaderboardSnapshot` per coerenza con la colonna `points` (integer) in DB.
 
 ### 19.5 Performance N^2
 In `computeLeaderboardForMonth` viene usato `profiles.find(...)` per ogni utente (loop O(n^2)).  
@@ -485,16 +487,17 @@ Icone nei podi e separatore �·� indicano encoding non UTF-8 nel file.
 Rischio: mese mostrato in italiano per utenti EN.
 - File: `app/classifica/page.jsx`
 
-### 20.3 Messaggi errore riusano chiave sbagliata
+### 20.3 Messaggi errore riusano chiave sbagliata ✅
 Per leaderboard usa `t('errorLoadingUsage')` (chiave crediti/usage) ? copy errata.
-- File: `app/classifica/page.jsx`
+- **Verificato (2026-02):** in `app/classifica/page.jsx` la pagina usa `t('errorLoadingLeaderboard')` (righe 34 e 49), non `errorLoadingUsage`. Corretto.
 
 ### 20.4 Evidenziazione �sei tu� non affidabile
 `isYou` viene determinato da `rank` e `points` uguali a `currentUser`. Con parita' o duplicati puo' evidenziare l'utente sbagliato.
 - File: `app/classifica/page.jsx`
 
-### 20.5 Nessun abort su fetch
+### 20.5 Nessun abort su fetch ✅
 Se l�utente cambia pagina durante `fetchLeaderboard`, possibile setState su unmounted.
+- **Verificato (2026-02):** in `app/classifica/page.jsx` è usato `AbortController`; `fetchLeaderboard(ac.signal)` e cleanup `ac.abort()` nell'effect. Fetch con `signal` e check `signal?.aborted` prima di setState.
 
 ---
 

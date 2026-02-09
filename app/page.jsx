@@ -203,13 +203,15 @@ export default function DashboardPage() {
           .maybeSingle()
         setHasActiveCoach(!!activeCoach)
 
-        // Classifica mensile: stesso token già usato sopra, evita race con getSession() in effect
+        // Classifica mensile: stesso token già usato sopra; passare month (client) per allineare a pagina Classifica
         const token = session.session.access_token
         if (token) {
           try {
-            const lbRes = await fetch('/api/leaderboard', { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' })
+            const y = new Date().getFullYear()
+            const m = String(new Date().getMonth() + 1).padStart(2, '0')
+            const lbRes = await fetch(`/api/leaderboard?month=${y}-${m}`, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' })
             const lbPayload = await lbRes.json().catch(() => ({}))
-            if (lbPayload.rankings) {
+            if (Array.isArray(lbPayload.rankings)) {
               setLeaderboardData({
                 currentUser: lbPayload.currentUser || null,
                 daysLeftInMonth: lbPayload.daysLeftInMonth ?? null
@@ -272,9 +274,11 @@ export default function DashboardPage() {
         const { data: session } = await supabase.auth.getSession()
         const token = session?.session?.access_token
         if (!token) return
-        const res = await fetch('/api/leaderboard', { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' })
+        const y = new Date().getFullYear()
+        const m = String(new Date().getMonth() + 1).padStart(2, '0')
+        const res = await fetch(`/api/leaderboard?month=${y}-${m}`, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' })
         const payload = await res.json().catch(() => ({}))
-        if (!cancelled && payload.rankings) {
+        if (!cancelled && Array.isArray(payload.rankings)) {
           setLeaderboardData({
             currentUser: payload.currentUser || null,
             daysLeftInMonth: payload.daysLeftInMonth ?? null
@@ -292,9 +296,11 @@ export default function DashboardPage() {
         const { data: session } = await supabase.auth.getSession()
         const token = session?.session?.access_token
         if (!token) return
-        const res = await fetch('/api/leaderboard', { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' })
+        const y = new Date().getFullYear()
+        const m = String(new Date().getMonth() + 1).padStart(2, '0')
+        const res = await fetch(`/api/leaderboard?month=${y}-${m}`, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' })
         const payload = await res.json().catch(() => ({}))
-        if (payload.rankings) {
+        if (Array.isArray(payload.rankings)) {
           setLeaderboardData({
             currentUser: payload.currentUser || null,
             daysLeftInMonth: payload.daysLeftInMonth ?? null
