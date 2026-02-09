@@ -148,9 +148,9 @@ export default function DashboardPage() {
           .limit(10)
 
         if (matchesError) {
-          console.warn('[Dashboard] Error loading matches:', matchesError)
+          if (process.env.NODE_ENV !== 'production') console.warn('[Dashboard] Error loading matches:', matchesError)
         } else {
-          console.log('[Dashboard] Matches loaded:', matches?.length || 0)
+          if (process.env.NODE_ENV !== 'production') console.log('[Dashboard] Matches loaded:', matches?.length || 0)
           setRecentMatches(matches || [])
         }
 
@@ -162,7 +162,7 @@ export default function DashboardPage() {
           .maybeSingle()
 
         if (patternsError && patternsError.code !== 'PGRST116') { // PGRST116 = no rows (normale)
-          console.warn('[Dashboard] Error loading tactical patterns:', patternsError)
+          if (process.env.NODE_ENV !== 'production') console.warn('[Dashboard] Error loading tactical patterns:', patternsError)
         } else if (patterns) {
           setTacticalPatterns(patterns)
         } else {
@@ -170,7 +170,7 @@ export default function DashboardPage() {
           // Usa matches locale (non recentMatches che è state e potrebbe non essere ancora aggiornato)
           const hasMatches = matches && matches.length > 0
           if (hasMatches) {
-            console.log('[Dashboard] Pattern non trovati ma ci sono partite, calcolo on-demand...')
+            if (process.env.NODE_ENV !== 'production') console.log('[Dashboard] Pattern non trovati ma ci sono partite, calcolo on-demand...')
             try {
               // Chiama API per calcolare pattern retroattivamente
               const session = await supabase.auth.getSession()
@@ -189,14 +189,14 @@ export default function DashboardPage() {
                   const result = await response.json()
                   if (result.success && result.patterns) {
                     setTacticalPatterns(result.patterns)
-                    console.log('[Dashboard] Pattern calcolati retroattivamente')
+                    if (process.env.NODE_ENV !== 'production') console.log('[Dashboard] Pattern calcolati retroattivamente')
                   }
                 } else {
-                  console.warn('[Dashboard] Errore calcolo pattern:', await response.text())
+                  if (process.env.NODE_ENV !== 'production') console.warn('[Dashboard] Errore calcolo pattern:', await response.text())
                 }
               }
             } catch (calcError) {
-              console.warn('[Dashboard] Errore calcolo pattern retroattivo (non critico):', calcError)
+              if (process.env.NODE_ENV !== 'production') console.warn('[Dashboard] Errore calcolo pattern retroattivo (non critico):', calcError)
               // Non bloccare dashboard se fallisce
             }
           }
