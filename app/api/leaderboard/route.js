@@ -75,11 +75,19 @@ export async function GET(req) {
 
   let rankings = []
   let computedForCurrentUser = null
-  const { data: snapshots } = await admin
+  const { data: snapshots, error: snapError } = await admin
     .from('leaderboard_snapshots')
     .select('user_id, points, rank, points_breakdown')
     .eq('month', month)
     .order('rank', { ascending: true })
+
+  if (snapError) {
+    console.error('[leaderboard] snapshots error:', snapError.message)
+    return NextResponse.json(
+      { error: 'Leaderboard unavailable', _debug: { step: 'snapshots', message: snapError.message } },
+      { status: 500 }
+    )
+  }
 
   const snapshotUserIds = new Set((snapshots || []).map(s => s.user_id))
   const authUserHasConsentButNotInSnapshot = authUserId &&
@@ -109,13 +117,22 @@ export async function GET(req) {
   }
 
   const snapshotByUserForCurrent = {} // rank/points per currentUser dopo eventuale filtro consenso
+  let profilesWithConsent = 0
   if (snapshotsToUse?.length) {
-    const { data: profiles } = await admin
+    const { data: profiles, error: profError } = await admin
       .from('user_profiles')
       .select('user_id, nickname')
       .in('user_id', snapshotsToUse.map(s => s.user_id))
       .eq('leaderboard_consent', true)
+    if (profError) {
+      console.error('[leaderboard] profiles error:', profError.message)
+      return NextResponse.json(
+        { error: 'Leaderboard unavailable', _debug: { step: 'profiles', message: profError.message } },
+        { status: 500 }
+      )
+    }
     const consentedIds = new Set((profiles || []).map(p => p.user_id))
+    profilesWithConsent = consentedIds.size
     const nicknameByUser = {}
     ;(profiles || []).forEach(p => { nicknameByUser[p.user_id] = p.nickname || null })
     const filtered = snapshotsToUse.filter(s => consentedIds.has(s.user_id))
@@ -161,13 +178,25 @@ export async function GET(req) {
   const endOfMonth = getMonthBounds(month)
   const daysLeft = endOfMonth ? Math.max(0, Math.ceil((new Date(endOfMonth.end) - new Date()) / (24 * 60 * 60 * 1000))) : null
 
-  return NextResponse.json(
-    {
+  const supabaseProject = supabaseUrl ? (() => { try { return new URL(supabaseUrl).hostname.split('.')[0] } catch { return 'invalid-url' } })() : 'not-set'
+  const body = {
+    month,
+    rankings,
+    ...(currentUser && { currentUser }),
+    daysLeftInMonth: daysLeft
+  }
+  if (rankings.length === 0) {
+    body._debug = {
       month,
-      rankings,
-      ...(currentUser && { currentUser }),
-      daysLeftInMonth: daysLeft
-    },
+      snapshotsFound: (snapshotsToUse || snapshots || []).length,
+      ...((snapshotsToUse || []).length > 0 && { profilesWithConsent }),
+      supabaseProject,
+      expectedProject: 'zliuuorrwdetylollrua'
+    }
+  }
+
+  return NextResponse.json(
+    body,
     {
       headers: {
         'Cache-Control': 'no-store, max-age=0',

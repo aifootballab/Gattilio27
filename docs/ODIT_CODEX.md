@@ -417,8 +417,9 @@ Se un utente revoca `leaderboard_consent` dopo il salvataggio snapshot, la class
 In `computeLeaderboardForMonth` viene usato `profiles.find(...)` per ogni utente (loop O(n^2)).  
 Con molti utenti, peggiora in modo significativo. Serve mappa per nickname.
 
-### 19.6 Error handling mancante
+### 19.6 Error handling mancante ✅ (parziale: leaderboard route)
 Le query Supabase non verificano `error` (snapshots, profiles, matches, goals, tx). In caso di errore restituisce liste vuote senza segnali.
+- **Fix (2026-02):** in `app/api/leaderboard/route.js` sono verificati `snapError` e `profError`; in caso di errore l'API risponde con 500 e `_debug: { step, message }`. Le query in `computeLeaderboardForMonth` (leaderboardHelper) restano senza check error.
 
 ### 19.7 Encoding mojibake
 Stringa `—` usata come default nickname: indica file non UTF-8.
@@ -473,6 +474,20 @@ Quindi **nel DB collegato a questo progetto i dati sono corretti**: l'utente è 
 **Checklist:** (1) Dove vedi "classifica a 0"? (localhost / Vercel). (2) In quell'ambiente verificare che `NEXT_PUBLIC_SUPABASE_URL` sia `https://zliuuorrwdetylollrua.supabase.co` e che `SUPABASE_SERVICE_ROLE_KEY` sia dello stesso progetto. (3) Su Vercel: Settings → Environment Variables per Production/Preview.
 
 **Riepilogo:** Non è un bug di logica. I dati per attiliomazzetti@gmail.com nel progetto corretto ci sono. Allineare le env al progetto `zliuuorrwdetylollrua` risolve.
+
+### 19.10 Log Vercel e Supabase – dove controllare (2026-02-09)
+
+**Log Vercel (nessun accesso da qui):**  
+I log di Vercel si vedono solo dalla dashboard: **Vercel → progetto → Logs** (o **Deployments → [ultimo deploy] → Functions → View logs**). Cercare richieste a `/api/leaderboard`: se ci sono, controllare eventuali errori 500 o stack trace. Se non compaiono richieste a `/api/leaderboard`, il frontend potrebbe non chiamare l’endpoint (o chiamare un altro dominio).
+
+**Log Supabase API (progetto `zliuuorrwdetylollrua`):**  
+Supabase → Logs → API. Le chiamate alla classifica passano dalla **route Next.js** (`/api/leaderboard`), che usa il **client server** (service role) per leggere `leaderboard_snapshots` e `user_profiles`. Quindi da Supabase si vedono richieste **GET /rest/v1/leaderboard_snapshots** e **GET /rest/v1/user_profiles** con filtri, provenienti dagli IP del server Next (es. Vercel AWS).  
+**Verifica 2026-02-09:** nelle ultime 24 ore **non** risulta alcuna richiesta a `leaderboard_snapshots` nei log API del progetto. Questo può significare: (1) l’app in uso non chiama `/api/leaderboard`, oppure (2) l’API leaderboard gira su un deploy (es. Vercel) che usa **un altro progetto Supabase** (le chiamate andrebbero quindi ai log dell’altro progetto).
+
+**Route `app/api/leaderboard/route.js`:**  
+- Controllo errori su snapshot e profili; 500 con `_debug` in caso di errore.  
+- Se `rankings.length === 0` la risposta include `_debug`: `month`, `snapshotsFound`, `profilesWithConsent` (se applicabile), `supabaseProject`, `expectedProject: 'zliuuorrwdetylollrua'`.  
+- Riferimento: `docs/CLASSIFICA_AUDIT.md`.
 
 ---
 
