@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { validateToken, extractBearerToken } from '../../../../lib/authHelper'
+import { checkRateLimit, RATE_LIMIT_CONFIG } from '../../../../lib/rateLimiter'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -37,8 +38,16 @@ export async function POST(req) {
     }
 
     const userId = userData.user.id
-    console.log(`[save-player] User ID: ${userId}`)
-    
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[save-player] User ID: ${userId}`)
+    }
+
+    const rlConfig = RATE_LIMIT_CONFIG['/api/supabase/save-player'] || { maxRequests: 30, windowMs: 60000 }
+    const rateLimit = await checkRateLimit(userId, '/api/supabase/save-player', rlConfig.maxRequests, rlConfig.windowMs)
+    if (!rateLimit.allowed) {
+      return NextResponse.json({ error: 'Too many requests. Please try again later.', resetAt: rateLimit.resetAt }, { status: 429 })
+    }
+
     const admin = createClient(supabaseUrl, serviceKey, {
       auth: { autoRefreshToken: false, persistSession: false }
     })

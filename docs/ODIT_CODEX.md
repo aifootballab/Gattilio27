@@ -27,6 +27,10 @@
 | 8 | CreditsBar fetch senza abort (setState su unmount) | `components/CreditsBar.jsx` | ✅ |
 | 9 | Chiavi i18n mancanti (sez. 8.1) | `lib/i18n.js` (IT/EN) | ✅ |
 | 10 | Allenatori: card chiusa e aperta rispettano lingua (IT/EN) | `lib/i18n.js`, `app/allenatori/page.jsx` | ✅ |
+| 11 | Rate limit endpoint Supabase (save-player, save-ai-info, save-formation-layout, save-opponent-formation, assign-player-to-slot, remove-player-from-slot) | `app/api/supabase/*`, `lib/rateLimiter.js` | ✅ |
+| 12 | Fetch client con AbortController (AssistantChat, TaskWidget, AIKnowledgeBar) | `components/AssistantChat.jsx`, `components/TaskWidget.jsx`, `components/AIKnowledgeBar.jsx` | ✅ |
+
+**Coerenza flussi (verifica 2026-02):** Rate limit e fetch abort applicati su tutti gli endpoint e componenti previsti. **RLS weekly_goals** e **task team1** (P1/P2) lasciati invariati per evitare rotture; da valutare con migration/trigger e test dedicati.
 
 ---
 
@@ -77,9 +81,8 @@
    - Rischio: bypass su pi� istanze (Vercel).
    - File: `lib/rateLimiter.js`
 
-**Nota stato Rate limit Supabase (parziale):**  
-Coperti: `save-profile`, `save-coach`, `set-active-coach`, `save-match`, `update-match`, `save-tactical-settings`, `delete-player`, `delete-match`.  
-**Mancano ancora:** `save-player`, `save-formation-layout`, `save-opponent-formation`, `assign-player-to-slot`, `remove-player-from-slot`, `save-ai-info`.
+**Nota stato Rate limit Supabase:**  
+Coperti: `save-profile`, `save-coach`, `set-active-coach`, `save-match`, `update-match`, `save-tactical-settings`, `delete-player`, `delete-match`, **e da 2026-02:** `save-player`, `save-formation-layout`, `save-opponent-formation`, `assign-player-to-slot`, `remove-player-from-slot`, `save-ai-info` (intervento #11).
 
 ### P3 � Qualit� / Pulizia / Coerenza
 9) **Prompt molto grande (system+capsule+RAG+contesto)**
@@ -91,9 +94,10 @@ Coperti: `save-profile`, `save-coach`, `set-active-coach`, `save-match`, `update
 11) **Duplica copy suggerimenti (frontend + backend)**
    - Rischio: disallineamento testo.
    - File: `components/AssistantChat.jsx`, `app/api/assistant-chat/route.js`
-12) **Fetch client senza abort**
+12) ✅ **Fetch client senza abort**
    - Rischio: setState su unmounted + leak minori.
    - File: `components/AssistantChat.jsx`, `components/TaskWidget.jsx`, `components/AIKnowledgeBar.jsx`
+   - **Fix applicato (2026-02):** AbortController in tutti e tre; signal passato alle fetch; cleanup e gestione AbortError (intervento #12).
 13) **README vs codice: rate limit dichiarato ma non presente per extract-player**
    - File: `README.md`
 14) **Node engines `>=18` (Vercel warning)**
@@ -633,21 +637,24 @@ Fetch senza abort controller ? rischio setState dopo unmount.
 - File: `components/CreditsBar.jsx`
 - **Fix (2026-02):** `fetchUsage(signal)` con `AbortController` nell'effect; cleanup `ac.abort()`; fetch con `signal`; ignorati `AbortError` e setState se `signal.aborted`.
 
-### 25.3 AIKnowledgeBar retry e log
+### 25.3 AIKnowledgeBar retry e log / fetch abort ✅
 Retry 3x con delay fisso e log in produzione; assenza di backoff o stop su tab hidden.
 - File: `components/AIKnowledgeBar.jsx`
+- **Fix fetch abort (2026-02):** `fetchAIKnowledge(signal)` e fetch in `attemptRefresh` con `ac.signal`; cleanup `ac.abort()`; gestione `AbortError` (intervento #12).
 
 ### 25.4 AssistantChat error handling non uniforme
 `res.json()` usato anche in errore senza safeJsonResponse, rischio throw su body non JSON.
 - File: `components/AssistantChat.jsx`
 
-### 25.5 AssistantChat senza abort
+### 25.5 AssistantChat senza abort ✅
 Chat fetch senza abort su unmount e senza cancella streaming ? rischio leak UX.
 - File: `components/AssistantChat.jsx`
+- **Fix (2026-02):** `sendAbortRef` + AbortController in `handleSend`; fetch con `signal`; cleanup su unmount; gestione `AbortError` (intervento #12).
 
-### 25.6 TaskWidget timeout fisso
+### 25.6 TaskWidget timeout fisso / fetch abort ✅
 Timeout fisso lato client senza gestione retry/backoff. UX non guidata se timeout ricorre.
 - File: `components/TaskWidget.jsx`
+- **Fix fetch abort (2026-02):** `fetchTasks(signal)` con AbortController nel useEffect; cleanup `ac.abort()`; gestione `AbortError` (intervento #12). Il punto "timeout fisso" resta aperto.
 
 ### 25.7 AiInfoModal setTimeout post-unmount
 Uso di `setTimeout` per chiusura modal senza cleanup ? rischio setState dopo unmount.

@@ -16,10 +16,11 @@ export default function TaskWidget() {
   const hasFetchedBeforeRef = useRef(false)
 
   useEffect(() => {
-    // Chiama al mount
-    fetchTasks()
-    
-    // FIX: Ascolta eventi di salvataggio partita per ricaricare task
+    const ac = new AbortController()
+    // Chiama al mount con signal per cleanup
+    fetchTasks(ac.signal)
+
+    // FIX: Ascolta eventi di salvataggio partita per ricaricare task (nessun signal: widget ancora montato)
     const refreshTasksWithDelay = () => {
       setTimeout(() => fetchTasks(), 1500)
     }
@@ -31,6 +32,7 @@ export default function TaskWidget() {
       window.addEventListener('diagnostic-updated', handleDiagnosticUpdated)
     }
     return () => {
+      ac.abort()
       if (typeof window !== 'undefined') {
         window.removeEventListener('match-saved', handleMatchSaved)
         window.removeEventListener('diagnostic-updated', handleDiagnosticUpdated)
@@ -46,7 +48,7 @@ export default function TaskWidget() {
     return () => clearTimeout(timer)
   }, [completedFeedbackToast])
 
-  const fetchTasks = async () => {
+  const fetchTasks = async (signal) => {
     try {
       setLoading(true)
       setError(null)
@@ -57,15 +59,18 @@ export default function TaskWidget() {
         setError(t('notAuthenticated') || 'Not authenticated')
         return
       }
+      if (signal?.aborted) return
 
       const token = session.access_token
 
       // Chiama API
       const response = await fetch(`/api/tasks/list?lang=${lang === 'en' ? 'en' : 'it'}`, {
+        signal,
         headers: {
           'Authorization': `Bearer ${token}`
         }
       })
+      if (signal?.aborted) return
 
       if (!response.ok) {
         const data = await response.json()
@@ -73,12 +78,13 @@ export default function TaskWidget() {
       }
 
       const data = await response.json()
-      
+      if (signal?.aborted) return
+
       // Validazione risposta
       if (!data.success) {
         throw new Error(data.error || t('failedToFetchTasks') || 'Failed to fetch tasks')
       }
-      
+
       // Validazione e normalizzazione task
       const validTasks = (data.tasks || []).filter(task => {
         // Filtra task con dati validi
@@ -98,9 +104,11 @@ export default function TaskWidget() {
       }
       hasFetchedBeforeRef.current = true
       previousCompletedIdsRef.current = completedIds
-      
+
+      if (signal?.aborted) return
       setTasks(validTasks)
     } catch (err) {
+      if (err?.name === 'AbortError' || signal?.aborted) return
       console.error('[TaskWidget] Error fetching tasks:', err)
       setError(err.message || t('errorLoadingTasks') || 'Error loading tasks')
     } finally {

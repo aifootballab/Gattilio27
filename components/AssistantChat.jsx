@@ -20,7 +20,12 @@ export default function AssistantChat() {
   const [suggestionsExpanded, setSuggestionsExpanded] = useState(false) // riquadro suggerimenti collassato = più spazio chat
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
-  
+  const sendAbortRef = useRef(null)
+
+  useEffect(() => {
+    return () => { sendAbortRef.current?.abort() }
+  }, [])
+
   // Suggerimenti utili: analisi vs rosa, uso comandi/abilità, priorità concrete
   const initialSuggestions = useMemo(() => {
     const page = (currentPage || '').toLowerCase()
@@ -94,11 +99,16 @@ export default function AssistantChat() {
     setMessages(prev => [...prev, { role: 'user', content: userMessage }])
     
     try {
+      sendAbortRef.current?.abort()
+      sendAbortRef.current = new AbortController()
+      const signal = sendAbortRef.current.signal
+
       const { data: session } = await supabase.auth.getSession()
       if (!session?.session?.access_token) {
         throw new Error('Session expired')
       }
-      
+      if (signal.aborted) return
+
       // Determina stato app (cosa sta facendo il cliente)
       const appState = {
         completingMatch: currentPage.includes('/match/new'),
@@ -114,6 +124,7 @@ export default function AssistantChat() {
       
       const res = await fetch('/api/assistant-chat', {
         method: 'POST',
+        signal,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.session.access_token}`
@@ -126,7 +137,8 @@ export default function AssistantChat() {
           history
         })
       })
-      
+      if (signal.aborted) return
+
       if (!res.ok) {
         const error = await res.json()
         throw new Error(error.error || 'Error generating response')
@@ -136,17 +148,18 @@ export default function AssistantChat() {
         console.error('[AssistantChat] JSON parse error:', jsonError)
         throw new Error('Invalid response from server')
       })
-      
+      if (signal.aborted) return
+
       // Verifica che data.response esista
       if (!data || !data.response) {
         console.error('[AssistantChat] Invalid response data:', data)
         throw new Error('Invalid response format')
       }
-      
+
       // Aggiungi risposta AI (fallback doppia lingua)
       const fallbackNoResponse = lang === 'en' ? "Sorry, I didn't receive a valid response." : 'Mi dispiace, non ho ricevuto una risposta valida.'
-      setMessages(prev => [...prev, { 
-        role: 'assistant', 
+      setMessages(prev => [...prev, {
+        role: 'assistant',
         content: data.response || fallbackNoResponse,
         timestamp: new Date()
       }])
@@ -155,6 +168,7 @@ export default function AssistantChat() {
       if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('credits-consumed'))
 
     } catch (error) {
+      if (error?.name === 'AbortError' || sendAbortRef.current?.signal.aborted) return
       console.error('[AssistantChat] Error:', error)
       const { message: friendlyMsg } = mapErrorToUserMessage(error, lang === 'en' ? 'Please try again in a moment!' : 'Riprova tra un attimo!')
       const errorMsg = lang === 'en'

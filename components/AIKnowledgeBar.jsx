@@ -33,9 +33,10 @@ export default function AIKnowledgeBar() {
   useEffect(() => {
     // Solo lato client per evitare hydration mismatch
     if (typeof window === 'undefined') return
-    
-    fetchAIKnowledge()
-    
+
+    const ac = new AbortController()
+    fetchAIKnowledge(ac.signal)
+
     const doRefresh = (useRefreshParam = false) => {
       previousScoreRef.current = scoreRef.current
       const retryDelays = [1000, 2000, 3000, 5000, 8000]
@@ -43,18 +44,22 @@ export default function AIKnowledgeBar() {
 
       const attemptRefresh = async () => {
         if (attempt >= retryDelays.length) return
+        if (ac.signal.aborted) return
         attempt++
         try {
           const { data: session } = await supabase.auth.getSession()
           if (!session?.session?.access_token) return
+          if (ac.signal.aborted) return
           const url = useRefreshParam ? '/api/ai-knowledge?refresh=1' : '/api/ai-knowledge'
           const res = await fetch(url, {
             method: 'GET',
+            signal: ac.signal,
             headers: {
               'Authorization': `Bearer ${session.session.access_token}`,
               'Content-Type': 'application/json'
             }
           })
+          if (ac.signal.aborted) return
           
           if (!res.ok) throw new Error('Fetch failed')
           
@@ -62,6 +67,7 @@ export default function AIKnowledgeBar() {
           const newScore = data.score || 0
           
           // Se lo score è cambiato, aggiorna e ferma retry
+          if (ac.signal.aborted) return
           if (Math.abs(newScore - previousScoreRef.current) > 0.01) {
             console.log(`[AIKnowledgeBar] Score updated: ${previousScoreRef.current} → ${newScore}`)
             setScore(newScore)
@@ -76,6 +82,7 @@ export default function AIKnowledgeBar() {
             retryTimeoutRef.current = setTimeout(attemptRefresh, retryDelays[attempt])
           }
         } catch (err) {
+          if (err?.name === 'AbortError' || ac.signal.aborted) return
           console.error('[AIKnowledgeBar] Retry attempt failed:', err)
           // Continua con prossimo tentativo anche in caso di errore
           if (attempt < retryDelays.length) {
@@ -93,9 +100,10 @@ export default function AIKnowledgeBar() {
     window.addEventListener('match-saved', onMatchSaved)
     window.addEventListener('knowledge-should-refresh', onKnowledgeRefresh)
 
-    const interval = setInterval(() => { fetchAIKnowledge() }, 1 * 60 * 1000)
+    const interval = setInterval(() => { fetchAIKnowledge(ac.signal) }, 1 * 60 * 1000)
 
     return () => {
+      ac.abort()
       clearInterval(interval)
       if (retryTimeoutRef.current) clearTimeout(retryTimeoutRef.current)
       window.removeEventListener('match-saved', onMatchSaved)
@@ -103,7 +111,7 @@ export default function AIKnowledgeBar() {
     }
   }, [])
 
-  const fetchAIKnowledge = async () => {
+  const fetchAIKnowledge = async (signal) => {
     try {
       setError(null)
       if (!supabase) {
@@ -116,24 +124,29 @@ export default function AIKnowledgeBar() {
         router.push('/login')
         return
       }
+      if (signal?.aborted) return
       const token = session.session.access_token
       const res = await fetch('/api/ai-knowledge', {
         method: 'GET',
+        signal,
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       })
+      if (signal?.aborted) return
       if (res.status === 401) {
         setLoading(false)
         router.push('/login')
         return
       }
       const data = await safeJsonResponse(res, 'Failed to fetch AI knowledge')
+      if (signal?.aborted) return
       setScore(data.score || 0)
       setLevel(data.level || 'beginner')
       setBreakdown(data.breakdown || {})
     } catch (err) {
+      if (err?.name === 'AbortError' || signal?.aborted) return
       const msg = err?.message || ''
       const isSessionExpired = /sessione scaduta|session expired|invalid or expired|authentication required/i.test(msg)
       if (isSessionExpired) {

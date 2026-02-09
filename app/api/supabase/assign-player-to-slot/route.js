@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { validateToken, extractBearerToken } from '../../../../lib/authHelper'
+import { checkRateLimit, RATE_LIMIT_CONFIG } from '../../../../lib/rateLimiter'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -37,6 +38,12 @@ export async function PATCH(req) {
     }
 
     const userId = userData.user.id
+
+    const rlConfig = RATE_LIMIT_CONFIG['/api/supabase/assign-player-to-slot'] || { maxRequests: 30, windowMs: 60000 }
+    const rateLimit = await checkRateLimit(userId, '/api/supabase/assign-player-to-slot', rlConfig.maxRequests, rlConfig.windowMs)
+    if (!rateLimit.allowed) {
+      return NextResponse.json({ error: 'Too many requests. Please try again later.', resetAt: rateLimit.resetAt }, { status: 429 })
+    }
 
     const { slot_index, player_id, player_data } = await req.json()
 
