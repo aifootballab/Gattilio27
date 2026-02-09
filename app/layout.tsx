@@ -21,11 +21,12 @@ export default function RootLayout({
         <LanguageProviderWrapper>
           {/* Custom Background Layer - QUI PUOI INSERIRE IL TUO SFONDO */}
           <div className="custom-background" />
-          {/* Barra crediti: sempre montata per ascoltare credits-consumed e aggiornarsi subito dopo ogni API */}
-          <CreditsBar />
+          {/* Barra utility in-flow (scrolla con la pagina): Crediti AI + Mostrami come - stile coerente con altri btn */}
+          <header className="top-utility-bar" aria-label="Crediti e guida">
+            <CreditsBar />
+            <GuideTour />
+          </header>
           {children}
-          {/* Tour contestuale (Mostrami come) - coerente UX, responsive, bilingue */}
-          <GuideTour />
           {/* Assistant Chat Widget - Solo consigli tattici (no supporto uso app) */}
           <AssistantChat />
         </LanguageProviderWrapper>

@@ -136,27 +136,20 @@ export default function CreditsBar() {
   const triggerAriaLabel = open ? (t('creditsCloseAria') || (lang === 'en' ? 'Close credits' : 'Chiudi crediti')) : (t('creditsViewAria') || (lang === 'en' ? 'View AI credits' : 'Vedi crediti AI'))
 
   return (
-    <div ref={containerRef} className="credits-bar-pill-wrap">
+    <div ref={containerRef} style={{ position: 'relative' }}>
       <button
         type="button"
+        className="btn"
         data-tour-id="tour-dashboard-credits"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-haspopup="true"
         aria-label={triggerAriaLabel}
         style={{
-          display: 'flex',
+          display: 'inline-flex',
           alignItems: 'center',
-          gap: '6px',
-          padding: '8px 12px',
-          borderRadius: '9999px',
-          backgroundColor: '#1a1a1a',
-          border: '1px solid #2a2a2a',
-          color: '#e5e5e5',
-          cursor: 'pointer',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-          fontSize: 'clamp(13px, 2.5vw, 14px)',
-          minHeight: '40px'
+          gap: '8px',
+          whiteSpace: 'nowrap'
         }}
       >
         {loading ? (

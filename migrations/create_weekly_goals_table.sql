@@ -67,12 +67,10 @@ CREATE POLICY "Users can insert own goals"
 ON weekly_goals FOR INSERT
 WITH CHECK ((select auth.uid()) = user_id);
 
--- UPDATE Policy
-DROP POLICY IF EXISTS "Users can update own goals" ON weekly_goals;
-CREATE POLICY "Users can update own goals"
-ON weekly_goals FOR UPDATE
-USING ((select auth.uid()) = user_id)
-WITH CHECK ((select auth.uid()) = user_id);
+-- UPDATE Policy - RIMOSSA (migration drop_weekly_goals_update_policy)
+-- Solo backend (service_role) può aggiornare current_value, status, completed_at.
+-- DROP POLICY IF EXISTS "Users can update own goals" ON weekly_goals;
+-- CREATE POLICY "Users can update own goals" ON weekly_goals FOR UPDATE ...
 
 -- DELETE Policy (per cleanup)
 DROP POLICY IF EXISTS "Users can delete own goals" ON weekly_goals;

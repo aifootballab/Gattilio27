@@ -42,10 +42,9 @@ Da analisi esterna su sicurezza e robustezza del codice.
   *File:* `migrations/create_weekly_goals_table.sql`  
   *Azione:* Rimuovere policy UPDATE o limitare a campi specifici (non `current_value`/`status`).
 
-- [ ] **Task: risultati assumono sempre team1 = utente**  
-  Rischio: progressi errati se utente è team2/away.  
-  *File:* `lib/taskHelper.js` (funzione `calculateAvgGoalsConceded`)  
-  *Azione:* Aggiungere campo `is_home_team` alla tabella matches e usarlo per calcolo corretto.
+- [x] **Task: risultati assumono sempre team1 = utente** ✅ FIXATO (2026-02)  
+  *File:* `lib/taskHelper.js`  
+  *Fix:* `calculateAvgGoalsConceded` e `increase_wins` usano `match.is_home`; aggiunte funzioni `isWinForUser` e `isLossForUser`.
 
 ### Media priorità
 
