@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { useTranslation } from '@/lib/i18n'
 import LanguageSwitch from '@/components/LanguageSwitch'
+import Link from 'next/link'
 import AIKnowledgeBar from '@/components/AIKnowledgeBar'
 import AiInfoModal from '@/components/AiInfoModal'
 import GameAnalysisModal from '@/components/GameAnalysisModal'
@@ -32,7 +33,8 @@ import {
   Zap,
   Shield,
   BookOpen,
-  Info
+  Info,
+  Trophy
 } from 'lucide-react'
 
 export default function DashboardPage() {
@@ -61,6 +63,7 @@ export default function DashboardPage() {
   const [gameAnalysisLastCapture, setGameAnalysisLastCapture] = React.useState(null)
   const [hasActiveCoach, setHasActiveCoach] = React.useState(false)
   const [reminderRotationIndex, setReminderRotationIndex] = React.useState(0)
+  const [leaderboardData, setLeaderboardData] = React.useState({ currentUser: null, daysLeftInMonth: null })
 
   // Banner setup: sempre visibile quando non in loading. Se manca qualcosa: link a rotazione; altrimenti "Setup completo"
   const hasMissingSetup = hasActiveCoach === false || !gameAnalysisLastCapture || stats.titolari < 11
@@ -261,6 +264,27 @@ export default function DashboardPage() {
   React.useEffect(() => {
     if (!loading && supabase) fetchGameAnalysisCapture()
   }, [loading, supabase, fetchGameAnalysisCapture])
+
+  React.useEffect(() => {
+    if (loading || !supabase) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const { data: session } = await supabase.auth.getSession()
+        const token = session?.session?.access_token
+        if (!token) return
+        const res = await fetch('/api/leaderboard', { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' })
+        const payload = await res.json().catch(() => ({}))
+        if (!cancelled && payload.rankings) {
+          setLeaderboardData({
+            currentUser: payload.currentUser || null,
+            daysLeftInMonth: payload.daysLeftInMonth ?? null
+          })
+        }
+      } catch (_) {}
+    })()
+    return () => { cancelled = true }
+  }, [loading, supabase])
 
   const handleLogout = async () => {
     if (supabase) {
@@ -658,6 +682,38 @@ export default function DashboardPage() {
               </span>
               <ArrowRight size={18} />
             </button>
+            <Link
+              href="/classifica"
+              className="card"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '16px',
+                padding: '20px',
+                textDecoration: 'none',
+                background: 'linear-gradient(135deg, rgba(255,140,0,0.12), rgba(0,212,255,0.06))',
+                borderColor: 'rgba(255,165,0,0.4)',
+                color: '#fff'
+              }}
+            >
+              <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(255,165,0,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Trophy size={26} color="var(--neon-orange)" />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 700, marginBottom: '4px' }}>{t('classificaMensile')}</div>
+                <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.8)' }}>
+                  {leaderboardData.currentUser
+                    ? `${t('laTuaPosizione')}: ${leaderboardData.currentUser.rank}° · ${leaderboardData.currentUser.points} ${t('puntiCoach')}`
+                    : t('fromZeroToHero')}
+                </div>
+                {leaderboardData.daysLeftInMonth != null && (
+                  <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', marginTop: '4px' }}>
+                    {leaderboardData.daysLeftInMonth} {t('giorniAllaFineMese')}
+                  </div>
+                )}
+              </div>
+              <ArrowRight size={20} color="var(--neon-orange)" />
+            </Link>
             <button
               onClick={() => router.push('/gestione-formazione')}
               className="btn primary"
