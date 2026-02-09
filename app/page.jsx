@@ -40,6 +40,7 @@ export default function DashboardPage() {
   const { t, lang } = useTranslation()
   const router = useRouter()
   const mountedRef = React.useRef(true)
+  const [retryTrigger, setRetryTrigger] = React.useState(0)
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState(null)
   const [stats, setStats] = React.useState({
@@ -246,7 +247,7 @@ export default function DashboardPage() {
           return false
         })
       }
-    }, 20000)
+    }, 30000)
     fetchData().finally(() => clearTimeout(timeoutId))
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -262,7 +263,13 @@ export default function DashboardPage() {
       clearTimeout(timeoutId)
       subscription?.unsubscribe()
     }
-  }, [router])
+  }, [router, retryTrigger])
+
+  const handleRetry = React.useCallback(() => {
+    setError(null)
+    setLoading(true)
+    setRetryTrigger((n) => n + 1)
+  }, [])
 
   const fetchGameAnalysisCapture = React.useCallback(async () => {
     if (!supabase) return
@@ -437,16 +444,21 @@ export default function DashboardPage() {
     )
   }
 
-  if (error && !stats) {
+  if (error && !stats.totalPlayers && !stats.formation) {
     return (
       <main style={{ padding: '32px 24px', minHeight: '100vh' }}>
         <div className="error" style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <AlertCircle size={18} />
           {error}
         </div>
-        <button onClick={() => router.push('/login')} className="btn">
-          {t('back')}
-        </button>
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+          <button onClick={handleRetry} className="btn" type="button">
+            {t('retry')}
+          </button>
+          <button onClick={() => router.push('/login')} className="btn">
+            {t('back')}
+          </button>
+        </div>
       </main>
     )
   }
@@ -483,9 +495,12 @@ export default function DashboardPage() {
 
       {/* Error */}
       {error && (
-        <div className="error" style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div className="error" style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           <AlertCircle size={18} />
-          {error}
+          <span style={{ flex: 1 }}>{error}</span>
+          <button onClick={handleRetry} className="btn" type="button" style={{ marginLeft: 'auto' }}>
+            {t('retry')}
+          </button>
         </div>
       )}
 
