@@ -225,7 +225,7 @@ export async function POST(req) {
     }
 
     const userId = userData.user.id
-    console.log(`[save-match] User ID: ${userId}`)
+    // Log PII rimosso in produzione
     
     // Rate limiting
     const rateLimitConfig = RATE_LIMIT_CONFIG['/api/supabase/save-match']

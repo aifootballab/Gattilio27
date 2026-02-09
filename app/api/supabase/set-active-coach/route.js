@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { validateToken, extractBearerToken } from '../../../../lib/authHelper'
+import { checkRateLimit, RATE_LIMIT_CONFIG } from '../../../../lib/rateLimiter'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -27,7 +28,22 @@ export async function POST(req) {
     }
 
     const userId = userData.user.id
-    const { coach_id } = await req.json()
+
+    // Rate limiting
+    const rlConfig = RATE_LIMIT_CONFIG['/api/supabase/set-active-coach'] || { maxRequests: 20, windowMs: 60000 }
+    const rateLimit = await checkRateLimit(userId, '/api/supabase/set-active-coach', rlConfig.maxRequests, rlConfig.windowMs)
+    if (!rateLimit.allowed) {
+      return NextResponse.json({ error: 'Too many requests. Please try again later.', resetAt: rateLimit.resetAt }, { status: 429 })
+    }
+
+    // JSON parsing con gestione errore 400
+    let requestBody
+    try {
+      requestBody = await req.json()
+    } catch (parseError) {
+      return NextResponse.json({ error: 'Invalid JSON in request body' }, { status: 400 })
+    }
+    const { coach_id } = requestBody
 
     if (!coach_id || typeof coach_id !== 'string') {
       return NextResponse.json({ error: 'coach_id is required' }, { status: 400 })
@@ -79,7 +95,9 @@ export async function POST(req) {
       )
     }
 
-    console.log(`[set-active-coach] Coach activated: id=${coach_id}, user_id=${userId}`)
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[set-active-coach] Coach activated: id=${coach_id}`)
+    }
 
     return NextResponse.json({
       success: true,

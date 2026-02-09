@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { validateToken, extractBearerToken } from '../../../../lib/authHelper'
+import { checkRateLimit, RATE_LIMIT_CONFIG } from '../../../../lib/rateLimiter'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -37,13 +38,26 @@ export async function POST(req) {
     }
 
     const userId = userData.user.id
-    console.log(`[save-coach] User ID: ${userId}`)
+
+    // Rate limiting
+    const rlConfig = RATE_LIMIT_CONFIG['/api/supabase/save-coach'] || { maxRequests: 20, windowMs: 60000 }
+    const rateLimit = await checkRateLimit(userId, '/api/supabase/save-coach', rlConfig.maxRequests, rlConfig.windowMs)
+    if (!rateLimit.allowed) {
+      return NextResponse.json({ error: 'Too many requests. Please try again later.', resetAt: rateLimit.resetAt }, { status: 429 })
+    }
     
     const admin = createClient(supabaseUrl, serviceKey, {
       auth: { autoRefreshToken: false, persistSession: false }
     })
 
-    const { coach } = await req.json()
+    // JSON parsing con gestione errore 400
+    let requestBody
+    try {
+      requestBody = await req.json()
+    } catch (parseError) {
+      return NextResponse.json({ error: 'Invalid JSON in request body' }, { status: 400 })
+    }
+    const { coach } = requestBody
 
     if (!coach || !coach.coach_name) {
       return NextResponse.json({ error: 'Coach data is required' }, { status: 400 })
@@ -93,8 +107,10 @@ export async function POST(req) {
       is_active: false
     }
 
-    // Inserisci nuovo allenatore
-    console.log(`[save-coach] Inserting coach for user_id: ${userId}, coach_name: ${coachData.coach_name}`)
+    // Inserisci nuovo allenatore (log senza PII in produzione)
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[save-coach] Inserting coach for user_id: ${userId}`)
+    }
     const { data: inserted, error: insertErr } = await admin
       .from('coaches')
       .insert(coachData)
@@ -109,7 +125,9 @@ export async function POST(req) {
       )
     }
 
-    console.log(`[save-coach] Coach saved: id=${inserted.id}, user_id=${inserted.user_id}, coach_name=${inserted.coach_name}`)
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[save-coach] Coach saved: id=${inserted.id}`)
+    }
 
     return NextResponse.json({
       success: true,

@@ -202,6 +202,21 @@ export default function DashboardPage() {
           .eq('is_active', true)
           .maybeSingle()
         setHasActiveCoach(!!activeCoach)
+
+        // Classifica mensile: stesso token già usato sopra, evita race con getSession() in effect
+        const token = session.session.access_token
+        if (token) {
+          try {
+            const lbRes = await fetch('/api/leaderboard', { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' })
+            const lbPayload = await lbRes.json().catch(() => ({}))
+            if (lbPayload.rankings) {
+              setLeaderboardData({
+                currentUser: lbPayload.currentUser || null,
+                daysLeftInMonth: lbPayload.daysLeftInMonth ?? null
+              })
+            }
+          } catch (_) { /* non bloccare dashboard */ }
+        }
       } catch (err) {
         console.error('[Dashboard] Error:', err)
         setError(err.message || t('coachDataLoadError'))

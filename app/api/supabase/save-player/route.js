@@ -291,7 +291,9 @@ export async function POST(req) {
           )
         }
 
-        console.log(`[save-player] Player updated: id=${updated.id}, user_id=${updated.user_id}, player_name=${updated.player_name}`)
+        if (process.env.NODE_ENV !== 'production') {
+          console.log(`[save-player] Player updated: id=${updated.id}`)
+        }
 
         return NextResponse.json({
           success: true,
@@ -363,8 +365,10 @@ export async function POST(req) {
       }
     }
 
-    // Inserisci nuovo giocatore
-    console.log(`[save-player] Inserting player for user_id: ${userId}, player_name: ${playerData.player_name}`)
+    // Inserisci nuovo giocatore (log senza PII)
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[save-player] Inserting player for user_id: ${userId}`)
+    }
     const { data: inserted, error: insertErr } = await admin
       .from('players')
       .insert(playerData)
@@ -379,7 +383,9 @@ export async function POST(req) {
       )
     }
 
-    console.log(`[save-player] Player saved: id=${inserted.id}, user_id=${inserted.user_id}, player_name=${inserted.player_name}`)
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[save-player] Player saved: id=${inserted.id}`)
+    }
 
     return NextResponse.json({
       success: true,
