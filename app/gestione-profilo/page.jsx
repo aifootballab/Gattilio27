@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabaseClient'
+import { supabase, getValidAccessToken } from '@/lib/supabaseClient'
 import { useTranslation } from '@/lib/i18n'
 import LanguageSwitch from '@/components/LanguageSwitch'
 import { ArrowLeft, RefreshCw, Wallet, BarChart3, Award, Calendar, Zap, Camera, User, Trophy, Gift } from 'lucide-react'
@@ -22,12 +22,11 @@ export default function GestioneProfiloPage() {
 
   const fetchData = React.useCallback(async () => {
     if (!supabase) return
-    const { data: session } = await supabase.auth.getSession()
-    if (!session?.session?.access_token) {
+    const token = await getValidAccessToken()
+    if (!token) {
       router.push('/login')
       return
     }
-    const token = session.session.access_token
     setLoading(true)
     setError(null)
     try {
@@ -68,8 +67,7 @@ export default function GestioneProfiloPage() {
   React.useEffect(() => {
     if (typeof window === 'undefined' || !supabase) return
     const onLeaderboardUpdated = async () => {
-      const { data: session } = await supabase.auth.getSession()
-      const token = session?.session?.access_token
+      const token = await getValidAccessToken()
       if (!token) return
       try {
         const [lbRes, meRes] = await Promise.all([

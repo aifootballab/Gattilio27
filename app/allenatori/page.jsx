@@ -756,7 +756,7 @@ export default function AllenatoriPage() {
                 <div style={{ display: 'grid', gap: '8px', fontSize: '14px' }}>
                   {selectedCoach.stat_boosters.map((booster, idx) => (
                     <div key={idx} style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>{booster.stat_name}:</span>
+                      <span>{t(booster.stat_name) || booster.stat_name}:</span>
                       <strong>+{booster.bonus}</strong>
                     </div>
                   ))}

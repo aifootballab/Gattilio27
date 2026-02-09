@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from '@/lib/i18n'
-import { supabase } from '@/lib/supabaseClient'
+import { supabase, getValidAccessToken } from '@/lib/supabaseClient'
 import { safeJsonResponse } from '@/lib/fetchHelper'
 import { Zap, RefreshCw, AlertCircle, Info } from 'lucide-react'
 
@@ -19,15 +19,16 @@ export default function CreditsBar() {
   const [error, setError] = useState(null)
   const [noSession, setNoSession] = useState(false)
 
-  const fetchUsage = useCallback(async () => {
+  const fetchUsage = useCallback(async (signal) => {
     try {
       setError(null)
       setNoSession(false)
       if (!supabase) {
         throw new Error('Supabase client not initialized')
       }
-      const { data: session } = await supabase.auth.getSession()
-      if (!session?.session?.access_token) {
+      const token = await getValidAccessToken()
+      if (signal?.aborted) return
+      if (!token) {
         setNoSession(true)
         setLoading(false)
         return
@@ -35,28 +36,33 @@ export default function CreditsBar() {
       const res = await fetch('/api/credits/usage', {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${session.session.access_token}`,
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({}),
-        cache: 'no-store'
+        cache: 'no-store',
+        ...(signal && { signal })
       })
+      if (signal?.aborted) return
       const payload = await safeJsonResponse(res, t('creditsError') || 'Error loading usage')
+      if (signal?.aborted) return
       setData(payload)
     } catch (err) {
+      if (err?.name === 'AbortError') return
       console.error('[CreditsBar] Error:', err)
-      setError(err.message || t('creditsError'))
+      if (!signal?.aborted) setError(err.message || t('creditsError'))
     } finally {
-      setLoading(false)
+      if (!signal?.aborted) setLoading(false)
     }
   }, [t])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
-    fetchUsage()
-    const interval = setInterval(fetchUsage, 45 * 1000)
-    const onVisibility = () => { if (document.visibilityState === 'visible') fetchUsage() }
-    const onCreditsConsumed = () => fetchUsage()
+    const ac = new AbortController()
+    fetchUsage(ac.signal)
+    const interval = setInterval(() => fetchUsage(ac.signal), 45 * 1000)
+    const onVisibility = () => { if (document.visibilityState === 'visible') fetchUsage(ac.signal) }
+    const onCreditsConsumed = () => fetchUsage(ac.signal)
     document.addEventListener('visibilitychange', onVisibility)
     window.addEventListener('credits-consumed', onCreditsConsumed)
     let authUnsub = null
@@ -64,12 +70,13 @@ export default function CreditsBar() {
       const { data } = supabase.auth.onAuthStateChange((event, session) => {
         if (event === 'SIGNED_IN' && session) {
           setNoSession(false)
-          fetchUsage()
+          fetchUsage(ac.signal)
         }
       })
       authUnsub = data?.subscription
     }
     return () => {
+      ac.abort()
       clearInterval(interval)
       document.removeEventListener('visibilitychange', onVisibility)
       window.removeEventListener('credits-consumed', onCreditsConsumed)

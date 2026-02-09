@@ -23,6 +23,10 @@
 | 4 | AI Knowledge usa `overall_rating` | `lib/aiKnowledgeHelper.js` | ✅ |
 | 5 | Rate limit endpoint Supabase | `save-profile`, `save-coach`, `set-active-coach` | 🔁 |
 | 6 | JSON error handling (400 vs 500) | `save-profile`, `save-coach`, `set-active-coach`, `extract-player` | ✅ |
+| 7 | 401 "Invalid or expired authentication" (token scaduto) | `lib/supabaseClient.js` (`getValidAccessToken`), CreditsBar, page.jsx, gestione-profilo | ✅ |
+| 8 | CreditsBar fetch senza abort (setState su unmount) | `components/CreditsBar.jsx` | ✅ |
+| 9 | Chiavi i18n mancanti (sez. 8.1) | `lib/i18n.js` (IT/EN) | ✅ |
+| 10 | Allenatori: card chiusa e aperta rispettano lingua (IT/EN) | `lib/i18n.js`, `app/allenatori/page.jsx` | ✅ |
 
 ---
 
@@ -208,28 +212,30 @@ Questo documento � il riferimento unico per il piano interventi. Tutti i punti
 
 ## 8) Traduzioni / i18n (copertura chiavi)
 
-### 8.1 Chiavi usate ma mancanti in `lib/i18n.js`
-Queste chiavi sono invocate da `t('...')` ma non risultano definite nelle mappe i18n. Risultato: fallback hardcoded in italiano o stringhe vuote in EN.
+### 8.1 Chiavi usate ma mancanti in `lib/i18n.js` ✅ (2026-02)
+Queste chiavi sono invocate da `t('...')` ma non risultavano definite nelle mappe i18n. **Fix (2026-02):** aggiunte in `lib/i18n.js` per IT e EN.
 
-- **coach** ? `app/contromisure-live/page.jsx`
-- **confirmAction** ? `components/ConfirmModal.jsx`
-- **confirmDeletePlayer** ? `app/gestione-formazione/page.jsx`
-- **confirmPositionChangeTitle** ? `app/gestione-formazione/page.jsx`
-- **continue** ? `app/gestione-formazione/page.jsx`
-- **delete** ? `app/gestione-formazione/page.jsx`, `app/allenatori/page.jsx`
-- **deleteAndProceed** ? `app/gestione-formazione/page.jsx`
-- **duplicateReserveTitle** ? `app/gestione-formazione/page.jsx`
-- **historicalInsights** ? `app/match/[id]/page.jsx`
-- **noPhotosSelected** ? `app/gestione-formazione/page.jsx`
-- **photoSelected** / **photosSelected** ? `app/gestione-formazione/page.jsx`
-- **playerName** ? `app/gestione-formazione/page.jsx`
-- **replace** ? `app/gestione-formazione/page.jsx`
-- **selectFormation** ? `app/gestione-formazione/page.jsx`
-- **strengths** / **weaknesses** ? `app/match/[id]/page.jsx`
+- **coach** — `app/contromisure-live/page.jsx` ✅
+- **confirmAction** — `components/ConfirmModal.jsx` ✅
+- **confirmDeletePlayer** — `app/gestione-formazione/page.jsx` ✅
+- **confirmPositionChangeTitle** — `app/gestione-formazione/page.jsx` ✅
+- **continue** — `app/gestione-formazione/page.jsx` ✅
+- **delete** — `app/gestione-formazione/page.jsx`, `app/allenatori/page.jsx` ✅
+- **deleteAndProceed** — `app/gestione-formazione/page.jsx` ✅
+- **duplicateReserveTitle** — `app/gestione-formazione/page.jsx` ✅
+- **historicalInsights** — `app/match/[id]/page.jsx` ✅
+- **noPhotosSelected** — `app/gestione-formazione/page.jsx` ✅
+- **photoSelected** / **photosSelected** — `app/gestione-formazione/page.jsx` ✅
+- **playerName** — `app/gestione-formazione/page.jsx` ✅
+- **replace** — `app/gestione-formazione/page.jsx` ✅
+- **selectFormation** — `app/gestione-formazione/page.jsx` ✅
+- **strengths** / **weaknesses** — `app/match/[id]/page.jsx` ✅
+
+**Allenatori (2026-02):** Pagina Allenatori allineata a i18n: card chiusa (lista) e card aperta (modale) usano `t()` per titoli, pulsanti, sezioni e stili di gioco. Aggiunte in `lib/i18n.js` (IT) chiavi: coachesTitle, uploadCoach, noCoachesLoaded, activeCoach, activeCoachInfo, viewCoachDetails, setAsTitular, informations, playingStyleCompetence, trainingAffinity, statBoosters, connection, focalPoint, keyMan, counter_attack, wide, ball_possession, long_ball, quick_counter, finishing, defensive_behavior. EN già presente; stat_boosters in modale usano `t(booster.stat_name)`.
 
 ### 8.2 Impatto UX
 - **Lingua EN incompleta**: molte stringhe restano in IT perch� esiste fallback locale nel JSX.
-- **Incoerenza UI**: alcuni modali e CTA hanno label hardcoded, altri tradotti ? esperienza disomogenea.
+- **Incoerenza UI**: alcuni modali e CTA hanno label hardcoded, altri tradotti; con le chiavi 8.1 le label principali usano i18n.
 
 ---
 
@@ -446,6 +452,8 @@ Stringa `—` usata come default nickname: indica file non UTF-8.
 **Fix applicato (dashboard):**
 - Fetch classifica effettuato **dentro `fetchData`** subito dopo aver ottenuto la session valida, usando lo stesso `session.session.access_token` già usato per le altre chiamate. Lo stato `leaderboardData` viene aggiornato con la risposta di `/api/leaderboard`. L’effect separato resta per refetch su evento `leaderboard-updated` e come fallback quando `loading` diventa false (es. se il fetch in fetchData fallisce).
 
+**Fix 401 / token scaduto (2026-02):** Il client ora usa `getValidAccessToken()` (refreshSession + getSession) in `lib/supabaseClient.js` prima delle chiamate a `/api/credits/usage`, `/api/extract-game-analysis`, `/api/refresh-diagnostic` e in gestione-profilo; riduce gli errori 401 "Invalid or expired authentication" quando il JWT in cache è scaduto.
+
 **Raccomandazioni:**
 - Verificare che in produzione (Vercel) le variabili `NEXT_PUBLIC_SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` puntino allo stesso progetto usato in sviluppo (dove è presente lo snapshot).
 - Per evitare che un utente con consenso e snapshot venga rimosso al prossimo recompute: o eseguire il recompute solo quando l’utente ha ≥3 partite complete nel mese, o mantenere in snapshot gli utenti già presenti anche se sotto soglia (policy di business da definire). Vedi `lib/leaderboardHelper.js` `isEligibleForLeaderboard` e `MIN_MATCHES_ELIGIBILITY`.
@@ -620,9 +628,10 @@ Messaggi costruiti con `\n` e inseriti in `ConfirmModal`. Se il modal non render
 Polling ogni 45s senza backoff o stop quando la tab non � attiva. Potenziale carico eccessivo.
 - File: `components/CreditsBar.jsx`
 
-### 25.2 CreditsBar senza abort
+### 25.2 CreditsBar senza abort ✅
 Fetch senza abort controller ? rischio setState dopo unmount.
 - File: `components/CreditsBar.jsx`
+- **Fix (2026-02):** `fetchUsage(signal)` con `AbortController` nell'effect; cleanup `ac.abort()`; fetch con `signal`; ignorati `AbortError` e setState se `signal.aborted`.
 
 ### 25.3 AIKnowledgeBar retry e log
 Retry 3x con delay fisso e log in produzione; assenza di backoff o stop su tab hidden.

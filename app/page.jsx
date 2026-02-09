@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabaseClient'
+import { supabase, getValidAccessToken } from '@/lib/supabaseClient'
 import { useTranslation } from '@/lib/i18n'
 import LanguageSwitch from '@/components/LanguageSwitch'
 import Link from 'next/link'
@@ -254,10 +254,10 @@ export default function DashboardPage() {
   const fetchGameAnalysisCapture = React.useCallback(async () => {
     if (!supabase) return
     try {
-      const { data: session } = await supabase.auth.getSession()
-      if (!session?.session?.access_token) return
+      const token = await getValidAccessToken()
+      if (!token) return
       const res = await fetch('/api/extract-game-analysis', {
-        headers: { Authorization: `Bearer ${session.session.access_token}` }
+        headers: { Authorization: `Bearer ${token}` }
       })
       const data = await res.json().catch(() => ({}))
       if (data.captured_at) {
@@ -500,15 +500,15 @@ export default function DashboardPage() {
               setRefreshDiagnosticMessage(null)
               setRefreshDiagnosticLoading(true)
               try {
-                const { data: session } = await supabase?.auth.getSession() ?? {}
-                if (!session?.session?.access_token) {
+                const token = await getValidAccessToken()
+                if (!token) {
                   setRefreshDiagnosticLoading(false)
                   return
                 }
                 const res = await fetch('/api/refresh-diagnostic', {
                   method: 'POST',
                   headers: {
-                    'Authorization': `Bearer ${session.session.access_token}`,
+                    'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
                     'Accept-Language': lang === 'en' ? 'en' : 'it'
                   }

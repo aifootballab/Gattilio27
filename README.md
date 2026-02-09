@@ -169,10 +169,17 @@ Crea `.env.local` con le variabili d'ambiente (vedi `.env.example`).
 
 **Protezioni implementate**:
 - ✅ Autenticazione Bearer token su tutti gli endpoint
-- ✅ Rate limiting su endpoint principali (vedi `lib/rateLimiter.js`)
+- ✅ Rate limiting su endpoint principali (`extract-player`, `assistant-chat`, `save-match`, ecc.)
+- ✅ Log PII rimossi in produzione (nomi giocatori, coach, user_id)
 - ✅ Validazione dimensione immagini (max 10MB)
 - ✅ Row Level Security (RLS) su tutte le tabelle Supabase
 - ✅ Service Role Key: Server-only, non esposto al client
+- ✅ JSON error handling (400 per body malformato)
+
+**Fix recenti (2026-02-09):**
+- Rate limit su `/api/extract-player` (P0)
+- Crediti: somma su acquisti multipli (non sovrascrive)
+- AI Knowledge: usa campo corretto `overall_rating`
 
 **Per dettagli completi**: Vedi `docs/SICUREZZA.md`
 
