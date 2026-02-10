@@ -1,12 +1,13 @@
 'use client'
 
 import React from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { useTranslation } from '@/lib/i18n'
 import LanguageSwitch from '@/components/LanguageSwitch'
-import { ArrowLeft, Upload, AlertCircle, CheckCircle2, RefreshCw, Info, X, Plus, User, Settings, BarChart3, Zap, Gift, ChevronDown, ChevronUp, Users, Star, Move, Pencil } from 'lucide-react'
+import { ArrowLeft, Upload, AlertCircle, CheckCircle2, RefreshCw, Info, X, Plus, User, Settings, BarChart3, Zap, Gift, ChevronDown, ChevronUp, Users, Star, Move, Pencil, BookOpen } from 'lucide-react'
 import TacticalSettingsPanel from '@/components/TacticalSettingsPanel'
+import RosaTutorialModal from '@/components/RosaTutorialModal'
 import PositionSelectionModal from '@/components/PositionSelectionModal'
 import MissingDataModal from '@/components/MissingDataModal'
 import ConfirmModal from '@/components/ConfirmModal'
@@ -80,6 +81,7 @@ function DuplicatePlayerConfirmModal({ state, t }) {
 export default function GestioneFormazionePage() {
   const { t } = useTranslation()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [layout, setLayout] = React.useState(null) // { formation, slot_positions }
   const [titolari, setTitolari] = React.useState([]) // Giocatori con slot_index 0-10
   const [riserve, setRiserve] = React.useState([]) // Giocatori con slot_index NULL
@@ -98,6 +100,7 @@ export default function GestioneFormazionePage() {
   const [uploadImages, setUploadImages] = React.useState([])
   const [uploadReserveImages, setUploadReserveImages] = React.useState([])
   const [uploadingPlayer, setUploadingPlayer] = React.useState(false)
+  const [showRosaTutorial, setShowRosaTutorial] = React.useState(false)
   const [activeCoach, setActiveCoach] = React.useState(null)
   const [tacticalSettings, setTacticalSettings] = React.useState(null)
   const [savingTacticalSettings, setSavingTacticalSettings] = React.useState(false)
@@ -287,6 +290,14 @@ export default function GestioneFormazionePage() {
       }
     } catch (_) { /* non bloccare UI */ }
   }, [supabase])
+
+  // Apri tutorial rosa se URL contiene ?tutorial=1 (es. da Guida)
+  React.useEffect(() => {
+    if (typeof window !== 'undefined' && searchParams?.get('tutorial') === '1') {
+      setShowRosaTutorial(true)
+      window.history.replaceState(null, '', '/gestione-formazione')
+    }
+  }, [searchParams])
 
   // Auto-dismiss toast
   React.useEffect(() => {
@@ -2071,6 +2082,25 @@ export default function GestioneFormazionePage() {
         </h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginLeft: 'auto', flexWrap: 'wrap' }}>
           <LanguageSwitch />
+          <button
+            type="button"
+            onClick={() => setShowRosaTutorial(true)}
+            className="btn"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              fontSize: '14px',
+              padding: '8px 16px',
+              borderColor: 'var(--neon-purple)',
+              color: 'var(--neon-purple)',
+              background: 'rgba(168, 85, 247, 0.1)'
+            }}
+            title={t('tutorialRosaTitle')}
+          >
+            <BookOpen size={16} />
+            {t('tutorialRosaButton')}
+          </button>
           {layout?.formation && (
             <div style={{ 
               fontSize: '18px', 
@@ -2662,6 +2692,10 @@ export default function GestioneFormazionePage() {
             setExtractedPlayerData(null)
           }}
         />
+      )}
+
+      {showRosaTutorial && (
+        <RosaTutorialModal onClose={() => setShowRosaTutorial(false)} />
       )}
 
       {showPositionSelectionModal && extractedPlayerData && (

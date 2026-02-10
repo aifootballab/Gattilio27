@@ -894,6 +894,42 @@ export default function GuidaPage() {
                         {t('guideGoToPage') || 'Vai alla Pagina'}
                         <ArrowRight size={16} />
                       </button>
+                      {guide.id === 'gestione-formazione' && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            router.push('/gestione-formazione?tutorial=1')
+                          }}
+                          style={{
+                            marginTop: '12px',
+                            width: '100%',
+                            padding: '12px',
+                            background: 'rgba(168, 85, 247, 0.2)',
+                            border: '1px solid var(--neon-purple)',
+                            borderRadius: '8px',
+                            color: 'var(--neon-purple)',
+                            fontSize: '14px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '8px',
+                            transition: 'all 0.2s'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = 'rgba(168, 85, 247, 0.3)'
+                            e.currentTarget.style.boxShadow = '0 0 15px rgba(168, 85, 247, 0.4)'
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'rgba(168, 85, 247, 0.2)'
+                            e.currentTarget.style.boxShadow = 'none'
+                          }}
+                        >
+                          <BookOpen size={16} />
+                          {t('tutorialRosaButton')}
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
