@@ -289,16 +289,12 @@ Indica chiaramente quando le tue analisi sono basate su dati limitati.
 Puoi dire che con più sezioni complete l'analisi sarebbe più precisa; NON dare istruzioni su dove cliccare o come caricare (uso app).`
     : ''
   
-  // ✅ FIX: Determina se match è vecchio o nuovo (deve essere dichiarato prima dell'uso)
-  // Identifica squadra cliente e avversario
-  // Data implementazione campo is_home nel wizard (27 Gennaio 2026)
-  const IS_HOME_IMPLEMENTATION_DATE = new Date('2026-01-27T00:00:00Z')
-  
-  // Determina se match è vecchio o nuovo (basato su timestamp)
-  const matchDate = matchData.match_date 
-    ? new Date(matchData.match_date) 
-    : new Date()
-  const isNewMatch = matchDate >= IS_HOME_IMPLEMENTATION_DATE
+  // Identifica squadra cliente: usa is_home quando è esplicitamente impostato (casa/fuori), così il riassunto non sbaglia risultato
+  const isHome = matchData.is_home === true || matchData.is_home === 'true'
+  const isAway = matchData.is_home === false || matchData.is_home === 'false'
+  const useIsHome = isHome || isAway
+  const clientTeam = useIsHome ? (isHome ? 'team1' : 'team2') : 'team1'
+  const opponentTeam = useIsHome ? (isHome ? 'team2' : 'team1') : 'team2'
   
   // Prepara dati disponibili per il prompt - ✅ FIX: Include dati effettivi, non solo conteggi
   let availableDataText = ''
@@ -372,11 +368,6 @@ Puoi dire che con più sezioni complete l'analisi sarebbe più precisa; NON dare
     availableDataText += `⚠️ IMPORTANTE: Queste sono PERCENTUALI SQUADRA, NON per giocatore.\n`
     availableDataText += `- NON dire "Messi ha attaccato da sinistra" da left: 46% (è percentuale squadra)\n`
     
-    // Determina quale team è cliente in base a is_home (se match nuovo) o assume team1 = cliente (match vecchio)
-    const useIsHome = isNewMatch && matchData.is_home !== undefined && matchData.is_home !== null
-    const clientTeam = useIsHome ? (matchData.is_home ? 'team1' : 'team2') : 'team1'
-    const opponentTeam = useIsHome ? (matchData.is_home ? 'team2' : 'team1') : 'team2'
-    
     if (matchData.attack_areas[clientTeam] || matchData.attack_areas.team1) {
       const clientData = matchData.attack_areas[clientTeam] || matchData.attack_areas.team1
       availableDataText += `Squadra Cliente:\n`
@@ -399,15 +390,11 @@ Puoi dire che con più sezioni complete l'analisi sarebbe più precisa; NON dare
   if (matchData.ball_recovery_zones && Array.isArray(matchData.ball_recovery_zones) && matchData.ball_recovery_zones.length > 0) {
     availableDataText += `\nZONE RECUPERO PALLA (${matchData.ball_recovery_zones.length} zone):\n`
     
-    // Determina quale team è cliente in base a is_home (se match nuovo) o assume team1 = cliente (match vecchio)
-    const useIsHome = isNewMatch && matchData.is_home !== undefined && matchData.is_home !== null
-    const clientTeamLabel = useIsHome ? (matchData.is_home ? 'team1' : 'team2') : 'team1'
-    
     matchData.ball_recovery_zones.slice(0, 10).forEach((zone, idx) => {
       let teamLabel = 'Avversario'
       if (zone.team === 'cliente') {
         teamLabel = 'Cliente'
-      } else if (zone.team === clientTeamLabel || (zone.team === 'team1' && !useIsHome)) {
+      } else if (zone.team === clientTeam || (zone.team === 'team1' && !useIsHome)) {
         teamLabel = 'Cliente'
       }
       const x = typeof zone.x === 'number' ? zone.x.toFixed(2) : zone.x || 'N/A'
@@ -655,17 +642,14 @@ Puoi dire che con più sezioni complete l'analisi sarebbe più precisa; NON dare
   const clientTeamName = userProfile?.team_name || matchData.client_team_name || null
   
   let clientTeamText = ''
-  if (isNewMatch && matchData.is_home !== undefined && matchData.is_home !== null) {
-    // Match nuovo: usa logica is_home
-    const isHome = matchData.is_home === true
+  if (useIsHome) {
     clientTeamText = isHome
-      ? `\nSQUADRA CLIENTE: La PRIMA squadra (team1) nei dati è quella del CLIENTE (hai giocato in casa).\n`
-      : `\nSQUADRA CLIENTE: La SECONDA squadra (team2) nei dati è quella del CLIENTE (hai giocato fuori casa).\n`
+      ? `\nSQUADRA CLIENTE: La PRIMA squadra (team1) nei dati è quella del CLIENTE (hai giocato in CASA). Il risultato è sempre "gol_team1-gol_team2": quindi il PRIMO numero sono i TUOI gol, il secondo quelli avversari.\n`
+      : `\nSQUADRA CLIENTE: La SECONDA squadra (team2) nei dati è quella del CLIENTE (hai giocato FUORI CASA). Il risultato è sempre "gol_team1-gol_team2": quindi il SECONDO numero sono i TUOI gol, il primo quelli avversari.\n`
   } else {
-    // Match vecchio: usa logica client_team_name (backward compatibility)
     clientTeamText = clientTeamName
       ? `\nSQUADRA CLIENTE: ${clientTeamName}\n`
-      : `\nSQUADRA CLIENTE: Identifica quale squadra è quella del cliente confrontando i nomi squadra nei dati match.\n`
+      : `\nSQUADRA CLIENTE: Identifica quale squadra è quella del cliente confrontando i nomi squadra nei dati match. Il risultato è in formato team1-team2 (primo numero = gol team1, secondo = gol team2).\n`
   }
   
   const opponentName = matchData.opponent_name && typeof matchData.opponent_name === 'string' ? String(matchData.opponent_name).trim() : null
@@ -685,9 +669,12 @@ Puoi dire che con più sezioni complete l'analisi sarebbe più precisa; NON dare
     console.error('[analyze-match] Error loading RAG knowledge:', ragError)
   }
 
+  const resultLine = hasResult
+    ? `RISULTATO: ${matchData.result} (formato sempre: gol_team1 - gol_team2). ${useIsHome ? (isHome ? 'Cliente = team1 = primo numero.' : 'Cliente = team2 = secondo numero.') : 'Identifica cliente da nomi squadra.'}`
+    : 'RISULTATO: Non disponibile'
   return `Analizza i dati di questa partita di eFootball${greeting} e genera un riassunto motivazionale e decisionale dell'andamento.
 
-${hasResult ? `RISULTATO: ${matchData.result}` : 'RISULTATO: Non disponibile'}
+${resultLine}
 
 ${userContext}${clientTeamText}${opponentNameText}${rosterText}${playersInMatchText}${opponentFormationText}${historyAnalysisText}DATI MATCH DISPONIBILI:
 ${availableDataText}
@@ -1057,7 +1044,7 @@ export async function POST(req) {
     const missingSections = getMissingSections(matchData)
     
     // Sanitizzazione prompt: limita lunghezza campi stringa
-    // ✅ FIX: Includi match_date e is_home per determinare correttamente isNewMatch e identificare squadra cliente
+    // Includi match_date e is_home per identificare correttamente squadra cliente (casa/fuori) e risultato
     const sanitizedMatchData = {
       result: matchData.result && typeof matchData.result === 'string'
         ? matchData.result.substring(0, 50)
@@ -1068,7 +1055,7 @@ export async function POST(req) {
       client_team_name: matchData.client_team_name && typeof matchData.client_team_name === 'string'
         ? matchData.client_team_name.substring(0, 255).trim()
         : null,
-      match_date: matchData.match_date || null, // ✅ FIX: Necessario per determinare isNewMatch
+      match_date: matchData.match_date || null,
       is_home: typeof matchData.is_home === 'boolean' ? matchData.is_home : (matchData.is_home !== undefined ? matchData.is_home : null), // ✅ FIX: Necessario per identificare squadra cliente nei match nuovi
       player_ratings: matchData.player_ratings,
       team_stats: matchData.team_stats,
