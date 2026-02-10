@@ -140,6 +140,13 @@ export default function PlayerDetailPage() {
         if (extractedPlayerData.com_skills) {
           updateData.com_skills = extractedPlayerData.com_skills
         }
+        // Stili di gioco IA: salva in metadata se estratti (non c'è colonna dedicata)
+        if (extractedPlayerData.ai_playstyles && Array.isArray(extractedPlayerData.ai_playstyles) && extractedPlayerData.ai_playstyles.length > 0) {
+          updateData.metadata = {
+            ...(player.metadata && typeof player.metadata === 'object' ? player.metadata : {}),
+            ai_playstyles: extractedPlayerData.ai_playstyles
+          }
+        }
         // Se ci sono booster estratti dalla stessa foto, salvali e traccia
         if (extractedPlayerData.boosters && Array.isArray(extractedPlayerData.boosters) && extractedPlayerData.boosters.length > 0) {
           updateData.available_boosters = extractedPlayerData.boosters
@@ -801,6 +808,30 @@ function SkillsSection({ player, photoSlots, isExpanded, onToggle, onFileSelect,
                         color: '#a855f7'
                       }}>
                         {skill}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Stili di gioco IA (da metadata, estratti da card) */}
+              {Array.isArray(player.metadata?.ai_playstyles) && player.metadata.ai_playstyles.length > 0 && (
+                <div style={{ marginBottom: '20px' }}>
+                  <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '12px', color: '#a855f7' }}>
+                    {t('aiPlaystyles')}
+                  </h3>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    {player.metadata.ai_playstyles.map((style, idx) => (
+                      <div key={idx} style={{
+                        padding: '8px 12px',
+                        background: 'rgba(168, 85, 247, 0.08)',
+                        border: '1px solid rgba(168, 85, 247, 0.25)',
+                        borderRadius: '20px',
+                        fontSize: '13px',
+                        fontWeight: 500,
+                        color: 'rgba(255, 255, 255, 0.9)'
+                      }}>
+                        {style}
                       </div>
                     ))}
                   </div>

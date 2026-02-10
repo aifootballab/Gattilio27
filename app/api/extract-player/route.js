@@ -179,6 +179,14 @@ OVERALL RATING (CRITICO - Leggi con attenzione):
 
 - Estrai TUTTI questi dati: nome giocatore, posizione, overall rating, team, card_type, base_stats (attacking, defending, athleticism), skills, com_skills, boosters, height, weight, age, nationality, level, form, role, playing_style, ai_playstyles, matches_played, goals, assists, weak_foot_frequency, weak_foot_accuracy, injury_resistance
 
+ABILITÀ (due sezioni distinte in eFootball):
+- "Abilità giocatore" = prima lista (spesso in griglia, es. Cross calibrato, Marcatore, Intercettazione...). Mettila in "skills".
+- "Abilità aggiuntive" / "COM" = seconda lista sotto (es. Passaggio filtrante, Colpo di testa, Passaggio calibrato...). Mettila in "com_skills".
+- Se nella card vedi ENTRAMBE le sezioni, compila ENTRAMBE. Se vedi solo la prima, compila solo "skills".
+
+STILI DI GIOCO IA (sezione "Stili di gioco IA" nella card):
+- Elenco di stili IA (es. "Treno in corsa", "Crossatore"). Mettili in "ai_playstyles" come array di stringhe.
+
 POSIZIONI ORIGINALI (NUOVO - Guarda Mini-Campo in Alto a Destra):
 - Guarda la sezione in alto a destra della card dove c'è un MINI-CAMPO diviso in zone
 - Il mini-campo mostra le posizioni originali del giocatore evidenziate in VERDE
