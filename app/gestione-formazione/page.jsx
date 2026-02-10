@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { useTranslation } from '@/lib/i18n'
@@ -56,6 +56,18 @@ async function showConfirmSafe({ fallback, modalConfig, setConfirmModal }) {
   })
 }
 
+/** Legge ?tutorial=1 dall'URL e apre il tutorial; deve stare dentro Suspense (Next.js useSearchParams). */
+function TutorialQueryListener({ onOpen }) {
+  const searchParams = useSearchParams()
+  React.useEffect(() => {
+    if (typeof window !== 'undefined' && searchParams?.get('tutorial') === '1') {
+      onOpen()
+      window.history.replaceState(null, '', '/gestione-formazione')
+    }
+  }, [searchParams, onOpen])
+  return null
+}
+
 /** Modal conferma giocatore duplicato: componente separato per evitare ReferenceError in bundle (scope/closure). */
 function DuplicatePlayerConfirmModal({ state, t }) {
   if (!state || !state.show) return null
@@ -81,7 +93,6 @@ function DuplicatePlayerConfirmModal({ state, t }) {
 export default function GestioneFormazionePage() {
   const { t } = useTranslation()
   const router = useRouter()
-  const searchParams = useSearchParams()
   const [layout, setLayout] = React.useState(null) // { formation, slot_positions }
   const [titolari, setTitolari] = React.useState([]) // Giocatori con slot_index 0-10
   const [riserve, setRiserve] = React.useState([]) // Giocatori con slot_index NULL
@@ -290,14 +301,6 @@ export default function GestioneFormazionePage() {
       }
     } catch (_) { /* non bloccare UI */ }
   }, [supabase])
-
-  // Apri tutorial rosa se URL contiene ?tutorial=1 (es. da Guida)
-  React.useEffect(() => {
-    if (typeof window !== 'undefined' && searchParams?.get('tutorial') === '1') {
-      setShowRosaTutorial(true)
-      window.history.replaceState(null, '', '/gestione-formazione')
-    }
-  }, [searchParams])
 
   // Auto-dismiss toast
   React.useEffect(() => {
@@ -2010,6 +2013,9 @@ export default function GestioneFormazionePage() {
 
   return (
     <main data-tour-id="tour-formation-intro" style={{ padding: '16px', minHeight: '100vh', maxWidth: '1400px', margin: '0 auto' }}>
+      <Suspense fallback={null}>
+        <TutorialQueryListener onOpen={() => setShowRosaTutorial(true)} />
+      </Suspense>
       {/* Toast Notification */}
       {toast && (
         <div style={{
