@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { useTranslation } from '@/lib/i18n'
-import { X, BookOpen, Camera, AlertTriangle, HelpCircle, ChevronDown, ChevronUp } from 'lucide-react'
+import { X, BookOpen, Camera, AlertTriangle, HelpCircle, ChevronDown, ChevronUp, Move } from 'lucide-react'
 
 /**
  * Tutorial per il caricamento della rosa: come caricare, le 3 foto,
@@ -30,6 +30,12 @@ export default function RosaTutorialModal({ onClose }) {
       titleKey: 'tutorialRosaSectionAlerts',
       icon: AlertTriangle,
       color: 'var(--neon-orange)'
+    },
+    {
+      id: 'completeMove',
+      titleKey: 'tutorialRosaSectionCompleteMove',
+      icon: Move,
+      color: 'var(--neon-green)'
     },
     {
       id: 'troubleshoot',
@@ -136,6 +142,7 @@ export default function RosaTutorialModal({ onClose }) {
                   {id === 'steps' && <TutorialSteps t={t} />}
                   {id === 'photos' && <TutorialPhotos t={t} />}
                   {id === 'alerts' && <TutorialAlerts t={t} />}
+                  {id === 'completeMove' && <TutorialCompleteMove t={t} />}
                   {id === 'troubleshoot' && <TutorialTroubleshoot t={t} />}
                 </div>
               )}
@@ -174,6 +181,11 @@ function TutorialPhotos({ t }) {
         <li><strong>{t('tutorialRosaPhoto2Title')}</strong> — {t('tutorialRosaPhoto2Desc')}</li>
         <li><strong>{t('tutorialRosaPhoto3Title')}</strong> — {t('tutorialRosaPhoto3Desc')}</li>
       </ul>
+      <p style={{ marginTop: '14px', marginBottom: '6px', fontWeight: 600, color: 'var(--neon-orange)' }}>{t('tutorialRosaPhotoRulesTitle')}</p>
+      <ul style={{ margin: 0, paddingLeft: '20px' }}>
+        <li>{t('tutorialRosaPhotoFullScreen')}</li>
+        <li>{t('tutorialRosaPhotoBoosterActive')}</li>
+      </ul>
     </>
   )
 }
@@ -191,6 +203,24 @@ function TutorialAlerts({ t }) {
   )
 }
 
+function TutorialCompleteMove({ t }) {
+  return (
+    <>
+      <p style={{ marginTop: 0, marginBottom: '8px' }}>{t('tutorialRosaCompleteLaterIntro')}</p>
+      <ul style={{ margin: 0, paddingLeft: '20px', marginBottom: '14px' }}>
+        <li>{t('tutorialRosaCompleteLater1')}</li>
+        <li>{t('tutorialRosaCompleteLater2')}</li>
+      </ul>
+      <p style={{ marginTop: 0, marginBottom: '8px' }}>{t('tutorialRosaMoveIntro')}</p>
+      <ul style={{ margin: 0, paddingLeft: '20px' }}>
+        <li>{t('tutorialRosaMove1')}</li>
+        <li>{t('tutorialRosaMove2')}</li>
+        <li>{t('tutorialRosaMove3')}</li>
+      </ul>
+    </>
+  )
+}
+
 function TutorialTroubleshoot({ t }) {
   return (
     <>
@@ -200,6 +230,8 @@ function TutorialTroubleshoot({ t }) {
         <li>{t('tutorialRosaTroubleshoot2')}</li>
         <li>{t('tutorialRosaTroubleshoot3')}</li>
         <li>{t('tutorialRosaTroubleshoot4')}</li>
+        <li>{t('tutorialRosaTroubleshoot5')}</li>
+        <li>{t('tutorialRosaTroubleshoot6')}</li>
       </ul>
     </>
   )

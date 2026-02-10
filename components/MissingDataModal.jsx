@@ -89,12 +89,22 @@ export default function MissingDataModal({
         
         <p style={{ 
           marginTop: 0, 
-          marginBottom: '20px',
+          marginBottom: '8px',
           color: 'var(--text-secondary, #aaa)',
           fontSize: '14px',
           lineHeight: '1.5'
         }}>
           {t('missingDataDescription') || 'Alcuni dati obbligatori non sono stati estratti dalle foto. Inseriscili manualmente o ricarica le foto.'}
+        </p>
+        <p style={{ 
+          marginTop: 0, 
+          marginBottom: '20px',
+          color: 'var(--text-secondary, #888)',
+          fontSize: '13px',
+          lineHeight: '1.5',
+          fontStyle: 'italic'
+        }}>
+          {t('missingDataCompleteLater')}
         </p>
 
         {/* Campi OBBLIGATORI mancanti */}
