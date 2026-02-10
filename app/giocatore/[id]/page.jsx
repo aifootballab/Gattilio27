@@ -326,8 +326,8 @@ export default function PlayerDetailPage() {
   const hasCardStatistiche = (photoSlots.card || photoSlots.statistiche) || hasStatisticheData
   const hasAbilitaBooster = (photoSlots.abilita || photoSlots.booster) || hasAbilitaData || hasBoosterData
 
-  // Calcola se profilo è completo: 3 sezioni (Card+Statistiche, Abilità, Booster)
-  const isProfileComplete = hasCardStatistiche && hasAbilitaBooster
+  // Profilo completo solo quando i dati mostrati ci sono davvero (non dire "Profilo Completo" se statistiche/abilità sono "non disponibili")
+  const isProfileComplete = hasStatisticheData && (hasAbilitaData || hasBoosterData)
   const completedSections = [hasCardStatistiche, hasAbilitaData || photoSlots.abilita, hasBoosterData || photoSlots.booster].filter(Boolean).length
 
   const toggleSection = (section) => {

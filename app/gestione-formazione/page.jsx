@@ -3184,8 +3184,8 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
   const hasCardStatistiche = (photoSlots.card || photoSlots.statistiche) || hasStats
   const hasAbilitaBooster = (photoSlots.abilita || photoSlots.booster) || hasSkills || hasBoosters
 
-  // Calcola completezza profilo: 3 sezioni (Card+Statistiche, Abilità, Booster)
-  const isProfileComplete = hasCardStatistiche && hasAbilitaBooster
+  // Profilo completo solo con dati reali (coerente con scheda giocatore: non dire "Profilo Completo" se stats/skills sono vuoti)
+  const isProfileComplete = hasStats && (hasSkills || hasBoosters)
   const completedSections = [hasCardStatistiche, hasSkills || photoSlots.abilita, hasBoosters || photoSlots.booster].filter(Boolean).length
 
   return (
@@ -3698,23 +3698,21 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
 
             {/* Azioni */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '12px', paddingTop: '16px', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
-              {!isProfileComplete && (
-                <button
-                  onClick={() => router.push(`/giocatore/${currentPlayer.id}`)}
-                  className="btn primary"
-                  style={{ 
-                    width: '100%', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '8px', 
-                    justifyContent: 'center',
-                    padding: '12px'
-                  }}
-                >
-                  <User size={18} />
-                  {t('completeProfile')} ({completedSections}/3)
-                </button>
-              )}
+              <button
+                onClick={() => router.push(`/giocatore/${currentPlayer.id}`)}
+                className="btn primary"
+                style={{ 
+                  width: '100%', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '8px', 
+                  justifyContent: 'center',
+                  padding: '12px'
+                }}
+              >
+                <User size={18} />
+                {isProfileComplete ? t('goToPlayerProfile') : `${t('completeProfile')} (${completedSections}/3)`}
+              </button>
               {slot && onRemove && currentPlayer && (
                 <button
                   onClick={() => {
