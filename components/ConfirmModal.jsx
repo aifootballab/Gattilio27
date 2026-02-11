@@ -13,8 +13,8 @@ export default function ConfirmModal({
   title,
   message,
   details = null,
-  confirmLabel = 'Conferma',
-  cancelLabel = 'Annulla',
+  confirmLabel,
+  cancelLabel,
   variant = 'warning',
   onConfirm,
   onCancel,
@@ -112,7 +112,7 @@ export default function ConfirmModal({
               fontSize: '20px',
               fontWeight: '600'
             }}>
-              {title || t('confirmAction') || 'Conferma Azione'}
+              {title || t('confirmAction')}
             </h2>
             <p style={{ 
               margin: 0,
@@ -159,7 +159,7 @@ export default function ConfirmModal({
               transition: 'opacity 0.2s'
             }}
           >
-            {cancelLabel || t('cancel') || 'Annulla'}
+            {cancelLabel ?? t('cancel')}
           </button>
           
           <button
@@ -178,7 +178,7 @@ export default function ConfirmModal({
               transition: 'opacity 0.2s'
             }}
           >
-            {confirmLabel || t('confirm') || 'Conferma'}
+            {confirmLabel ?? t('confirm')}
           </button>
         </div>
       </div>

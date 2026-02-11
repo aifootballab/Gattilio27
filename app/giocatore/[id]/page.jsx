@@ -497,7 +497,7 @@ export default function PlayerDetailPage() {
             ) : (
               <>
                 <CheckCircle2 size={20} />
-                {t('saveAndUpdate') || 'Salva e Aggiorna'}
+                {t('saveAndUpdate')}
               </>
             )}
           </button>
@@ -1005,9 +1005,9 @@ function ConfirmUpdateModal({
 }) {
   const { t } = useTranslation()
   const uploadTypeLabels = {
-    stats: t('stats') || 'Statistiche',
-    skills: t('skills') || 'Abilità',
-    booster: t('boosters') || 'Booster'
+    stats: t('stats'),
+    skills: t('skills'),
+    booster: t('boosters')
   }
 
   return (

@@ -83,7 +83,7 @@ export default function MissingDataModal({
             fontSize: '20px',
             fontWeight: '600'
           }}>
-            {t('missingDataTitle') || 'Dati Mancanti'}
+            {t('missingDataTitle')}
           </h2>
         </div>
         
@@ -94,7 +94,7 @@ export default function MissingDataModal({
           fontSize: '14px',
           lineHeight: '1.5'
         }}>
-          {t('missingDataDescription') || 'Alcuni dati obbligatori non sono stati estratti dalle foto. Inseriscili manualmente o ricarica le foto.'}
+          {t('missingDataDescription')}
         </p>
         <p style={{ 
           marginTop: 0, 
@@ -116,7 +116,7 @@ export default function MissingDataModal({
               fontWeight: '600',
               marginBottom: '12px'
             }}>
-              {t('requiredFields') || 'Campi Obbligatori'} ({missingData.required.length})
+              {t('requiredFields')} ({missingData.required.length})
             </h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {missingData.required.map(missing => (
@@ -134,7 +134,7 @@ export default function MissingDataModal({
                     type={getInputType(missing.field)}
                     value={getInputValue(missing.field)}
                     onChange={(e) => handleInputChange(missing.field, e.target.value)}
-                    placeholder={t('enterValue') || 'Inserisci valore...'}
+                    placeholder={t('enterValue')}
                     style={{
                       width: '100%',
                       padding: '10px',
@@ -160,7 +160,7 @@ export default function MissingDataModal({
               fontWeight: '600',
               marginBottom: '12px'
             }}>
-              {t('optionalFields') || 'Campi Opzionali'} ({missingData.optional.length})
+              {t('optionalFields')} ({missingData.optional.length})
             </h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {missingData.optional.map(missing => (
@@ -177,7 +177,7 @@ export default function MissingDataModal({
                     type={getInputType(missing.field)}
                     value={getInputValue(missing.field)}
                     onChange={(e) => handleInputChange(missing.field, e.target.value)}
-                    placeholder={t('enterValueOptional') || 'Opzionale...'}
+                    placeholder={t('enterValueOptional')}
                     style={{
                       width: '100%',
                       padding: '10px',
@@ -219,7 +219,7 @@ export default function MissingDataModal({
             }}
           >
             <X size={16} />
-            {t('cancel') || 'Annulla'}
+            {t('cancel')}
           </button>
           
           <button
@@ -239,7 +239,7 @@ export default function MissingDataModal({
             }}
           >
             <RefreshCw size={16} />
-            {t('retryUpload') || 'Ricarica Foto'}
+            {t('retryUpload')}
           </button>
           
           {missingData.required.length === 0 && (
@@ -259,7 +259,7 @@ export default function MissingDataModal({
                 gap: '8px'
               }}
             >
-              {t('saveAnyway') || 'Salva Comunque'}
+              {t('saveAnyway')}
             </button>
           )}
           
@@ -287,7 +287,7 @@ export default function MissingDataModal({
             }}
           >
             <Save size={16} />
-            {t('saveWithManualData') || 'Salva con Dati Manuali'}
+            {t('saveWithManualData')}
           </button>
         </div>
       </div>

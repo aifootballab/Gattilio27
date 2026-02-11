@@ -96,16 +96,16 @@ export default function GuidaPage() {
       icon: LayoutDashboard,
       color: 'var(--neon-blue)',
       path: '/',
-      title: t('guideDashboardTitle') || 'Dashboard',
-      description: t('guideDashboardDesc') || 'Panoramica completa della tua squadra',
+      title: t('guideDashboardTitle'),
+      description: t('guideDashboardDesc'),
       steps: [
-        t('guideDashboardStep1') || 'Visualizza statistiche squadra (titolari, riserve, totale)',
-        t('guideDashboardStepBanner') || 'Barra Conoscenza, "Informazioni IA" e "Aggiorna analisi"',
-        t('guideDashboardStepObiettivi') || 'Obiettivi settimanali: espandi la card per vedere i task',
-        t('guideDashboardStepClassifica') || 'Classifica mensile: clicca per posizione e punti',
-        t('guideDashboardStep3') || 'Ultime partite: espandi la card per vedere l\'elenco',
-        t('guideDashboardStepStatistiche') || 'Statistiche di gioco: carica le 2 schermate Analisi',
-        t('guideDashboardStep4') || 'Naviga rapidamente alle altre sezioni'
+        t('guideDashboardStep1'),
+        t('guideDashboardStepBanner'),
+        t('guideDashboardStepObiettivi'),
+        t('guideDashboardStepClassifica'),
+        t('guideDashboardStep3'),
+        t('guideDashboardStepStatistiche'),
+        t('guideDashboardStep4')
       ]
     },
     {
@@ -113,14 +113,14 @@ export default function GuidaPage() {
       icon: Users,
       color: 'var(--neon-purple)',
       path: '/gestione-formazione',
-      title: t('guideFormationTitle') || 'Gestione Formazione',
-      description: t('guideFormationDesc') || 'Campo 2D interattivo per gestire la tua rosa',
+      title: t('guideFormationTitle'),
+      description: t('guideFormationDesc'),
       steps: [
-        t('guideFormationStep1') || 'Scegli tra 14 formazioni ufficiali eFootball',
-        t('guideFormationStep2') || 'Clicca sugli slot per assegnare giocatori',
-        t('guideFormationStep3') || 'Carica giocatori con screenshot (fino a 3 immagini)',
-        t('guideFormationStep4') || 'Gestisci riserve nella sezione dedicata',
-        t('guideFormationStep5') || 'Visualizza dettagli giocatori cliccando sulle card'
+        t('guideFormationStep1'),
+        t('guideFormationStep2'),
+        t('guideFormationStep3'),
+        t('guideFormationStep4'),
+        t('guideFormationStep5')
       ]
     },
     {
@@ -128,15 +128,15 @@ export default function GuidaPage() {
       icon: Calendar,
       color: 'var(--neon-orange)',
       path: '/match/new',
-      title: t('guideAddMatchTitle') || 'Aggiungi Partita',
-      description: t('guideAddMatchDesc') || 'Wizard 6 step (Casa/Fuori + 5 sezioni foto) per caricare dati partita',
+      title: t('guideAddMatchTitle'),
+      description: t('guideAddMatchDesc'),
       steps: [
-        t('guideAddMatchStep1') || 'Step 1: Carica screenshot pagelle giocatori',
-        t('guideAddMatchStep2') || 'Step 2: Carica screenshot statistiche squadra',
-        t('guideAddMatchStep3') || 'Step 3: Carica screenshot aree di attacco',
-        t('guideAddMatchStep4') || 'Step 4: Carica screenshot recuperi palla',
-        t('guideAddMatchStep5') || 'Step 5: Carica screenshot formazione avversaria',
-        t('guideAddMatchStep6') || 'Salva partita quando tutti gli step sono completati'
+        t('guideAddMatchStep1'),
+        t('guideAddMatchStep2'),
+        t('guideAddMatchStep3'),
+        t('guideAddMatchStep4'),
+        t('guideAddMatchStep5'),
+        t('guideAddMatchStep6')
       ]
     },
     {
@@ -144,13 +144,13 @@ export default function GuidaPage() {
       icon: Trophy,
       color: 'var(--neon-pink)',
       path: '/match',
-      title: t('guideMatchDetailTitle') || 'Dettaglio Partita',
-      description: t('guideMatchDetailDesc') || 'Analisi completa della partita',
+      title: t('guideMatchDetailTitle'),
+      description: t('guideMatchDetailDesc'),
       steps: [
-        t('guideMatchDetailStep1') || 'Visualizza tutti i dati della partita',
-        t('guideMatchDetailStep2') || 'Genera riassunto AI bilingue (IT/EN)',
-        t('guideMatchDetailStep3') || 'Analizza performance giocatori',
-        t('guideMatchDetailStep4') || 'Consulta suggerimenti tattici'
+        t('guideMatchDetailStep1'),
+        t('guideMatchDetailStep2'),
+        t('guideMatchDetailStep3'),
+        t('guideMatchDetailStep4')
       ]
     },
     {
@@ -158,12 +158,12 @@ export default function GuidaPage() {
       icon: User,
       color: 'var(--neon-cyan)',
       path: '/giocatore',
-      title: t('guidePlayerDetailTitle') || 'Dettaglio Giocatore',
-      description: t('guidePlayerDetailDesc') || 'Profilo completo del giocatore',
+      title: t('guidePlayerDetailTitle'),
+      description: t('guidePlayerDetailDesc'),
       steps: [
-        t('guidePlayerDetailStep1') || 'Visualizza statistiche e abilità',
-        t('guidePlayerDetailStep2') || 'Completa profilo con foto aggiuntive',
-        t('guidePlayerDetailStep3') || 'Carica screenshot stats, skills, booster'
+        t('guidePlayerDetailStep1'),
+        t('guidePlayerDetailStep2'),
+        t('guidePlayerDetailStep3')
       ]
     },
     {
@@ -171,13 +171,13 @@ export default function GuidaPage() {
       icon: Settings,
       color: 'var(--neon-blue)',
       path: '/impostazioni-profilo',
-      title: t('guideProfileTitle') || 'Impostazioni Profilo',
-      description: t('guideProfileDesc') || 'Personalizza il tuo profilo e preferenze',
+      title: t('guideProfileTitle'),
+      description: t('guideProfileDesc'),
       steps: [
-        t('guideProfileStep1') || 'Inserisci dati personali (nome, cognome)',
-        t('guideProfileStep2') || 'Configura dati gioco (divisione, squadra preferita)',
-        t('guideProfileStep3') || 'Personalizza preferenze IA (nome AI, come ricordarti)',
-        t('guideProfileStep4') || 'Indica problemi comuni per suggerimenti mirati'
+        t('guideProfileStep1'),
+        t('guideProfileStep2'),
+        t('guideProfileStep3'),
+        t('guideProfileStep4')
       ]
     },
     {
@@ -185,13 +185,13 @@ export default function GuidaPage() {
       icon: Shield,
       color: 'var(--neon-orange)',
       path: '/contromisure-live',
-      title: t('guideCountermeasuresTitle') || 'Contromisure Live',
-      description: t('guideCountermeasuresDesc') || 'Carica formazione avversaria, estrai dati e genera contromisure tattiche con l\'IA.',
+      title: t('guideCountermeasuresTitle'),
+      description: t('guideCountermeasuresDesc'),
       steps: [
-        t('guideCountermeasuresStep1') || 'Carica uno screenshot della formazione avversaria',
-        t('guideCountermeasuresStep2') || 'Clicca "Estrai Formazione" per analizzare',
-        t('guideCountermeasuresStep3') || 'Clicca "Genera Contromisure" per ottenere analisi e suggerimenti',
-        t('guideCountermeasuresStep4') || 'Leggi analisi, aggiustamenti tattici e istruzioni; applica i suggerimenti'
+        t('guideCountermeasuresStep1'),
+        t('guideCountermeasuresStep2'),
+        t('guideCountermeasuresStep3'),
+        t('guideCountermeasuresStep4')
       ]
     },
     {
@@ -199,12 +199,12 @@ export default function GuidaPage() {
       icon: UserRound,
       color: 'var(--neon-cyan)',
       path: '/allenatori',
-      title: t('guideCoachesTitle') || 'Allenatori',
-      description: t('guideCoachesDesc') || 'Carica foto allenatori, imposta attivo e consulta competenze.',
+      title: t('guideCoachesTitle'),
+      description: t('guideCoachesDesc'),
       steps: [
-        t('guideCoachesStep1') || 'Carica 1 o 2 screenshot (foto principale e connessione)',
-        t('guideCoachesStep2') || 'L\'IA estrae nome, squadra e competenze',
-        t('guideCoachesStep3') || 'Imposta un allenatore come attivo; vedi dettagli o elimina'
+        t('guideCoachesStep1'),
+        t('guideCoachesStep2'),
+        t('guideCoachesStep3')
       ]
     },
     {
@@ -212,12 +212,12 @@ export default function GuidaPage() {
       icon: Trophy,
       color: 'var(--neon-orange)',
       path: '/classifica',
-      title: t('guideClassificaTitle') || 'Classifica mensile',
-      description: t('guideClassificaDesc') || 'Classifica From Zero to Hero: punti da partite, obiettivi e utilizzo IA.',
+      title: t('guideClassificaTitle'),
+      description: t('guideClassificaDesc'),
       steps: [
-        t('guideClassificaStep1') || 'Consulta la tua posizione e i punti del mese',
-        t('guideClassificaStep2') || 'Espandi "Dettaglio punti" per vedere come vengono calcolati',
-        t('guideClassificaStep3') || 'Partecipa con almeno 3 partite complete e consenso attivo'
+        t('guideClassificaStep1'),
+        t('guideClassificaStep2'),
+        t('guideClassificaStep3')
       ]
     },
     {
@@ -225,12 +225,12 @@ export default function GuidaPage() {
       icon: Wallet,
       color: 'var(--neon-orange)',
       path: '/gestione-profilo',
-      title: t('guideGestioneProfiloTitle') || 'Gestione profilo (Hero Points)',
-      description: t('guideGestioneProfiloDesc') || 'Crediti residui, analisi totali, rank e classifica.',
+      title: t('guideGestioneProfiloTitle'),
+      description: t('guideGestioneProfiloDesc'),
       steps: [
-        t('guideGestioneProfiloStep1') || 'Visualizza crediti residui e rank',
-        t('guideGestioneProfiloStep2') || 'Consulta posizione in classifica e storico',
-        t('guideGestioneProfiloStep3') || 'Controlla le transazioni (utilizzo crediti)'
+        t('guideGestioneProfiloStep1'),
+        t('guideGestioneProfiloStep2'),
+        t('guideGestioneProfiloStep3')
       ]
     }
   ]
@@ -249,7 +249,7 @@ export default function GuidaPage() {
           color: 'var(--neon-blue)',
           fontSize: '18px'
         }}>
-          {t('loading') || 'Caricamento...'}
+          {t('loading')}
         </div>
       </div>
     )
@@ -300,7 +300,7 @@ export default function GuidaPage() {
               }}
             >
               <ArrowLeft size={18} />
-              <span>{t('back') || 'Indietro'}</span>
+              <span>{t('back')}</span>
             </button>
             <div>
               <h1 style={{
@@ -315,14 +315,14 @@ export default function GuidaPage() {
                 gap: '12px'
               }}>
                 <BookOpen size={32} />
-                {t('guideTitle') || 'Guida Completa'}
+                {t('guideTitle')}
               </h1>
               <p style={{
                 fontSize: '16px',
                 opacity: 0.8,
                 color: 'white'
               }}>
-                {t('guideSubtitle') || 'Scopri come usare al meglio la piattaforma'}
+                {t('guideSubtitle')}
               </p>
             </div>
           </div>
@@ -367,7 +367,7 @@ export default function GuidaPage() {
                 alignItems: 'center',
                 gap: '8px'
               }}>
-                {t('guideCompleteProfileTitle') || 'Completa il Tuo Profilo'}
+                {t('guideCompleteProfileTitle')}
                 {profileCompletion === 100 && <CheckCircle2 size={24} color="var(--neon-blue)" />}
               </h2>
               <p style={{
@@ -375,7 +375,7 @@ export default function GuidaPage() {
                 opacity: 0.9,
                 color: 'white'
               }}>
-                {t('guideCompleteProfileDesc') || 'Più completi il profilo, più l\'AI può aiutarti in modo personalizzato!'}
+                {t('guideCompleteProfileDesc')}
               </p>
             </div>
           </div>
@@ -395,7 +395,7 @@ export default function GuidaPage() {
                 opacity: 0.8,
                 color: 'white'
               }}>
-                {t('guideProfileProgress') || 'Completamento Profilo'}
+                {t('guideProfileProgress')}
               </span>
               <span style={{
                 fontSize: '18px',
@@ -453,8 +453,8 @@ export default function GuidaPage() {
           >
             <Settings size={20} />
             {profileCompletion === 100
-              ? (t('guideProfileComplete') || 'Profilo Completo! ✅')
-              : (t('guideCompleteProfileButton') || 'Completa il Profilo')
+              ? t('guideProfileComplete')
+              : t('guideCompleteProfileButton')
             }
             <ArrowRight size={20} />
           </button>
@@ -500,7 +500,7 @@ export default function GuidaPage() {
                 gap: '8px'
               }}>
                 <Sparkles size={24} color="var(--neon-purple)" />
-                {t('guideUseBrainTitle') || 'Usa il Cervello AI'}
+                {t('guideUseBrainTitle')}
               </h2>
               <p style={{
                 fontSize: '16px',
@@ -508,7 +508,7 @@ export default function GuidaPage() {
                 color: 'white',
                 lineHeight: '1.6'
               }}>
-                {t('guideUseBrainDesc') || 'Il tuo assistente personale è sempre disponibile! Clicca sul pulsante con il cervello in basso a destra per chiedere qualsiasi cosa. Ti guida, motiva e ti aiuta passo-passo!'}
+                {t('guideUseBrainDesc')}
               </p>
             </div>
           </div>
@@ -532,14 +532,14 @@ export default function GuidaPage() {
                 color: 'var(--neon-purple)',
                 marginBottom: '4px'
               }}>
-                {t('guideBrainFeature1') || 'Guida Personale'}
+                {t('guideBrainFeature1')}
               </div>
               <div style={{
                 fontSize: '12px',
                 opacity: 0.8,
                 color: 'white'
               }}>
-                {t('guideBrainFeature1Desc') || 'Ti accompagna in ogni passo'}
+                {t('guideBrainFeature1Desc')}
               </div>
             </div>
             <div style={{
@@ -555,14 +555,14 @@ export default function GuidaPage() {
                 color: 'var(--neon-pink)',
                 marginBottom: '4px'
               }}>
-                {t('guideBrainFeature2') || 'Motivante'}
+                {t('guideBrainFeature2')}
               </div>
               <div style={{
                 fontSize: '12px',
                 opacity: 0.8,
                 color: 'white'
               }}>
-                {t('guideBrainFeature2Desc') || 'Celebra i tuoi successi'}
+                {t('guideBrainFeature2Desc')}
               </div>
             </div>
             <div style={{
@@ -578,14 +578,14 @@ export default function GuidaPage() {
                 color: 'var(--neon-blue)',
                 marginBottom: '4px'
               }}>
-                {t('guideBrainFeature3') || 'Sempre Disponibile'}
+                {t('guideBrainFeature3')}
               </div>
               <div style={{
                 fontSize: '12px',
                 opacity: 0.8,
                 color: 'white'
               }}>
-                {t('guideBrainFeature3Desc') || '24/7 al tuo servizio'}
+                {t('guideBrainFeature3Desc')}
               </div>
             </div>
           </div>
@@ -630,7 +630,7 @@ export default function GuidaPage() {
                 gap: '8px'
               }}>
                 <Sparkles size={24} color="var(--neon-cyan)" />
-                {t('guideShowMeHowTitle') || 'Mostrami come'}
+                {t('guideShowMeHowTitle')}
               </h2>
               <p style={{
                 fontSize: '16px',
@@ -638,7 +638,7 @@ export default function GuidaPage() {
                 color: 'white',
                 lineHeight: '1.6'
               }}>
-                {t('guideShowMeHowDesc') || 'Tour interattivo su ogni pagina! Clicca il pulsante con la bussola in alto a destra per una guida passo-passo.'}
+                {t('guideShowMeHowDesc')}
               </p>
             </div>
           </div>
@@ -661,14 +661,14 @@ export default function GuidaPage() {
                 color: 'var(--neon-cyan)',
                 marginBottom: '4px'
               }}>
-                {t('guideShowMeHowFeature1') || 'Tour contestuali'}
+                {t('guideShowMeHowFeature1')}
               </div>
               <div style={{
                 fontSize: '12px',
                 opacity: 0.8,
                 color: 'white'
               }}>
-                {t('guideShowMeHowFeature1Desc') || 'Un tour diverso per ogni pagina'}
+                {t('guideShowMeHowFeature1Desc')}
               </div>
             </div>
             <div style={{
@@ -684,14 +684,14 @@ export default function GuidaPage() {
                 color: 'var(--neon-blue)',
                 marginBottom: '4px'
               }}>
-                {t('guideShowMeHowFeature2') || 'Sempre disponibile'}
+                {t('guideShowMeHowFeature2')}
               </div>
               <div style={{
                 fontSize: '12px',
                 opacity: 0.8,
                 color: 'white'
               }}>
-                {t('guideShowMeHowFeature2Desc') || 'Riavvia quando vuoi'}
+                {t('guideShowMeHowFeature2Desc')}
               </div>
             </div>
           </div>
@@ -711,7 +711,7 @@ export default function GuidaPage() {
             gap: '12px'
           }}>
             <BookOpen size={28} color="var(--neon-blue)" />
-            {t('guidePagesTitle') || 'Guide per Pagina'}
+            {t('guidePagesTitle')}
           </h2>
 
           <div style={{
@@ -807,7 +807,7 @@ export default function GuidaPage() {
                         color: guide.color,
                         marginBottom: '12px'
                       }}>
-                        {t('guideSteps') || 'Come fare:'}
+                        {t('guideSteps')}
                       </div>
                       <ul style={{
                         listStyle: 'none',
@@ -891,7 +891,7 @@ export default function GuidaPage() {
                           e.currentTarget.style.boxShadow = 'none'
                         }}
                       >
-                        {t('guideGoToPage') || 'Vai alla Pagina'}
+                        {t('guideGoToPage')}
                         <ArrowRight size={16} />
                       </button>
                       {guide.id === 'gestione-formazione' && (
@@ -956,7 +956,7 @@ export default function GuidaPage() {
             color: 'white',
             marginBottom: '12px'
           }}>
-            {t('guideFooterTitle') || 'Hai Domande?'}
+            {t('guideFooterTitle')}
           </h3>
           <p style={{
             fontSize: '16px',
@@ -965,7 +965,7 @@ export default function GuidaPage() {
             marginBottom: '24px',
             lineHeight: '1.6'
           }}>
-            {t('guideFooterDesc') || 'Chiedi al cervello AI! Clicca sul pulsante in basso a destra e fai qualsiasi domanda. Ti guiderà passo-passo! 💪'}
+            {t('guideFooterDesc')}
           </p>
         </div>
       </div>

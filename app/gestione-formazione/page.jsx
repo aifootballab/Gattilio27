@@ -74,16 +74,16 @@ function DuplicatePlayerConfirmModal({ state, t }) {
   return (
     <ConfirmModal
       show={state.show}
-      title={t('duplicatePlayerTitle') || 'Giocatore Duplicato'}
+      title={t('duplicatePlayerTitle')}
       message={t('duplicateInFormationMessage', {
         playerName: state.playerName || '',
         playerAge: state.playerAge || '',
         slotIndex: state.slotIndex || ''
       }) || `Il giocatore "${state.playerName || ''}"${state.playerAge || ''} è già presente in formazione nello slot ${state.slotIndex || ''}.`}
-      details={t('duplicateInFormationDetails') || 'Vuoi sostituirlo con i nuovi dati?'}
+      details={t('duplicateInFormationDetails')}
       variant="warning"
-      confirmLabel={t('replace') || 'Sostituisci'}
-      cancelLabel={t('cancel') || 'Annulla'}
+      confirmLabel={t('replace')}
+      cancelLabel={t('cancel')}
       onConfirm={state.onConfirm || (() => {})}
       onCancel={state.onCancel || (() => {})}
     />
@@ -487,11 +487,11 @@ export default function GestioneFormazionePage() {
         const confirmed = await showConfirmSafe({
           fallback: () => window.confirm(errorMsg),
           modalConfig: {
-            title: t('duplicatePlayerTitle') || 'Giocatore Duplicato',
+            title: t('duplicatePlayerTitle'),
             message: errorMsg,
             variant: 'warning',
-            confirmLabel: t('deleteAndProceed') || 'Elimina e Procedi',
-            cancelLabel: t('cancel') || 'Annulla'
+            confirmLabel: t('deleteAndProceed'),
+            cancelLabel: t('cancel')
           },
           setConfirmModal
         })
@@ -571,11 +571,11 @@ export default function GestioneFormazionePage() {
         const confirmed = await showConfirmSafe({
           fallback: () => window.confirm(confirmMessage),
           modalConfig: {
-            title: t('confirmPositionChangeTitle') || 'Conferma Cambio Posizione',
+            title: t('confirmPositionChangeTitle'),
             message: confirmMessage,
             variant: 'warning',
-            confirmLabel: t('confirm') || 'Conferma',
-            cancelLabel: t('cancel') || 'Annulla'
+            confirmLabel: t('confirm'),
+            cancelLabel: t('cancel')
           },
           setConfirmModal
         })
@@ -670,7 +670,7 @@ export default function GestioneFormazionePage() {
           const confirmed = await showConfirmSafe({
             fallback: () => window.confirm(confirmMsg),
             modalConfig: {
-              title: t('duplicatePlayerTitle') || 'Giocatore Duplicato',
+              title: t('duplicatePlayerTitle'),
               message: confirmMsg,
               variant: 'warning',
               confirmLabel: t('deleteAndProceed') || 'Elimina e Procedi',
@@ -774,10 +774,10 @@ export default function GestioneFormazionePage() {
     if (!supabase) return
     setConfirmModal({
       show: true,
-      title: t('confirm') || 'Conferma',
-      message: t('confirmDeletePlayer') || 'Sei sicuro di voler eliminare definitivamente questo giocatore? Questa azione non può essere annullata.',
-      confirmLabel: t('delete') || 'Elimina',
-      cancelLabel: t('cancel') || 'Annulla',
+      title: t('confirm'),
+      message: t('confirmDeletePlayer'),
+      confirmLabel: t('delete'),
+      cancelLabel: t('cancel'),
       variant: 'danger',
       onConfirm: () => {
         setConfirmModal(null)
@@ -791,10 +791,10 @@ export default function GestioneFormazionePage() {
     if (!supabase) return
     setConfirmModal({
       show: true,
-      title: t('confirm') || 'Conferma',
-      message: t('confirmDeleteReserve') || 'Sei sicuro di voler eliminare definitivamente questo giocatore dalle riserve?',
-      confirmLabel: t('delete') || 'Elimina',
-      cancelLabel: t('cancel') || 'Annulla',
+      title: t('confirm'),
+      message: t('confirmDeleteReserve'),
+      confirmLabel: t('delete'),
+      cancelLabel: t('cancel'),
       variant: 'danger',
       onConfirm: () => {
         setConfirmModal(null)
@@ -817,39 +817,39 @@ export default function GestioneFormazionePage() {
     
     // Campi OBBLIGATORI (bloccano salvataggio se mancanti)
     if (!playerData.player_name || String(playerData.player_name).trim().length === 0) {
-      missing.required.push({ field: 'player_name', label: t('playerName') || 'Nome giocatore' })
+      missing.required.push({ field: 'player_name', label: t('playerName') })
     }
     if (playerData.overall_rating == null || playerData.overall_rating === 0) {
-      missing.required.push({ field: 'overall_rating', label: t('overallRating') || 'Overall Rating' })
+      missing.required.push({ field: 'overall_rating', label: t('overallRating') })
     }
     if (!playerData.position && (!playerData.original_positions || playerData.original_positions.length === 0)) {
-      missing.required.push({ field: 'position', label: t('position') || 'Posizione' })
+      missing.required.push({ field: 'position', label: t('position') })
     }
     
     // Campi OPZIONALI ma importanti (warning, non bloccano)
     if (!playerData.base_stats || Object.keys(playerData.base_stats || {}).length === 0) {
-      missing.optional.push({ field: 'base_stats', label: t('statistics') || 'Statistiche' })
+      missing.optional.push({ field: 'base_stats', label: t('statistics') })
     }
     if (!playerData.skills || (Array.isArray(playerData.skills) && playerData.skills.length === 0)) {
-      missing.optional.push({ field: 'skills', label: t('skills') || 'Abilità' })
+      missing.optional.push({ field: 'skills', label: t('skills') })
     }
     if (!playerData.com_skills || (Array.isArray(playerData.com_skills) && playerData.com_skills.length === 0)) {
-      missing.optional.push({ field: 'com_skills', label: t('comSkills') || 'Abilità aggiuntive' })
+      missing.optional.push({ field: 'com_skills', label: t('comSkills') })
     }
     if (!playerData.boosters || (Array.isArray(playerData.boosters) && playerData.boosters.length === 0)) {
-      missing.optional.push({ field: 'boosters', label: t('boosters') || 'Booster' })
+      missing.optional.push({ field: 'boosters', label: t('boosters') })
     }
     if (!playerData.age || playerData.age === 0) {
-      missing.optional.push({ field: 'age', label: t('age') || 'Età' })
+      missing.optional.push({ field: 'age', label: t('age') })
     }
     if (!playerData.height_cm || playerData.height_cm === 0) {
-      missing.optional.push({ field: 'height_cm', label: t('height') || 'Altezza' })
+      missing.optional.push({ field: 'height_cm', label: t('height') })
     }
     if (!playerData.weight_kg || playerData.weight_kg === 0) {
-      missing.optional.push({ field: 'weight_kg', label: t('weight') || 'Peso' })
+      missing.optional.push({ field: 'weight_kg', label: t('weight') })
     }
     if (!playerData.nationality || String(playerData.nationality).trim().length === 0) {
-      missing.optional.push({ field: 'nationality', label: t('nationality') || 'Nazionalità' })
+      missing.optional.push({ field: 'nationality', label: t('nationality') })
     }
     
     return missing
@@ -997,13 +997,13 @@ export default function GestioneFormazionePage() {
       // Se ci sono solo campi OPZIONALI mancanti, mostra warning ma permette continuare
       if (missing.optional.length > 0) {
         const optionalFields = missing.optional.map(m => m.label).join(', ')
-        const msg = `${t('missingOptionalData') || 'Alcuni dati opzionali non sono stati estratti'}: ${optionalFields}.\n\n${t('continueWithoutOptionalData') || 'Vuoi continuare comunque? Puoi aggiungerli dopo.'}`
+        const msg = `${t('missingOptionalData')}: ${optionalFields}.\n\n${t('continueWithoutOptionalData')}`
         setConfirmModal({
           show: true,
-          title: t('confirm') || 'Conferma',
+          title: t('confirm'),
           message: msg,
-          confirmLabel: t('continue') || 'Continua',
-          cancelLabel: t('cancel') || 'Annulla',
+          confirmLabel: t('continue'),
+          cancelLabel: t('cancel'),
           variant: 'warning',
           onConfirm: () => {
             setConfirmModal(null)
@@ -1349,10 +1349,10 @@ export default function GestioneFormazionePage() {
         const warningMsg = `${t('formationValidationSimple')}\n\n${t('formationInvalidConfirm')}`
         setConfirmModal({
           show: true,
-          title: t('confirm') || 'Conferma',
+          title: t('confirm'),
           message: warningMsg,
-          confirmLabel: t('continue') || 'Continua',
-          cancelLabel: t('cancel') || 'Annulla',
+          confirmLabel: t('continue'),
+          cancelLabel: t('cancel'),
           variant: 'warning',
           onConfirm: () => {
             setConfirmModal(null)
@@ -1533,11 +1533,11 @@ export default function GestioneFormazionePage() {
         const confirmed = await showConfirmSafe({
           fallback: () => window.confirm(alertMessage),
           modalConfig: {
-            title: t('playersOutOfRoleTitle') || 'Giocatori Fuori Ruolo',
+            title: t('playersOutOfRoleTitle'),
             message: alertMessage,
             variant: 'warning',
-            confirmLabel: t('proceedAnyway') || 'Procedi Comunque',
-            cancelLabel: t('cancel') || 'Annulla'
+            confirmLabel: t('proceedAnyway'),
+            cancelLabel: t('cancel')
           },
           setConfirmModal
         })
@@ -1600,11 +1600,11 @@ export default function GestioneFormazionePage() {
         const confirmed = await showConfirmSafe({
           fallback: () => window.confirm(warningMsg),
           modalConfig: {
-            title: t('formationValidationTitle') || 'Validazione Formazione',
+            title: t('formationValidationTitle'),
             message: warningMsg,
             variant: 'warning',
-            confirmLabel: t('saveAnyway') || 'Salva Comunque',
-            cancelLabel: t('cancel') || 'Annulla'
+            confirmLabel: t('saveAnyway'),
+            cancelLabel: t('cancel')
           },
           setConfirmModal
         })
@@ -1655,7 +1655,7 @@ export default function GestioneFormazionePage() {
       showToast(t('positionsSavedSuccessfully'), 'success')
     } catch (err) {
       console.error('[GestioneFormazione] Save custom positions error:', err)
-      const { message } = mapErrorToUserMessage(err, t('errorSavingPositions') || 'Errore salvataggio posizioni')
+      const { message } = mapErrorToUserMessage(err, t('errorSavingPositions'))
       setError(message)
       showToast(message, 'error')
     } finally {
@@ -1815,11 +1815,11 @@ export default function GestioneFormazionePage() {
         const confirmed = await showConfirmSafe({
           fallback: () => window.confirm(confirmMsg),
           modalConfig: {
-            title: t('duplicateReserveTitle') || 'Riserva Duplicata',
+            title: t('duplicateReserveTitle'),
             message: confirmMsg,
             variant: 'warning',
-            confirmLabel: t('replace') || 'Sostituisci',
-            cancelLabel: t('cancel') || 'Annulla'
+            confirmLabel: t('replace'),
+            cancelLabel: t('cancel')
           },
           setConfirmModal
         })
@@ -1879,7 +1879,7 @@ export default function GestioneFormazionePage() {
           const confirmed = await showConfirmSafe({
             fallback: () => window.confirm(confirmMsg),
             modalConfig: {
-              title: t('duplicateReserveTitle') || 'Riserva Duplicata',
+              title: t('duplicateReserveTitle'),
               message: confirmMsg,
               variant: 'warning',
               confirmLabel: t('replace') || 'Sostituisci',
@@ -2129,7 +2129,7 @@ export default function GestioneFormazionePage() {
             }}
           >
             <Settings size={16} />
-            {layout?.formation ? t('changeFormation') : (t('selectFormation') || t('createFormationBtn') || 'Seleziona formazione')}
+            {layout?.formation ? t('changeFormation') : (t('selectFormation') || t('createFormationBtn'))}
           </button>
           {/* Matita e personalizza: solo se c'è già un layout */}
           {layout?.formation && layout?.slot_positions && Object.keys(layout.slot_positions).length > 0 && (
@@ -3814,14 +3814,14 @@ const UPLOAD_MODAL_ICONS = { card: BarChart3, stats: Zap, skills: Gift }
 function UploadPlayerModal({ slot, images, onImagesChange, onUpload, onClose, uploading }) {
   const { t } = useTranslation()
   const labelByKey = {
-    card: t('photoStats') || 'Foto Statistiche',
-    stats: t('photoSkills') || 'Foto Abilità',
-    skills: t('photoBooster') || 'Foto Booster'
+    card: t('photoStats'),
+    stats: t('photoSkills'),
+    skills: t('photoBooster')
   }
   const descByKey = {
-    card: t('photoStatsDesc') || 'Carta con statistiche numeriche',
-    stats: t('photoSkillsDesc') || 'Abilità giocatore (Player Skills)',
-    skills: t('photoBoosterDesc') || 'Booster e bonus speciali (opzionale)'
+    card: t('photoStatsDesc'),
+    stats: t('photoSkillsDesc'),
+    skills: t('photoBoosterDesc')
   }
   const imageTypes = PHOTO_TYPE_KEYS.map(key => ({
     ...getPhotoTypeConfig(key),
@@ -3957,7 +3957,7 @@ function UploadPlayerModal({ slot, images, onImagesChange, onUpload, onClose, up
         </div>
 
         <div style={{ fontSize: '14px', opacity: 0.8, marginBottom: '24px', textAlign: 'center' }}>
-          {t('uploadPlayerInstructions') || 'Carica le immagini per estrarre automaticamente i dati del giocatore'}
+          {t('uploadPlayerInstructions')}
         </div>
 
         {/* Design unificato: stesse card della pagina giocatore (icone Lucide, colori condivisi) */}
@@ -4076,10 +4076,10 @@ function UploadPlayerModal({ slot, images, onImagesChange, onUpload, onClose, up
         }}>
           <div style={{ marginRight: 'auto', fontSize: '13px', opacity: 0.7 }}>
             {images.length === 0 ? (
-              t('noPhotosSelected') || 'Nessuna foto selezionata'
+              t('noPhotosSelected')
             ) : (
               <span style={{ color: 'var(--neon-green)' }}>
-                {images.length} {images.length === 1 ? (t('photoSelected') || 'foto selezionata') : (t('photosSelected') || 'foto selezionate')}
+                {images.length} {images.length === 1 ? t('photoSelected') : t('photosSelected')}
               </span>
             )}
           </div>
@@ -4107,12 +4107,12 @@ function UploadPlayerModal({ slot, images, onImagesChange, onUpload, onClose, up
               {uploading ? (
                 <>
                   <RefreshCw size={16} style={{ animation: 'spin 1s linear infinite' }} />
-                  {t('extracting') || 'Estrazione dati...'}
+                  {t('extracting')}
                 </>
               ) : (
                 <>
                   <CheckCircle2 size={16} />
-                  {t('savePlayer') || 'Salva Giocatore'}
+                  {t('savePlayer')}
                 </>
               )}
             </button>
@@ -4934,7 +4934,7 @@ function FormationSelectorModal({ onSelect, onClose, loading }) {
             disabled={loading}
             style={{ padding: '10px 20px' }}
           >
-            {t('cancel') || 'Annulla'}
+            {t('cancel')}
           </button>
           {selectedFormation && (
             <button 
