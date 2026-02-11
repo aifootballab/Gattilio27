@@ -680,6 +680,8 @@ ${userContext}${clientTeamText}${opponentNameText}${rosterText}${playersInMatchT
 ${availableDataText}
 ${missingText}
 ${attilaMemorySection}${conservativeMode}${personalizationInstructions}
+⚠️ OBBLIGATORIO: applica RAG §10.15 NON INFERIRE CAUSE (regole nel blocco MEMORIA ATTILA sopra). Vietato ragionamenti causali "X perché Y".
+
 ⚠️ REGOLE CRITICHE - NON INVENTARE DATI (ASSOLUTO):
 1. NON menzionare goals/assists per giocatori specifici a meno che non siano esplicitamente forniti nei dati sopra
 2. Se vedi "goals_scored: X" nelle statistiche squadra, questo è il TOTALE squadra, NON per giocatore

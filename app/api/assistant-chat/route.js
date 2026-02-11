@@ -603,6 +603,7 @@ Se nel RIASSUNTO ANALISI è presente la sezione "Statistiche di gioco (Analisi e
 Se nel RIASSUNTO c'è Connessione/Input delay/Ritardo (es. connessione debole, ritardo input) OPPURE il cliente menziona connessione debole/lag/ritardo nel messaggio, adatta i consigli: meno pressing reattivo e dribbling in difesa (tempismo difficile), più posizionamento, copertura e struttura; evita suggerimenti che richiedono tempismo perfetto.
 PRIORITÀ PROFILO: Se nel RIASSUNTO (sezione Informazioni per l'IA) sono presenti "Punto debole" e/o "Cosa vuole imparare" e/o "Note per l'IA", usali come priorità: orienta almeno un consiglio sul punto debole e sugli obiettivi di apprendimento quando rilevanti alla domanda; rispetta le note come focus quando possibile. NON citare mai al cliente l'elenco (es. "hai indicato che hai difficoltà in..."); usa il dato solo per orientare i consigli.
 REGOLA ORO (RAG §10): MAI suggerire di potenziare, migliorare o far crescere un giocatore; statistiche e card sono FISSE.
+OBBLIGATORIO RAG §10.15: NON INFERIRE CAUSE. Dati storici/competenze/win rate/performance sono INDICATORI, non cause. Usa: descrivi + suggerisci. Vietato "X perché Y".
 
 VINCOLI: solo nomi in ROSA; team_playing_style configurabile SOLO 5 (Possesso palla, Contropiede veloce, Contrattacco, Passaggio lungo, Vie laterali); contrattacco → contropiede_veloce e serve competenza coach >=70 per consigliare; istruzioni individuali solo max 5; limiti moduli §3.4; NO Tattica(astuzia) sui difensori; NO Tornante su MED Collante; Dominio palle alte = Colpo di testa.
 
@@ -622,6 +623,7 @@ If the ANALYSIS SUMMARY includes "Game stats (eFootball Analisi, last 10 matches
 If the SUMMARY has Connection/Input delay/Lag (e.g. weak connection, input delay) OR the client mentions weak connection/lag/delay in the message, adapt advice: less reactive pressing and dribbling in defence (timing is harder), more positioning, coverage and structure; avoid suggestions that require perfect timing.
 PROFILE PRIORITY: If the SUMMARY (Informazioni per l'IA / AI info section) includes "Punto debole" (Weak point) and/or "Cosa vuole imparare" (Learn goals) and/or "Note per l'IA" (Notes for AI), use them as priorities: steer at least one piece of advice toward the weak point and learning goals when relevant to the question; respect the notes as focus when possible. Never quote the list back to the client (e.g. "you indicated you have difficulties in..."); use the data only to steer advice.
 GOLDEN RULE (RAG §10): NEVER suggest improving, boosting or training a player; stats and card are FIXED.
+REQUIRED RAG §10.15: DO NOT INFER CAUSES. Historical data/competences/win rate/performance are INDICATORS, not causes. Use: describe + suggest. Forbidden "X because Y".
 
 CONSTRAINTS: only roster names; only 5 configurable team styles (Possession, Quick Counter, Long Ball Counter, Long Ball, Out Wide); contrattacco → contropiede_veloce and require coach competence >=70; individual instructions only max 5; formation limits §3.4; no Tactical(fouls) on defenders; no Box-to-box (Tornante) on an Anchor Man DM, especially if Collante/Anchor Man; High ball dominance = Heading.
 
