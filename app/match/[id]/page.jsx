@@ -4,6 +4,7 @@ import React from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { useTranslation } from '@/lib/i18n'
+import { mapErrorToUserMessage } from '@/lib/errorHelper'
 import LanguageSwitch from '@/components/LanguageSwitch'
 import { ArrowLeft, Upload, AlertCircle, CheckCircle2, RefreshCw, X, Camera, Calendar, Trophy, Brain, ChevronDown, ChevronUp, Users, Target, TrendingUp, TrendingDown, Shield } from 'lucide-react'
 
@@ -128,7 +129,8 @@ export default function MatchDetailPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Accept-Language': lang === 'en' ? 'en' : 'it'
         },
         body: JSON.stringify({
           imageDataUrl: uploadImage,
@@ -138,7 +140,8 @@ export default function MatchDetailPage() {
 
       if (!extractRes.ok) {
         const errorData = await extractRes.json()
-        throw new Error(errorData.error || t('extractDataError'))
+        const { message } = mapErrorToUserMessage(errorData?.error || '', t('extractDataError'), lang)
+        throw new Error(message)
       }
 
       const extractData = await extractRes.json()
@@ -181,7 +184,8 @@ export default function MatchDetailPage() {
       setUploadSection(null)
     } catch (err) {
       console.error('[MatchDetail] Upload error:', err)
-      setError(err.message || t('loadPhotoError'))
+      const { message } = mapErrorToUserMessage(err, t('loadPhotoError'), lang)
+      setError(message)
     } finally {
       setExtracting(false)
     }

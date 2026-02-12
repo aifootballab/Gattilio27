@@ -4,12 +4,13 @@ import React from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { useTranslation } from '@/lib/i18n'
+import { mapErrorToUserMessage } from '@/lib/errorHelper'
 import LanguageSwitch from '@/components/LanguageSwitch'
 import ConfirmModal from '@/components/ConfirmModal'
 import { ArrowLeft, Upload, AlertCircle, CheckCircle2, X, Trash2, Star, Info, Plus } from 'lucide-react'
 
 export default function AllenatoriPage() {
-  const { t } = useTranslation()
+  const { t, lang } = useTranslation()
   const router = useRouter()
   const [coaches, setCoaches] = React.useState([])
   const [activeCoach, setActiveCoach] = React.useState(null)
@@ -140,16 +141,17 @@ export default function AllenatoriPage() {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
+            'Authorization': `Bearer ${token}`,
+            'Accept-Language': lang === 'en' ? 'en' : 'it'
           },
           body: JSON.stringify({ imageDataUrl: img.dataUrl })
         })
 
         const extractData = await extractRes.json()
         if (!extractRes.ok) {
-          const errorMsg = extractData.error || t('unknownError')
-          console.warn('[UploadCoach] Errore estrazione:', errorMsg)
-          errors.push(errorMsg)
+          const { message } = mapErrorToUserMessage(extractData?.error || '', t('unknownError'), lang)
+          console.warn('[UploadCoach] Errore estrazione:', message)
+          errors.push(message)
           continue
         }
         if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('credits-consumed'))

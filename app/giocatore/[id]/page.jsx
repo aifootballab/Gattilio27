@@ -4,12 +4,13 @@ import React from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { useTranslation } from '@/lib/i18n'
+import { mapErrorToUserMessage } from '@/lib/errorHelper'
 import LanguageSwitch from '@/components/LanguageSwitch'
 import { ArrowLeft, Upload, AlertCircle, CheckCircle2, RefreshCw, BarChart3, Zap, Gift, ChevronDown, ChevronUp, Award } from 'lucide-react'
 import { getPhotoTypeStyle } from '@/lib/playerPhotoTypes'
 
 export default function PlayerDetailPage() {
-  const { t } = useTranslation()
+  const { t, lang } = useTranslation()
   const router = useRouter()
   const params = useParams()
   const playerId = params?.id
@@ -219,19 +220,16 @@ export default function PlayerDetailPage() {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Accept-Language': lang === 'en' ? 'en' : 'it'
         },
         body: JSON.stringify({ imageDataUrl: img.dataUrl })
       })
 
       const extractData = await extractRes.json()
       if (!extractRes.ok) {
-        const errorMsg = extractData.error || t('errorExtractingData')
-        // Se c'è un errore di quota OpenAI, mostralo chiaramente
-        if (errorMsg.includes('quota') || errorMsg.includes('billing')) {
-          throw new Error(t('openAQuotaError'))
-        }
-        throw new Error(errorMsg)
+        const { message } = mapErrorToUserMessage(extractData?.error || '', t('errorExtractingData'), lang)
+        throw new Error(message)
       }
 
       if (!extractData.player) {
@@ -287,7 +285,8 @@ export default function PlayerDetailPage() {
       setUploading(false)
     } catch (err) {
       console.error('[PlayerDetail] Upload error:', err)
-      setError(err.message || t('errorUploadingPhoto'))
+      const { message } = mapErrorToUserMessage(err, t('errorUploadingPhoto'), lang)
+      setError(message)
       setUploading(false)
     }
   }

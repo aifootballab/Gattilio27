@@ -91,7 +91,7 @@ function DuplicatePlayerConfirmModal({ state, t }) {
 }
 
 export default function GestioneFormazionePage() {
-  const { t } = useTranslation()
+  const { t, lang } = useTranslation()
   const router = useRouter()
   const [layout, setLayout] = React.useState(null) // { formation, slot_positions }
   const [titolari, setTitolari] = React.useState([]) // Giocatori con slot_index 0-10
@@ -880,7 +880,8 @@ export default function GestioneFormazionePage() {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
+            'Authorization': `Bearer ${token}`,
+            'Accept-Language': lang === 'en' ? 'en' : 'it'
           },
           body: JSON.stringify({ imageDataUrl: img.dataUrl })
         })
@@ -895,9 +896,9 @@ export default function GestioneFormazionePage() {
           continue
         }
         if (!extractRes.ok) {
-          const errorMsg = extractData.error || t('errorUnknown')
-          console.warn('[UploadPlayer] Errore estrazione:', errorMsg)
-          errors.push(errorMsg)
+          const { message } = mapErrorToUserMessage(extractData?.error || '', t('errorUnknown'), lang)
+          console.warn('[UploadPlayer] Errore estrazione:', message)
+          errors.push(message)
           continue
         }
         if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('credits-consumed'))
@@ -1688,7 +1689,8 @@ export default function GestioneFormazionePage() {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
+            'Authorization': `Bearer ${token}`,
+            'Accept-Language': lang === 'en' ? 'en' : 'it'
           },
           body: JSON.stringify({ imageDataUrl: img.dataUrl })
         })
@@ -1703,9 +1705,9 @@ export default function GestioneFormazionePage() {
           continue
         }
         if (!extractRes.ok) {
-          const errorMsg = extractData.error || t('errorUnknown')
-          console.warn('[UploadReserve] Errore estrazione:', errorMsg)
-          errors.push(errorMsg)
+          const { message } = mapErrorToUserMessage(extractData?.error || '', t('errorUnknown'), lang)
+          console.warn('[UploadReserve] Errore estrazione:', message)
+          errors.push(message)
           continue
         }
         if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('credits-consumed'))

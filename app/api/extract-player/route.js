@@ -8,6 +8,42 @@ import { checkRateLimit, RATE_LIMIT_CONFIG } from '@/lib/rateLimiter'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
+function getLang(req) {
+  const accept = req?.headers?.get?.('accept-language') || ''
+  return accept.toLowerCase().startsWith('it') || accept.includes('it') ? 'it' : 'en'
+}
+
+const ERRORS = {
+  it: {
+    config: 'Configurazione mancante.',
+    auth: 'Autenticazione richiesta.',
+    invalid: 'Token non valido o scaduto.',
+    rateLimit: 'Troppe richieste. Riprova tra un minuto.',
+    imageRequired: 'Immagine richiesta.',
+    imageTooLarge: 'Immagine troppo grande (max 10MB).',
+    extraction: 'Impossibile leggere i dati dal giocatore. Prova con uno screenshot più nitido.',
+    quota: 'Servizio momentaneamente sovraccarico. Riprova tra qualche minuto.',
+    timeout: 'Ritardo nella risposta. Riprova con un\'immagine più piccola.',
+    server: 'Servizio temporaneamente non disponibile. Riprova tra poco.',
+    network: 'Errore di connessione. Verifica la rete e riprova.',
+    playerNameRequired: 'Nome giocatore obbligatorio.'
+  },
+  en: {
+    config: 'Server configuration missing.',
+    auth: 'Authentication required.',
+    invalid: 'Invalid or expired token.',
+    rateLimit: 'Too many requests. Try again in a minute.',
+    imageRequired: 'Image is required.',
+    imageTooLarge: 'Image too large (max 10MB).',
+    extraction: 'Could not read player data from image. Try a clearer screenshot.',
+    quota: 'Service temporarily overloaded. Try again in a few minutes.',
+    timeout: 'Request took too long. Try a smaller image.',
+    server: 'Service temporarily unavailable. Try again later.',
+    network: 'Connection error. Check your network and try again.',
+    playerNameRequired: 'Player name is required.'
+  }
+}
+
 function toInt(v) {
   if (v === null || v === undefined) return null
   const n = Number(v)
@@ -86,74 +122,60 @@ function normalizePlayer(player) {
 }
 
 export async function POST(req) {
+  const lang = getLang(req)
+  const L = ERRORS[lang] || ERRORS.en
+
   try {
-    // Autenticazione
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    
+
     if (!supabaseUrl || !anonKey) {
-      return NextResponse.json({ error: 'Supabase server env missing' }, { status: 500 })
+      return NextResponse.json({ error: L.config }, { status: 500 })
     }
 
     const token = extractBearerToken(req)
     if (!token) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      return NextResponse.json({ error: L.auth }, { status: 401 })
     }
-    
+
     const { userData, error: authError } = await validateToken(token, supabaseUrl, anonKey)
-    
+
     if (authError || !userData?.user?.id) {
-      return NextResponse.json({ error: 'Invalid or expired authentication' }, { status: 401 })
+      return NextResponse.json({ error: L.invalid }, { status: 401 })
     }
 
     const userId = userData.user.id
 
-    // Rate limiting (P0 fix: previene abuso OpenAI)
     const rlConfig = RATE_LIMIT_CONFIG['/api/extract-player'] || { maxRequests: 15, windowMs: 60000 }
     const rateLimit = await checkRateLimit(userId, '/api/extract-player', rlConfig.maxRequests, rlConfig.windowMs)
     if (!rateLimit.allowed) {
-      return NextResponse.json({ error: 'Too many requests. Please try again later.', resetAt: rateLimit.resetAt }, { status: 429 })
+      return NextResponse.json({ error: L.rateLimit, resetAt: rateLimit.resetAt }, { status: 429 })
     }
 
     const apiKey = process.env.OPENAI_API_KEY
 
     if (!apiKey) {
-      return NextResponse.json(
-        { error: 'OPENAI_API_KEY not configured' },
-        { status: 500 }
-      )
+      return NextResponse.json({ error: L.config }, { status: 500 })
     }
 
-    // JSON parsing con gestione errore 400
     let requestBody
     try {
       requestBody = await req.json()
     } catch (parseError) {
-      return NextResponse.json({ error: 'Invalid JSON in request body' }, { status: 400 })
+      return NextResponse.json({ error: L.imageRequired }, { status: 400 })
     }
     const { imageDataUrl } = requestBody
 
     if (!imageDataUrl || typeof imageDataUrl !== 'string') {
-      return NextResponse.json(
-        { error: 'imageDataUrl is required' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: L.imageRequired }, { status: 400 })
     }
 
-    // Validazione dimensione immagine (max 10MB)
-    // Solo per immagini base64 (data:image/), non per URL esterni
     if (imageDataUrl.startsWith('data:image/')) {
       const base64Image = imageDataUrl.split(',')[1]
       if (base64Image) {
-        // Calcola dimensione approssimativa (base64 è ~33% più grande del binario)
         const imageSizeBytes = (base64Image.length * 3) / 4
-        const maxSizeBytes = 10 * 1024 * 1024 // 10MB
-        
-        if (imageSizeBytes > maxSizeBytes) {
-          return NextResponse.json(
-            { error: 'Image size exceeds maximum allowed size (10MB)' },
-            { status: 400 }
-          )
+        if (imageSizeBytes > 10 * 1024 * 1024) {
+          return NextResponse.json({ error: L.imageTooLarge }, { status: 400 })
         }
       }
     }
@@ -291,31 +313,27 @@ Restituisci SOLO JSON valido, senza altro testo.`
         : parsedData
     } catch (error) {
       console.error('[extract-player] OpenAI error:', error)
-      
-      // Messaggi specifici per tipo di errore
-      let errorMessage = 'Unable to extract data from image. Please try again with a different image.'
+
+      let errorMessage = L.extraction
       let statusCode = 500
-      
+
       if (error.type === 'rate_limit') {
-        errorMessage = 'Rate limit reached. Please try again in a minute.'
+        errorMessage = L.quota
         statusCode = 429
       } else if (error.type === 'timeout') {
-        errorMessage = 'Request took too long. Please try again with a smaller image or different image.'
+        errorMessage = L.timeout
         statusCode = 408
       } else if (error.type === 'server_error') {
-        errorMessage = 'Service temporarily unavailable. Please try again in a few moments.'
+        errorMessage = L.server
         statusCode = 503
       } else if (error.type === 'network_error') {
-        errorMessage = 'Network error. Please check your connection and try again.'
+        errorMessage = L.network
         statusCode = 503
-      } else if (error.type === 'no_content' || error.type === 'parse_error') {
-        errorMessage = error.message || errorMessage
-        statusCode = 500
       }
-      
+
       return NextResponse.json(
         { error: errorMessage },
-        { status: statusCode }
+        { status: statusCode, headers: { 'Content-Language': lang } }
       )
     }
 
@@ -341,10 +359,9 @@ Restituisci SOLO JSON valido, senza altro testo.`
     // Rimossa validazione rigida che bloccava dati validi (es. rating > 100 con boosters, stats > 99)
     // Il sistema funzionava perfettamente il 21 gennaio senza queste validazioni
     
-    // Solo validazione base: nome giocatore obbligatorio
     if (!normalizedPlayer.player_name || typeof normalizedPlayer.player_name !== 'string' || normalizedPlayer.player_name.trim().length === 0) {
       return NextResponse.json(
-        { error: 'Player name is required' },
+        { error: L.playerNameRequired },
         { status: 400 }
       )
     }
@@ -361,8 +378,8 @@ Restituisci SOLO JSON valido, senza altro testo.`
   } catch (err) {
     console.error('[extract-player] Error:', err)
     return NextResponse.json(
-      { error: err?.message || 'Errore estrazione dati' },
-      { status: 500 }
+      { error: L.extraction },
+      { status: 500, headers: { 'Content-Language': lang } }
     )
   }
 }

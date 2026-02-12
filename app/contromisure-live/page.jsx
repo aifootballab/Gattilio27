@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { useTranslation } from '@/lib/i18n'
 import { safeJsonResponse } from '@/lib/fetchHelper'
+import { mapErrorToUserMessage } from '@/lib/errorHelper'
 import LanguageSwitch from '@/components/LanguageSwitch'
 import { ArrowLeft, Upload, AlertCircle, CheckCircle2, RefreshCw, X, Camera, Shield, Target, Users, Settings, ChevronDown, ChevronUp, Brain } from 'lucide-react'
 
@@ -80,14 +81,16 @@ export default function CountermeasuresLivePage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Accept-Language': lang === 'en' ? 'en' : 'it'
         },
         body: JSON.stringify({ imageDataUrl: uploadImage })
       })
 
       if (!extractRes.ok) {
         const errorData = await extractRes.json()
-        throw new Error(errorData.error || t('errorExtractingFormation') || 'Errore estrazione formazione')
+        const { message } = mapErrorToUserMessage(errorData?.error || '', t('errorExtractingFormation'), lang)
+        throw new Error(message)
       }
 
       const extractData = await extractRes.json()
@@ -127,7 +130,8 @@ export default function CountermeasuresLivePage() {
       })
     } catch (err) {
       console.error('[CountermeasuresLive] Extract error:', err)
-      setError(err.message || t('errorExtractingFormation') || 'Errore estrazione formazione')
+      const { message } = mapErrorToUserMessage(err, t('errorExtractingFormation'), lang)
+      setError(message)
     } finally {
       setExtracting(false)
     }

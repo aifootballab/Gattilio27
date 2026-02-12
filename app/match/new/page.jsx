@@ -14,7 +14,7 @@ const STORAGE_KEY = 'match_wizard_progress'
 const HOME_AWAY_STEP_ID = 'home_away'
 
 export default function NewMatchPage() {
-  const { t } = useTranslation()
+  const { t, lang } = useTranslation()
   const router = useRouter()
   
   const STEPS = React.useMemo(() => [
@@ -145,7 +145,8 @@ export default function NewMatchPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Accept-Language': lang === 'en' ? 'en' : 'it'
         },
         body: JSON.stringify({
           imageDataUrl,
@@ -157,20 +158,8 @@ export default function NewMatchPage() {
       const extractData = await extractRes.json()
 
       if (!extractRes.ok) {
-        // Messaggi di errore specifici
-        let errorMsg = extractData.error || t('extractDataError')
-        
-        if (errorMsg.includes('quota') || errorMsg.includes('billing')) {
-          errorMsg = t('errorQuotaExhausted')
-        } else if (errorMsg.includes('timeout') || errorMsg.includes('took too long')) {
-          errorMsg = t('errorTimeout')
-        } else if (errorMsg.includes('too large') || errorMsg.includes('10MB')) {
-          errorMsg = t('errorImageTooLarge')
-        } else if (errorMsg.includes('Unable to extract') || errorMsg.includes('No content')) {
-          errorMsg = t('errorInvalidScreenshot')
-        }
-        
-        throw new Error(errorMsg)
+        const { message } = mapErrorToUserMessage(extractData?.error || '', t('extractDataError'), lang)
+        throw new Error(message)
       }
       if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('credits-consumed'))
 
@@ -197,7 +186,8 @@ export default function NewMatchPage() {
       }
     } catch (err) {
       console.error('[NewMatch] Extract error:', err)
-      setError(err.message || t('extractDataError'))
+      const { message } = mapErrorToUserMessage(err, t('extractDataError'), lang)
+      setError(message)
     } finally {
       setExtracting(false)
     }

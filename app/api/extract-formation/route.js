@@ -8,30 +8,65 @@ import { recordUsage } from '@/lib/creditService'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
+function getLang(req) {
+  const accept = req?.headers?.get?.('accept-language') || ''
+  return accept.toLowerCase().startsWith('it') || accept.includes('it') ? 'it' : 'en'
+}
+
+const ERRORS = {
+  it: {
+    config: 'Configurazione mancante.',
+    auth: 'Autenticazione richiesta.',
+    invalid: 'Token non valido o scaduto.',
+    rateLimit: 'Troppe richieste. Riprova tra un minuto.',
+    imageRequired: 'Immagine richiesta.',
+    imageTooLarge: 'Immagine troppo grande (max 10MB).',
+    extraction: 'Impossibile leggere la formazione dall\'immagine. Prova con uno screenshot più nitido.',
+    quota: 'Servizio momentaneamente sovraccarico. Riprova tra qualche minuto.',
+    timeout: 'Ritardo nella risposta. Riprova con un\'immagine più piccola.',
+    server: 'Servizio temporaneamente non disponibile. Riprova tra poco.',
+    network: 'Errore di connessione. Verifica la rete e riprova.'
+  },
+  en: {
+    config: 'Server configuration missing.',
+    auth: 'Authentication required.',
+    invalid: 'Invalid or expired token.',
+    rateLimit: 'Too many requests. Try again in a minute.',
+    imageRequired: 'Image is required.',
+    imageTooLarge: 'Image too large (max 10MB).',
+    extraction: 'Could not read formation from image. Try a clearer screenshot.',
+    quota: 'Service temporarily overloaded. Try again in a few minutes.',
+    timeout: 'Request took too long. Try a smaller image.',
+    server: 'Service temporarily unavailable. Try again later.',
+    network: 'Connection error. Check your network and try again.'
+  }
+}
+
 export async function POST(req) {
+  const lang = getLang(req)
+  const L = ERRORS[lang] || ERRORS.en
+
   try {
-    // Autenticazione
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    
+
     if (!supabaseUrl || !anonKey) {
-      return NextResponse.json({ error: 'Supabase server env missing' }, { status: 500 })
+      return NextResponse.json({ error: L.config }, { status: 500 })
     }
 
     const token = extractBearerToken(req)
     if (!token) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      return NextResponse.json({ error: L.auth }, { status: 401 })
     }
-    
+
     const { userData, error: authError } = await validateToken(token, supabaseUrl, anonKey)
-    
+
     if (authError || !userData?.user?.id) {
-      return NextResponse.json({ error: 'Invalid or expired authentication' }, { status: 401 })
+      return NextResponse.json({ error: L.invalid }, { status: 401 })
     }
 
     const userId = userData.user.id
 
-    // Rate limiting
     const rateLimitConfig = RATE_LIMIT_CONFIG['/api/extract-formation']
     const rateLimit = await checkRateLimit(
       userId,
@@ -42,10 +77,7 @@ export async function POST(req) {
 
     if (!rateLimit.allowed) {
       return NextResponse.json(
-        { 
-          error: 'Rate limit exceeded. Please try again later.',
-          resetAt: rateLimit.resetAt
-        },
+        { error: L.rateLimit, resetAt: rateLimit.resetAt },
         { 
           status: 429,
           headers: {
@@ -60,35 +92,21 @@ export async function POST(req) {
     const apiKey = process.env.OPENAI_API_KEY
 
     if (!apiKey) {
-      return NextResponse.json(
-        { error: 'OPENAI_API_KEY not configured' },
-        { status: 500 }
-      )
+      return NextResponse.json({ error: L.config }, { status: 500 })
     }
 
     const { imageDataUrl } = await req.json()
 
     if (!imageDataUrl || typeof imageDataUrl !== 'string') {
-      return NextResponse.json(
-        { error: 'imageDataUrl is required' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: L.imageRequired }, { status: 400 })
     }
 
-    // Validazione dimensione immagine (max 10MB)
-    // Solo per immagini base64 (data:image/), non per URL esterni
     if (imageDataUrl.startsWith('data:image/')) {
       const base64Image = imageDataUrl.split(',')[1]
       if (base64Image) {
-        // Calcola dimensione approssimativa (base64 è ~33% più grande del binario)
         const imageSizeBytes = (base64Image.length * 3) / 4
-        const maxSizeBytes = 10 * 1024 * 1024 // 10MB
-        
-        if (imageSizeBytes > maxSizeBytes) {
-          return NextResponse.json(
-            { error: 'Image size exceeds maximum allowed size (10MB). Please use a smaller image.' },
-            { status: 400 }
-          )
+        if (imageSizeBytes > 10 * 1024 * 1024) {
+          return NextResponse.json({ error: L.imageTooLarge }, { status: 400 })
         }
       }
     }
@@ -280,8 +298,8 @@ Restituisci SOLO JSON valido, senza altro testo.`
     } catch (parseErr) {
       console.error('[extract-formation] JSON parse error:', parseErr)
       return NextResponse.json(
-        { error: 'Failed to parse OpenAI response as JSON' },
-        { status: 500 }
+        { error: L.extraction },
+        { status: 500, headers: { 'Content-Language': lang } }
       )
     }
 
@@ -306,8 +324,8 @@ Restituisci SOLO JSON valido, senza altro testo.`
   } catch (err) {
     console.error('[extract-formation] Error:', err)
     return NextResponse.json(
-      { error: err?.message || 'Errore estrazione formazione' },
-      { status: 500 }
+      { error: L.extraction },
+      { status: 500, headers: { 'Content-Language': lang } }
     )
   }
 }
