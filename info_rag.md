@@ -646,6 +646,12 @@ Valutazione massima 5 stelle (5★). Trending valutati su statistiche iniziali. 
 6. **NON confondere**: Stile giocatore (§2) vs Stile squadra (§4)
    - **Stile giocatore** (Opportunista, Collante, Box-to-Box) = FISSO, caratteristica card → sez. 2
    - **Stile squadra** (Possesso palla, Contropiede) = CONFIGURABILE, tattica → sez. 4
+
+6a. **NON confondere: Stile giocatore (§2) vs Abilità (§8)** – OBBLIGATORIO
+   - **Stile giocatore** (Opportunista, Collante, Box-to-Box, Punta avanzata, Rapace d'area, ecc.) = comportamento FISSO della card, §2. NON si aggiunge con Programmi. NON è un'abilità.
+   - **Abilità** (Tiro al volo, Passaggio filtrante, Contrasto Aggressivo, Marcatura, Colpo di testa, ecc.) = tratti speciali §8. Si possono aggiungere con Programmi (se non Trending).
+   - ❌ SBAGLIATO: "la loro abilità di Opportunista" / "sfrutta l'abilità Box-to-Box" / "abilità Opportunista per finalizzare"
+   - ✅ CORRETTO: "lo stile Opportunista li rende adatti a..." / "Mbappé ha stile Opportunista" / "sfrutta Passaggio filtrante per i filtranti" (abilità); "i tuoi Opportunista in attacco" (stile). Abilità = solo nomi §8 (Tiro al volo, Passaggio filtrante, ecc.).
    - **team_playing_style (configurabile in app)** è SOLO uno di: Possesso palla, Contropiede veloce, Contrattacco, Passaggio lungo, Vie laterali. Gli stili §4.2-4.5 (Pressing Alto, Gegenpressing, Tiki-Taka, Attacco Diretto, Cross e Finalizzazione, ecc.) NON sono configurabili come team_playing_style. Per consigli su stile squadra da impostare, suggerire SOLO i 5 sopra.
 
 7. **NON confondere**: Abilità native vs Abilità aggiungibili
@@ -732,6 +738,10 @@ CORRETTO: "Le statistiche (Overall, Finalizzazione, ecc.) sono FISSE. Puoi: 1) A
 **Utente**: "Perché [X] non rende?" / "È lento" / "Non si muove bene"
 ❌ SBAGLIATO: "È forma" / "Devi allenarlo"
 ✅ CORRETTO: Verificare se fuori ruolo. Se sì: "Schierando [X] fuori posizione, il suo stile non si attiva; perde bonus di posizionamento, forza complessiva scende. Usalo in [posizione competenza] o schiera un altro. Se deve restare lì: Istruzioni individuali (Deep Line, Anchoring)." NON usare "passiva spenta" con l'utente.
+
+**Utente**: "Come sfruttare le abilità della rosa in partita?" / "Sfruttare le abilità nel contrattacco"
+❌ SBAGLIATO: "la loro abilità di Opportunista" / "sfrutta l'abilità Box-to-Box" / "abilità Opportunista per finalizzare" – Opportunista, Box-to-Box, Punta avanzata, ecc. sono STILI §2, NON abilità.
+✅ CORRETTO: Distinguere sempre: (1) **Abilità** (§8): Tiro al volo, Passaggio filtrante, Contrasto Aggressivo, Marcatura, Colpo di testa – "Maldini e Nesta hanno Marcatura e Colpo di testa per palle alte". (2) **Stili** (§2): Opportunista, Punta avanzata, Collante – "Mbappé e Ronaldo hanno stile Opportunista: adatti a passaggi filtranti in contropiede". Non dire mai "abilità di Opportunista".
 
 **Utente**: "Perché ho perso?" / "Perché ho perso l'ultima partita?"
 ❌ SBAGLIATO: Inferire cause ("Hai perso probabilmente a causa di…"). Contraddizioni tattiche (es. "gestione vantaggio con contropiede" se in vantaggio). Ignorare se Connection non attivabile o dati partita mancanti.
