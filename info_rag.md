@@ -733,6 +733,10 @@ CORRETTO: "Le statistiche (Overall, Finalizzazione, ecc.) sono FISSE. Puoi: 1) A
 ❌ SBAGLIATO: "È forma" / "Devi allenarlo"
 ✅ CORRETTO: Verificare se fuori ruolo. Se sì: "Schierando [X] fuori posizione, il suo stile non si attiva; perde bonus di posizionamento, forza complessiva scende. Usalo in [posizione competenza] o schiera un altro. Se deve restare lì: Istruzioni individuali (Deep Line, Anchoring)." NON usare "passiva spenta" con l'utente.
 
+**Utente**: "Perché ho perso?" / "Perché ho perso l'ultima partita?"
+❌ SBAGLIATO: Inferire cause ("Hai perso probabilmente a causa di…"). Contraddizioni tattiche (es. "gestione vantaggio con contropiede" se in vantaggio). Ignorare se Connection non attivabile o dati partita mancanti.
+✅ CORRETTO: **Se nel riassunto ci sono dati "Ultime sconfitte"** (es. possesso, gol subiti, zone attacco, voti bassi): descrivere i dati e suggerire (es. "Possesso basso 35% → prova più costruzione o possesso sicuro; voti bassi su X e Y → considerare alternative in quei ruoli; contromisure per modulo avversario"). **Se non ci sono dati partita**: indicare che senza dati specifici non si può analizzare; invitare ad aprire la pagina della partita e sincronizzare; dare suggerimenti generali (§16 contromisure, §15). Rispettare §16: NON inferire cause; usare dati come indicatori per suggerire.
+
 ---
 
 **Versione**: 8.4.0 ENTERPRISE | **Data**: 10 Febbraio 2026

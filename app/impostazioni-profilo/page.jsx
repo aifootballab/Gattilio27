@@ -145,6 +145,14 @@ export default function ImpostazioniProfiloPage() {
         window.dispatchEvent(new CustomEvent('knowledge-should-refresh'))
         setTimeout(() => window.dispatchEvent(new CustomEvent('leaderboard-updated')), 1500)
       }
+
+      // Aggiorna riassunto analisi (diagnostic) per la chat
+      try {
+        await fetch('/api/refresh-diagnostic', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      } catch (_) { /* non bloccare UI */ }
     } catch (err) {
       console.error('[Impostazioni Profilo] Error saving profile:', err)
       const errMsg = err.message || t('errorProfileSave')

@@ -217,6 +217,14 @@ export default function AllenatoriPage() {
         throw new Error(saveData.error || t('coachSaveError'))
       }
 
+      // Aggiorna riassunto analisi (diagnostic) per la chat prima del reload
+      try {
+        await fetch('/api/refresh-diagnostic', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      } catch (_) { /* non bloccare UI */ }
+
       // Ricarica lista
       window.location.reload()
     } catch (err) {
@@ -252,6 +260,14 @@ export default function AllenatoriPage() {
         throw new Error(data.error || t('coachSetActiveError'))
       }
 
+      // Aggiorna riassunto analisi (diagnostic) per la chat prima del reload
+      try {
+        await fetch('/api/refresh-diagnostic', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      } catch (_) { /* non bloccare UI */ }
+
       // Ricarica lista
       window.location.reload()
     } catch (err) {
@@ -282,6 +298,17 @@ export default function AllenatoriPage() {
 
           if (deleteError) {
             throw new Error(deleteError.message || t('coachDeleteError'))
+          }
+
+          // Aggiorna riassunto analisi (diagnostic) per la chat prima del reload
+          const { data: session } = await supabase.auth.getSession()
+          if (session?.session?.access_token) {
+            try {
+              await fetch('/api/refresh-diagnostic', {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${session.session.access_token}` }
+              })
+            } catch (_) { /* non bloccare UI */ }
           }
 
           // Ricarica lista

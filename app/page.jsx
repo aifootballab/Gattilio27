@@ -56,8 +56,6 @@ export default function DashboardPage() {
   const [editingOpponentName, setEditingOpponentName] = React.useState('')
   const [savingOpponentName, setSavingOpponentName] = React.useState(false)
   const [tacticalPatterns, setTacticalPatterns] = React.useState(null) // Pattern tattici per AI Insights
-  const [refreshDiagnosticLoading, setRefreshDiagnosticLoading] = React.useState(false)
-  const [refreshDiagnosticMessage, setRefreshDiagnosticMessage] = React.useState(null) // 'success' | 'rate_limit' | null
   const [showAiInfoModal, setShowAiInfoModal] = React.useState(false)
   const [showGameAnalysisModal, setShowGameAnalysisModal] = React.useState(false)
   const [gameAnalysisLastCapture, setGameAnalysisLastCapture] = React.useState(null)
@@ -377,6 +375,14 @@ export default function DashboardPage() {
 
       // Rimuovi match dalla lista
       setRecentMatches(prev => prev.filter(m => m.id !== matchId))
+
+      // Aggiorna riassunto analisi (diagnostic) per la chat
+      try {
+        await fetch('/api/refresh-diagnostic', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      } catch (_) { /* non bloccare UI */ }
     } catch (err) {
       console.error('[Dashboard] Delete match error:', err)
       setError(err.message || t('deleteMatchError'))
@@ -427,6 +433,14 @@ export default function DashboardPage() {
       ))
       setEditingOpponentId(null)
       setEditingOpponentName('')
+
+      // Aggiorna riassunto analisi (diagnostic) per la chat
+      try {
+        await fetch('/api/refresh-diagnostic', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      } catch (_) { /* non bloccare UI */ }
     } catch (err) {
       console.error('[Dashboard] Error saving opponent name:', err)
       setError(err.message || t('updateMatchError'))
@@ -504,73 +518,21 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* AI Knowledge Bar + Informazioni IA + Aggiorna analisi */}
-      <div data-tour-id="tour-dashboard-ai" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-          <div style={{ flex: '1 1 auto', minWidth: 0 }}>
-            <AIKnowledgeBar />
-          </div>
-          <button
-            type="button"
-            className="btn secondary"
-            onClick={() => setShowAiInfoModal(true)}
-            style={{ whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-            title={t('aiInfoTitle')}
-          >
-            <Info size={16} />
-            {t('aiInfoTitle')}
-          </button>
-          <button
-            type="button"
-            className="btn secondary"
-            disabled={refreshDiagnosticLoading}
-            onClick={async () => {
-              setRefreshDiagnosticMessage(null)
-              setRefreshDiagnosticLoading(true)
-              try {
-                const token = await getValidAccessToken()
-                if (!token) {
-                  setRefreshDiagnosticLoading(false)
-                  return
-                }
-                const res = await fetch('/api/refresh-diagnostic', {
-                  method: 'POST',
-                  headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                    'Accept-Language': lang === 'en' ? 'en' : 'it'
-                  }
-                })
-                const data = await res.json().catch(() => ({}))
-                if (res.status === 200 && data.success) {
-                  setRefreshDiagnosticMessage('success')
-                  setTimeout(() => setRefreshDiagnosticMessage(null), 3000)
-                } else if (res.status === 429) {
-                  const seconds = data.retryAfterSeconds ?? 60
-                  alert(t('refreshAnalysisRateLimit').replace('{seconds}', String(seconds)))
-                  setRefreshDiagnosticMessage('rate_limit')
-                } else {
-                  setRefreshDiagnosticMessage('rate_limit')
-                }
-              } catch (e) {
-                setRefreshDiagnosticMessage('rate_limit')
-              } finally {
-                setRefreshDiagnosticLoading(false)
-              }
-            }}
-            style={{ whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-            title={t('refreshAnalysis')}
-          >
-            <RefreshCw size={16} style={{ opacity: refreshDiagnosticLoading ? 0.6 : 1 }} />
-            {refreshDiagnosticLoading ? (lang === 'en' ? 'Updating…' : 'Aggiornamento…') : t('refreshAnalysis')}
-          </button>
+      {/* AI Knowledge Bar + Informazioni IA */}
+      <div data-tour-id="tour-dashboard-ai" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+        <div style={{ flex: '1 1 auto', minWidth: 0 }}>
+          <AIKnowledgeBar />
         </div>
-        {refreshDiagnosticMessage === 'success' && (
-          <div style={{ fontSize: '13px', color: 'var(--neon-blue)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <RefreshCw size={14} />
-            {t('refreshAnalysisSuccess')}
-          </div>
-        )}
+        <button
+          type="button"
+          className="btn secondary"
+          onClick={() => setShowAiInfoModal(true)}
+          style={{ whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+          title={t('aiInfoTitle')}
+        >
+          <Info size={16} />
+          {t('aiInfoTitle')}
+        </button>
       </div>
 
       {/* Banner setup: visibile in UX, icona priorità (rosso/giallo/verde), comunica importanza di completare. */}

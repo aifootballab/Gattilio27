@@ -182,6 +182,14 @@ export default function MatchDetailPage() {
 
       setUploadImage(null)
       setUploadSection(null)
+
+      // Aggiorna riassunto analisi (diagnostic) per la chat
+      try {
+        await fetch('/api/refresh-diagnostic', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      } catch (_) { /* non bloccare UI */ }
     } catch (err) {
       console.error('[MatchDetail] Upload error:', err)
       const { message } = mapErrorToUserMessage(err, t('loadPhotoError'), lang)
@@ -275,6 +283,14 @@ export default function MatchDetailPage() {
       if (updatedMatch) {
         setMatch(updatedMatch)
       }
+
+      // Aggiorna riassunto analisi (diagnostic) per la chat
+      try {
+        await fetch('/api/refresh-diagnostic', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      } catch (_) { /* non bloccare UI */ }
     } catch (err) {
       console.error('[MatchDetail] Summary generation error:', err)
       setSummaryError(err.message || t('errorGeneratingSummary'))
