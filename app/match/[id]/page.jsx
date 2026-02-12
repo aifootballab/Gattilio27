@@ -285,6 +285,13 @@ export default function MatchDetailPage() {
 
   const handleRegenerateSummary = handleGenerateSummary // Stessa funzione
 
+  const canGenerateSummary = React.useMemo(() => {
+    if (!match) return false
+    const photosCount = match.photos_uploaded ?? 0
+    const isHomeDefined = match.is_home === true || match.is_home === false
+    return photosCount >= 3 && isHomeDefined
+  }, [match])
+
   const hasSection = (section) => {
     if (!match) return false
     
@@ -996,15 +1003,15 @@ export default function MatchDetailPage() {
               {/* Pulsante Rigenera */}
               <button
                 onClick={handleRegenerateSummary}
-                disabled={generatingSummary}
+                disabled={generatingSummary || !canGenerateSummary}
                 style={{
                   width: '100%',
                   padding: '12px',
-                  background: generatingSummary ? 'rgba(156, 163, 175, 0.2)' : 'rgba(0, 212, 255, 0.2)',
-                  border: `1px solid ${generatingSummary ? 'rgba(156, 163, 175, 0.5)' : 'rgba(0, 212, 255, 0.5)'}`,
+                  background: (generatingSummary || !canGenerateSummary) ? 'rgba(156, 163, 175, 0.2)' : 'rgba(0, 212, 255, 0.2)',
+                  border: `1px solid ${(generatingSummary || !canGenerateSummary) ? 'rgba(156, 163, 175, 0.5)' : 'rgba(0, 212, 255, 0.5)'}`,
                   borderRadius: '8px',
-                  color: generatingSummary ? '#d1d5db' : 'var(--neon-blue)',
-                  cursor: generatingSummary ? 'not-allowed' : 'pointer',
+                  color: (generatingSummary || !canGenerateSummary) ? '#d1d5db' : 'var(--neon-blue)',
+                  cursor: (generatingSummary || !canGenerateSummary) ? 'not-allowed' : 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -1035,18 +1042,21 @@ export default function MatchDetailPage() {
             borderRadius: '12px'
           }}>
             <p style={{ marginBottom: '16px', opacity: 0.8, fontSize: 'clamp(13px, 3vw, 14px)', lineHeight: '1.6' }}>
-              {t('noSummaryAvailable') || 'Nessun riassunto disponibile. Genera un riassunto per vedere l\'analisi della partita.'}
+              {!canGenerateSummary
+                ? (t('summaryRequiresThreePhotosAndHomeAway') || 'Carica almeno 3 screenshot e seleziona Casa o Fuori per generare il riassunto.')
+                : (t('noSummaryAvailable') || 'Nessun riassunto disponibile. Genera un riassunto per vedere l\'analisi della partita.')
+              }
             </p>
             <button
               onClick={handleGenerateSummary}
-              disabled={generatingSummary}
+              disabled={generatingSummary || !canGenerateSummary}
               style={{
                 padding: 'clamp(10px, 2.5vw, 12px) clamp(16px, 4vw, 24px)',
-                background: generatingSummary ? 'rgba(156, 163, 175, 0.2)' : 'rgba(0, 212, 255, 0.2)',
-                border: `1px solid ${generatingSummary ? 'rgba(156, 163, 175, 0.5)' : 'rgba(0, 212, 255, 0.5)'}`,
+                background: (generatingSummary || !canGenerateSummary) ? 'rgba(156, 163, 175, 0.2)' : 'rgba(0, 212, 255, 0.2)',
+                border: `1px solid ${(generatingSummary || !canGenerateSummary) ? 'rgba(156, 163, 175, 0.5)' : 'rgba(0, 212, 255, 0.5)'}`,
                 borderRadius: '8px',
-                color: generatingSummary ? '#d1d5db' : 'var(--neon-blue)',
-                cursor: generatingSummary ? 'not-allowed' : 'pointer',
+                color: (generatingSummary || !canGenerateSummary) ? '#d1d5db' : 'var(--neon-blue)',
+                cursor: (generatingSummary || !canGenerateSummary) ? 'not-allowed' : 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',

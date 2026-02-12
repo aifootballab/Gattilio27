@@ -906,9 +906,10 @@ export async function POST(req) {
 
     // Parse request body con try-catch
     let matchData
+    let body
     try {
-      const body = await req.json()
-      matchData = body.matchData
+      body = await req.json()
+      matchData = body?.matchData
     } catch (parseError) {
       console.error('[analyze-match] Error parsing request body:', parseError)
       return NextResponse.json({ error: 'Invalid request body. Please check your input.' }, { status: 400 })
@@ -916,6 +917,28 @@ export async function POST(req) {
     
     if (!matchData || typeof matchData !== 'object') {
       return NextResponse.json({ error: 'matchData is required' }, { status: 400 })
+    }
+
+    // Requisiti minimi per il riassunto IA: almeno 3 foto + casa/fuori definito
+    const photosCount = matchData.photos_uploaded ?? (() => {
+      let c = 0
+      if (matchData.player_ratings && (
+        (matchData.player_ratings.cliente && Object.keys(matchData.player_ratings.cliente).length > 0) ||
+        (matchData.player_ratings.avversario && Object.keys(matchData.player_ratings.avversario).length > 0) ||
+        (typeof matchData.player_ratings === 'object' && !matchData.player_ratings.cliente && !matchData.player_ratings.avversario && Object.keys(matchData.player_ratings).length > 0)
+      )) c++
+      if (matchData.team_stats && Object.keys(matchData.team_stats).length > 0) c++
+      if (matchData.attack_areas && Object.keys(matchData.attack_areas).length > 0) c++
+      if (matchData.ball_recovery_zones && Array.isArray(matchData.ball_recovery_zones) && matchData.ball_recovery_zones.length > 0) c++
+      if (matchData.formation_played || matchData.playing_style_played || matchData.team_strength) c++
+      return c
+    })()
+    const isHomeDefined = matchData.is_home === true || matchData.is_home === false
+    if (photosCount < 3 || !isHomeDefined) {
+      const errMsg = (body?.language === 'en')
+        ? 'At least 3 screenshots and Home/Away selection are required to generate the summary.'
+        : 'Servono almeno 3 screenshot e la selezione Casa/Fuori per generare il riassunto.'
+      return NextResponse.json({ error: errMsg }, { status: 400 })
     }
 
     // Validazione match ID se presente (deve essere UUID)

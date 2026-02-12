@@ -227,13 +227,11 @@ export default function NewMatchPage() {
   }, [stepData, photoSteps])
 
   const handleShowSummary = () => {
-    // Verifica che almeno una sezione foto abbia dati (escluso Casa/Fuori)
-    const hasAtLeastOnePhotoSection = photoSteps.some(step => stepData[step.id] != null)
-    if (!hasAtLeastOnePhotoSection) {
-      setError(t('loadAtLeastOneSection'))
+    const photosCount = photoSteps.filter(step => stepData[step.id] != null).length
+    if (photosCount < 3) {
+      setError(t('loadAtLeastThreePhotos'))
       return
     }
-    // Verifica che isHome sia definito (boolean)
     if (typeof isHome !== 'boolean') {
       setError(t('homeAwayLabel') + ' - ' + t('required'))
       return
@@ -778,7 +776,7 @@ export default function NewMatchPage() {
         <button
           data-tour-id="tour-match-save"
           onClick={handleShowSummary}
-          disabled={saving || !photoSteps.some(step => stepData[step.id] != null)}
+          disabled={saving || photosUploaded < 3 || typeof isHome !== 'boolean'}
           style={{
             width: '100%',
             background: saving
@@ -788,8 +786,8 @@ export default function NewMatchPage() {
             borderRadius: '8px',
             padding: '16px',
             color: saving ? '#d1d5db' : '#86efac',
-            cursor: saving || !photoSteps.some(step => stepData[step.id] != null) ? 'not-allowed' : 'pointer',
-            opacity: saving || !photoSteps.some(step => stepData[step.id] != null) ? 0.5 : 1,
+            cursor: saving || photosUploaded < 3 || typeof isHome !== 'boolean' ? 'not-allowed' : 'pointer',
+            opacity: saving || photosUploaded < 3 || typeof isHome !== 'boolean' ? 0.5 : 1,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
