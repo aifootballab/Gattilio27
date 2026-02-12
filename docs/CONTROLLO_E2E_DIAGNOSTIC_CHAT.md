@@ -79,8 +79,9 @@
 
 | Dove | Cosa |
 |------|------|
-| **diagnosticBuilder** | sanitizeForPrompt su tutti i testi; troncamento lunghezza; nessun inject newline in prompt. |
-| **assistant-chat** | MAX_PERSONAL_CONTEXT_CHARS (6200); troncamento contesto; MAX_MESSAGE_LENGTH, MAX_HISTORY_* per sicurezza e token. |
+| **diagnosticBuilder** | Blocco ISTRUZIONI PER L'IA all'inizio (~280 chr); sanitizeForPrompt su tutti i testi; nessun inject newline in prompt. |
+| **assistant-chat** | MAX_PERSONAL_CONTEXT_CHARS (7200); troncamento contesto oltre limite; MAX_MESSAGE_LENGTH, MAX_HISTORY_* per sicurezza e token. |
+| **user_diagnostic_cache** | 1 riga per user_id; content TEXT; Supabase: verificare LENGTH(content) su utenti attivi (tipico 3k–7k; sopra 7k rischia troncamento). |
 | **save-ai-info** | Whitelist campi e valori (select); MAX_TEXT 255, MAX_NOTES 500. |
 | **extract-game-analysis** | Max 2 immagini; max 10MB per immagine; body.imageDataUrls array. |
 | **refresh-diagnostic** | Rate limit 2/min; userId da token. |

@@ -187,23 +187,51 @@ function getMissingSections(matchData) {
   return missing
 }
 
+/** Ritorna true se il cliente ha vinto (usa result e is_home per interpretare "3-1") */
+function isClientWin(result, isHome) {
+  if (!result || typeof result !== 'string') return false
+  const r = result.trim()
+  if (r.includes('W') || r.includes('Vittoria') || r.includes('Win')) return true
+  if (r.includes('L') || r.includes('Sconfitta') || r.includes('Loss')) return false
+  const m = r.match(/^\s*(\d+)\s*-\s*(\d+)\s*$/)
+  if (!m) return false
+  const t1 = parseInt(m[1], 10)
+  const t2 = parseInt(m[2], 10)
+  if (Number.isNaN(t1) || Number.isNaN(t2)) return false
+  return isHome ? t1 > t2 : t2 > t1
+}
+
+/** Ritorna true se il cliente ha perso */
+function isClientLoss(result, isHome) {
+  if (!result || typeof result !== 'string') return false
+  const r = result.trim()
+  if (r.includes('W') || r.includes('Vittoria') || r.includes('Win')) return false
+  if (r.includes('L') || r.includes('Sconfitta') || r.includes('Loss')) return true
+  const m = r.match(/^\s*(\d+)\s*-\s*(\d+)\s*$/)
+  if (!m) return false
+  const t1 = parseInt(m[1], 10)
+  const t2 = parseInt(m[2], 10)
+  if (Number.isNaN(t1) || Number.isNaN(t2)) return false
+  return isHome ? t1 < t2 : t2 < t1
+}
+
 /**
  * Analizza storico match per identificare pattern e formazioni che soffre
+ * Usa is_home per interpretare correttamente result "3-1" (team1-team2)
  */
 function analyzeMatchHistory(matchHistory, currentOpponentFormationId) {
   const analysis = {
     totalMatches: matchHistory.length,
-    formationsStruggled: {}, // Formazioni avversarie contro cui ha perso più spesso
+    formationsStruggled: {},
     winRateByOpponentFormation: {},
     recurringIssues: [],
-    recentTrend: 'stable' // 'improving' | 'declining' | 'stable'
+    recentTrend: 'stable'
   }
   
   if (matchHistory.length === 0) {
     return analysis
   }
   
-  // Analizza formazioni avversarie
   const opponentFormationStats = {}
   matchHistory.forEach(match => {
     if (match.opponent_formation_id) {
@@ -213,10 +241,11 @@ function analyzeMatchHistory(matchHistory, currentOpponentFormationId) {
       }
       opponentFormationStats[formationId].total++
       
+      const isHome = match.is_home === true || match.is_home === 'true'
       const result = match.result || ''
-      if (result.includes('W') || result.includes('Vittoria') || result.includes('Win')) {
+      if (isClientWin(result, isHome)) {
         opponentFormationStats[formationId].wins++
-      } else if (result.includes('L') || result.includes('Sconfitta') || result.includes('Loss')) {
+      } else if (isClientLoss(result, isHome)) {
         opponentFormationStats[formationId].losses++
       } else {
         opponentFormationStats[formationId].draws++
@@ -244,21 +273,15 @@ function analyzeMatchHistory(matchHistory, currentOpponentFormationId) {
     }
   })
   
-  // Analizza trend recente (ultimi 10 match)
+  // Analizza trend recente (ultimi 10 vs 10-20 match)
   const recentMatches = matchHistory.slice(0, 10)
   if (recentMatches.length > 0) {
-    const recentWins = recentMatches.filter(m => {
-      const result = m.result || ''
-      return result.includes('W') || result.includes('Vittoria') || result.includes('Win')
-    }).length
+    const recentWins = recentMatches.filter(m => isClientWin(m.result || '', m.is_home === true || m.is_home === 'true')).length
     const recentWinRate = (recentWins / recentMatches.length) * 100
     
     const olderMatches = matchHistory.slice(10, 20)
     if (olderMatches.length > 0) {
-      const olderWins = olderMatches.filter(m => {
-        const result = m.result || ''
-        return result.includes('W') || result.includes('Vittoria') || result.includes('Win')
-      }).length
+      const olderWins = olderMatches.filter(m => isClientWin(m.result || '', m.is_home === true || m.is_home === 'true')).length
       const olderWinRate = (olderWins / olderMatches.length) * 100
       
       if (recentWinRate > olderWinRate + 10) {
@@ -756,6 +779,12 @@ ${attilaMemorySection}${conservativeMode}${personalizationInstructions}
 9. **Playing Style Giocatore** = Stile giocatore, NON stile squadra
    - ❌ SBAGLIATO: "Ha usato stile X perché giocatore ha playing style X"
    - ✅ CORRETTO: "Playing style giocatore: X. Team playing style: Y" (se diversi, menziona entrambi)
+10. **Palle inattive / Set pieces**: corner_kicks e free_kicks sono SOLO conteggi numerici. NON indicano qualità gestione.
+   - ❌ SBAGLIATO: "La gestione delle palle inattive potrebbe essere migliorata" (inferenza senza dati)
+   - ✅ CORRETTO: menziona palle inattive SOLO se hai dati espliciti (es. gol subiti da corner). Altrimenti NON menzionare.
+11. **Formation effectiveness**: NON inferire "efficacia" o "equilibrio attacco-difesa" da formazione + risultato.
+   - ❌ SBAGLIATO: "La formazione 3-2-3-2 è stata efficace nel mantenere equilibrio attacco-difesa"
+   - ✅ CORRETTO: "Formazione usata: 3-2-3-2. Risultato: vittoria 3-1." (descrizione dati, no giudizi non supportati)
 
 ⚠️ REGOLE CRITICHE - POSIZIONI E OVERALL:
 1. NON menzionare overall_rating se photo_slots è vuoto {} (dati non verificati)
@@ -1007,10 +1036,10 @@ export async function POST(req) {
           }
         }
         
-        // 4. Recupera storico match (ultimi 30 per analisi andamento)
+        // 4. Recupera storico match (ultimi 30 per analisi andamento) - is_home necessario per interpretare result "3-1"
         const { data: history, error: historyError } = await admin
           .from('matches')
-          .select('id, opponent_name, result, formation_played, playing_style_played, opponent_formation_id, match_date')
+          .select('id, opponent_name, result, is_home, formation_played, playing_style_played, opponent_formation_id, match_date')
           .eq('user_id', userId)
           .order('match_date', { ascending: false })
           .limit(30)

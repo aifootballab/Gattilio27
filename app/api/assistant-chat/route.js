@@ -13,8 +13,8 @@ export const dynamic = 'force-dynamic'
 const MAX_HISTORY_MESSAGES = 10
 const MAX_HISTORY_CONTENT_LENGTH = 2000
 
-/** Limite riassunto contesto personale (rosa con stats+abilità, partite, tattica, allenatore) */
-const MAX_PERSONAL_CONTEXT_CHARS = 6200
+/** Limite riassunto contesto personale (diagnostic da user_diagnostic_cache). 7200: alcuni utenti hanno diagnostic 6500+; blocco ISTRUZIONI aggiunge ~280; margine per rosa/partite ampie. */
+const MAX_PERSONAL_CONTEXT_CHARS = 7200
 
 /** Limiti validazione input (sicurezza e token) */
 const MAX_MESSAGE_LENGTH = 4000
