@@ -75,8 +75,13 @@ Rispondi SOLO con JSON valido, nient'altro:
     // Se un campo NON è stato menzionato, NON includerlo.
   },
   "tactical_insights": [
-    // Array di insight tattici (può essere vuoto se la conversazione era solo profilo)
-    // { "type": "weakness"|"strength"|"lesson", "text": "descrizione concisa max 100 char" }
+    // Array di insight tattici AZIONABILI (può essere vuoto se solo profilo).
+    // Ogni insight deve essere specifico e collegato a giocatori/formazione/tattica.
+    // BUONO: {"type":"weakness","text":"Ronaldo inattivo nel 4-2-1-3 — troppo isolato in attacco"}
+    // BUONO: {"type":"strength","text":"Contropiede con Mbappé e Eto'o efficace — velocità in transizione"}
+    // BUONO: {"type":"lesson","text":"4-3-3 meglio del 4-2-1-3 vs pressing alto — più opzioni centrali"}
+    // CATTIVO: {"type":"weakness","text":"non funzionava"} (troppo vago!)
+    // { "type": "weakness"|"strength"|"lesson", "text": "insight specifico e azionabile, max 150 char" }
   ],
   "conversation_summary": "riassunto 1-2 frasi della conversazione",
   "outcome": null
