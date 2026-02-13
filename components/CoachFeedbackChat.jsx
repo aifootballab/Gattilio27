@@ -34,9 +34,10 @@ export default function CoachFeedbackChat({ show, onClose, userProfile: external
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [loadedProfile, setLoadedProfile] = useState(null)
-  const [step, setStep] = useState('form') // 'form' | 'chat'
+  const [formExpanded, setFormExpanded] = useState(false)
   const [formData, setFormData] = useState({})
   const [formSaving, setFormSaving] = useState(false)
+  const [formSaved, setFormSaved] = useState(false)
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
   const sendAbortRef = useRef(null)
@@ -71,15 +72,16 @@ export default function CoachFeedbackChat({ show, onClose, userProfile: external
     return 'update'
   }, [userProfile, lastMatch])
 
-  // Inizializza step e form quando si apre
+  // Inizializza form e stato quando si apre
   useEffect(() => {
     if (!show) return
-    // feedback → diritto alla chat. profile_setup/update → mostra form prima.
-    if (sessionMode === 'feedback') {
-      setStep('chat')
-    } else {
-      setStep('form')
-    }
+    setFormSaved(false)
+    // Apri form automaticamente se profilo incompleto
+    const profileFields = [
+      userProfile?.platform, userProfile?.connection_quality, userProfile?.pass_level,
+      userProfile?.smart_assist, userProfile?.input_delay, userProfile?.ai_weak_point
+    ].filter(v => v != null && String(v).trim() !== '').length
+    setFormExpanded(profileFields < 3)
     // Pre-popola form con dati esistenti
     setFormData({
       connection_quality: userProfile?.connection_quality || '',
@@ -94,7 +96,7 @@ export default function CoachFeedbackChat({ show, onClose, userProfile: external
       ai_learn_goals: userProfile?.ai_learn_goals || '',
       ai_notes: userProfile?.ai_notes || ''
     })
-  }, [show, sessionMode, userProfile])
+  }, [show, userProfile])
 
   // Salva form dati tecnici via save-ai-info (0 HP, nessuna chiamata OpenAI)
   const handleFormSave = useCallback(async () => {
@@ -123,15 +125,15 @@ export default function CoachFeedbackChat({ show, onClose, userProfile: external
       })
 
       if (res.ok) {
-        // Aggiorna profilo locale con i dati appena salvati
         setLoadedProfile(prev => ({ ...prev, ...body }))
+        setFormSaved(true)
+        setFormExpanded(false)
         if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('knowledge-should-refresh'))
       }
     } catch (err) {
       console.error('[CoachFeedbackChat] Form save error:', err)
     } finally {
       setFormSaving(false)
-      setStep('chat')
     }
   }, [formData])
 
@@ -145,9 +147,9 @@ export default function CoachFeedbackChat({ show, onClose, userProfile: external
     return ['Ho cambiato qualcosa nel mio gioco', 'Ho difficolta con qualcosa', 'Altro feedback']
   }, [sessionMode, lang])
 
-  // Messaggio iniziale automatico (quando si entra in step chat)
+  // Messaggio iniziale automatico
   useEffect(() => {
-    if (!show || step !== 'chat') return
+    if (!show) return
     setMessages([])
     setSaved(false)
 
@@ -161,16 +163,20 @@ export default function CoachFeedbackChat({ show, onClose, userProfile: external
       greeting = lang === 'en'
         ? `Hi ${firstName}! I see you played ${form} vs ${opp} \u2014 ${result}. Tell me how it went!`
         : `Ciao ${firstName}! Vedo che hai giocato ${form} contro ${opp} \u2014 ${result}. Raccontami com'\u00e8 andata!`
+    } else if (sessionMode === 'profile_setup') {
+      greeting = lang === 'en'
+        ? `Hi ${firstName}! Fill in your details above, then we can chat.`
+        : `Ciao ${firstName}! Compila i tuoi dati qui sopra, poi possiamo parlare.`
     } else {
       greeting = lang === 'en'
-        ? `Hi ${firstName}! Your data has been saved. Is there anything else you want to tell me?`
-        : `Ciao ${firstName}! I tuoi dati sono stati salvati. C'\u00e8 altro che vuoi dirmi?`
+        ? `Hi ${firstName}! Is there anything new you want to tell me?`
+        : `Ciao ${firstName}! C'\u00e8 qualcosa di nuovo che vuoi dirmi?`
     }
 
     setTimeout(() => {
       setMessages([{ role: 'assistant', content: greeting }])
     }, 300)
-  }, [show, step, sessionMode, userProfile, lastMatch, lang])
+  }, [show, sessionMode, userProfile, lastMatch, lang])
 
   // Auto-scroll
   useEffect(() => {
@@ -395,143 +401,134 @@ export default function CoachFeedbackChat({ show, onClose, userProfile: external
           </button>
         </div>
 
-        {/* STEP: Form dati tecnici (profile_setup / update) — 0 HP */}
-        {step === 'form' && (
-          <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', background: 'rgba(0,0,0,0.3)' }}>
-            <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)', marginBottom: '16px', textAlign: 'center' }}>
-              {lang === 'en' ? 'Fill in your details (free, no credits used)' : 'Compila i tuoi dati (gratis, non consuma crediti)'}
-            </div>
+        {/* Pannello dati tecnici espandibile (0 HP) — sempre accessibile */}
+        <div style={{ borderBottom: '1px solid rgba(255,140,0,0.2)' }}>
+          <button
+            type="button"
+            onClick={() => setFormExpanded(e => !e)}
+            style={{
+              width: '100%', padding: '10px 16px',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              background: formExpanded ? 'rgba(255,140,0,0.08)' : 'transparent',
+              border: 'none', cursor: 'pointer', color: 'var(--neon-orange)', fontSize: '13px',
+              transition: 'background 0.2s'
+            }}
+          >
+            <span>{lang === 'en' ? 'My data (free, 0 credits)' : 'I miei dati (gratis, 0 crediti)'}
+              {formSaved && <span style={{ color: '#4caf50', marginLeft: '8px' }}>{lang === 'en' ? 'Saved!' : 'Salvato!'}</span>}
+            </span>
+            <span style={{ fontSize: '16px' }}>{formExpanded ? '\u25B2' : '\u25BC'}</span>
+          </button>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {/* Piattaforma */}
-              <div>
-                <label style={formLabelStyle}>{lang === 'en' ? 'Platform' : 'Piattaforma'}</label>
-                <select style={formFieldStyle} value={formData.platform || ''} onChange={e => setFormData(p => ({ ...p, platform: e.target.value }))}>
-                  <option value="">{lang === 'en' ? '-- Select --' : '-- Seleziona --'}</option>
-                  <option value="console">Console</option>
-                  <option value="pc">PC</option>
-                  <option value="mobile">Mobile</option>
-                  <option value="other">{lang === 'en' ? 'Other' : 'Altro'}</option>
-                </select>
+          {formExpanded && (
+            <div style={{ padding: '8px 16px 16px', maxHeight: '50vh', overflowY: 'auto', background: 'rgba(0,0,0,0.2)' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                {/* Piattaforma */}
+                <div>
+                  <label style={formLabelStyle}>{lang === 'en' ? 'Platform' : 'Piattaforma'}</label>
+                  <select style={formFieldStyle} value={formData.platform || ''} onChange={e => setFormData(p => ({ ...p, platform: e.target.value }))}>
+                    <option value="">--</option>
+                    <option value="console">Console</option>
+                    <option value="pc">PC</option>
+                    <option value="mobile">Mobile</option>
+                    <option value="other">{lang === 'en' ? 'Other' : 'Altro'}</option>
+                  </select>
+                </div>
+                {/* Connessione */}
+                <div>
+                  <label style={formLabelStyle}>{lang === 'en' ? 'Connection' : 'Connessione'}</label>
+                  <select style={formFieldStyle} value={formData.connection_quality || ''} onChange={e => setFormData(p => ({ ...p, connection_quality: e.target.value }))}>
+                    <option value="">--</option>
+                    <option value="good">{lang === 'en' ? 'Good' : 'Buona'}</option>
+                    <option value="unstable">{lang === 'en' ? 'Unstable' : 'Instabile'}</option>
+                    <option value="lag">Lag</option>
+                  </select>
+                </div>
+                {/* PA Level */}
+                <div>
+                  <label style={formLabelStyle}>{lang === 'en' ? 'Pass level' : 'Passaggi'}</label>
+                  <select style={formFieldStyle} value={formData.pass_level || ''} onChange={e => setFormData(p => ({ ...p, pass_level: e.target.value }))}>
+                    <option value="">--</option>
+                    <option value="pa1">PA1</option>
+                    <option value="pa2">PA2</option>
+                    <option value="pa3">PA3</option>
+                  </select>
+                </div>
+                {/* Smart Assist */}
+                <div>
+                  <label style={formLabelStyle}>Smart Assist</label>
+                  <select style={formFieldStyle} value={formData.smart_assist || ''} onChange={e => setFormData(p => ({ ...p, smart_assist: e.target.value }))}>
+                    <option value="">--</option>
+                    <option value="yes">{lang === 'en' ? 'Yes' : 'Si'}</option>
+                    <option value="no">No</option>
+                  </select>
+                </div>
+                {/* Input Delay */}
+                <div>
+                  <label style={formLabelStyle}>{lang === 'en' ? 'Input delay' : 'Ritardo input'}</label>
+                  <select style={formFieldStyle} value={formData.input_delay || ''} onChange={e => setFormData(p => ({ ...p, input_delay: e.target.value }))}>
+                    <option value="">--</option>
+                    <option value="yes">{lang === 'en' ? 'Yes' : 'Si'}</option>
+                    <option value="no">No</option>
+                    <option value="sometimes">{lang === 'en' ? 'Sometimes' : 'A volte'}</option>
+                  </select>
+                </div>
+                {/* Punto debole */}
+                <div>
+                  <label style={formLabelStyle}>{lang === 'en' ? 'Weak point' : 'Punto debole'}</label>
+                  <select style={formFieldStyle} value={formData.ai_weak_point || ''} onChange={e => setFormData(p => ({ ...p, ai_weak_point: e.target.value }))}>
+                    <option value="">--</option>
+                    <option value="defence">{lang === 'en' ? 'Defence' : 'Difesa'}</option>
+                    <option value="attack">{lang === 'en' ? 'Attack' : 'Attacco'}</option>
+                    <option value="set_pieces">{lang === 'en' ? 'Set pieces' : 'Piazzati'}</option>
+                    <option value="transitions">{lang === 'en' ? 'Transitions' : 'Transizioni'}</option>
+                    <option value="final_minutes">{lang === 'en' ? 'Final minutes' : 'Finale partita'}</option>
+                  </select>
+                </div>
+                {/* Divisione */}
+                <div>
+                  <label style={formLabelStyle}>{lang === 'en' ? 'Division' : 'Divisione'}</label>
+                  <input type="text" style={formFieldStyle} placeholder={lang === 'en' ? 'e.g. Div 3' : 'es. Div 3'}
+                    value={formData.current_division || ''} onChange={e => setFormData(p => ({ ...p, current_division: e.target.value }))} maxLength={50} />
+                </div>
+                {/* Ore */}
+                <div>
+                  <label style={formLabelStyle}>{lang === 'en' ? 'Hours/week' : 'Ore/sett.'}</label>
+                  <input type="number" style={formFieldStyle} min="0" max="168" placeholder="0-168"
+                    value={formData.hours_per_week ?? ''} onChange={e => setFormData(p => ({ ...p, hours_per_week: e.target.value }))} />
+                </div>
               </div>
-
-              {/* Connessione */}
-              <div>
-                <label style={formLabelStyle}>{lang === 'en' ? 'Connection quality' : 'Qualita connessione'}</label>
-                <select style={formFieldStyle} value={formData.connection_quality || ''} onChange={e => setFormData(p => ({ ...p, connection_quality: e.target.value }))}>
-                  <option value="">{lang === 'en' ? '-- Select --' : '-- Seleziona --'}</option>
-                  <option value="good">{lang === 'en' ? 'Good' : 'Buona'}</option>
-                  <option value="unstable">{lang === 'en' ? 'Unstable' : 'Instabile'}</option>
-                  <option value="lag">Lag</option>
-                </select>
+              {/* Campi testo (full width) */}
+              <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div>
+                  <label style={formLabelStyle}>{lang === 'en' ? 'What to learn?' : 'Cosa vuoi imparare?'}</label>
+                  <input type="text" style={formFieldStyle} maxLength={255}
+                    value={formData.ai_learn_goals || ''} onChange={e => setFormData(p => ({ ...p, ai_learn_goals: e.target.value }))}
+                    placeholder={lang === 'en' ? 'e.g. defense vs pressing' : 'es. difesa vs pressing'} />
+                </div>
+                <div>
+                  <label style={formLabelStyle}>{lang === 'en' ? 'Notes for AI' : 'Note per l\'IA'}</label>
+                  <input type="text" style={formFieldStyle} maxLength={500}
+                    value={formData.ai_notes || ''} onChange={e => setFormData(p => ({ ...p, ai_notes: e.target.value }))}
+                    placeholder={lang === 'en' ? 'Anything else...' : 'Qualsiasi altra cosa...'} />
+                </div>
               </div>
-
-              {/* PA Level */}
-              <div>
-                <label style={formLabelStyle}>{lang === 'en' ? 'Pass level' : 'Livello passaggi'}</label>
-                <select style={formFieldStyle} value={formData.pass_level || ''} onChange={e => setFormData(p => ({ ...p, pass_level: e.target.value }))}>
-                  <option value="">{lang === 'en' ? '-- Select --' : '-- Seleziona --'}</option>
-                  <option value="pa1">PA1</option>
-                  <option value="pa2">PA2</option>
-                  <option value="pa3">PA3</option>
-                </select>
-              </div>
-
-              {/* Smart Assist */}
-              <div>
-                <label style={formLabelStyle}>Smart Assist</label>
-                <select style={formFieldStyle} value={formData.smart_assist || ''} onChange={e => setFormData(p => ({ ...p, smart_assist: e.target.value }))}>
-                  <option value="">{lang === 'en' ? '-- Select --' : '-- Seleziona --'}</option>
-                  <option value="yes">{lang === 'en' ? 'Yes' : 'Si'}</option>
-                  <option value="no">No</option>
-                </select>
-              </div>
-
-              {/* Input Delay */}
-              <div>
-                <label style={formLabelStyle}>{lang === 'en' ? 'Input delay' : 'Ritardo input'}</label>
-                <select style={formFieldStyle} value={formData.input_delay || ''} onChange={e => setFormData(p => ({ ...p, input_delay: e.target.value }))}>
-                  <option value="">{lang === 'en' ? '-- Select --' : '-- Seleziona --'}</option>
-                  <option value="yes">{lang === 'en' ? 'Yes' : 'Si'}</option>
-                  <option value="no">No</option>
-                  <option value="sometimes">{lang === 'en' ? 'Sometimes' : 'A volte'}</option>
-                </select>
-              </div>
-
-              {/* Punto debole */}
-              <div>
-                <label style={formLabelStyle}>{lang === 'en' ? 'Weak point' : 'Punto debole'}</label>
-                <select style={formFieldStyle} value={formData.ai_weak_point || ''} onChange={e => setFormData(p => ({ ...p, ai_weak_point: e.target.value }))}>
-                  <option value="">{lang === 'en' ? '-- Select --' : '-- Seleziona --'}</option>
-                  <option value="defence">{lang === 'en' ? 'Defence' : 'Difesa'}</option>
-                  <option value="attack">{lang === 'en' ? 'Attack' : 'Attacco'}</option>
-                  <option value="set_pieces">{lang === 'en' ? 'Set pieces' : 'Piazzati'}</option>
-                  <option value="transitions">{lang === 'en' ? 'Transitions' : 'Transizioni'}</option>
-                  <option value="final_minutes">{lang === 'en' ? 'Final minutes' : 'Finale partita'}</option>
-                </select>
-              </div>
-
-              {/* Divisione */}
-              <div>
-                <label style={formLabelStyle}>{lang === 'en' ? 'Current division' : 'Divisione attuale'}</label>
-                <input type="text" style={formFieldStyle} placeholder={lang === 'en' ? 'e.g. Division 3' : 'es. Divisione 3'}
-                  value={formData.current_division || ''} onChange={e => setFormData(p => ({ ...p, current_division: e.target.value }))} maxLength={50} />
-              </div>
-
-              {/* Ore a settimana */}
-              <div>
-                <label style={formLabelStyle}>{lang === 'en' ? 'Hours per week' : 'Ore a settimana'}</label>
-                <input type="number" style={formFieldStyle} min="0" max="168" placeholder="0-168"
-                  value={formData.hours_per_week ?? ''} onChange={e => setFormData(p => ({ ...p, hours_per_week: e.target.value }))} />
-              </div>
-
-              {/* Cosa vuoi imparare */}
-              <div>
-                <label style={formLabelStyle}>{lang === 'en' ? 'What do you want to learn?' : 'Cosa vuoi imparare?'}</label>
-                <textarea style={{ ...formFieldStyle, minHeight: '50px', resize: 'vertical' }} maxLength={255}
-                  value={formData.ai_learn_goals || ''} onChange={e => setFormData(p => ({ ...p, ai_learn_goals: e.target.value }))}
-                  placeholder={lang === 'en' ? 'e.g. improve defense against pressing' : 'es. migliorare la difesa contro il pressing'} />
-              </div>
-
-              {/* Note */}
-              <div>
-                <label style={formLabelStyle}>{lang === 'en' ? 'Notes for AI' : 'Note per l\'IA'}</label>
-                <textarea style={{ ...formFieldStyle, minHeight: '50px', resize: 'vertical' }} maxLength={500}
-                  value={formData.ai_notes || ''} onChange={e => setFormData(p => ({ ...p, ai_notes: e.target.value }))}
-                  placeholder={lang === 'en' ? 'Anything else the AI should know...' : 'Qualsiasi altra cosa l\'IA debba sapere...'} />
-              </div>
-            </div>
-
-            {/* Bottoni form */}
-            <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
               <button
                 onClick={handleFormSave} disabled={formSaving}
                 style={{
-                  flex: 1, padding: '12px', background: 'var(--neon-orange)', border: 'none',
-                  borderRadius: '8px', color: 'white', fontSize: '14px', fontWeight: 600,
-                  cursor: formSaving ? 'wait' : 'pointer', transition: 'all 0.2s'
+                  width: '100%', marginTop: '12px', padding: '10px',
+                  background: 'var(--neon-orange)', border: 'none', borderRadius: '8px',
+                  color: 'white', fontSize: '13px', fontWeight: 600,
+                  cursor: formSaving ? 'wait' : 'pointer'
                 }}
               >
-                {formSaving
-                  ? (lang === 'en' ? 'Saving...' : 'Salvataggio...')
-                  : (lang === 'en' ? 'Save & continue to chat' : 'Salva e vai alla chat')}
-              </button>
-              <button
-                onClick={() => setStep('chat')}
-                style={{
-                  padding: '12px 16px', background: 'transparent',
-                  border: '1px solid rgba(255,255,255,0.3)', borderRadius: '8px',
-                  color: 'rgba(255,255,255,0.6)', fontSize: '13px', cursor: 'pointer'
-                }}
-              >
-                {lang === 'en' ? 'Skip' : 'Salta'}
+                {formSaving ? (lang === 'en' ? 'Saving...' : 'Salvo...') : (lang === 'en' ? 'Save data' : 'Salva dati')}
               </button>
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
-        {/* STEP: Chat */}
-        {step === 'chat' && <>
+        {/* Chat */}
         {/* Messages */}
         <div
           style={{
@@ -657,7 +654,6 @@ export default function CoachFeedbackChat({ show, onClose, userProfile: external
             <Send size={18} color="white" />
           </button>
         </div>
-        </>}
       </div>
     </div>
   )
