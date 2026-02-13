@@ -889,7 +889,7 @@ Tabella `weekly_goals`:
 - week_start_date, week_end_date
 ```
 
-⚠️ **Sicurezza:** UPDATE policy rimossa - solo backend può aggiornare.
+⚠️ **Sicurezza:** UPDATE policy rimossa intenzionalmente (anti-cheating). Solo backend (service_role) può aggiornare `current_value` e `status`. Il client può solo leggere (SELECT), inserire (INSERT) e cancellare (DELETE) i propri task.
 
 ---
 
@@ -989,6 +989,60 @@ Salva in team_tactical_patterns
 
 ---
 
+## 17b. PALESTRA COACH (Chat Feedback Dedicata)
+
+**File:** `components/CoachFeedbackChat.jsx`, `app/api/coach-feedback-chat/route.js`, `app/api/save-coach-feedback/route.js`
+
+### Cos'e
+Chat dedicata che **sostituisce AiInfoModal**. Raccoglie info profilo (piattaforma, connessione, punto debole, ecc.) e feedback post-partita tramite conversazione con IA.
+
+**BLINDATA**: la chat SOLO ascolta e raccoglie informazioni. Zero consigli tattici. Se l'utente chiede consigli, viene reindirizzato alla chat principale.
+
+### 3 Modalita (automatiche)
+
+| Modalita | Quando | Messaggio iniziale |
+|----------|--------|-------------------|
+| `profile_setup` | Profilo incompleto (<3 campi tecnici compilati) | "Parlami di te: piattaforma, connessione, PA level..." |
+| `feedback` | Profilo completo + partita recente | "Hai giocato [formazione] vs [avversario] - [risultato]. Com'e andata?" |
+| `update` | Profilo completo, nessuna partita recente | "C'e qualcosa di nuovo?" |
+
+### Flusso completo
+```
+Dashboard: click "Palestra Coach"
+     |
+CoachFeedbackChat (modal fullscreen arancione)
+     |
+API /coach-feedback-chat (ogni messaggio, 1 credito)
+  - Carica profilo + ultima partita come contesto
+  - System prompt blindato (zero consigli)
+     |
+Utente clicca "Salva e chiudi"
+     |
+API /save-coach-feedback (1 call GPT estrazione, 1 credito)
+  - Estrae profile_updates + tactical_insights dal JSON
+  - Valida con WHITELIST (stessa di save-ai-info)
+  - Salva profile_updates in user_profiles
+  - Salva insights in user_tactical_feedback
+  - Trigger refresh-diagnostic
+     |
+Diagnostic aggiornato: nuova sezione "ESPERIENZA COACH"
+Chat principale la legge dal diagnostic cache
+AI Knowledge Score: +coach_training (max 10%)
+```
+
+### Tabella: `user_tactical_feedback`
+```sql
+- id, user_id, match_id (nullable FK)
+- session_type: 'profile_setup' | 'feedback' | 'update'
+- formation_played, style_played, opponent_name, outcome
+- conversation_summary, insights (JSONB), profile_fields_updated (JSONB)
+- created_at
+```
+
+### Costo: ~5-6 crediti per sessione (4-5 messaggi + 1 estrazione)
+
+---
+
 ## 18. COMPONENTI CONDIVISI
 
 ### 18.1 AssistantChat (`/components/AssistantChat.jsx`)
@@ -1072,6 +1126,8 @@ Visualizzazione
 | `POST /api/assistant-chat` | `{ message, page_context, history, language }` | `{ response, suggestions[], credits_used }` |
 | `POST /api/analyze-match` | `{ match_id }` | `{ analysis, insights }` |
 | `POST /api/generate-countermeasures` | `{ opponent_formation_id, language }` | `{ countermeasures, confidence }` |
+| `POST /api/coach-feedback-chat` | `{ message, history, language }` | `{ response, matchId }` |
+| `POST /api/save-coach-feedback` | `{ conversation[], session_type, match_id? }` | `{ success, profile_fields_updated[], insights_count }` |
 
 ### 19.3 Crediti
 

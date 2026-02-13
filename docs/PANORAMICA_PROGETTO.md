@@ -314,7 +314,7 @@ Campi:
 - `status` → 'active', 'completed', 'failed'
 - `week_start_date`, `week_end_date` → Periodo validità
 
-**Nota sicurezza:** UPDATE policy rimossa! Solo backend può aggiornare (evita cheating).
+**Nota sicurezza:** UPDATE policy rimossa intenzionalmente (anti-cheating). Solo backend (service_role) può aggiornare `current_value` e `status`.
 
 ### Tabella `user_profiles` (Il profilo)
 Dati utente estesi (oltre auth).

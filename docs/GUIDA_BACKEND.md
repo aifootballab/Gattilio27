@@ -674,7 +674,7 @@ Task settimanali.
 - week_end_date (date)
 ```
 
-**Sicurezza:** UPDATE policy rimossa - solo backend (service_role) può aggiornare.
+**Sicurezza:** UPDATE policy rimossa intenzionalmente (anti-cheating). Solo backend (service_role) può aggiornare `current_value` e `status`.
 
 ---
 
@@ -753,7 +753,7 @@ WITH CHECK (auth.uid() = user_id);
 ```
 
 **Eccezione - weekly_goals:**
-UPDATE policy rimossa. Solo backend (service_role) può aggiornare.
+UPDATE policy rimossa intenzionalmente (anti-cheating). Solo backend (service_role) può aggiornare.
 
 ---
 

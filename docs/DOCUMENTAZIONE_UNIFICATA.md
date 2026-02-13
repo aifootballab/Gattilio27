@@ -155,7 +155,7 @@ Utente → Frontend → Supabase (letture dirette)
 - target_value, current_value, status
 - week_start_date, week_end_date
 ```
-⚠️ **Importante**: UPDATE policy rimossa - solo backend (service_role) può aggiornare.
+⚠️ **Importante**: UPDATE policy rimossa intenzionalmente (anti-cheating). Solo backend (service_role) può aggiornare.
 
 #### `user_credit_usage` (Crediti)
 ```sql
@@ -250,7 +250,7 @@ CREATE POLICY "Users can insert own data" ON table_name
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 ```
 
-Eccezione: `weekly_goals` - UPDATE policy rimossa (solo backend).
+Eccezione: `weekly_goals` - UPDATE policy rimossa intenzionalmente (anti-cheating, solo backend service_role).
 
 ### Rate Limiting
 

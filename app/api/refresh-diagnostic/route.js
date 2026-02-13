@@ -80,7 +80,8 @@ export async function POST(req) {
       auth: { autoRefreshToken: false, persistSession: false }
     })
 
-    const [profileRes, formationRes, playersRes, stylesRes, matchesRes, tacticalRes, coachRes, patternsRes, gameAnalysisRes] = await Promise.all([
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+    const [profileRes, formationRes, playersRes, stylesRes, matchesRes, tacticalRes, coachRes, patternsRes, gameAnalysisRes, feedbackRes] = await Promise.all([
       admin.from('user_profiles').select('first_name, last_name, team_name, common_problems, ai_name, current_division, hours_per_week, connection_quality, slow_opponent_connection_issues, input_delay, pass_level, smart_assist, platform, favourite_player_name, ai_weak_point, ai_learn_goals, ai_notes').eq('user_id', userId).maybeSingle(),
       admin.from('formation_layout').select('formation').eq('user_id', userId).maybeSingle(),
       admin.from('players').select('id, player_name, position, overall_rating, playing_style_id, role, slot_index, skills, com_skills, form, base_stats').eq('user_id', userId).order('slot_index', { ascending: true, nullsFirst: false }).limit(50),
@@ -89,7 +90,8 @@ export async function POST(req) {
       admin.from('team_tactical_settings').select('team_playing_style, individual_instructions').eq('user_id', userId).maybeSingle(),
       admin.from('coaches').select('coach_name, playing_style_competence, connection, stat_boosters').eq('user_id', userId).eq('is_active', true).maybeSingle(),
       admin.from('team_tactical_patterns').select('formation_usage, playing_style_usage, recurring_issues, attack_areas_avg, recovery_zones_avg').eq('user_id', userId).maybeSingle(),
-      admin.from('user_game_analysis').select('stats, captured_at').eq('user_id', userId).maybeSingle()
+      admin.from('user_game_analysis').select('stats, captured_at').eq('user_id', userId).maybeSingle(),
+      admin.from('user_tactical_feedback').select('insights, formation_played, opponent_name, outcome, session_type, created_at').eq('user_id', userId).gte('created_at', thirtyDaysAgo).order('created_at', { ascending: false }).limit(5)
     ])
 
     const profile = profileRes.data || {}
@@ -125,7 +127,8 @@ export async function POST(req) {
       individualInstructions: indInstr && typeof indInstr === 'object' ? indInstr : {},
       coachRow,
       patternsRow,
-      gameAnalysisRow: gameAnalysisRes.data || null
+      gameAnalysisRow: gameAnalysisRes.data || null,
+      feedbackRows: feedbackRes.data || []
     }
 
     const content = buildDiagnostic(lang, diagnosticData)

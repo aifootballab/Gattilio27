@@ -7,7 +7,7 @@ import { useTranslation } from '@/lib/i18n'
 import LanguageSwitch from '@/components/LanguageSwitch'
 import Link from 'next/link'
 import AIKnowledgeBar from '@/components/AIKnowledgeBar'
-import AiInfoModal from '@/components/AiInfoModal'
+import CoachFeedbackChat from '@/components/CoachFeedbackChat'
 import GameAnalysisModal from '@/components/GameAnalysisModal'
 import TaskWidget from '@/components/TaskWidget'
 import { safeJsonResponse } from '@/lib/fetchHelper'
@@ -56,7 +56,7 @@ export default function DashboardPage() {
   const [editingOpponentName, setEditingOpponentName] = React.useState('')
   const [savingOpponentName, setSavingOpponentName] = React.useState(false)
   const [tacticalPatterns, setTacticalPatterns] = React.useState(null) // Pattern tattici per AI Insights
-  const [showAiInfoModal, setShowAiInfoModal] = React.useState(false)
+  const [showCoachFeedback, setShowCoachFeedback] = React.useState(false)
   const [showGameAnalysisModal, setShowGameAnalysisModal] = React.useState(false)
   const [gameAnalysisLastCapture, setGameAnalysisLastCapture] = React.useState(null)
   const [hasActiveCoach, setHasActiveCoach] = React.useState(false)
@@ -526,12 +526,12 @@ export default function DashboardPage() {
         <button
           type="button"
           className="btn secondary"
-          onClick={() => setShowAiInfoModal(true)}
-          style={{ whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-          title={t('aiInfoTitle')}
+          onClick={() => setShowCoachFeedback(true)}
+          style={{ whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '6px', borderColor: 'var(--neon-orange)', color: 'var(--neon-orange)' }}
+          title={t('palestraCoachTitle') || 'Palestra Coach'}
         >
           <Info size={16} />
-          {t('aiInfoTitle')}
+          {t('palestraCoachTitle') || 'Palestra Coach'}
         </button>
       </div>
 
@@ -608,7 +608,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <AiInfoModal show={showAiInfoModal} onClose={() => setShowAiInfoModal(false)} />
+      <CoachFeedbackChat show={showCoachFeedback} onClose={() => setShowCoachFeedback(false)} userProfile={null} lastMatch={recentMatches?.[0] || null} />
       <GameAnalysisModal show={showGameAnalysisModal} onClose={() => setShowGameAnalysisModal(false)} onSuccess={fetchGameAnalysisCapture} />
 
       {/* Credits Bar: montata in layout per aggiornamento immediato dopo ogni API (credits-consumed) */}
