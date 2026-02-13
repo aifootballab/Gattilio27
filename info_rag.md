@@ -412,7 +412,7 @@ Fonti: [Efootball Arena – How to Build a Competitive Dream Team](https://efoot
 - **4-3-3 / 4-3-3 Narrow**: Dominio centrocampo, preferito dai professionisti; richiede terzini di qualità.
 - **3-5-2**: Sovrapposizione centrocampo, rischioso ma potente; esterni supportano difesa.
 
-**Regola**: Scegliere UNA formazione, padroneggiarla, adattare la rosa attorno a quella. Non cambiare modulo troppo spesso.
+
 
 **Allocazione per ruolo (quando suggerire chi schierare)**:
 - Creatori (TrQ, registi): controllo palla e passaggio massimizzati; Passaggio filtrante, Passaggio di prima.

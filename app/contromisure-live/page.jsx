@@ -51,21 +51,21 @@ export default function CountermeasuresLivePage() {
     }
 
     const reader = new FileReader()
-    reader.onload = (event) => {
-      setUploadImage(event.target.result)
+    reader.onload = async (event) => {
+      const imageDataUrl = event.target?.result
+      if (!imageDataUrl) return
+      setUploadImage(imageDataUrl)
       setError(null)
       setExtractedFormation(null)
       setCountermeasures(null)
+      await runFullPipeline(imageDataUrl)
     }
     reader.readAsDataURL(file)
   }
 
-  const handleExtractFormation = async () => {
-    if (!uploadImage) {
-      setError(t('noFormationUploaded') || 'Carica prima una formazione avversaria')
-      return
-    }
-
+  /** Pipeline completo: estrazione + generazione contromisure (avvio automatico al caricamento) */
+  const runFullPipeline = async (imageDataUrl) => {
+    if (!imageDataUrl) return
     setExtracting(true)
     setError(null)
 
@@ -74,9 +74,9 @@ export default function CountermeasuresLivePage() {
       if (!session?.session?.access_token) {
         throw new Error(t('tokenNotAvailable'))
       }
-
       const token = session.session.access_token
 
+      // 1. Estrazione
       const extractRes = await fetch('/api/extract-formation', {
         method: 'POST',
         headers: {
@@ -84,19 +84,17 @@ export default function CountermeasuresLivePage() {
           'Authorization': `Bearer ${token}`,
           'Accept-Language': lang === 'en' ? 'en' : 'it'
         },
-        body: JSON.stringify({ imageDataUrl: uploadImage })
+        body: JSON.stringify({ imageDataUrl })
       })
-
       if (!extractRes.ok) {
         const errorData = await extractRes.json()
         const { message } = mapErrorToUserMessage(errorData?.error || '', t('errorExtractingFormation'), lang)
         throw new Error(message)
       }
-
       const extractData = await extractRes.json()
       if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('credits-consumed'))
 
-      // Salva formazione avversaria in Supabase
+      // 2. Salva formazione avversaria
       const saveRes = await fetch('/api/supabase/save-opponent-formation', {
         method: 'POST',
         headers: {
@@ -112,28 +110,50 @@ export default function CountermeasuresLivePage() {
             players: extractData.players,
             overall_strength: extractData.overall_strength,
             tactical_style: extractData.tactical_style,
-            coach: extractData.coach || null // Include coach se presente
+            coach: extractData.coach || null
           },
           is_pre_match: true
         })
       })
-
       const saveData = await safeJsonResponse(saveRes, 'Errore salvataggio formazione')
-      setExtractedFormation({
+      const formationForState = {
         id: saveData.formation?.id,
         formation_name: extractData.formation,
         playing_style: extractData.playing_style,
         players: extractData.players,
         overall_strength: extractData.overall_strength,
         tactical_style: extractData.tactical_style,
-        coach: extractData.coach || null // Include coach se presente
+        coach: extractData.coach || null
+      }
+      setExtractedFormation(formationForState)
+      setExtracting(false)
+
+      // 3. Generazione contromisure (automatica)
+      setGenerating(true)
+      const generateRes = await fetch('/api/generate-countermeasures', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          opponent_formation_id: formationForState.id,
+          language: lang
+        })
       })
+      const generateData = await safeJsonResponse(generateRes, t('errorGeneratingCountermeasures'))
+      if (generateData.success && generateData.countermeasures) {
+        setCountermeasures(generateData.countermeasures)
+        if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('credits-consumed'))
+      } else {
+        throw new Error(t('errorGeneratingCountermeasures') || 'Errore generazione contromisure')
+      }
     } catch (err) {
-      console.error('[CountermeasuresLive] Extract error:', err)
-      const { message } = mapErrorToUserMessage(err, t('errorExtractingFormation'), lang)
-      setError(message)
+      console.error('[CountermeasuresLive] Pipeline error:', err)
+      setError(err.message || t('errorGeneratingCountermeasures') || 'Errore')
     } finally {
       setExtracting(false)
+      setGenerating(false)
     }
   }
 
@@ -291,6 +311,9 @@ export default function CountermeasuresLivePage() {
                 <div style={{ fontSize: 'clamp(12px, 2.5vw, 14px)', opacity: 0.8 }}>
                   {t('uploadPhotoDescription') || 'Carica uno screenshot della formazione avversaria'}
                 </div>
+                <div style={{ fontSize: 'clamp(11px, 2vw, 12px)', opacity: 0.6, marginTop: '6px' }}>
+                  {t('countermeasuresAutoStart') || 'Estrazione e contromisure partono automaticamente'}
+                </div>
               </div>
             </label>
           ) : (
@@ -302,32 +325,31 @@ export default function CountermeasuresLivePage() {
                   style={{ maxWidth: '100%', maxHeight: '400px', borderRadius: '8px' }}
                 />
               </div>
-              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                <button
-                  onClick={handleExtractFormation}
-                  className="btn primary"
-                  disabled={extracting}
-                  style={{ flex: 1, minWidth: '200px' }}
-                >
-                  {extracting ? (
-                    <>
-                      <RefreshCw size={16} style={{ animation: 'spin 1s linear infinite' }} />
-                      {t('extracting') || 'Estrazione...'}
-                    </>
-                  ) : (
-                    <>
-                      <Target size={16} />
-                      {t('extractFormation') || 'Estrai Formazione'}
-                    </>
-                  )}
-                </button>
+              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+                {extracting ? (
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '8px', minHeight: '44px' }}>
+                    <RefreshCw size={20} style={{ animation: 'spin 1s linear infinite', color: 'var(--neon-orange)' }} />
+                    <span>{t('extracting') || 'Estrazione formazione in corso...'}</span>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => runFullPipeline(uploadImage)}
+                    className="btn primary"
+                    style={{ flex: 1, minWidth: '200px' }}
+                  >
+                    <RefreshCw size={16} />
+                    {t('retry') || 'Riprova'}
+                  </button>
+                )}
                 <button
                   onClick={() => {
                     setUploadImage(null)
+                    setExtractedFormation(null)
+                    setCountermeasures(null)
                     setError(null)
                   }}
                   className="btn"
-                  disabled={extracting}
+                  disabled={extracting || generating}
                 >
                   <X size={16} />
                   {t('cancel')}
