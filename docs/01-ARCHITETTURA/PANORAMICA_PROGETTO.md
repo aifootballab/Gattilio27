@@ -339,7 +339,7 @@ Campi:
 
 Letta da: `diagnosticBuilder.js` (sezione ESPERIENZA COACH), `aiKnowledgeHelper.js` (componente coach_training 10%).
 
-Doc completa: `docs/PALESTRA_COACH_ARCHITETTURA.md`
+Doc completa: `docs/02-FUNZIONALITA/PALESTRA_COACH_ARCHITETTURA.md`
 
 ---
 
@@ -432,16 +432,16 @@ Nota:
 
 ---
 
-### Pattern Tattici (`lib/tacticalPatternHelper.js`)
+### Pattern Tattici (team_tactical_patterns)
 **Cosa impara l'IA dall'utente?**
 
-Analizza ultime 50 partite estraendo:
+La logica di calcolo è nelle route API (non in un modulo lib dedicato):
 - `formation_usage` → Quali formazioni usa più spesso
 - `playing_style_usage` → Quali stili di gioco preferisce
 - `recurring_issues` → Problemi ricorrenti (es. "subisce gol su palla inattiva")
 
 Calcolato:
-- Automaticamente dopo salvataggio partita (async)
+- Automaticamente dopo salvataggio partita: `app/api/supabase/save-match/route.js` e `update-match/route.js` (funzione `calculateTacticalPatterns`)
 - Manualmente da API `/api/admin/recalculate-patterns`
 
 ---

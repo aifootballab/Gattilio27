@@ -942,7 +942,7 @@ Trigger:
 
 ## 17. PATTERN TATTICI
 
-**File:** `lib/tacticalPatternHelper.js`
+**File:** logica in `app/api/supabase/save-match/route.js`, `update-match/route.js` e `app/api/admin/recalculate-patterns/route.js` (funzione `calculateTacticalPatterns`); dati in tabella `team_tactical_patterns`
 
 ### Cos'è
 Analisi automatica dello stile di gioco dell'utente basata sulle partite giocate.

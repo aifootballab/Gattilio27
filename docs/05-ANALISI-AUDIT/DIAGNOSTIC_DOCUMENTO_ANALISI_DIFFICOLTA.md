@@ -1,6 +1,7 @@
 # Documento di analisi cliente: dati, flussi e difficoltà
 
-**Implementazione**: completata. Vedi `IMPLEMENTAZIONE_DIAGNOSTIC_CHAT.md`, `CONTROLLO_E2E_DIAGNOSTIC_CHAT.md`.
+**Implementazione**: completata. Vedi `IMPLEMENTAZIONE_DIAGNOSTIC_CHAT.md`, `CONTROLLO_E2E_DIAGNOSTIC_CHAT.md`.  
+**Schema DB verificato**: 2026-02 (tabelle public: matches, team_tactical_patterns, players, user_diagnostic_cache, ecc.).
 
 Obiettivo: capire nel dettaglio **quali dati abbiamo**, **quando cambiano**, e **quali difficoltà** incontriamo se introduciamo un "documento che analizza rosa, partite, andamento, difficoltà, sinergie" e poi la chat ragiona su quello + la domanda.
 

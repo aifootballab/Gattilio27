@@ -41,11 +41,12 @@
 
 ### 🤖 AI Knowledge Score
 - Implementazione: `lib/aiKnowledgeHelper.js`
-- Documentazione: [02-FUNZIONALITA/SISTEMA_CONOSCENZA_AI.md](./02-FUNZIONALITA/) (da creare)
+- Documentazione: [02-FUNZIONALITA/SISTEMA_CONOSCENZA_AI.md](./02-FUNZIONALITA/SISTEMA_CONOSCENZA_AI.md)
 
 ### 💬 Chat Widget
 - Route: `app/api/assistant-chat/route.js`
-- Prompt: [01-ARCHITETTURA/PROMPT_CHAT_ENTERPRISE.md](./01-ARCHITETTURA/)
+- Contesto RAG: `lib/ragHelper.js` + `info_rag.md`
+- Diagnostic/analisi: [01-ARCHITETTURA/IMPLEMENTAZIONE_DIAGNOSTIC_CHAT.md](./01-ARCHITETTURA/IMPLEMENTAZIONE_DIAGNOSTIC_CHAT.md)
 
 ### ⚽ Gestione Rosa
 - Componente: `app/gestione-formazione/page.jsx`
@@ -89,12 +90,12 @@ Autore: Nome
 
 ---
 
-## ⚠️ Documenti Critici (da aggiornare)
+## ⚠️ Documenti da tenere aggiornati
 
-| Documento | Problema | Azione Richiesta |
-|-----------|----------|------------------|
-| `COSTI_API_E_PRICING_CREDITI.md` | Numeri non aggiornati | Verificare costi OpenAI reali |
-| `DIAGNOSTIC_DOCUMENTO_ANALISI_DIFFICOLTA.md` | Riferimenti a tabelle vecchie | Controllare schema DB attuale |
+| Documento | Ultima verifica | Nota |
+|-----------|-----------------|------|
+| `03-BUSINESS/COSTI_API_E_PRICING_CREDITI.md` | 2026-02 | Verificare prezzi OpenAI su pricing page prima di stime commerciali |
+| `05-ANALISI-AUDIT/DIAGNOSTIC_DOCUMENTO_ANALISI_DIFFICOLTA.md` | 2026-02 | Schema DB allineato a Supabase public |
 
 ---
 

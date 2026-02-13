@@ -857,7 +857,7 @@ Trigger automatici:
   │   └── taskHelper.calculateTaskProgress()
   │       └── UPDATE weekly_goals SET current_value = ...
   ├── Calcola pattern tattici
-  │   └── tacticalPatternHelper.analyzePatterns()
+  │   └── calculateTacticalPatterns() (inline in save-match/route.js)
   │       └── UPSERT team_tactical_patterns
   └── Aggiorna AI Knowledge Score
       └── aiKnowledgeHelper.calculateScore()

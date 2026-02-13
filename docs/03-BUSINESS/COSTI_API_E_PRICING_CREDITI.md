@@ -1,9 +1,10 @@
 # Costi API e pricing crediti – Fase test (senza Stripe)
 
 **Data:** 2026-02-03  
+**Ultima verifica:** 2026-02 — verificare [OpenAI Pricing](https://platform.openai.com/docs/pricing) per cifre attuali prima di decisioni commerciali.  
 **Obiettivo:** Mappare ogni punto del codice che genera costo (OpenAI), definire pesi in crediti e prezzo con ricarico. Nessuna integrazione Stripe in questa fase: solo contatori/test per capire.
 
-**Vedi anche:** `docs/VALUTAZIONE_ECONOMICA_PIATTAFORMA.md` per valutazione economica completa.
+**Vedi anche:** `docs/03-BUSINESS/VALUTAZIONE_ECONOMICA_PIATTAFORMA.md` per valutazione economica completa.
 
 ---
 
