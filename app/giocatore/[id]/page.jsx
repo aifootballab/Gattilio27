@@ -327,15 +327,26 @@ export default function PlayerDetailPage() {
   const comSkills = player.com_skills || []
   const boosters = player.available_boosters || []
 
-  // Fallback: usa dati reali se photo_slots inconsistente (fix conteggio errato)
+  // Conta quante statistiche sono valorizzate (attacking/defending/athleticism)
+  const countStatKeys = (bs) => {
+    if (!bs || typeof bs !== 'object') return 0
+    let n = 0
+    for (const group of ['attacking', 'defending', 'athleticism']) {
+      const g = bs[group]
+      if (g && typeof g === 'object') n += Object.keys(g).length
+    }
+    return n
+  }
+  const statCount = countStatKeys(baseStats)
+
   const hasStatisticheData = baseStats && Object.keys(baseStats).length > 0
   const hasAbilitaData = skills.length > 0 || comSkills.length > 0
   const hasBoosterData = Array.isArray(boosters) && boosters.length > 0
   const hasCardStatistiche = (photoSlots.card || photoSlots.statistiche) || hasStatisticheData
   const hasAbilitaBooster = (photoSlots.abilita || photoSlots.booster) || hasAbilitaData || hasBoosterData
 
-  // Profilo completo solo quando i dati mostrati ci sono davvero (non dire "Profilo Completo" se statistiche/abilità sono "non disponibili")
-  const isProfileComplete = hasStatisticheData && (hasAbilitaData || hasBoosterData)
+  // Profilo completo: almeno 5 stat valorizzate + (abilità o booster)
+  const isProfileComplete = statCount >= 5 && (hasAbilitaData || hasBoosterData)
   const completedSections = [hasCardStatistiche, hasAbilitaData || photoSlots.abilita, hasBoosterData || photoSlots.booster].filter(Boolean).length
 
   const toggleSection = (section) => {

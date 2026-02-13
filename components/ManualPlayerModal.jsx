@@ -49,6 +49,7 @@ const SKILL_CATEGORIES = {
   'Speciali': ['Leader', 'Tornante', 'Super riserva', 'Specialista punizioni', 'Specialista rigori']
 }
 
+// Palette allineata a globals.css (--neon-blue, --neon-purple, --neon-orange, --bg-dark)
 const inputStyle = {
   width: '100%', padding: '10px 12px', background: 'rgba(0,0,0,0.25)',
   border: '1px solid rgba(255,255,255,0.12)', borderRadius: '8px',
@@ -56,7 +57,7 @@ const inputStyle = {
 }
 const selectStyle = {
   ...inputStyle, appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none',
-  backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%2300d4ff\' stroke-width=\'2\'%3E%3Cpath d=\'M6 9l6 6 6-6\'/%3E%3C/svg%3E")',
+  backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%2300D4FF\' stroke-width=\'2\'%3E%3Cpath d=\'M6 9l6 6 6-6\'/%3E%3C/svg%3E")',
   backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center', paddingRight: '30px', cursor: 'pointer'
 }
 const labelStyle = { display: 'block', fontSize: '12px', color: 'rgba(255,255,255,0.6)', marginBottom: '4px' }
@@ -164,7 +165,7 @@ export default function ManualPlayerModal({ show, onClose, onSaved, slotIndex = 
     setSaving(true)
     try {
       const { data: session } = await supabase.auth.getSession()
-      if (!session?.session?.access_token) throw new Error('Session expired')
+      if (!session?.session?.access_token) throw new Error(t('sessionExpired'))
 
       // Struttura base_stats coerente con extract-player (attacking/defending/athleticism)
       const attacking = {}
@@ -289,19 +290,25 @@ export default function ManualPlayerModal({ show, onClose, onSaved, slotIndex = 
   if (!show) return null
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)' }}>
-      <style>{`.mp-select option { background: #1a1a2e; color: #fff; } .mp-select option:checked { background: #0d47a1; }`}</style>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-overlay)', backdropFilter: 'blur(4px)' }}>
+      <style>{`
+        .mp-select option { background: var(--bg-dark); color: #fff; }
+        .mp-select option:checked { background: rgba(0, 212, 255, 0.25); }
+        .mp-slider { -webkit-appearance: none; appearance: none; height: 6px; border-radius: 3px; background: rgba(255,255,255,0.1); outline: none; width: 100%; }
+        .mp-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: var(--neon-blue); cursor: pointer; box-shadow: 0 0 10px rgba(0,212,255,0.5); border: 2px solid rgba(255,255,255,0.9); }
+        .mp-slider::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; background: var(--neon-blue); cursor: pointer; box-shadow: 0 0 10px rgba(0,212,255,0.5); border: 2px solid rgba(255,255,255,0.9); }
+      `}</style>
 
       <div style={{
         width: 'clamp(340px, 94vw, 480px)', maxHeight: '92vh',
-        background: 'rgba(10, 14, 39, 0.97)', border: `2px solid ${cardColor}`,
-        borderRadius: '12px', boxShadow: `0 0 30px ${cardColor}33`,
+        background: 'var(--bg-dark)', border: `2px solid ${cardColor}`,
+        borderRadius: '12px', boxShadow: 'var(--glow-blue)',
         display: 'flex', flexDirection: 'column', overflow: 'hidden',
         transition: 'border-color 0.3s'
       }}>
-        {/* Header */}
+        {/* Header — palette coerente */}
         <div style={{
-          padding: '14px 16px', background: `linear-gradient(135deg, ${cardColor}, ${cardColor}88)`,
+          padding: '14px 16px', background: `linear-gradient(135deg, ${cardColor}dd, ${cardColor}66)`,
           display: 'flex', alignItems: 'center', justifyContent: 'space-between'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -332,9 +339,9 @@ export default function ManualPlayerModal({ show, onClose, onSaved, slotIndex = 
             {/* Nome */}
             <div>
               <label style={labelStyle}>{lang === 'en' ? 'Player name *' : 'Nome giocatore *'}</label>
-              <input type="text" style={inputStyle} maxLength={100} placeholder="es. Kylian Mbappé"
+              <input type="text" style={inputStyle} maxLength={255} placeholder={lang === 'en' ? 'e.g. Kylian Mbappé' : 'es. Kylian Mbappé'}
                 value={form.player_name} onChange={e => updateForm('player_name', e.target.value)}
-                onFocus={e => { e.target.style.borderColor = cardColor }}
+                onFocus={e => { e.target.style.borderColor = 'var(--neon-blue)' }}
                 onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.12)' }} />
             </div>
 
@@ -356,7 +363,7 @@ export default function ManualPlayerModal({ show, onClose, onSaved, slotIndex = 
               </div>
               <div>
                 <label style={labelStyle}>Overall</label>
-                <input type="number" style={inputStyle} min="40" max="120" placeholder="40-120"
+                <input type="number" style={inputStyle} min="40" max="120" placeholder="40–120"
                   value={form.overall_rating} onChange={e => updateForm('overall_rating', e.target.value)} />
               </div>
             </div>
@@ -389,10 +396,10 @@ export default function ManualPlayerModal({ show, onClose, onSaved, slotIndex = 
           </div>
 
           {/* SEZIONE STATS (espandibile) */}
-          <div style={{ marginTop: '16px', border: '1px solid rgba(0,212,255,0.15)', borderRadius: '10px', overflow: 'hidden' }}>
+          <div style={{ marginTop: '16px', border: '1px solid rgba(0,212,255,0.2)', borderRadius: '10px', overflow: 'hidden' }}>
             <button type="button" onClick={() => toggleSection('stats')} style={{
               width: '100%', padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              background: expandedSections.stats ? 'rgba(0,212,255,0.06)' : 'transparent',
+              background: expandedSections.stats ? 'rgba(0,212,255,0.08)' : 'transparent',
               border: 'none', cursor: 'pointer', color: 'var(--neon-blue)', fontSize: '13px', fontWeight: 600
             }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -404,37 +411,42 @@ export default function ManualPlayerModal({ show, onClose, onSaved, slotIndex = 
               {expandedSections.stats ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
             </button>
             {expandedSections.stats && (
-              <div style={{ padding: '12px 14px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+              <div style={{ padding: '12px 14px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 {[
-                  { key: 'speed', label: lang === 'en' ? 'Speed' : 'Velocita' },
+                  { key: 'speed', label: lang === 'en' ? 'Speed' : 'Velocità' },
                   { key: 'acceleration', label: lang === 'en' ? 'Acceleration' : 'Accelerazione' },
                   { key: 'finishing', label: lang === 'en' ? 'Finishing' : 'Finalizzazione' },
                   { key: 'passing', label: lang === 'en' ? 'Passing' : 'Passaggio' },
                   { key: 'dribbling', label: 'Dribbling' },
                   { key: 'defending', label: lang === 'en' ? 'Defending' : 'Difesa' },
                   { key: 'physical', label: lang === 'en' ? 'Physical' : 'Fisico' }
-                ].map(stat => (
-                  <div key={stat.key}>
-                    <label style={{ ...labelStyle, fontSize: '11px' }}>{stat.label}</label>
-                    <input type="number" style={{ ...inputStyle, padding: '8px 10px', fontSize: '13px' }}
-                      min="1" max="99" placeholder="1-99"
-                      value={form[stat.key]} onChange={e => updateForm(stat.key, e.target.value)} />
-                  </div>
-                ))}
+                ].map(stat => {
+                  const numVal = form[stat.key] === '' ? 50 : Math.min(99, Math.max(1, Number(form[stat.key]) || 50))
+                  return (
+                    <div key={stat.key} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <label style={{ ...labelStyle, fontSize: '11px', marginBottom: 0 }}>{stat.label}</label>
+                        <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--neon-blue)', minWidth: '24px', textAlign: 'right' }}>{form[stat.key] === '' ? '-' : numVal}</span>
+                      </div>
+                      <input type="range" className="mp-slider" min={1} max={99} value={numVal}
+                        onChange={e => updateForm(stat.key, e.target.value)} />
+                    </div>
+                  )
+                })}
               </div>
             )}
           </div>
 
-          {/* SEZIONE ABILITA (espandibile) */}
-          <div style={{ marginTop: '10px', border: '1px solid rgba(168,85,247,0.15)', borderRadius: '10px', overflow: 'hidden' }}>
+          {/* SEZIONE ABILITA (espandibile) — palette neon-purple */}
+          <div style={{ marginTop: '10px', border: '1px solid rgba(168,85,247,0.2)', borderRadius: '10px', overflow: 'hidden' }}>
             <button type="button" onClick={() => toggleSection('skills')} style={{
               width: '100%', padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              background: expandedSections.skills ? 'rgba(168,85,247,0.06)' : 'transparent',
-              border: 'none', cursor: 'pointer', color: '#a855f7', fontSize: '13px', fontWeight: 600
+              background: expandedSections.skills ? 'rgba(168,85,247,0.08)' : 'transparent',
+              border: 'none', cursor: 'pointer', color: 'var(--neon-purple)', fontSize: '13px', fontWeight: 600
             }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Star size={14} /> {lang === 'en' ? 'Skills' : 'Abilita'}
-                {form.skills.length > 0 && <span style={{ background: '#a855f7', color: 'white', borderRadius: '10px', padding: '1px 7px', fontSize: '11px' }}>{form.skills.length}</span>}
+                <Star size={14} /> {lang === 'en' ? 'Skills' : 'Abilità'}
+                {form.skills.length > 0 && <span style={{ background: 'var(--neon-purple)', color: 'white', borderRadius: '10px', padding: '1px 7px', fontSize: '11px' }}>{form.skills.length}</span>}
                 <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', fontWeight: 400 }}>
                   (max 10)
                 </span>
@@ -452,7 +464,7 @@ export default function ManualPlayerModal({ show, onClose, onSaved, slotIndex = 
                         return (
                           <button key={skill} type="button" onClick={() => toggleSkill(skill)} style={{
                             padding: '4px 10px', fontSize: '11px', borderRadius: '14px', cursor: 'pointer',
-                            border: `1px solid ${selected ? '#a855f7' : 'rgba(255,255,255,0.12)'}`,
+                            border: `1px solid ${selected ? 'var(--neon-purple)' : 'rgba(255,255,255,0.12)'}`,
                             background: selected ? 'rgba(168,85,247,0.2)' : 'transparent',
                             color: selected ? '#c084fc' : 'rgba(255,255,255,0.6)',
                             transition: 'all 0.15s'
@@ -469,11 +481,11 @@ export default function ManualPlayerModal({ show, onClose, onSaved, slotIndex = 
             )}
           </div>
 
-          {/* SEZIONE DETTAGLI (espandibile) */}
-          <div style={{ marginTop: '10px', border: '1px solid rgba(255,140,0,0.15)', borderRadius: '10px', overflow: 'hidden' }}>
+          {/* SEZIONE DETTAGLI (espandibile) — palette neon-orange */}
+          <div style={{ marginTop: '10px', border: '1px solid rgba(255,107,53,0.2)', borderRadius: '10px', overflow: 'hidden' }}>
             <button type="button" onClick={() => toggleSection('details')} style={{
               width: '100%', padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              background: expandedSections.details ? 'rgba(255,140,0,0.06)' : 'transparent',
+              background: expandedSections.details ? 'rgba(255,107,53,0.08)' : 'transparent',
               border: 'none', cursor: 'pointer', color: 'var(--neon-orange)', fontSize: '13px', fontWeight: 600
             }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -516,7 +528,7 @@ export default function ManualPlayerModal({ show, onClose, onSaved, slotIndex = 
                   <div>
                     <label style={{ ...labelStyle, fontSize: '11px' }}>Club</label>
                     <input type="text" style={{ ...inputStyle, padding: '8px 10px', fontSize: '13px' }}
-                      maxLength={100} placeholder="es. PSG"
+                      maxLength={100} placeholder={lang === 'en' ? 'e.g. PSG' : 'es. PSG'}
                       value={form.club_name} onChange={e => updateForm('club_name', e.target.value)} />
                   </div>
                 </div>
@@ -524,24 +536,24 @@ export default function ManualPlayerModal({ show, onClose, onSaved, slotIndex = 
             )}
           </div>
 
-          {/* Errore / Successo */}
-          {error && <div style={{ marginTop: '12px', padding: '10px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '8px', color: '#ef4444', fontSize: '13px' }}>{error}</div>}
-          {success && <div style={{ marginTop: '12px', padding: '10px', background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: '8px', color: '#22c55e', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}><Check size={16} /> {lang === 'en' ? 'Player saved!' : 'Giocatore salvato!'}</div>}
+          {/* Errore / Successo — palette coerente */}
+          {error && <div style={{ marginTop: '12px', padding: '10px', background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.35)', borderRadius: '8px', color: '#ef4444', fontSize: '13px' }}>{error}</div>}
+          {success && <div style={{ marginTop: '12px', padding: '10px', background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.35)', borderRadius: '8px', color: '#22c55e', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}><Check size={16} /> {lang === 'en' ? 'Player saved!' : 'Giocatore salvato!'}</div>}
         </div>
 
-        {/* Footer */}
-        <div style={{ padding: '12px 16px', borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+        {/* Footer — bordi e pulsanti palette */}
+        <div style={{ padding: '12px 16px', borderTop: '1px solid rgba(255,255,255,0.08)', background: 'var(--bg-darker)', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
           <button onClick={onClose} style={{
             padding: '10px 20px', background: 'transparent', border: '1px solid rgba(255,255,255,0.2)',
-            borderRadius: '8px', color: 'rgba(255,255,255,0.6)', fontSize: '13px', cursor: 'pointer'
+            borderRadius: '8px', color: 'rgba(255,255,255,0.7)', fontSize: '13px', cursor: 'pointer'
           }}>
             {lang === 'en' ? 'Cancel' : 'Annulla'}
           </button>
           <button onClick={handleSave} disabled={saving || success} style={{
-            padding: '10px 24px', background: saving || success ? 'rgba(255,255,255,0.1)' : cardColor,
+            padding: '10px 24px', background: saving || success ? 'rgba(255,255,255,0.1)' : 'var(--neon-blue)',
             border: 'none', borderRadius: '8px', color: 'white', fontSize: '14px', fontWeight: 600,
             cursor: saving || success ? 'not-allowed' : 'pointer', transition: 'all 0.2s',
-            opacity: saving ? 0.7 : 1
+            opacity: saving ? 0.7 : 1, boxShadow: saving ? 'none' : '0 0 16px rgba(0,212,255,0.3)'
           }}>
             {saving ? (lang === 'en' ? 'Saving...' : 'Salvo...') : success ? (lang === 'en' ? 'Saved!' : 'Salvato!') : (lang === 'en' ? 'Save player' : 'Salva giocatore')}
           </button>

@@ -2555,18 +2555,19 @@ export default function GestioneFormazionePage() {
           }}>
             {t('riserve')} ({riserve.length})
           </h2>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
             <button
               data-tour-id="tour-formation-upload"
               onClick={() => setShowUploadReserveModal(true)}
               className="btn"
-              style={{ 
-                display: 'inline-flex', 
-                alignItems: 'center', 
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
                 gap: '8px',
                 background: 'rgba(168, 85, 247, 0.2)',
-                borderColor: 'var(--neon-purple)',
-                color: 'var(--neon-purple)'
+                border: '1px solid var(--neon-purple)',
+                color: 'var(--neon-purple)',
+                boxShadow: '0 0 12px rgba(168, 85, 247, 0.2)'
               }}
             >
               <Upload size={16} />
@@ -2575,13 +2576,14 @@ export default function GestioneFormazionePage() {
             <button
               onClick={() => setShowManualPlayerModal(true)}
               className="btn"
-              style={{ 
-                display: 'inline-flex', 
-                alignItems: 'center', 
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
                 gap: '8px',
-                background: 'rgba(0, 212, 255, 0.1)',
-                borderColor: 'var(--neon-blue)',
-                color: 'var(--neon-blue)'
+                background: 'rgba(0, 212, 255, 0.15)',
+                border: '1px solid var(--neon-blue)',
+                color: 'var(--neon-blue)',
+                boxShadow: '0 0 12px rgba(0, 212, 255, 0.2)'
               }}
             >
               <Pencil size={16} />
@@ -2629,10 +2631,13 @@ export default function GestioneFormazionePage() {
             <button
               onClick={() => setShowUploadReserveModal(true)}
               className="btn"
-              style={{ 
-                display: 'inline-flex', 
-                alignItems: 'center', 
-                gap: '8px'
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                background: 'rgba(168, 85, 247, 0.2)',
+                border: '1px solid var(--neon-purple)',
+                color: 'var(--neon-purple)'
               }}
             >
               <Plus size={16} />
@@ -2829,17 +2834,29 @@ function SlotCard({ slot, onClick, onRemove, isEditMode = false, onPositionChang
     return name.substring(0, 10) + '...'
   }
 
-  // Calcola colore bordo basato su completamento profilazione (con fallback su dati reali)
+  // Conta statistiche valorizzate (attacking/defending/athleticism) per completamento reale
+  function countStatKeys(bs) {
+    if (!bs || typeof bs !== 'object') return 0
+    let n = 0
+    for (const group of ['attacking', 'defending', 'athleticism']) {
+      const g = bs[group]
+      if (g && typeof g === 'object') n += Object.keys(g).length
+    }
+    return n
+  }
+
+  // Calcola colore bordo basato su completamento profilazione (palette coerente)
   function getProfileBorderColor(photoSlots, p) {
     const ps = photoSlots && typeof photoSlots === 'object' ? photoSlots : {}
     const baseStats = p?.base_stats || {}
     const skills = Array.isArray(p?.skills) ? p.skills : []
     const comSkills = Array.isArray(p?.com_skills) ? p.com_skills : []
     const boosters = Array.isArray(p?.available_boosters) ? p.available_boosters : []
-    const hasStatsData = baseStats && Object.keys(baseStats).length > 0
+    const statCount = countStatKeys(baseStats)
+    const hasStatsData = statCount >= 5
     const hasAbilitaData = skills.length > 0 || comSkills.length > 0
     const hasBoosterData = boosters.length > 0
-    const hasCard = ps.card === true || ps.card === 'true' || hasStatsData
+    const hasCard = ps.card === true || ps.card === 'true' || (baseStats && Object.keys(baseStats).length > 0)
     const hasStats = ps.statistiche === true || ps.statistiche === 'true' || hasStatsData
     const hasSkills = (ps.abilita === true || ps.abilita === 'true' || ps.booster === true || ps.booster === 'true') || hasAbilitaData || hasBoosterData
     const count = [hasCard, hasStats, hasSkills].filter(Boolean).length
@@ -3789,11 +3806,14 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginBottom: '4px' }}>
+              {t('addPlayerLabel')}
+            </div>
             <div style={{ display: 'flex', gap: '8px' }}>
               <button
                 onClick={() => onUploadPhoto()}
                 className="btn primary"
-                style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}
+                style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center', border: '1px solid var(--neon-purple)', background: 'rgba(168, 85, 247, 0.2)', color: 'var(--neon-purple)' }}
               >
                 <Upload size={16} />
                 {t('uploadPlayerPhoto')}
@@ -3801,7 +3821,7 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
               <button
                 onClick={() => { onClose?.(); setShowManualPlayerModal(true) }}
                 className="btn"
-                style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center', borderColor: 'var(--neon-blue)', color: 'var(--neon-blue)' }}
+                style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center', border: '1px solid var(--neon-blue)', background: 'rgba(0, 212, 255, 0.15)', color: 'var(--neon-blue)' }}
               >
                 <Pencil size={14} />
                 {lang === 'en' ? 'Manual' : 'Manuale'}
