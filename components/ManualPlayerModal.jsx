@@ -61,34 +61,72 @@ const selectStyle = {
 }
 const labelStyle = { display: 'block', fontSize: '12px', color: 'rgba(255,255,255,0.6)', marginBottom: '4px' }
 
-export default function ManualPlayerModal({ show, onClose, onSaved, slotIndex = null }) {
+/**
+ * Props:
+ * - show, onClose, onSaved, slotIndex (come prima)
+ * - existingPlayer {object|null} — se fornito, modalita EDIT/COMPLETA (pre-popola campi)
+ */
+export default function ManualPlayerModal({ show, onClose, onSaved, slotIndex = null, existingPlayer = null }) {
   const { t, lang } = useTranslation()
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [playingStyles, setPlayingStyles] = useState([])
 
-  // Sezioni espandibili
+  const isEditMode = !!existingPlayer
+
+  // Sezioni espandibili — in edit mode, apri le sezioni con dati mancanti
   const [expandedSections, setExpandedSections] = useState({ stats: false, skills: false, details: false })
 
   // Dati form
   const [form, setForm] = useState({
     player_name: '', position: '', overall_rating: '', card_type: 'Standard',
     playing_style: '', form: 'B',
-    // Stats
     speed: '', acceleration: '', finishing: '', passing: '', dribbling: '', defending: '', physical: '',
-    // Abilita
     skills: [],
-    // Dettagli
     height: '', weight: '', age: '', nationality: '', club_name: ''
   })
 
-  // Carica stili dal DB
+  // Carica stili dal DB e inizializza form
   useEffect(() => {
     if (!show) return
     setError(''); setSuccess(false)
-    setForm(f => ({ ...f, player_name: '', position: '', overall_rating: '', card_type: 'Standard', playing_style: '', form: 'B', speed: '', acceleration: '', finishing: '', passing: '', dribbling: '', defending: '', physical: '', skills: [], height: '', weight: '', age: '', nationality: '', club_name: '' }))
-    setExpandedSections({ stats: false, skills: false, details: false })
+
+    if (existingPlayer) {
+      // EDIT MODE: pre-popola con dati esistenti
+      const bs = existingPlayer.base_stats || {}
+      const atk = bs.attacking || {}
+      const def = bs.defending || {}
+      const ath = bs.athleticism || {}
+      setForm({
+        player_name: existingPlayer.player_name || '',
+        position: existingPlayer.position || '',
+        overall_rating: existingPlayer.overall_rating || '',
+        card_type: existingPlayer.card_type || 'Standard',
+        playing_style: existingPlayer.role || '',
+        form: existingPlayer.form || 'B',
+        speed: ath.speed || '', acceleration: ath.acceleration || '',
+        finishing: atk.finishing || '', passing: atk.low_pass || atk.lofted_pass || '',
+        dribbling: atk.dribbling || '', defending: def.defensive_awareness || '',
+        physical: ath.physical_contact || '',
+        skills: Array.isArray(existingPlayer.skills) ? [...existingPlayer.skills] : [],
+        height: existingPlayer.height || '', weight: existingPlayer.weight || '',
+        age: existingPlayer.age || '',
+        nationality: existingPlayer.nationality || '', club_name: existingPlayer.club_name || ''
+      })
+      // Apri sezioni con dati mancanti
+      const hasStats = Object.keys(atk).length > 0 || Object.keys(def).length > 0 || Object.keys(ath).length > 0
+      const hasSkills = Array.isArray(existingPlayer.skills) && existingPlayer.skills.length > 0
+      setExpandedSections({
+        stats: !hasStats,   // apri se mancano stats
+        skills: !hasSkills, // apri se mancano skills
+        details: false
+      })
+    } else {
+      // CREATE MODE: form vuoto
+      setForm({ player_name: '', position: '', overall_rating: '', card_type: 'Standard', playing_style: '', form: 'B', speed: '', acceleration: '', finishing: '', passing: '', dribbling: '', defending: '', physical: '', skills: [], height: '', weight: '', age: '', nationality: '', club_name: '' })
+      setExpandedSections({ stats: false, skills: false, details: false })
+    }
 
     const loadStyles = async () => {
       const { data } = await supabase.from('playing_styles').select('id, name, compatible_positions, category')
@@ -145,45 +183,96 @@ export default function ManualPlayerModal({ show, onClose, onSaved, slotIndex = 
       if (Object.keys(defending).length > 0) baseStats.defending = defending
       if (Object.keys(athleticism).length > 0) baseStats.athleticism = athleticism
 
-      const player = {
-        player_name: form.player_name.trim(),
-        position: form.position,
-        overall_rating: form.overall_rating ? Number(form.overall_rating) : null,
-        card_type: form.card_type,
-        role: form.playing_style || null,
-        form: form.form || 'B',
-        base_stats: Object.keys(baseStats).length > 0 ? baseStats : {},
-        skills: form.skills.length > 0 ? form.skills : [],
-        height_cm: form.height ? Number(form.height) : null,
-        weight_kg: form.weight ? Number(form.weight) : null,
-        age: form.age ? Number(form.age) : null,
-        nationality: form.nationality || null,
-        club_name: form.club_name || null,
-        slot_index: slotIndex,
-        photo_slots: {
-          manuale: true,
-          card: true, // Base info inserita manualmente
-          statistiche: Object.keys(baseStats).length > 0 || undefined,
-          abilita: (form.skills.length > 0) || undefined
-        },
-        extracted_data: { source: 'manual_input' }
+      const newPhotoSlots = {
+        ...(existingPlayer?.photo_slots || {}),
+        manuale: true,
+        card: true,
+        statistiche: (Object.keys(baseStats).length > 0) || (existingPlayer?.photo_slots?.statistiche) || undefined,
+        abilita: (form.skills.length > 0) || (existingPlayer?.photo_slots?.abilita) || undefined
       }
 
-      const res = await fetch('/api/supabase/save-player', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.session.access_token}`
-        },
-        body: JSON.stringify({ player })
-      })
+      if (isEditMode && existingPlayer?.id) {
+        // EDIT MODE: aggiorna giocatore esistente direttamente in Supabase
+        // Merge base_stats con quelle esistenti (non sovrascrivere se l'utente non ha toccato)
+        const existingBs = existingPlayer.base_stats || {}
+        const mergedBaseStats = {
+          attacking: { ...(existingBs.attacking || {}), ...attacking },
+          defending: { ...(existingBs.defending || {}), ...defending },
+          athleticism: { ...(existingBs.athleticism || {}), ...athleticism }
+        }
+        // Rimuovi sottooggetti vuoti
+        if (Object.keys(mergedBaseStats.attacking).length === 0) delete mergedBaseStats.attacking
+        if (Object.keys(mergedBaseStats.defending).length === 0) delete mergedBaseStats.defending
+        if (Object.keys(mergedBaseStats.athleticism).length === 0) delete mergedBaseStats.athleticism
 
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
-        throw new Error(data.error || 'Save failed')
+        const updateData = {
+          player_name: form.player_name.trim(),
+          position: form.position,
+          overall_rating: form.overall_rating ? Number(form.overall_rating) : existingPlayer.overall_rating,
+          card_type: form.card_type,
+          form: form.form || existingPlayer.form || 'B',
+          base_stats: Object.keys(mergedBaseStats).length > 0 ? mergedBaseStats : existingPlayer.base_stats || {},
+          skills: form.skills.length > 0 ? form.skills : existingPlayer.skills || [],
+          height: form.height ? Number(form.height) : existingPlayer.height,
+          weight: form.weight ? Number(form.weight) : existingPlayer.weight,
+          age: form.age ? Number(form.age) : existingPlayer.age,
+          nationality: form.nationality || existingPlayer.nationality,
+          club_name: form.club_name || existingPlayer.club_name,
+          photo_slots: newPhotoSlots,
+          updated_at: new Date().toISOString()
+        }
+
+        // Lookup playing_style_id
+        if (form.playing_style) {
+          const style = playingStyles.find(s => s.name === form.playing_style)
+          if (style) updateData.playing_style_id = style.id
+          updateData.role = form.playing_style
+        }
+
+        const { error: updateError } = await supabase
+          .from('players')
+          .update(updateData)
+          .eq('id', existingPlayer.id)
+
+        if (updateError) throw new Error(updateError.message)
+        var data = { success: true, player_id: existingPlayer.id, action: 'updated' }
+      } else {
+        // CREATE MODE: nuovo giocatore via save-player API
+        const player = {
+          player_name: form.player_name.trim(),
+          position: form.position,
+          overall_rating: form.overall_rating ? Number(form.overall_rating) : null,
+          card_type: form.card_type,
+          role: form.playing_style || null,
+          form: form.form || 'B',
+          base_stats: Object.keys(baseStats).length > 0 ? baseStats : {},
+          skills: form.skills.length > 0 ? form.skills : [],
+          height_cm: form.height ? Number(form.height) : null,
+          weight_kg: form.weight ? Number(form.weight) : null,
+          age: form.age ? Number(form.age) : null,
+          nationality: form.nationality || null,
+          club_name: form.club_name || null,
+          slot_index: slotIndex,
+          photo_slots: newPhotoSlots,
+          extracted_data: { source: 'manual_input' }
+        }
+
+        const res = await fetch('/api/supabase/save-player', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.session.access_token}`
+          },
+          body: JSON.stringify({ player })
+        })
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}))
+          throw new Error(errData.error || 'Save failed')
+        }
+
+        var data = await res.json()
       }
-
-      const data = await res.json()
       setSuccess(true)
       setTimeout(() => {
         onSaved?.(data)
@@ -219,10 +308,14 @@ export default function ManualPlayerModal({ show, onClose, onSaved, slotIndex = 
             <User size={20} color="white" />
             <div>
               <div style={{ fontWeight: 700, color: 'white', fontSize: '15px' }}>
-                {lang === 'en' ? 'New Player' : 'Nuovo Giocatore'}
+                {isEditMode
+                  ? (lang === 'en' ? 'Edit Player' : 'Modifica Giocatore')
+                  : (lang === 'en' ? 'New Player' : 'Nuovo Giocatore')}
               </div>
               <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)' }}>
-                {lang === 'en' ? 'Manual entry (0 credits)' : 'Inserimento manuale'}
+                {isEditMode
+                  ? (lang === 'en' ? 'Complete or edit data' : 'Completa o modifica dati')
+                  : (lang === 'en' ? 'Manual entry' : 'Inserimento manuale')}
               </div>
             </div>
           </div>

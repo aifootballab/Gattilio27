@@ -2689,12 +2689,12 @@ export default function GestioneFormazionePage() {
         />
       )}
 
-      {/* Modal Inserimento Manuale Giocatore */}
+      {/* Modal Inserimento Manuale Giocatore (da riserve: slotIndex=null, da slot vuoto: slotIndex dal selectedSlot) */}
       <ManualPlayerModal
         show={showManualPlayerModal}
-        onClose={() => setShowManualPlayerModal(false)}
-        onSaved={async () => { await fetchData(); setShowManualPlayerModal(false) }}
-        slotIndex={null}
+        onClose={() => { setShowManualPlayerModal(false); setSelectedSlot(null) }}
+        onSaved={async () => { await fetchData(); setShowManualPlayerModal(false); setSelectedSlot(null) }}
+        slotIndex={selectedSlot?.slot_index ?? null}
       />
 
       {/* Modal Upload Giocatore per Slot */}
@@ -3789,14 +3789,24 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <button
-              onClick={() => onUploadPhoto()}
-              className="btn primary"
-              style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}
-            >
-              <Upload size={16} />
-              {t('uploadPlayerPhoto')}
-            </button>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={() => onUploadPhoto()}
+                className="btn primary"
+                style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}
+              >
+                <Upload size={16} />
+                {t('uploadPlayerPhoto')}
+              </button>
+              <button
+                onClick={() => { onClose?.(); setShowManualPlayerModal(true) }}
+                className="btn"
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center', borderColor: 'var(--neon-blue)', color: 'var(--neon-blue)' }}
+              >
+                <Pencil size={14} />
+                {lang === 'en' ? 'Manual' : 'Manuale'}
+              </button>
+            </div>
 
             {riserve.length > 0 && (
               <>

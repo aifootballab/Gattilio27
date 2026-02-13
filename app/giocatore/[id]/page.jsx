@@ -6,8 +6,9 @@ import { supabase } from '@/lib/supabaseClient'
 import { useTranslation } from '@/lib/i18n'
 import { mapErrorToUserMessage } from '@/lib/errorHelper'
 import LanguageSwitch from '@/components/LanguageSwitch'
-import { ArrowLeft, Upload, AlertCircle, CheckCircle2, RefreshCw, BarChart3, Zap, Gift, ChevronDown, ChevronUp, Award } from 'lucide-react'
+import { ArrowLeft, Upload, AlertCircle, CheckCircle2, RefreshCw, BarChart3, Zap, Gift, ChevronDown, ChevronUp, Award, Pencil } from 'lucide-react'
 import { getPhotoTypeStyle } from '@/lib/playerPhotoTypes'
+import ManualPlayerModal from '@/components/ManualPlayerModal'
 
 export default function PlayerDetailPage() {
   const { t, lang } = useTranslation()
@@ -19,6 +20,7 @@ export default function PlayerDetailPage() {
   const [playingStyleName, setPlayingStyleName] = React.useState(null)
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState(null)
+  const [showEditModal, setShowEditModal] = React.useState(false)
   const [uploading, setUploading] = React.useState(false)
   const [uploadType, setUploadType] = React.useState(null) // 'stats', 'skills', 'booster'
   const [images, setImages] = React.useState([])
@@ -367,6 +369,19 @@ export default function PlayerDetailPage() {
         <div style={{ marginLeft: 'auto' }}>
           <LanguageSwitch />
         </div>
+        <button
+          onClick={() => setShowEditModal(true)}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: '6px',
+            padding: '8px 14px', background: 'rgba(0,212,255,0.1)',
+            border: '1px solid var(--neon-blue)', borderRadius: '8px',
+            color: 'var(--neon-blue)', fontSize: '13px', cursor: 'pointer',
+            fontWeight: 600, transition: 'all 0.2s'
+          }}
+        >
+          <Pencil size={14} />
+          {lang === 'en' ? 'Edit' : 'Modifica'}
+        </button>
         {isProfileComplete && (
           <div style={{
             display: 'inline-flex',
@@ -540,6 +555,19 @@ export default function PlayerDetailPage() {
           to { transform: rotate(360deg); }
         }
       `}</style>
+
+      {/* Modal Modifica/Completa Manualmente */}
+      <ManualPlayerModal
+        show={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        existingPlayer={player}
+        onSaved={async () => {
+          setShowEditModal(false)
+          // Ricarica dati giocatore
+          const { data } = await supabase.from('players').select('*').eq('id', playerId).single()
+          if (data) setPlayer(data)
+        }}
+      />
     </main>
   )
 }
