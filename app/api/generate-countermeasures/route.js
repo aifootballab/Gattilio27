@@ -284,6 +284,29 @@ export async function POST(req) {
       .eq('user_id', userId)
       .maybeSingle()
 
+    // 7b. Recupera feedback Palestra Coach (ultimi 30 giorni) — per coerenza con chat principale
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+    const { data: coachFeedback } = await admin
+      .from('user_tactical_feedback')
+      .select('insights, formation_played, opponent_name, outcome, created_at')
+      .eq('user_id', userId)
+      .gte('created_at', thirtyDaysAgo)
+      .order('created_at', { ascending: false })
+      .limit(5)
+
+    // 7c. Recupera profilo IA (connessione, punto debole, game analysis) — contesto utente
+    const { data: userProfile } = await admin
+      .from('user_profiles')
+      .select('first_name, connection_quality, input_delay, pass_level, ai_weak_point, ai_learn_goals, platform')
+      .eq('user_id', userId)
+      .maybeSingle()
+
+    const { data: gameAnalysis } = await admin
+      .from('user_game_analysis')
+      .select('stats')
+      .eq('user_id', userId)
+      .maybeSingle()
+
     // 9. Valida dati prima di generare prompt
     if (!opponentFormation || !opponentFormation.formation_name) {
       return NextResponse.json(
@@ -324,7 +347,10 @@ export async function POST(req) {
           titolari: titolari || [],
           riserve: riserve || [],
           stylesLookup: stylesLookup || {},
-          team_playing_style: tacticalSettings?.team_playing_style || null
+          team_playing_style: tacticalSettings?.team_playing_style || null,
+          coachFeedback: coachFeedback || [],
+          userProfile: userProfile || null,
+          gameAnalysis: gameAnalysis?.stats || null
         }
       )
     } catch (promptErr) {

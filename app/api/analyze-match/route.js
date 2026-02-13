@@ -565,6 +565,17 @@ Puoi dire che con più sezioni complete l'analisi sarebbe più precisa; NON dare
         historyAnalysisText += `\n⚠️ IMPORTANTE: Considera questi problemi ricorrenti nei suggerimenti.\n`
       }
     }
+
+    // Feedback Palestra Coach (coerenza con chat principale e contromisure)
+    if (tacticalPatterns?._coachFeedback) {
+      const fb = tacticalPatterns._coachFeedback
+      if (fb.weaknesses?.length > 0 || fb.strengths?.length > 0) {
+        historyAnalysisText += `\nESPERIENZA UTENTE (feedback reali dalla Palestra Coach):\n`
+        if (fb.weaknesses.length > 0) historyAnalysisText += `  EVITA: ${fb.weaknesses.join('; ')}\n`
+        if (fb.strengths.length > 0) historyAnalysisText += `  RINFORZA: ${fb.strengths.join('; ')}\n`
+        historyAnalysisText += `  ⚠️ Tieni conto di questi feedback nell'analisi.\n`
+      }
+    }
   } else {
     historyAnalysisText = `\nSTORICO ANDAMENTO: Non disponibile (meno di 2 partite caricate)\n`
     historyAnalysisText += `⚠️ Più partite carichi, migliore sarà l'analisi del tuo andamento.\n`
@@ -1080,6 +1091,40 @@ export async function POST(req) {
         
         if (!patternsError && patterns) {
           tacticalPatterns = patterns
+        }
+
+        // 8. Recupera feedback Palestra Coach (ultimi 30gg) — coerenza con chat e contromisure
+        const td = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+        const { data: feedbackData } = await admin
+          .from('user_tactical_feedback')
+          .select('insights, formation_played, opponent_name, outcome')
+          .eq('user_id', userId)
+          .gte('created_at', td)
+          .order('created_at', { ascending: false })
+          .limit(5)
+        
+        if (feedbackData && feedbackData.length > 0) {
+          // Costruisci sezione feedback per il prompt
+          const weaknesses = []
+          const strengths = []
+          for (const row of feedbackData) {
+            const ins = Array.isArray(row.insights) ? row.insights : []
+            const ctx = [row.formation_played, row.opponent_name, row.outcome].filter(Boolean).join(', ')
+            for (const i of ins) {
+              if (!i || !i.text) continue
+              const entry = `${i.text}${ctx ? ` [${ctx}]` : ''}`
+              if (i.type === 'weakness') weaknesses.push(entry)
+              else if (i.type === 'strength') strengths.push(entry)
+            }
+          }
+          if (weaknesses.length > 0 || strengths.length > 0) {
+            // Inietta nella variabile contextuale che viene passata al prompt builder
+            if (!tacticalPatterns) tacticalPatterns = {}
+            tacticalPatterns._coachFeedback = {
+              weaknesses,
+              strengths
+            }
+          }
         }
       } catch (err) {
         console.warn('[analyze-match] Error retrieving contextual data:', err)

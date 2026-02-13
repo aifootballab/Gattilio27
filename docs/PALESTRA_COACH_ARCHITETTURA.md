@@ -350,7 +350,44 @@ Credit weights in `lib/creditService.js`:
 
 ---
 
-## 13. LIMITAZIONI CONOSCIUTE
+## 13. ALLINEAMENTO TRA I 3 SISTEMI IA
+
+Tutti e 3 i sistemi IA leggono i feedback della Palestra Coach per garantire coerenza:
+
+```
+                        user_tactical_feedback
+                               │
+            ┌──────────────────┼──────────────────┐
+            ▼                  ▼                  ▼
+     CHAT PRINCIPALE     CONTROMISURE        ANALYZE-MATCH
+     (assistant-chat)    (generate-          (analyze-match)
+                          countermeasures)
+     
+     Legge via:          Legge via:          Legge via:
+     diagnostic cache    query diretta       query diretta
+     (sezione            (sezione            (iniettato in
+      ESPERIENZA COACH)   ESPERIENZA UTENTE)  historyAnalysis)
+     
+     Formato:            Formato:            Formato:
+     EVITA/RINFORZA/     EVITA/RINFORZA/     EVITA/RINFORZA
+     ADATTA              ADATTA + profilo    
+                         IA + game stats
+```
+
+**Risultato:** Se l'utente dice nella Palestra Coach "il 4-3-3 non funziona vs pressing", tutti e 3 i sistemi ne tengono conto:
+- La chat non suggerisce 4-3-3 vs pressing
+- Le contromisure evitano 4-3-3 come consiglio vs pressing
+- L'analisi partita nota la coerenza/incoerenza con il feedback precedente
+
+### Dati aggiuntivi letti dalle contromisure (non dalla chat)
+
+Le contromisure leggono anche:
+- `user_profiles` (connessione, input delay, pass level, punto debole) — per adattare i suggerimenti allo stile reale del giocatore
+- `user_game_analysis` (statistiche di gioco) — per capire come gioca realmente (es. 47% gol da filtrante = suggerire formazioni con trequartista)
+
+---
+
+## 14. LIMITAZIONI CONOSCIUTE
 
 1. **Qualita insight dipende dalla conversazione:** Se l'utente da risposte brevi, gli insight estratti saranno vaghi. Il prompt di estrazione incentiva insight specifici con esempi, ma non puo garantirlo.
 
@@ -359,3 +396,5 @@ Credit weights in `lib/creditService.js`:
 3. **Limite 5 feedback nel diagnostic:** Il diagnostic include solo gli ultimi 5 feedback (30 giorni). Feedback piu vecchi non vengono letti dall'IA ma restano in tabella.
 
 4. **Costo crediti:** Ogni sessione Palestra Coach costa 5-6 crediti. Su un budget di 200/mese, un utente attivo (8 sessioni/mese) usa ~48 crediti (24% del budget).
+
+5. **Analyze-match e manuale:** Il riassunto partita (4 crediti) NON si genera automaticamente. L'utente deve cliccare "Analizza" nella pagina dettaglio partita. La chat principale puo dare la stessa analisi on-demand gratuitamente (1 credito per messaggio).
