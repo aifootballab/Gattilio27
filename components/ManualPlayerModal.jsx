@@ -128,14 +128,22 @@ export default function ManualPlayerModal({ show, onClose, onSaved, slotIndex = 
       const { data: session } = await supabase.auth.getSession()
       if (!session?.session?.access_token) throw new Error('Session expired')
 
+      // Struttura base_stats coerente con extract-player (attacking/defending/athleticism)
+      const attacking = {}
+      const defending = {}
+      const athleticism = {}
+      if (form.finishing) attacking.finishing = Number(form.finishing)
+      if (form.passing) attacking.low_pass = Number(form.passing)
+      if (form.dribbling) attacking.dribbling = Number(form.dribbling)
+      if (form.defending) defending.defensive_awareness = Number(form.defending)
+      if (form.speed) athleticism.speed = Number(form.speed)
+      if (form.acceleration) athleticism.acceleration = Number(form.acceleration)
+      if (form.physical) athleticism.physical_contact = Number(form.physical)
+
       const baseStats = {}
-      if (form.speed) baseStats.speed = Number(form.speed)
-      if (form.acceleration) baseStats.acceleration = Number(form.acceleration)
-      if (form.finishing) baseStats.finishing = Number(form.finishing)
-      if (form.passing) baseStats.low_pass = Number(form.passing)
-      if (form.dribbling) baseStats.dribbling = Number(form.dribbling)
-      if (form.defending) baseStats.defensive_awareness = Number(form.defending)
-      if (form.physical) baseStats.physical_contact = Number(form.physical)
+      if (Object.keys(attacking).length > 0) baseStats.attacking = attacking
+      if (Object.keys(defending).length > 0) baseStats.defending = defending
+      if (Object.keys(athleticism).length > 0) baseStats.athleticism = athleticism
 
       const player = {
         player_name: form.player_name.trim(),
@@ -152,7 +160,12 @@ export default function ManualPlayerModal({ show, onClose, onSaved, slotIndex = 
         nationality: form.nationality || null,
         club_name: form.club_name || null,
         slot_index: slotIndex,
-        photo_slots: { manuale: true },
+        photo_slots: {
+          manuale: true,
+          card: true, // Base info inserita manualmente
+          statistiche: Object.keys(baseStats).length > 0 || undefined,
+          abilita: (form.skills.length > 0) || undefined
+        },
         extracted_data: { source: 'manual_input' }
       }
 
