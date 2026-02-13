@@ -1,42 +1,116 @@
-# Documentazione Gattilio27
+# 📚 Documentazione eFootball AI Coach
 
-## Struttura
+**Ultimo aggiornamento:** 2026-02-13  
+**Versione:** 1.0.0
 
-| File/Cartella | Descrizione |
-|---------------|-------------|
-| **DOCUMENTAZIONE_UNIFICATA.md** | 📖 **Documento principale** - Stato attuale, fix applicati, issue aperti |
-| **PANORAMICA_PROGETTO.md** | 🗺️ Guida discorsiva al codice e all'architettura (per nuovi dev) |
-| **SISTEMA_CREDITI_AI.md** | 💰 Documentazione tecnica del sistema crediti |
-| **SICUREZZA.md** | 🔒 Checklist sicurezza e configurazione |
-| **archivio/** | 📁 Documenti obsoleti (audit storici, fix già applicati) |
+---
 
-## Documenti Specifici
+## 🗺️ Indice Rapido
 
-### Per funzionalità
-- `GESTIONE_ROSA_FUNZIONI.md` - Gestione formazione e giocatori
-- `CLASSIFICA_AUDIT.md` - Sistema classifica mensile
-- `TASK_E_KNOWLEDGE_ESPERIENZA_CLIENTE.md` - Task settimanali e AI Knowledge
+| Sezione | Descrizione | Link |
+|---------|-------------|------|
+| 🏗️ **Architettura** | Stack tecnico, database, API | [01-ARCHITETTURA/](./01-ARCHITETTURA/) |
+| ⚽ **Funzionalità** | Feature, UX, flussi utente | [02-FUNZIONALITA/](./02-FUNZIONALITA/) |
+| 💰 **Business** | Pricing, economia, monetizzazione | [03-BUSINESS/](./03-BUSINESS/) |
+| 👨‍💻 **Guide Dev** | Guide sviluppatore, convenzioni | [04-GUIDE-DEV/](./04-GUIDE-DEV/) |
+| 🔍 **Analisi** | Audit, ricerche, valutazioni | [05-ANALISI-AUDIT/](./05-ANALISI-AUDIT/) |
+| 🗄️ **Archivio** | Documenti storici, obsoleti | [archivio/](./archivio/) |
 
-### Per integrazioni
-- `COSTI_API_E_PRICING_CREDITI.md` - Costi OpenAI e pricing
-- `RIEPILOGO_HERO_POINTS_CREDITI.md` - Sistema crediti (business)
-- `INTEGRAZIONE_SITO_PAGAMENTI_HERO_POINTS.md` - Integrazione pagamenti
-- `SERVIZI_CLIENTE_EFOOTBALL_AI_COACH_DESCRIZIONE_COMPLETA.md` - Descrizione servizi
+---
 
-### Per utenti finali
-- `RECUPERO_PASSWORD.md` - Guida recupero password
-- `AUTH_EMAIL_ENTERPRISE_E_REDIRECT.md` - Configurazione auth e redirect
-- `EMAIL_NON_ARRIVANO_DIAGNOSI_ENTERPRISE.md` - Troubleshooting email
-- `SMTP_RESEND_SETUP_NOCODE.md` - Setup SMTP con Resend
+## 🚀 Per Iniziare
 
-### Altri
-- `DESIGN_CLASSIFICA_MENSILE_E_PREMI.md` - Design classifica e premi
-- `UX_RESPONSIVE_LINEE_GUIDA.md` - Linee guida responsive
-- `PIANO_UX_ENTERPRISE_GUIDA_CLIENTE.md` - Piano UX
-- `ROADMAP_ENTERPRISE_COACH.md` - Roadmap sviluppo
+### Sei uno sviluppatore?
+→ Leggi [04-GUIDE-DEV/GUIDA_PROGRAMMATORE_COMPLETA.md](./04-GUIDE-DEV/GUIDA_PROGRAMMATORE_COMPLETA.md)
 
-## Aggiornamento
+### Vuoi capire il pricing?
+→ Vedi [03-BUSINESS/VALUTAZIONE_ECONOMICA_PIATTAFORMA.md](./03-BUSINESS/VALUTAZIONE_ECONOMICA_PIATTAFORMA.md)
 
-**Data ultimo aggiornamento:** 2026-02-10
+### Ti interessa l'architettura?
+→ Parti da [01-ARCHITETTURA/PANORAMICA_PROGETTO.md](./01-ARCHITETTURA/PANORAMICA_PROGETTO.md)
 
-Per modifiche al codice, aggiornare sempre `DOCUMENTAZIONE_UNIFICATA.md`.
+---
+
+## 📋 Documenti Chiave per Argomento
+
+### 🎯 Palestra Coach (Feature Principale)
+- Architettura: [PALESTRA_COACH_ARCHITETTURA.md](./02-FUNZIONALITA/PALESTRA_COACH_ARCHITETTURA.md)
+- Componente: `components/CoachFeedbackChat.jsx`
+- API: `app/api/save-coach-feedback/route.js`
+- Database: `user_tactical_feedback` (v. migrations/)
+
+### 🤖 AI Knowledge Score
+- Implementazione: `lib/aiKnowledgeHelper.js`
+- Documentazione: [02-FUNZIONALITA/SISTEMA_CONOSCENZA_AI.md](./02-FUNZIONALITA/) (da creare)
+
+### 💬 Chat Widget
+- Route: `app/api/assistant-chat/route.js`
+- Prompt: [01-ARCHITETTURA/PROMPT_CHAT_ENTERPRISE.md](./01-ARCHITETTURA/)
+
+### ⚽ Gestione Rosa
+- Componente: `app/gestione-formazione/page.jsx`
+- Logica: `lib/diagnosticBuilder.js` (sezione rosa)
+
+---
+
+## 🔄 Flussi Principali
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    ONBOARDING UTENTE                        │
+│  Registro → Profilo → Rosa (11 titolari) → Allenatore      │
+└─────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────┐
+│                      GIORNO TIPO                            │
+│  Partita → Analisi → Palestra Coach → Consigli AI          │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🗂️ Convenzioni Documentazione
+
+### Struttura file
+- `01-` numerazione per ordinare le cartelle
+- Nomi in MAIUSCOLO_SNAKE_CASE.md
+- Un concetto = un file (evitare file >30KB)
+
+### Stato documenti
+Ogni documento inizia con:
+```markdown
+---
+Stato: [attivo | da aggiornare | obsoleto]
+Creato: YYYY-MM-DD
+Aggiornato: YYYY-MM-DD
+Autore: Nome
+---
+```
+
+---
+
+## ⚠️ Documenti Critici (da aggiornare)
+
+| Documento | Problema | Azione Richiesta |
+|-----------|----------|------------------|
+| `COSTI_API_E_PRICING_CREDITI.md` | Numeri non aggiornati | Verificare costi OpenAI reali |
+| `DIAGNOSTIC_DOCUMENTO_ANALISI_DIFFICOLTA.md` | Riferimenti a tabelle vecchie | Controllare schema DB attuale |
+
+---
+
+## 🗄️ Archivio
+
+Documenti storici mantenuti per tracciabilità: [archivio/](./archivio/)
+
+---
+
+## 📞 Riferimenti Rapidi
+
+- **Stack**: Next.js 14 + React 18 + Supabase + OpenAI GPT-4o
+- **Repo**: `Gattilio27-master/`
+- **Deploy**: Vercel
+- **Database**: Supabase PostgreSQL
+
+---
+
+*Per modifiche a questa struttura, aggiornare questo README e spostare i file di conseguenza.*
