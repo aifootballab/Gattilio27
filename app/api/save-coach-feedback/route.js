@@ -266,15 +266,8 @@ export async function POST(req) {
     // 9. Record credit (fire-and-forget)
     recordUsage(admin, userId, 1, 'save-coach-feedback').catch(() => {})
 
-    // 10. Trigger refresh-diagnostic (fire-and-forget, internal)
-    try {
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL
-        ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'
-      fetch(`${baseUrl}/api/refresh-diagnostic`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` }
-      }).catch(() => {})
-    } catch (_) { /* non bloccare */ }
+    // 10. refresh-diagnostic: chiamato dal frontend dopo il save (come match/new)
+    // Non facciamo self-fetch server→server (fragile su serverless/Vercel)
 
     return NextResponse.json({
       success: true,

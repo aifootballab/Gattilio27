@@ -221,6 +221,13 @@ export default function CoachFeedbackChat({ show, onClose, userProfile: external
           window.dispatchEvent(new CustomEvent('credits-consumed'))
           window.dispatchEvent(new CustomEvent('knowledge-should-refresh'))
         }
+        // Aggiorna il riassunto diagnostico (come fa match/new dopo salvataggio)
+        try {
+          await fetch('/api/refresh-diagnostic', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${session.session.access_token}` }
+          })
+        } catch (_) { /* non bloccare chiusura */ }
         setTimeout(() => onClose?.(), 1500)
       } else {
         console.error('[CoachFeedbackChat] Save error:', await res.text())
