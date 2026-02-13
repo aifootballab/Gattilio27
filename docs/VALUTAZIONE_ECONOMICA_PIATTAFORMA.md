@@ -1,196 +1,105 @@
 # Valutazione Economica — eFootball AI Coach
 
 **Data:** 2026-02-13
-**Pricing:** 200 HP (Hero Points) = 20 EUR/mese
+**Pricing:** 200 HP (Hero Points) = 20 EUR prepagati
+**Modello:** Prepagato. Il cliente paga prima, usa dopo. HP finiti = ricarica o stop.
 **Modello AI:** GPT-4o (OpenAI)
 
 ---
 
-## 1. COSTO PER OPERAZIONE (tuo costo OpenAI)
+## 1. COSTO PER OPERAZIONE
 
-| Operazione | Peso HP | Costo OpenAI/chiamata | Note |
-|---|---|---|---|
-| Chat principale (1 msg) | 1 HP | $0.03 | Prompt lungo (RAG + diagnostic + history) |
-| Palestra Coach (1 msg) | 1 HP | $0.03 | Prompt leggero (no RAG) |
-| Palestra Coach (save) | 1 HP | $0.03 | Estrazione JSON duale |
-| Upload giocatore (1 foto) | 2 HP | $0.06 | Vision (immagine + prompt) |
-| Upload allenatore | 2 HP | $0.06 | Vision |
-| Partita (1 sezione) | 2 HP | $0.05 | Vision (5 sezioni max per partita) |
-| Contromisure (generazione) | 3 HP | $0.10 | Prompt lungo + RAG + storico |
-| Extract formazione avversaria | 3 HP | $0.08 | Vision + output lungo |
-| Extract statistiche gioco | 3 HP | $0.08 | Vision |
-| Analisi partita (riassunto) | 4 HP | $0.13 | Prompt pesante, output fino a 3k token |
+| Operazione | HP al cliente | Tuo costo OpenAI |
+|---|---|---|
+| Chat principale (1 msg) | 1 HP | $0.03 |
+| Palestra Coach (1 msg) | 1 HP | $0.03 |
+| Palestra Coach (salvataggio) | 1 HP | $0.03 |
+| Upload giocatore (1 foto) | 2 HP | $0.06 |
+| Upload allenatore (1 foto) | 2 HP | $0.06 |
+| Partita (1 sezione, max 5) | 2 HP | $0.05 |
+| Contromisure (generazione) | 3 HP | $0.10 |
+| Extract formazione avversaria | 3 HP | $0.08 |
+| Extract statistiche gioco | 3 HP | $0.08 |
+| Analisi partita (riassunto) | 4 HP | $0.13 |
 
 ---
 
-## 2. COSTO PROFILAZIONE NUOVO CLIENTE
+## 2. PROFILAZIONE COMPLETA (3 foto per giocatore)
 
-### Setup base (l'IA funziona)
-
-| Azione | HP | Tuo costo |
+| Azione | Dettaglio | HP |
 |---|---|---|
-| Palestra Coach (profilo: 5 msg + save) | 6 | $0.18 |
-| 11 titolari (1 foto card) | 22 | $0.66 |
-| 1 allenatore | 2 | $0.06 |
-| **TOTALE SETUP BASE** | **30 HP** | **$0.90 (0.83 EUR)** |
+| 11 titolari (card + stats + skills) | 11 × 3 foto × 2 HP | 66 |
+| 12 riserve (card + stats + skills) | 12 × 3 foto × 2 HP | 72 |
+| 1 allenatore | 1 foto | 2 |
+| Palestra Coach (profilo base) | 5 msg + save | 6 |
+| **TOTALE PROFILAZIONE** | | **146 HP** |
 
-AI Knowledge Score: ~50% (Intermediate)
-
-### Setup base + prima partita
-
-| + Prima partita (3 sezioni) | 6 | $0.15 |
-|---|---|---|
-| **TOTALE** | **36 HP** | **$1.05 (0.97 EUR)** |
-
-### Setup completo (IA ti conosce bene)
-
-| Azione | HP | Tuo costo |
-|---|---|---|
-| Palestra Coach profilo | 6 | $0.18 |
-| 15 giocatori (card) | 30 | $0.90 |
-| Foto extra 11 titolari (stats + skills) | 44 | $1.32 |
-| 1 allenatore | 2 | $0.06 |
-| Statistiche di gioco (screenshot) | 3 | $0.08 |
-| 3 partite (5 sezioni) | 30 | $0.75 |
-| 3 feedback Palestra Coach | 18 | $0.54 |
-| 5 messaggi chat | 5 | $0.15 |
-| 1 contromisura | 6 | $0.18 |
-| **TOTALE SETUP COMPLETO** | **144 HP** | **$4.16 (3.83 EUR)** |
-
-AI Knowledge Score: ~85% (Expert)
+**Tuo costo profilazione: $4.38 (4.04 EUR)**
 
 ---
 
-## 3. CONSUMO MENSILE TIPICO (200 HP)
+## 3. COSA RESTA AL CLIENTE DOPO LA PROFILAZIONE
 
-### Mix operazioni realistico (cliente attivo)
+| | HP |
+|---|---|
+| Budget acquistato | 200 |
+| Profilazione completa | -146 |
+| **Disponibili** | **54 HP** |
 
-| Operazione | HP consumati | Chiamate reali | Costo OpenAI |
-|---|---|---|---|
-| Chat principale | 80 HP | 80 messaggi | $2.40 |
-| Palestra Coach (profilo + feedback) | 18 HP | 18 messaggi | $0.54 |
-| Upload giocatori | 30 HP | 15 foto | $0.90 |
-| Partite (4 partite × 3 sezioni) | 24 HP | 12 sezioni | $0.60 |
-| Contromisure (2 avversari) | 12 HP | 2 sessioni | $0.30 |
-| Extract formazione avversaria | 6 HP | 2 foto | $0.16 |
-| Statistiche gioco | 3 HP | 1 foto | $0.08 |
-| Margine non usato | 7 HP | — | $0.21 |
-| **TOTALE 200 HP** | **200 HP** | — | **$5.19 (4.80 EUR)** |
-
-### Dal secondo mese (giocatori gia caricati)
-
-| Operazione | HP consumati | Costo OpenAI |
-|---|---|---|
-| Chat | 50 HP | $1.50 |
-| Palestra Coach (4 feedback) | 24 HP | $0.72 |
-| 4 partite (3 sezioni) | 24 HP | $0.60 |
-| 2 contromisure | 12 HP | $0.30 |
-| Extract formazione | 6 HP | $0.16 |
-| **Consumo tipico** | **~116 HP** | **$3.28 (3.02 EUR)** |
-
-Non tutti i clienti consumano 200 HP. Media stimata: **120-150 HP/mese**.
+Con 54 HP puo fare circa:
+- 3 partite con feedback e chat (51 HP)
+- Oppure 4 contromisure con chat (44 HP)
+- Oppure 54 messaggi chat
 
 ---
 
 ## 4. MARGINALITA PER CLIENTE
 
-### Cliente che consuma tutti i 200 HP (worst case)
+**Modello prepagato: il cliente paga 20 EUR prima. Il rischio per-cliente non esiste.**
 
-| | EUR |
-|---|---|
-| Incasso | 20.00 |
-| Costo OpenAI | 4.80 |
-| Infrastruttura (pro-rata) | 0.45 |
-| **Costo totale** | **5.25** |
-| **Margine** | **14.75** |
-| **Marginalita** | **74%** |
-
-### Cliente medio (consuma ~130 HP)
-
-| | EUR |
-|---|---|
-| Incasso | 20.00 |
-| Costo OpenAI | ~3.20 |
-| Infrastruttura (pro-rata) | 0.45 |
-| **Costo totale** | **3.65** |
-| **Margine** | **16.35** |
-| **Marginalita** | **82%** |
-
-### Cliente light (consuma ~60 HP)
-
-| | EUR |
-|---|---|
-| Incasso | 20.00 |
-| Costo OpenAI | ~1.50 |
-| Infrastruttura (pro-rata) | 0.45 |
-| **Costo totale** | **1.95** |
-| **Margine** | **18.05** |
-| **Marginalita** | **90%** |
+| Scenario | HP usati | Tuo costo OpenAI | Tuo costo totale | Margine |
+|---|---|---|---|---|
+| Usa tutti i 200 HP | 200 | 5.25 EUR | 5.25 EUR | **14.75 EUR (74%)** |
+| Usa 130 HP (media) | 130 | 3.65 EUR | 3.65 EUR | **16.35 EUR (82%)** |
+| Usa 60 HP (light) | 60 | 1.95 EUR | 1.95 EUR | **18.05 EUR (90%)** |
+| Non li usa | 0 | 0 EUR | 0 EUR | **20.00 EUR (100%)** |
 
 ---
 
-## 5. SCENARIO A VOLUME
+## 5. COSTI FISSI MENSILI
 
-### Costi fissi mensili
-
-| Servizio | Costo/mese |
+| Servizio | Costo |
 |---|---|
 | Supabase Pro | 25 EUR |
 | Vercel Pro | 20 EUR |
-| Dominio | ~1 EUR |
-| **Totale fissi** | **~46 EUR** |
+| Dominio | 1 EUR |
+| **Totale** | **46 EUR** |
 
-### Proiezione
+**Breakeven: 3 clienti** (60 EUR incasso - 46 EUR fissi - ~10 EUR OpenAI = +4 EUR)
 
-| Clienti | Incasso | OpenAI (media 130 HP) | Fissi | Margine netto | % |
+---
+
+## 6. PROIEZIONE A VOLUME
+
+| Clienti | Incasso | OpenAI | Fissi | Margine netto | % |
 |---|---|---|---|---|---|
-| 3 | 60 | 10 | 46 | **4** | 7% (breakeven) |
-| 10 | 200 | 32 | 46 | **122** | 61% |
-| 25 | 500 | 80 | 46 | **374** | 75% |
-| 50 | 1.000 | 160 | 46 | **794** | 79% |
-| 100 | 2.000 | 320 | 46 | **1.634** | 82% |
-| 250 | 5.000 | 800 | 60 | **4.140** | 83% |
-| 500 | 10.000 | 1.600 | 70 | **8.330** | 83% |
+| 3 | 60 EUR | 10 EUR | 46 EUR | 4 EUR | 7% |
+| 10 | 200 EUR | 32 EUR | 46 EUR | 122 EUR | 61% |
+| 25 | 500 EUR | 80 EUR | 46 EUR | 374 EUR | 75% |
+| 50 | 1.000 EUR | 160 EUR | 46 EUR | 794 EUR | 79% |
+| 100 | 2.000 EUR | 320 EUR | 46 EUR | 1.634 EUR | 82% |
+| 500 | 10.000 EUR | 1.600 EUR | 70 EUR | 8.330 EUR | 83% |
 
-**Breakeven: 3 clienti.**
-**Target 50 clienti: ~800 EUR/mese netti.**
-**Target 100 clienti: ~1.600 EUR/mese netti.**
+(OpenAI calcolato su media 130 HP/cliente)
 
 ---
 
-## 6. RISCHI E NOTE
+## 7. DAL SECONDO MESE
 
-### Rischio: cliente che abusa dei crediti
+I giocatori sono gia caricati. Il cliente usa HP solo per partite, chat, contromisure e feedback.
 
-Un cliente potrebbe usare solo chat (1 HP/msg) e bruciare 200 messaggi chat = $6.00 costo.
-Margine scenderebbe a 68%. Accettabile.
-
-### Rischio: operazioni Vision costose
-
-Se un cliente carica 50 giocatori con 3 foto ciascuno: 150 foto × $0.06 = $9.00.
-Ma consumerebbe 300 HP (piu del suo budget mensile). Il sistema di crediti lo previene.
-
-### Nota: il sistema di crediti e gia un cap naturale
-
-200 HP = budget massimo. Non puoi spendere piu di ~$5.20 per cliente in un mese.
-Il cap protegge il margine indipendentemente dal comportamento del cliente.
-
-### Nota: costi OpenAI in calo
-
-I prezzi OpenAI calano ogni 6-12 mesi. GPT-4o e gia 50% piu economico di GPT-4.
-Il margine migliorera nel tempo senza cambiare pricing al cliente.
-
----
-
-## 7. RIEPILOGO
-
-| Metrica | Valore |
-|---|---|
-| Prezzo cliente | 20 EUR/mese (200 HP) |
-| Costo profilazione base | **0.83 EUR** (30 HP) |
-| Costo profilazione completa | **3.83 EUR** (144 HP) |
-| Costo massimo/mese/cliente | **5.25 EUR** (200 HP + infra) |
-| Marginalita worst case | **74%** |
-| Marginalita media | **82%** |
-| Breakeven | **3 clienti** |
-| Target 100 clienti | **1.634 EUR/mese netti** |
+| | Primo mese | Dal secondo mese |
+|---|---|---|
+| HP tipici consumati | ~150 | ~80-120 |
+| Tuo costo OpenAI | ~4.80 EUR | ~2.50-3.50 EUR |
+| Margine per cliente | ~15 EUR | ~16-17 EUR |
