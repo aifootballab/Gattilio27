@@ -1,0 +1,446 @@
+'use client'
+
+import React, { useState, useMemo, useEffect } from 'react'
+import { useTranslation } from '@/lib/i18n'
+import { supabase } from '@/lib/supabaseClient'
+import { X, User, ChevronDown, ChevronUp, Zap, Shield, Star, Check } from 'lucide-react'
+
+/**
+ * ManualPlayerModal — Inserimento manuale giocatore (0 HP).
+ * Sezioni espandibili, dropdown con dati reali da playing_styles,
+ * filtraggio stili per posizione, responsive mobile-first.
+ *
+ * Props:
+ * - show {boolean}
+ * - onClose {function}
+ * - onSaved {function(player)} — callback dopo salvataggio
+ * - slotIndex {number|null} — se fornito, assegna direttamente allo slot
+ */
+
+const POSITIONS = [
+  { value: 'PT', label: 'PT', group: 'Portiere' },
+  { value: 'DC', label: 'DC', group: 'Difesa' },
+  { value: 'TD', label: 'TD', group: 'Difesa' },
+  { value: 'TS', label: 'TS', group: 'Difesa' },
+  { value: 'MED', label: 'MED', group: 'Centrocampo' },
+  { value: 'CC', label: 'CC', group: 'Centrocampo' },
+  { value: 'CLD', label: 'CLD', group: 'Centrocampo' },
+  { value: 'CLS', label: 'CLS', group: 'Centrocampo' },
+  { value: 'TRQ', label: 'TRQ', group: 'Centrocampo' },
+  { value: 'EDA', label: 'EDA', group: 'Attacco' },
+  { value: 'ESA', label: 'ESA', group: 'Attacco' },
+  { value: 'SP', label: 'SP', group: 'Attacco' },
+  { value: 'P', label: 'P', group: 'Attacco' }
+]
+
+const CARD_TYPES = ['Standard', 'Trending', 'In evidenza', 'In risalto', 'Epico', 'Leggendario']
+
+const CARD_COLORS = {
+  Standard: '#666', Trending: '#00bcd4', 'In evidenza': '#2196f3',
+  'In risalto': '#9c27b0', Epico: '#7c3aed', Leggendario: '#f59e0b'
+}
+
+const SKILL_CATEGORIES = {
+  'Tiro': ['Tiro al volo', 'Tiro a giro', 'Tiro Potente', 'Tiro a scendere', 'Tiro a salire', 'A giro da distante', 'Colpo di testa', 'Tiro acrobatico'],
+  'Passaggio': ['Passaggio di prima', 'Passaggio calibrato', 'Passaggio filtrante', 'Cross preciso', 'Lancio lungo preciso', 'Passaggio dosato', 'Rabona'],
+  'Dribbling': ['Doppio tocco', 'Finta doppio passo', 'Elastico', 'Controllo di suola', 'Stop acrobatico', 'Protezione'],
+  'Difesa': ['Intercettazione', 'Marcatura', 'Contrasto Aggressivo', 'Scivolata', 'Muro', 'Caposaldo'],
+  'Portiere': ['Traiettoria bassa PT', 'Rilancio del PT', 'Para-rigori', 'Uscita portiere'],
+  'Speciali': ['Leader', 'Tornante', 'Super riserva', 'Specialista punizioni', 'Specialista rigori']
+}
+
+const inputStyle = {
+  width: '100%', padding: '10px 12px', background: 'rgba(0,0,0,0.25)',
+  border: '1px solid rgba(255,255,255,0.12)', borderRadius: '8px',
+  color: 'white', fontSize: '14px', outline: 'none', transition: 'border-color 0.2s'
+}
+const selectStyle = {
+  ...inputStyle, appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none',
+  backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%2300d4ff\' stroke-width=\'2\'%3E%3Cpath d=\'M6 9l6 6 6-6\'/%3E%3C/svg%3E")',
+  backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center', paddingRight: '30px', cursor: 'pointer'
+}
+const labelStyle = { display: 'block', fontSize: '12px', color: 'rgba(255,255,255,0.6)', marginBottom: '4px' }
+
+export default function ManualPlayerModal({ show, onClose, onSaved, slotIndex = null }) {
+  const { t, lang } = useTranslation()
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState(false)
+  const [playingStyles, setPlayingStyles] = useState([])
+
+  // Sezioni espandibili
+  const [expandedSections, setExpandedSections] = useState({ stats: false, skills: false, details: false })
+
+  // Dati form
+  const [form, setForm] = useState({
+    player_name: '', position: '', overall_rating: '', card_type: 'Standard',
+    playing_style: '', form: 'B',
+    // Stats
+    speed: '', acceleration: '', finishing: '', passing: '', dribbling: '', defending: '', physical: '',
+    // Abilita
+    skills: [],
+    // Dettagli
+    height: '', weight: '', age: '', nationality: '', club_name: ''
+  })
+
+  // Carica stili dal DB
+  useEffect(() => {
+    if (!show) return
+    setError(''); setSuccess(false)
+    setForm(f => ({ ...f, player_name: '', position: '', overall_rating: '', card_type: 'Standard', playing_style: '', form: 'B', speed: '', acceleration: '', finishing: '', passing: '', dribbling: '', defending: '', physical: '', skills: [], height: '', weight: '', age: '', nationality: '', club_name: '' }))
+    setExpandedSections({ stats: false, skills: false, details: false })
+
+    const loadStyles = async () => {
+      const { data } = await supabase.from('playing_styles').select('id, name, compatible_positions, category')
+      if (data) setPlayingStyles(data)
+    }
+    loadStyles()
+  }, [show])
+
+  // Filtra stili per posizione selezionata
+  const filteredStyles = useMemo(() => {
+    if (!form.position) return playingStyles
+    return playingStyles.filter(s =>
+      Array.isArray(s.compatible_positions) && s.compatible_positions.includes(form.position)
+    )
+  }, [form.position, playingStyles])
+
+  const toggleSection = (key) => setExpandedSections(prev => ({ ...prev, [key]: !prev[key] }))
+  const updateForm = (key, value) => setForm(prev => ({ ...prev, [key]: value }))
+  const toggleSkill = (skill) => {
+    setForm(prev => ({
+      ...prev,
+      skills: prev.skills.includes(skill)
+        ? prev.skills.filter(s => s !== skill)
+        : prev.skills.length < 10 ? [...prev.skills, skill] : prev.skills
+    }))
+  }
+
+  const cardColor = CARD_COLORS[form.card_type] || '#666'
+
+  const handleSave = async () => {
+    setError('')
+    if (!form.player_name.trim()) { setError(lang === 'en' ? 'Player name is required' : 'Nome giocatore obbligatorio'); return }
+    if (!form.position) { setError(lang === 'en' ? 'Position is required' : 'Posizione obbligatoria'); return }
+
+    setSaving(true)
+    try {
+      const { data: session } = await supabase.auth.getSession()
+      if (!session?.session?.access_token) throw new Error('Session expired')
+
+      const baseStats = {}
+      if (form.speed) baseStats.speed = Number(form.speed)
+      if (form.acceleration) baseStats.acceleration = Number(form.acceleration)
+      if (form.finishing) baseStats.finishing = Number(form.finishing)
+      if (form.passing) baseStats.low_pass = Number(form.passing)
+      if (form.dribbling) baseStats.dribbling = Number(form.dribbling)
+      if (form.defending) baseStats.defensive_awareness = Number(form.defending)
+      if (form.physical) baseStats.physical_contact = Number(form.physical)
+
+      const player = {
+        player_name: form.player_name.trim(),
+        position: form.position,
+        overall_rating: form.overall_rating ? Number(form.overall_rating) : null,
+        card_type: form.card_type,
+        role: form.playing_style || null,
+        form: form.form || 'B',
+        base_stats: Object.keys(baseStats).length > 0 ? baseStats : {},
+        skills: form.skills.length > 0 ? form.skills : [],
+        height_cm: form.height ? Number(form.height) : null,
+        weight_kg: form.weight ? Number(form.weight) : null,
+        age: form.age ? Number(form.age) : null,
+        nationality: form.nationality || null,
+        club_name: form.club_name || null,
+        slot_index: slotIndex,
+        photo_slots: { manuale: true },
+        extracted_data: { source: 'manual_input' }
+      }
+
+      const res = await fetch('/api/supabase/save-player', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.session.access_token}`
+        },
+        body: JSON.stringify({ player })
+      })
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || 'Save failed')
+      }
+
+      const data = await res.json()
+      setSuccess(true)
+      setTimeout(() => {
+        onSaved?.(data)
+        onClose?.()
+      }, 1200)
+    } catch (err) {
+      console.error('[ManualPlayerModal] Save error:', err)
+      setError(err.message || (lang === 'en' ? 'Error saving player' : 'Errore nel salvataggio'))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (!show) return null
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)' }}>
+      <style>{`.mp-select option { background: #1a1a2e; color: #fff; } .mp-select option:checked { background: #0d47a1; }`}</style>
+
+      <div style={{
+        width: 'clamp(340px, 94vw, 480px)', maxHeight: '92vh',
+        background: 'rgba(10, 14, 39, 0.97)', border: `2px solid ${cardColor}`,
+        borderRadius: '12px', boxShadow: `0 0 30px ${cardColor}33`,
+        display: 'flex', flexDirection: 'column', overflow: 'hidden',
+        transition: 'border-color 0.3s'
+      }}>
+        {/* Header */}
+        <div style={{
+          padding: '14px 16px', background: `linear-gradient(135deg, ${cardColor}, ${cardColor}88)`,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <User size={20} color="white" />
+            <div>
+              <div style={{ fontWeight: 700, color: 'white', fontSize: '15px' }}>
+                {lang === 'en' ? 'New Player' : 'Nuovo Giocatore'}
+              </div>
+              <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)' }}>
+                {lang === 'en' ? 'Manual entry (0 credits)' : 'Inserimento manuale'}
+              </div>
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'white', padding: '4px' }}>
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Scrollable content */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
+
+          {/* SEZIONE BASE (sempre visibile) */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {/* Nome */}
+            <div>
+              <label style={labelStyle}>{lang === 'en' ? 'Player name *' : 'Nome giocatore *'}</label>
+              <input type="text" style={inputStyle} maxLength={100} placeholder="es. Kylian Mbappé"
+                value={form.player_name} onChange={e => updateForm('player_name', e.target.value)}
+                onFocus={e => { e.target.style.borderColor = cardColor }}
+                onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.12)' }} />
+            </div>
+
+            {/* Posizione + Overall (2 colonne) */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <div>
+                <label style={labelStyle}>{lang === 'en' ? 'Position *' : 'Posizione *'}</label>
+                <select className="mp-select" style={selectStyle} value={form.position}
+                  onChange={e => { updateForm('position', e.target.value); updateForm('playing_style', '') }}>
+                  <option value="">--</option>
+                  {['Portiere', 'Difesa', 'Centrocampo', 'Attacco'].map(group => (
+                    <optgroup key={group} label={group}>
+                      {POSITIONS.filter(p => p.group === group).map(p => (
+                        <option key={p.value} value={p.value}>{p.label}</option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label style={labelStyle}>Overall</label>
+                <input type="number" style={inputStyle} min="40" max="120" placeholder="40-120"
+                  value={form.overall_rating} onChange={e => updateForm('overall_rating', e.target.value)} />
+              </div>
+            </div>
+
+            {/* Tipo carta + Stile (2 colonne) */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <div>
+                <label style={labelStyle}>{lang === 'en' ? 'Card type' : 'Tipo carta'}</label>
+                <select className="mp-select" style={selectStyle} value={form.card_type}
+                  onChange={e => updateForm('card_type', e.target.value)}>
+                  {CARD_TYPES.map(ct => (
+                    <option key={ct} value={ct}>{ct}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label style={labelStyle}>
+                  {lang === 'en' ? 'Playing style' : 'Stile giocatore'}
+                  {form.position && <span style={{ color: cardColor, marginLeft: '4px' }}>({filteredStyles.length})</span>}
+                </label>
+                <select className="mp-select" style={selectStyle} value={form.playing_style}
+                  onChange={e => updateForm('playing_style', e.target.value)}>
+                  <option value="">--</option>
+                  {filteredStyles.map(s => (
+                    <option key={s.id} value={s.name}>{s.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* SEZIONE STATS (espandibile) */}
+          <div style={{ marginTop: '16px', border: '1px solid rgba(0,212,255,0.15)', borderRadius: '10px', overflow: 'hidden' }}>
+            <button type="button" onClick={() => toggleSection('stats')} style={{
+              width: '100%', padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              background: expandedSections.stats ? 'rgba(0,212,255,0.06)' : 'transparent',
+              border: 'none', cursor: 'pointer', color: 'var(--neon-blue)', fontSize: '13px', fontWeight: 600
+            }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Zap size={14} /> {lang === 'en' ? 'Stats' : 'Statistiche'}
+                <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', fontWeight: 400 }}>
+                  ({lang === 'en' ? 'optional' : 'opzionale'})
+                </span>
+              </span>
+              {expandedSections.stats ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            </button>
+            {expandedSections.stats && (
+              <div style={{ padding: '12px 14px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                {[
+                  { key: 'speed', label: lang === 'en' ? 'Speed' : 'Velocita' },
+                  { key: 'acceleration', label: lang === 'en' ? 'Acceleration' : 'Accelerazione' },
+                  { key: 'finishing', label: lang === 'en' ? 'Finishing' : 'Finalizzazione' },
+                  { key: 'passing', label: lang === 'en' ? 'Passing' : 'Passaggio' },
+                  { key: 'dribbling', label: 'Dribbling' },
+                  { key: 'defending', label: lang === 'en' ? 'Defending' : 'Difesa' },
+                  { key: 'physical', label: lang === 'en' ? 'Physical' : 'Fisico' }
+                ].map(stat => (
+                  <div key={stat.key}>
+                    <label style={{ ...labelStyle, fontSize: '11px' }}>{stat.label}</label>
+                    <input type="number" style={{ ...inputStyle, padding: '8px 10px', fontSize: '13px' }}
+                      min="1" max="99" placeholder="1-99"
+                      value={form[stat.key]} onChange={e => updateForm(stat.key, e.target.value)} />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* SEZIONE ABILITA (espandibile) */}
+          <div style={{ marginTop: '10px', border: '1px solid rgba(168,85,247,0.15)', borderRadius: '10px', overflow: 'hidden' }}>
+            <button type="button" onClick={() => toggleSection('skills')} style={{
+              width: '100%', padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              background: expandedSections.skills ? 'rgba(168,85,247,0.06)' : 'transparent',
+              border: 'none', cursor: 'pointer', color: '#a855f7', fontSize: '13px', fontWeight: 600
+            }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Star size={14} /> {lang === 'en' ? 'Skills' : 'Abilita'}
+                {form.skills.length > 0 && <span style={{ background: '#a855f7', color: 'white', borderRadius: '10px', padding: '1px 7px', fontSize: '11px' }}>{form.skills.length}</span>}
+                <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', fontWeight: 400 }}>
+                  (max 10)
+                </span>
+              </span>
+              {expandedSections.skills ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            </button>
+            {expandedSections.skills && (
+              <div style={{ padding: '10px 14px', maxHeight: '200px', overflowY: 'auto' }}>
+                {Object.entries(SKILL_CATEGORIES).map(([cat, skills]) => (
+                  <div key={cat} style={{ marginBottom: '10px' }}>
+                    <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{cat}</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+                      {skills.map(skill => {
+                        const selected = form.skills.includes(skill)
+                        return (
+                          <button key={skill} type="button" onClick={() => toggleSkill(skill)} style={{
+                            padding: '4px 10px', fontSize: '11px', borderRadius: '14px', cursor: 'pointer',
+                            border: `1px solid ${selected ? '#a855f7' : 'rgba(255,255,255,0.12)'}`,
+                            background: selected ? 'rgba(168,85,247,0.2)' : 'transparent',
+                            color: selected ? '#c084fc' : 'rgba(255,255,255,0.6)',
+                            transition: 'all 0.15s'
+                          }}>
+                            {selected && <Check size={10} style={{ marginRight: '3px', verticalAlign: 'middle' }} />}
+                            {skill}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* SEZIONE DETTAGLI (espandibile) */}
+          <div style={{ marginTop: '10px', border: '1px solid rgba(255,140,0,0.15)', borderRadius: '10px', overflow: 'hidden' }}>
+            <button type="button" onClick={() => toggleSection('details')} style={{
+              width: '100%', padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              background: expandedSections.details ? 'rgba(255,140,0,0.06)' : 'transparent',
+              border: 'none', cursor: 'pointer', color: 'var(--neon-orange)', fontSize: '13px', fontWeight: 600
+            }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Shield size={14} /> {lang === 'en' ? 'Details' : 'Dettagli'}
+                <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', fontWeight: 400 }}>
+                  ({lang === 'en' ? 'optional' : 'opzionale'})
+                </span>
+              </span>
+              {expandedSections.details ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            </button>
+            {expandedSections.details && (
+              <div style={{ padding: '12px 14px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+                  <div>
+                    <label style={{ ...labelStyle, fontSize: '11px' }}>{lang === 'en' ? 'Height cm' : 'Altezza cm'}</label>
+                    <input type="number" style={{ ...inputStyle, padding: '8px 10px', fontSize: '13px' }}
+                      min="150" max="210" placeholder="170"
+                      value={form.height} onChange={e => updateForm('height', e.target.value)} />
+                  </div>
+                  <div>
+                    <label style={{ ...labelStyle, fontSize: '11px' }}>{lang === 'en' ? 'Weight kg' : 'Peso kg'}</label>
+                    <input type="number" style={{ ...inputStyle, padding: '8px 10px', fontSize: '13px' }}
+                      min="50" max="120" placeholder="75"
+                      value={form.weight} onChange={e => updateForm('weight', e.target.value)} />
+                  </div>
+                  <div>
+                    <label style={{ ...labelStyle, fontSize: '11px' }}>{lang === 'en' ? 'Age' : 'Eta'}</label>
+                    <input type="number" style={{ ...inputStyle, padding: '8px 10px', fontSize: '13px' }}
+                      min="15" max="50" placeholder="25"
+                      value={form.age} onChange={e => updateForm('age', e.target.value)} />
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '8px' }}>
+                  <div>
+                    <label style={{ ...labelStyle, fontSize: '11px' }}>{lang === 'en' ? 'Nationality' : 'Nazionalita'}</label>
+                    <input type="text" style={{ ...inputStyle, padding: '8px 10px', fontSize: '13px' }}
+                      maxLength={50} placeholder={lang === 'en' ? 'e.g. France' : 'es. Francia'}
+                      value={form.nationality} onChange={e => updateForm('nationality', e.target.value)} />
+                  </div>
+                  <div>
+                    <label style={{ ...labelStyle, fontSize: '11px' }}>Club</label>
+                    <input type="text" style={{ ...inputStyle, padding: '8px 10px', fontSize: '13px' }}
+                      maxLength={100} placeholder="es. PSG"
+                      value={form.club_name} onChange={e => updateForm('club_name', e.target.value)} />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Errore / Successo */}
+          {error && <div style={{ marginTop: '12px', padding: '10px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '8px', color: '#ef4444', fontSize: '13px' }}>{error}</div>}
+          {success && <div style={{ marginTop: '12px', padding: '10px', background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: '8px', color: '#22c55e', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}><Check size={16} /> {lang === 'en' ? 'Player saved!' : 'Giocatore salvato!'}</div>}
+        </div>
+
+        {/* Footer */}
+        <div style={{ padding: '12px 16px', borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+          <button onClick={onClose} style={{
+            padding: '10px 20px', background: 'transparent', border: '1px solid rgba(255,255,255,0.2)',
+            borderRadius: '8px', color: 'rgba(255,255,255,0.6)', fontSize: '13px', cursor: 'pointer'
+          }}>
+            {lang === 'en' ? 'Cancel' : 'Annulla'}
+          </button>
+          <button onClick={handleSave} disabled={saving || success} style={{
+            padding: '10px 24px', background: saving || success ? 'rgba(255,255,255,0.1)' : cardColor,
+            border: 'none', borderRadius: '8px', color: 'white', fontSize: '14px', fontWeight: 600,
+            cursor: saving || success ? 'not-allowed' : 'pointer', transition: 'all 0.2s',
+            opacity: saving ? 0.7 : 1
+          }}>
+            {saving ? (lang === 'en' ? 'Saving...' : 'Salvo...') : success ? (lang === 'en' ? 'Saved!' : 'Salvato!') : (lang === 'en' ? 'Save player' : 'Salva giocatore')}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}

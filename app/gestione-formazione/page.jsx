@@ -11,6 +11,7 @@ import RosaTutorialModal from '@/components/RosaTutorialModal'
 import PositionSelectionModal from '@/components/PositionSelectionModal'
 import MissingDataModal from '@/components/MissingDataModal'
 import ConfirmModal from '@/components/ConfirmModal'
+import ManualPlayerModal from '@/components/ManualPlayerModal'
 import { safeJsonResponse } from '@/lib/fetchHelper'
 import { mapErrorToUserMessage } from '@/lib/errorHelper'
 import { PHOTO_TYPE_KEYS, getPhotoTypeConfig } from '@/lib/playerPhotoTypes'
@@ -108,6 +109,7 @@ export default function GestioneFormazionePage() {
   const [uploadingFormation, setUploadingFormation] = React.useState(false)
   const [uploadingReserve, setUploadingReserve] = React.useState(false)
   const [showUploadPlayerModal, setShowUploadPlayerModal] = React.useState(false)
+  const [showManualPlayerModal, setShowManualPlayerModal] = React.useState(false)
   const [uploadImages, setUploadImages] = React.useState([])
   const [uploadReserveImages, setUploadReserveImages] = React.useState([])
   const [uploadingPlayer, setUploadingPlayer] = React.useState(false)
@@ -2553,22 +2555,39 @@ export default function GestioneFormazionePage() {
           }}>
             {t('riserve')} ({riserve.length})
           </h2>
-          <button
-            data-tour-id="tour-formation-upload"
-            onClick={() => setShowUploadReserveModal(true)}
-            className="btn"
-            style={{ 
-              display: 'inline-flex', 
-              alignItems: 'center', 
-              gap: '8px',
-              background: 'rgba(168, 85, 247, 0.2)',
-              borderColor: 'var(--neon-purple)',
-              color: 'var(--neon-purple)'
-            }}
-          >
-            <Plus size={16} />
-            {t('loadReserve')}
-          </button>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <button
+              data-tour-id="tour-formation-upload"
+              onClick={() => setShowUploadReserveModal(true)}
+              className="btn"
+              style={{ 
+                display: 'inline-flex', 
+                alignItems: 'center', 
+                gap: '8px',
+                background: 'rgba(168, 85, 247, 0.2)',
+                borderColor: 'var(--neon-purple)',
+                color: 'var(--neon-purple)'
+              }}
+            >
+              <Upload size={16} />
+              {t('loadReserve')}
+            </button>
+            <button
+              onClick={() => setShowManualPlayerModal(true)}
+              className="btn"
+              style={{ 
+                display: 'inline-flex', 
+                alignItems: 'center', 
+                gap: '8px',
+                background: 'rgba(0, 212, 255, 0.1)',
+                borderColor: 'var(--neon-blue)',
+                color: 'var(--neon-blue)'
+              }}
+            >
+              <Pencil size={16} />
+              {lang === 'en' ? 'Manual' : 'Manuale'}
+            </button>
+          </div>
         </div>
         {riserve.length > 0 && (
           <div style={{ 
@@ -2669,6 +2688,14 @@ export default function GestioneFormazionePage() {
           uploading={uploadingReserve}
         />
       )}
+
+      {/* Modal Inserimento Manuale Giocatore */}
+      <ManualPlayerModal
+        show={showManualPlayerModal}
+        onClose={() => setShowManualPlayerModal(false)}
+        onSaved={async () => { await fetchData(); setShowManualPlayerModal(false) }}
+        slotIndex={null}
+      />
 
       {/* Modal Upload Giocatore per Slot */}
       {showUploadPlayerModal && selectedSlot && (
