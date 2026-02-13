@@ -17,14 +17,21 @@ import { mapErrorToUserMessage } from '@/lib/errorHelper'
  * - userProfile {object|null} — profilo utente (pre-caricato dalla dashboard)
  * - lastMatch {object|null} — ultima partita (pre-caricata dalla dashboard)
  */
-/** Stile comune per select/input nel form */
+/** Stile comune per select/input nel form — dark theme coerente */
 const formFieldStyle = {
-  width: '100%', padding: '10px 12px',
-  background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,140,0,0.3)',
-  borderRadius: '8px', color: 'white', fontSize: '13px', outline: 'none',
-  appearance: 'none', WebkitAppearance: 'none'
+  width: '100%', padding: '8px 10px',
+  background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,140,0,0.25)',
+  borderRadius: '6px', color: 'white', fontSize: '12px', outline: 'none'
 }
-const formLabelStyle = { fontSize: '12px', color: 'rgba(255,255,255,0.7)', marginBottom: '4px', display: 'block' }
+const formSelectStyle = {
+  ...formFieldStyle,
+  background: 'rgba(255,255,255,0.06)',
+  backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23ff8c00\' stroke-width=\'2\'%3E%3Cpath d=\'M6 9l6 6 6-6\'/%3E%3C/svg%3E")',
+  backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center',
+  paddingRight: '28px', appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none',
+  cursor: 'pointer'
+}
+const formLabelStyle = { fontSize: '11px', color: 'rgba(255,255,255,0.5)', marginBottom: '2px', display: 'block' }
 
 export default function CoachFeedbackChat({ show, onClose, userProfile: externalProfile, lastMatch }) {
   const { t, lang } = useTranslation()
@@ -332,6 +339,18 @@ export default function CoachFeedbackChat({ show, onClose, userProfile: external
         backdropFilter: 'blur(4px)'
       }}
     >
+      {/* Dark theme per select option (browser nativo) */}
+      <style>{`
+        .coach-form-select option {
+          background: #1a1a1a;
+          color: #fff;
+          padding: 6px;
+        }
+        .coach-form-select option:checked {
+          background: #e65100;
+          color: #fff;
+        }
+      `}</style>
       <div
         style={{
           width: 'clamp(340px, 92vw, 440px)',
@@ -421,105 +440,83 @@ export default function CoachFeedbackChat({ show, onClose, userProfile: external
           </button>
 
           {formExpanded && (
-            <div style={{ padding: '8px 16px 16px', maxHeight: '50vh', overflowY: 'auto', background: 'rgba(0,0,0,0.2)' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                {/* Piattaforma */}
+            <div style={{ padding: '10px 14px 14px', maxHeight: '45vh', overflowY: 'auto', background: 'rgba(0,0,0,0.25)' }}>
+              {/* Riga 1: 3 colonne */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
                 <div>
                   <label style={formLabelStyle}>{lang === 'en' ? 'Platform' : 'Piattaforma'}</label>
-                  <select style={formFieldStyle} value={formData.platform || ''} onChange={e => setFormData(p => ({ ...p, platform: e.target.value }))}>
-                    <option value="">--</option>
-                    <option value="console">Console</option>
-                    <option value="pc">PC</option>
-                    <option value="mobile">Mobile</option>
-                    <option value="other">{lang === 'en' ? 'Other' : 'Altro'}</option>
+                  <select className="coach-form-select" style={formSelectStyle} value={formData.platform || ''} onChange={e => setFormData(p => ({ ...p, platform: e.target.value }))}>
+                    <option value="">--</option><option value="console">Console</option><option value="pc">PC</option><option value="mobile">Mobile</option>
                   </select>
                 </div>
-                {/* Connessione */}
                 <div>
                   <label style={formLabelStyle}>{lang === 'en' ? 'Connection' : 'Connessione'}</label>
-                  <select style={formFieldStyle} value={formData.connection_quality || ''} onChange={e => setFormData(p => ({ ...p, connection_quality: e.target.value }))}>
-                    <option value="">--</option>
-                    <option value="good">{lang === 'en' ? 'Good' : 'Buona'}</option>
-                    <option value="unstable">{lang === 'en' ? 'Unstable' : 'Instabile'}</option>
-                    <option value="lag">Lag</option>
+                  <select className="coach-form-select" style={formSelectStyle} value={formData.connection_quality || ''} onChange={e => setFormData(p => ({ ...p, connection_quality: e.target.value }))}>
+                    <option value="">--</option><option value="good">{lang === 'en' ? 'Good' : 'Buona'}</option><option value="unstable">{lang === 'en' ? 'Unstable' : 'Instabile'}</option><option value="lag">Lag</option>
                   </select>
                 </div>
-                {/* PA Level */}
                 <div>
                   <label style={formLabelStyle}>{lang === 'en' ? 'Pass level' : 'Passaggi'}</label>
-                  <select style={formFieldStyle} value={formData.pass_level || ''} onChange={e => setFormData(p => ({ ...p, pass_level: e.target.value }))}>
-                    <option value="">--</option>
-                    <option value="pa1">PA1</option>
-                    <option value="pa2">PA2</option>
-                    <option value="pa3">PA3</option>
+                  <select className="coach-form-select" style={formSelectStyle} value={formData.pass_level || ''} onChange={e => setFormData(p => ({ ...p, pass_level: e.target.value }))}>
+                    <option value="">--</option><option value="pa1">PA1</option><option value="pa2">PA2</option><option value="pa3">PA3</option>
                   </select>
                 </div>
-                {/* Smart Assist */}
+              </div>
+              {/* Riga 2: 3 colonne */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginTop: '8px' }}>
                 <div>
                   <label style={formLabelStyle}>Smart Assist</label>
-                  <select style={formFieldStyle} value={formData.smart_assist || ''} onChange={e => setFormData(p => ({ ...p, smart_assist: e.target.value }))}>
-                    <option value="">--</option>
-                    <option value="yes">{lang === 'en' ? 'Yes' : 'Si'}</option>
-                    <option value="no">No</option>
+                  <select className="coach-form-select" style={formSelectStyle} value={formData.smart_assist || ''} onChange={e => setFormData(p => ({ ...p, smart_assist: e.target.value }))}>
+                    <option value="">--</option><option value="yes">{lang === 'en' ? 'Yes' : 'Si'}</option><option value="no">No</option>
                   </select>
                 </div>
-                {/* Input Delay */}
                 <div>
-                  <label style={formLabelStyle}>{lang === 'en' ? 'Input delay' : 'Ritardo input'}</label>
-                  <select style={formFieldStyle} value={formData.input_delay || ''} onChange={e => setFormData(p => ({ ...p, input_delay: e.target.value }))}>
-                    <option value="">--</option>
-                    <option value="yes">{lang === 'en' ? 'Yes' : 'Si'}</option>
-                    <option value="no">No</option>
-                    <option value="sometimes">{lang === 'en' ? 'Sometimes' : 'A volte'}</option>
+                  <label style={formLabelStyle}>{lang === 'en' ? 'Input delay' : 'Input delay'}</label>
+                  <select className="coach-form-select" style={formSelectStyle} value={formData.input_delay || ''} onChange={e => setFormData(p => ({ ...p, input_delay: e.target.value }))}>
+                    <option value="">--</option><option value="yes">{lang === 'en' ? 'Yes' : 'Si'}</option><option value="no">No</option><option value="sometimes">{lang === 'en' ? 'Sometimes' : 'A volte'}</option>
                   </select>
                 </div>
-                {/* Punto debole */}
                 <div>
                   <label style={formLabelStyle}>{lang === 'en' ? 'Weak point' : 'Punto debole'}</label>
-                  <select style={formFieldStyle} value={formData.ai_weak_point || ''} onChange={e => setFormData(p => ({ ...p, ai_weak_point: e.target.value }))}>
-                    <option value="">--</option>
-                    <option value="defence">{lang === 'en' ? 'Defence' : 'Difesa'}</option>
-                    <option value="attack">{lang === 'en' ? 'Attack' : 'Attacco'}</option>
-                    <option value="set_pieces">{lang === 'en' ? 'Set pieces' : 'Piazzati'}</option>
-                    <option value="transitions">{lang === 'en' ? 'Transitions' : 'Transizioni'}</option>
-                    <option value="final_minutes">{lang === 'en' ? 'Final minutes' : 'Finale partita'}</option>
+                  <select className="coach-form-select" style={formSelectStyle} value={formData.ai_weak_point || ''} onChange={e => setFormData(p => ({ ...p, ai_weak_point: e.target.value }))}>
+                    <option value="">--</option><option value="defence">{lang === 'en' ? 'Defence' : 'Difesa'}</option><option value="attack">{lang === 'en' ? 'Attack' : 'Attacco'}</option><option value="set_pieces">{lang === 'en' ? 'Set pieces' : 'Piazzati'}</option><option value="transitions">{lang === 'en' ? 'Transitions' : 'Transizioni'}</option><option value="final_minutes">{lang === 'en' ? 'Final min.' : 'Finale'}</option>
                   </select>
                 </div>
-                {/* Divisione */}
+              </div>
+              {/* Riga 3: Divisione + Ore */}
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '8px', marginTop: '8px' }}>
                 <div>
                   <label style={formLabelStyle}>{lang === 'en' ? 'Division' : 'Divisione'}</label>
                   <input type="text" style={formFieldStyle} placeholder={lang === 'en' ? 'e.g. Div 3' : 'es. Div 3'}
                     value={formData.current_division || ''} onChange={e => setFormData(p => ({ ...p, current_division: e.target.value }))} maxLength={50} />
                 </div>
-                {/* Ore */}
                 <div>
-                  <label style={formLabelStyle}>{lang === 'en' ? 'Hours/week' : 'Ore/sett.'}</label>
-                  <input type="number" style={formFieldStyle} min="0" max="168" placeholder="0-168"
+                  <label style={formLabelStyle}>{lang === 'en' ? 'Hrs/wk' : 'Ore/sett'}</label>
+                  <input type="number" style={formFieldStyle} min="0" max="168" placeholder="0"
                     value={formData.hours_per_week ?? ''} onChange={e => setFormData(p => ({ ...p, hours_per_week: e.target.value }))} />
                 </div>
               </div>
-              {/* Campi testo (full width) */}
-              <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <div>
-                  <label style={formLabelStyle}>{lang === 'en' ? 'What to learn?' : 'Cosa vuoi imparare?'}</label>
-                  <input type="text" style={formFieldStyle} maxLength={255}
-                    value={formData.ai_learn_goals || ''} onChange={e => setFormData(p => ({ ...p, ai_learn_goals: e.target.value }))}
-                    placeholder={lang === 'en' ? 'e.g. defense vs pressing' : 'es. difesa vs pressing'} />
-                </div>
-                <div>
-                  <label style={formLabelStyle}>{lang === 'en' ? 'Notes for AI' : 'Note per l\'IA'}</label>
-                  <input type="text" style={formFieldStyle} maxLength={500}
-                    value={formData.ai_notes || ''} onChange={e => setFormData(p => ({ ...p, ai_notes: e.target.value }))}
-                    placeholder={lang === 'en' ? 'Anything else...' : 'Qualsiasi altra cosa...'} />
-                </div>
+              {/* Riga 4: Testo */}
+              <div style={{ marginTop: '8px' }}>
+                <label style={formLabelStyle}>{lang === 'en' ? 'What to learn?' : 'Cosa vuoi imparare?'}</label>
+                <input type="text" style={formFieldStyle} maxLength={255}
+                  value={formData.ai_learn_goals || ''} onChange={e => setFormData(p => ({ ...p, ai_learn_goals: e.target.value }))}
+                  placeholder={lang === 'en' ? 'e.g. defense vs pressing' : 'es. difesa vs pressing'} />
+              </div>
+              <div style={{ marginTop: '6px' }}>
+                <label style={formLabelStyle}>{lang === 'en' ? 'Notes for AI' : 'Note per l\'IA'}</label>
+                <input type="text" style={formFieldStyle} maxLength={500}
+                  value={formData.ai_notes || ''} onChange={e => setFormData(p => ({ ...p, ai_notes: e.target.value }))}
+                  placeholder={lang === 'en' ? 'Anything else...' : 'Qualsiasi altra cosa...'} />
               </div>
               <button
                 onClick={handleFormSave} disabled={formSaving}
                 style={{
-                  width: '100%', marginTop: '12px', padding: '10px',
-                  background: 'var(--neon-orange)', border: 'none', borderRadius: '8px',
-                  color: 'white', fontSize: '13px', fontWeight: 600,
-                  cursor: formSaving ? 'wait' : 'pointer'
+                  width: '100%', marginTop: '10px', padding: '9px',
+                  background: 'var(--neon-orange)', border: 'none', borderRadius: '6px',
+                  color: 'white', fontSize: '12px', fontWeight: 600,
+                  cursor: formSaving ? 'wait' : 'pointer', transition: 'opacity 0.2s',
+                  opacity: formSaving ? 0.7 : 1
                 }}
               >
                 {formSaving ? (lang === 'en' ? 'Saving...' : 'Salvo...') : (lang === 'en' ? 'Save data' : 'Salva dati')}
