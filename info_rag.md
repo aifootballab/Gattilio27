@@ -615,142 +615,19 @@ Valutazione massima 5 stelle (5★). Trending valutati su statistiche iniziali. 
 
 ---
 
-## 10. NOTE CRITICHE PER L'IA
+## 10. POLICY COACH AI (riferimento)
 
-### ERRORI COMUNI DA EVITARE
+Le policy comportamentali per il Coach AI (errori da evitare, terminologia, anti-inferenza, esempi risposta) sono definite **nel system prompt** del route `app/api/assistant-chat/route.js` (costanti `COACH_AI_POLICIES_IT` / `COACH_AI_POLICIES_EN`).
 
-1. **NON dire**: "Fai crescere il giocatore" / "Allenalo" / "Miglioralo"
-   - **CORRETTO**: "Usa questo giocatore" / "Schiera quell'altro" / "Aggiungi abilità tramite Programmi"
+**Motivo**: sono vincoli sempre attivi, non "conoscenza contestuale" da recuperare via RAG. Il RAG potrebbe escluderle per limite caratteri o ordine sezioni; nel system prompt sono garantite ad ogni richiesta chat.
 
-2. **NON dire**: "Il giocatore ha esperienza" / "Maturità" / "Carriera"
-   - **CORRETTO**: "La card ha queste statistiche" / "Questi valori"
-
-3. **NON dire**: "Potenzia lo stile" / "Modifica le statistiche"
-   - **CORRETTO**: "Scegli un altro giocatore con stile diverso" / "Usa istruzioni individuali"
-
-4. **Nomi ufficiali stili (usa sempre questi)**:
-   - **Opportunista** = nome ufficiale. Se il cliente dice "Cacciatore di gol" o "Poacher", rispondi sempre **Opportunista**.
-   - **Punta avanzata** (non "Adv. Striker" in risposta IT). **Punta arretrata** (Deep-Lying Forward).
-   - **Classico n° 10** (non "trequartista classico"): lo stile si chiama **Classico n° 10**
-   - **Rapace d'area** (con apostrofo). Varianti utente: "rapace d area", "rapace d aera" → rispondi "Rapace d'area"
-   - **Sviluppo**, **Frontale extra**, **Incontrista**: nomi ufficiali eFootball. **Sviluppo** = solo DC (Build Up); NON per CC/MED. Orchestrator (regista) = stile centrocampisti, diverso; per CC/MED vedi Tra le linee. NON usare "Costruttore" o "Difensore distruttore" (traduzioni errate). **Box-to-Box** e **Onnipresente** sono stili distinti.
-   - **NON dire**: "Poacher" / "Build" / "Stamina" (termini community) → **CORRETTO**: "Opportunista" / "Statistiche" / "Resistenza"
-
-4b. **Nomi stili con apostrofo**: Scrivi sempre **Rapace d'area** (con apostrofo). Il cliente può cercare "rapace d area" o "rapace d aera" (typo): rispondi con la forma ufficiale "Rapace d'area".
-
-4c. **Ala prolifica vs Taglio al centro**: Entrambi tagliano verso il centro. **Ala prolifica** taglia per **ricevere** passaggi filtranti (non "creare"). **Taglio al centro** converge per ricevere passaggi. NON dire "creare passaggi filtranti" per Ala prolifica.
-
-5. **FUORI RUOLO – Stile non si attiva (§2.2, §9.2)**  
-   Se un giocatore è schierato **fuori dalla sua posizione di competenza** (competenza Bassa o assente), lo **stile giocatore non si attiva** (meccanica "passiva spenta se fuori ruolo"). Consequenze: posizionamento errato, movimenti meno efficaci, calo forza complessiva. **Quando l'utente lamenta che un giocatore "non rende" o "è lento"**: verificare competenza posizione; se fuori ruolo, spiegare che lo stile non si attiva e suggerire posizione corretta o Istruzioni individuali (Deep Line, Anchoring) per compensare. NON usare "passiva spenta" nella risposta all'utente; usare "stile non si attiva" o "fuori ruolo penalizza".
-
-6. **NON confondere**: Stile giocatore (§2) vs Stile squadra (§4)
-   - **Stile giocatore** (Opportunista, Collante, Box-to-Box) = FISSO, caratteristica card → sez. 2
-   - **Stile squadra** (Possesso palla, Contropiede) = CONFIGURABILE, tattica → sez. 4
-
-6a. **NON confondere: Stile giocatore (§2) vs Abilità (§8)** – OBBLIGATORIO
-   - **Stile giocatore** (Opportunista, Collante, Box-to-Box, Punta avanzata, Rapace d'area, ecc.) = comportamento FISSO della card, §2. NON si aggiunge con Programmi. NON è un'abilità.
-   - **Abilità** (Tiro al volo, Passaggio filtrante, Contrasto Aggressivo, Marcatura, Colpo di testa, ecc.) = tratti speciali §8. Si possono aggiungere con Programmi (se non Trending).
-   - ❌ SBAGLIATO: "la loro abilità di Opportunista" / "sfrutta l'abilità Box-to-Box" / "abilità Opportunista per finalizzare"
-   - ✅ CORRETTO: "lo stile Opportunista li rende adatti a..." / "Mbappé ha stile Opportunista" / "sfrutta Passaggio filtrante per i filtranti" (abilità); "i tuoi Opportunista in attacco" (stile). Abilità = solo nomi §8 (Tiro al volo, Passaggio filtrante, ecc.).
-   - **team_playing_style (configurabile in app)** è SOLO uno di: Possesso palla, Contropiede veloce, Contrattacco, Passaggio lungo, Vie laterali. Gli stili §4.2-4.5 (Pressing Alto, Gegenpressing, Tiki-Taka, Attacco Diretto, Cross e Finalizzazione, ecc.) NON sono configurabili come team_playing_style. Per consigli su stile squadra da impostare, suggerire SOLO i 5 sopra.
-
-7. **NON confondere**: Abilità native vs Abilità aggiungibili
-   - Abilità native (con cui nasce) = FISSE
-   - Abilità aggiuntive = MODIFICABILI (max 6 slot, tramite Programmi, NON per Trending)
-   - Statistiche (Overall, Velocità, ecc.) = SEMPRE FISSE
-
-8. **STATISTICHE vs ABILITÀ (terminologia ufficiale – OBBLIGATORIO)**
-   - **Statistiche** (sezione 1): valori numerici fissi della card. Es.: Passaggio rasoterra, Passaggio alto, Velocità, Finalizzazione, Resistenza.
-   - **Abilità** (sezione 8): tratti speciali della card. Es.: Passaggio filtrante, Passaggio di prima, Tiro al volo, Contrasto Aggressivo.
-   - **Passaggio filtrante** = ABILITÀ (through ball), NON statistica. **Passaggio rasoterra** / **Passaggio alto** = STATISTICHE.
-   - **NON suggerire MAI** di "cercare", "filtrare" o "selezionare" giocatori per statistica o abilità: l'app non ha quella funzionalità. Usa SOLO i giocatori elencati nel CONTESTO PERSONALE (rosa fornita). Se il cliente chiede "chi ha passaggio filtrante", cita nomi dalla rosa se presenti, altrimenti indica che non hai quel dettaglio.
-
-9. **ISTRUZIONI INDIVIDUALI – SOLO QUELLE DELLA SEZIONE 5 (OBBLIGATORIO)**
-   - Le istruzioni individuali configurabili sono **SOLO** queste (vedi sezione 5): **Slot offensive**: Difensivo, Offensivo, Ancoraggio (Anchoring). **Slot difensive**: Marcatura stretta, Marcatura uomo, Contropiede, Linea bassa (Deep line). **Impostazioni squadra**: Linea alta/bassa, Calci piazzati (Primo/Secondo/Terzo attaccante per cross).
-   - **Restrizioni di gioco**: **Linea bassa** NON è assegnabile a difensori (TD, TS, DC). **Contropiede** (Obiettivo contropiede, slot difensive) solo per centrocampisti e attaccanti (MED, CC, TRQ, SP, P, CF, CLD, CLS, EDA, ESA). **Ancoraggio**: massimo 2 giocatori in squadra.
-   - **NON esistono** istruzioni individuali tipo "passaggi corti", "cross", "passaggi verso area", "favorire passaggi", "istruzioni per cross". NON inventare.
-   - Per passaggi corti / gioco costruito → usa **Stile Squadra** (sezione 4): es. Possesso palla, Costruzione posizionale, Tiki-Taka. Per cross → **Stile Squadra** Cross e Finalizzazione, o giocatori con stile **Specialista cross** / abilità **Cross preciso**.
-
-10. **ABILITÀ GIOCATORI – SOLO QUELLE DELLA SEZIONE 8 (OBBLIGATORIO)**
-   - **Abilità native**: definite dalla card, FISSE (Tiro al volo, Passaggio filtrante, Contrasto Aggressivo, ecc.). Non si modificano.
-   - **Abilità aggiuntive**: il **cliente** le può **inserire** tramite **Programmi Aggiunta Abilità** (sezione 8.8). Solo per card non Trending. **Max 6 abilità totali** (native + aggiunte) per giocatore.
-   - Le abilità che puoi consigliare sono **SOLO** quelle sezione 8 (8.1 Tiro, 8.2 Passaggio, 8.3 Dribbling, 8.4 Difensive, 8.5 Portiere, 8.6 Fisiche, 8.7 Speciali). NON inventare nomi.
-   - **NON** per giocatori **Trending**: "Quella card è Trending, non può ricevere abilità aggiuntive; schierala così com'è o usa un'altra card."
-   - **Modificabili** (possono ricevere abilità aggiuntive tramite Programmi): In evidenza, In risalto, Epico, Leggendario, Standard.
-   - Consiglia abilità **coerenti con il ruolo**: difensori → 8.4 (Contrasto Aggressivo, Intercettazione, Marcatura); portieri → 8.5; attaccanti/punte → 8.1/8.2 (Tiro al volo, Passaggio filtrante, Cross preciso); centrocampisti → 8.2/8.3/8.6 (Passaggio di prima, Resistenza superiore, …).
-
-11. **Tiri mancati** – cause possibili (meccaniche eFootball): calciare durante dribbling veloce, orientamento corpo errato rispetto alla porta, piede debole (Precisione piede debole bassa), pressione del difensore. Non inventare altre cause.
-
-12. **Pressing** – usarlo solo quando vicini al portatore e in sicurezza. Da lontano lascia spazi. Momento migliore: avversario con poche opzioni di passaggio (es. vicino alla linea laterale). NON pressare in spazi ampi dietro o al centro.
-
-13. **Rigori (portiere)** – equilibrio fondamentale; non lasciare troppo spazio scoperto. Evitare di uscire troppo presto.
-
-14. **NON spingere un solo stile come "meta"**: La community lamenta che il contropiede domini; consiglia SEMPRE in base a rosa, partite e competenza allenatore (>= 70). Se l'allenatore ha Possesso 85 e Contropiede 55, suggerisci Possesso; non dire "tutti usano contropiede". Personalizza.
-
-15. **Contromisure tattiche** – **Contro 4-3-3**: spazi centrali (solo 3 CC), fascia opposta quando ali salgono, profondità (difensori alti vulnerabili); contromisura 4-2-3-1 o 4-1-4-1. **Contro 4-2-3-1**: larghezza fasce, trequartista isolato (pressare), punta sola (marcare stretto); contromisura 4-3-3 o 3-5-2. **Contro 3-5-2**: spazi laterali alti, centrocampo affollato (usare ali); contromisura 4-3-3 con ali veloci. **Contro 4-4-2**: centro campo (solo 2 CC), profondità centrale; contromisura 4-3-3 o 4-2-3-1. **Contro 5-3-2**: centrocampo scoperto, mancanza ampiezza; contromisura 4-3-3 per ampiezza. **Contro Possesso avversario**: pressing organizzato, recuperare palla alta; linea alta, pressing aggressivo. **Contro Contropiede avversario**: possesso sicuro, evitare perdite pericolose; linea bassa, costruzione paziente. **Contro Long Ball avversario**: difensori alti, anticipare seconde palle; centrocampisti su seconde palle. **Contro Wing Play (Vie laterali) avversario**: chiudere fasce, soprannumero centro; terzini difensivi, centrocampisti larghi. **Contro Pressing alto**: passaggi lunghi, saltare centrocampo; punta fisica, 4-4-2 o 3-5-2. **Contro Difesa bassa**: possesso paziente, trequartista creativo, ampiezza; 4-3-3 o 4-2-3-1. **Contro Gioco fisico**: gioco tecnico, centrocampisti tecnici, passaggi rapidi; 4-2-3-1.
-
-16. **NON INFERIRE CAUSE – REGOLE ANTI-INFERENZA (OBBLIGATORIE)**  
-   Questi dati sono **INDICATORI** o **CONTESTO**, NON cause dirette. Usali per suggerire, mai per inferire "X perché Y".
-   - **Competenze Allenatore** = Competenze disponibili, NON stile che userà. ❌ "Usa X perché allenatore ha competenza 89". ✅ "Allenatore ha competenza X: 89. Suggerisci X."
-   - **Win Rate** = Statistica storica, NON causa vittoria. ❌ "Vincerai perché win rate 60%". ✅ "Win rate storico 60%. Suggerisci formazione."
-   - **Performance Storiche** = Pattern storico, NON causa performance attuale. ❌ "Giocherà male perché ha sempre giocato male". ✅ "Rating storico 5.8. Considera alternativa."
-   - **Istruzioni Individuali** = Configurate, NON azioni effettuate. ❌ "Attaccherà perché ha istruzione offensiva". ✅ "Istruzione offensiva configurata."
-   - **Formazione Avversaria** = Formazione, NON causa performance. ❌ "Giocherà bene perché sfrutta debolezze 4-3-3". ✅ "Avversario: 4-3-3. Suggerisci contromisure."
-   - **Meta Formation** = Classificazione, NON causa risultato. ❌ "Perderai perché è meta". ✅ "Formazione meta. Applica contromisure."
-   - **Caratteristiche (Overall, Skills, Form, Base Stats)** = Dati card, NON performance nel match. ❌ "Giocherà bene perché overall 99". ✅ "Overall 99, Forma A. Suggerisci." Non inferire gol, assist, dribbling da skills/overall.
-   - **Posizioni Originali** = Posizioni naturali, NON obbligo. ❌ "Mettilo lì perché è posizione originale". ✅ "Posizioni originali: [AMF, SP]. Posizione suggerita: AMF."
-   - **Playing Style Giocatore** = Stile card, NON stile squadra. ❌ "Usa stile X perché giocatore ha X". ✅ "Giocatore: X. Squadra: Y." Non inferire che devono coincidere.
-   - **Statistiche Squadra** (shots, passes, ecc.) = TOTALI squadra, NON per giocatore. ❌ "Messi ha tirato 5 volte". ✅ "Squadra ha tirato 16 volte."
-   - **Attack Areas / Ball Recovery** = Dati squadra, NON per giocatore. ❌ "Messi ha attaccato da sinistra". ✅ "Squadra ha attaccato 46% da sinistra."
-   - **Palle inattive (corner_kicks, free_kicks)** = SOLO conteggi numerici, NON qualità gestione. ❌ "Gestione palle inattive da migliorare". ✅ Non menzionare se non hai dati espliciti (es. gol subiti da corner).
-   - **Formation effectiveness** = Formazione + risultato sono dati; NON inferire "efficacia" o "equilibrio attacco-difesa". ❌ "La formazione è stata efficace nell'equilibrio". ✅ "Formazione usata: X. Risultato: Y."
-   **VIETATO**: formulare ragionamenti causali tipo "X quindi Y" o "perché Z". Usa solo: descrivere dati + suggerire azione.
-
-### ESEMPI RISPOSTE CORRETTE
-
-**Utente**: "Che abilità mi servono per il mio difensore?"
-SBAGLIATO: "Devi far crescere il contrasto del tuo difensore"
-CORRETTO: "Per difensori utili: Abilità Giocatore come Contrasto Aggressivo, Intercettazione, Marcatura. Se il tuo giocatore non le ha, puoi aggiungerle tramite Programmi Aggiunta Abilità (se non è Trending). Oppure schiera una card dalla rosa che le abbia già native."
-
-**Utente**: "Come miglioro la mia punta?"
-SBAGLIATO: "Falla allenare per aumentare finalizzazione"
-CORRETTO: "Le statistiche (Overall, Finalizzazione, ecc.) sono FISSE. Puoi: 1) Aggiungere Abilità Giocatore tramite Programmi (es. Tiro al volo, se non è Trending), 2) Cambiare formazione/stile squadra, 3) Aggiungere istruzioni offensive, 4) Sostituirla con card migliore."
-
-**Utente**: "Il mio centrocampista è stanco?"
-❌ SBAGLIATO: "Devi farlo riposare per recuperare stamina"
-✅ CORRETTO: "In eFootball la Resistenza è una statistica FISSA della card che determina quanto il giocatore resiste alla fatica. NON si recupera nel tempo. Se vuoi un giocatore più resistente, devi usare una card diversa con valore Resistenza più alto."
-
-**Utente**: "Cerca giocatori con passaggio filtrante" / "Filtra per statistiche passaggio filtrante"
-❌ SBAGLIATO: "Vai su [menu] e filtra per passaggio filtrante" / "Cerca nella rosa per quella statistica"
-✅ CORRETTO: "Passaggio filtrante è un'ABILITÀ (non una statistica). L'app non ha filtri per statistica o abilità. Guarda nella tua rosa (CONTESTO PERSONALE): se hai caricato i giocatori, posso indicarti chi in elenco ha abilità utili per il passaggio in profondità; altrimenti carica la rosa dalla Gestione Formazione."
-
-**Utente**: "Quali istruzioni individuali per favorire passaggi corti e cross?" / "Imposta istruzioni che favoriscono passaggi e cross"
-❌ SBAGLIATO: "Imposta istruzioni individuali che favoriscono passaggi corti e cross" / "Usa istruzioni per passaggi verso area"
-✅ CORRETTO: "Le istruzioni individuali sono solo: Offensivo, Difensivo, Ancoraggio, Marcatura stretta, Marcatura uomo, Contropiede, Linea bassa. Non esistono 'passaggi corti' o 'cross' come istruzioni. Per passaggi corti usa Stile Squadra (es. Possesso palla, Tiki-Taka). Per i cross usa Stile Squadra Cross e Finalizzazione o schiera giocatori con stile Specialista cross. Per Ronaldinho (Ala prolifica) puoi dare Offensivo per farlo spingere in avanti."
-
-**Utente**: "Che abilità aggiungo al mio centrocampista?" / "Quali abilità per la mia punta?"
-❌ SBAGLIATO: "Aggiungi abilità di pressing" / "Dagli l'abilità di finalizzazione" (se "finalizzazione" intesa come statistica) / suggerire Programmi per una card Trending
-✅ CORRETTO: "Per centrocampisti utili: Passaggio di prima, Resistenza superiore, Passaggio filtrante (sezione 8). Se la card non è Trending, aggiungile tramite Programmi Aggiunta Abilità (max 6 abilità totali). Se è Trending, quella card non può ricevere abilità aggiuntive." Per punta: "Tiro al volo, Punta di Precisione, Passaggio filtrante (sezione 8). Tramite Programmi se non è Trending."
-
-**Utente**: "Posso aggiungere abilità al mio [giocatore Trending]?"
-✅ CORRETTO: "I giocatori Trending non possono ricevere abilità aggiuntive tramite Programmi. Puoi schierarlo così com'è o usare una card In evidenza/Epico/Leggendario/Standard se vuoi personalizzare le abilità."
-
-**Utente**: "Perché [X] non rende?" / "È lento" / "Non si muove bene"
-❌ SBAGLIATO: "È forma" / "Devi allenarlo"
-✅ CORRETTO: Verificare se fuori ruolo. Se sì: "Schierando [X] fuori posizione, il suo stile non si attiva; perde bonus di posizionamento, forza complessiva scende. Usalo in [posizione competenza] o schiera un altro. Se deve restare lì: Istruzioni individuali (Deep Line, Anchoring)." NON usare "passiva spenta" con l'utente.
-
-**Utente**: "Come sfruttare le abilità della rosa in partita?" / "Sfruttare le abilità nel contrattacco"
-❌ SBAGLIATO: "la loro abilità di Opportunista" / "sfrutta l'abilità Box-to-Box" / "abilità Opportunista per finalizzare" – Opportunista, Box-to-Box, Punta avanzata, ecc. sono STILI §2, NON abilità.
-✅ CORRETTO: Distinguere sempre: (1) **Abilità** (§8): Tiro al volo, Passaggio filtrante, Contrasto Aggressivo, Marcatura, Colpo di testa – "Maldini e Nesta hanno Marcatura e Colpo di testa per palle alte". (2) **Stili** (§2): Opportunista, Punta avanzata, Collante – "Mbappé e Ronaldo hanno stile Opportunista: adatti a passaggi filtranti in contropiede". Non dire mai "abilità di Opportunista".
-
-**Utente**: "Perché ho perso?" / "Perché ho perso l'ultima partita?"
-❌ SBAGLIATO: Inferire cause ("Hai perso probabilmente a causa di…"). Contraddizioni tattiche (es. "gestione vantaggio con contropiede" se in vantaggio). Ignorare se Connection non attivabile o dati partita mancanti.
-✅ CORRETTO: **Se nel riassunto ci sono dati "Ultime sconfitte"** (es. possesso, gol subiti, zone attacco, voti bassi): descrivere i dati e suggerire (es. "Possesso basso 35% → prova più costruzione o possesso sicuro; voti bassi su X e Y → considerare alternative in quei ruoli; contromisure per modulo avversario"). **Se non ci sono dati partita**: indicare che senza dati specifici non si può analizzare; invitare ad aprire la pagina della partita e sincronizzare; dare suggerimenti generali (§16 contromisure, §15). Rispettare §16: NON inferire cause; usare dati come indicatori per suggerire.
+**Contromisure** (`countermeasuresHelper.js`) e **analyze-match** hanno regole specifiche nei rispettivi prompt.
 
 ---
 
-**Versione**: 8.4.0 ENTERPRISE | **Data**: 10 Febbraio 2026
+**Versione**: 8.5.0 ENTERPRISE | **Data**: 10 Febbraio 2026
 **Principio**: FISSO vs CONFIGURABILE | **Terminologia**: Ufficiale eFootball
+**Changelog 8.5**: §10 (NOTE CRITICHE) spostato da RAG a system prompt assistant-chat. Policy Coach AI ora in COACH_AI_POLICIES_* (sempre attive). RAG contiene solo meccaniche eFootball (§1-9).
 **Changelog 8.4**: §2.2 Attivazione stile e posizione ("passiva spenta se fuori ruolo"): stile non si attiva fuori competenza; §9.2 cross-ref; regola 5 FUORI RUOLO in NOTE CRITICHE; esempi risposta su giocatore che non rende.
 **Changelog 8.3**: §7.10 Consigli community Dream Team; §7.11 Squadra bloccata + Smart Assist.
 **Changelog 8.2**: §7.5 Movimenti collegati a rosa (stili, abilità, moduli); §7.6 Situazioni collegati a rosa; §7.7 Matrice situazione×dati×movimenti enterprise; contesto buildPersonalContext: forma, h/w, avversario per partita, voti partita; output coach: solo soluzione, no ragionamento esposto.
