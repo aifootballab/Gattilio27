@@ -3182,7 +3182,7 @@ function ReserveCard({ player, onClick, disabled, onDelete }) {
 
 // Assign Modal Component
 function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUploadPhoto, onRemove, onDelete, onClose, assigning }) {
-  const { t } = useTranslation()
+  const { t, lang } = useTranslation()
   const router = useRouter()
   const [expandedSections, setExpandedSections] = React.useState({
     stats: true,
