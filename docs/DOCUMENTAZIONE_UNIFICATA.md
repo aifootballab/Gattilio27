@@ -164,6 +164,15 @@ Utente → Frontend → Supabase (letture dirette)
 - UNIQUE(user_id, period_key)
 ```
 
+#### `user_tactical_feedback` (Palestra Coach)
+```sql
+- user_id, match_id (FK nullable)
+- session_type: 'profile_setup' | 'feedback' | 'update'
+- insights (JSONB), profile_fields_updated (JSONB)
+- conversation_summary, outcome, created_at
+```
+Sessioni Palestra Coach. Letta da diagnosticBuilder (ESPERIENZA COACH) e aiKnowledgeHelper (coach_training 10%). Doc: `PALESTRA_COACH_ARCHITETTURA.md`.
+
 ---
 
 ## 7. API Endpoints
@@ -182,6 +191,8 @@ Utente → Frontend → Supabase (letture dirette)
 | Endpoint | Rate Limit | Costo crediti |
 |----------|------------|---------------|
 | `POST /api/assistant-chat` | 30 req/min | 1 |
+| `POST /api/coach-feedback-chat` | 30 req/min | 1 |
+| `POST /api/save-coach-feedback` | 5 req/min | 1 |
 | `POST /api/analyze-match` | 10 req/min | 4 |
 | `POST /api/generate-countermeasures` | 10 req/min | 3 |
 

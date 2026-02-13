@@ -317,18 +317,29 @@ Campi:
 **Nota sicurezza:** UPDATE policy rimossa intenzionalmente (anti-cheating). Solo backend (service_role) può aggiornare `current_value` e `status`.
 
 ### Tabella `user_profiles` (Il profilo)
-Dati utente estesi (oltre auth).
+Dati utente estesi (oltre auth). I campi profilo vengono aggiornati sia dalla **Palestra Coach** (chat IA dedicata) che dall'API save-ai-info (legacy).
 
-Campi:
+Campi principali:
 - `user_id` → FK a auth.users
-- `first_name`, `last_name`
+- `first_name`, `last_name`, `team_name`, `favorite_team`
 - `current_division` → Divisione attuale (es. "Division 1")
 - `initial_division` → Divisione al primo login (per tracciare miglioramento)
-- `ai_knowledge_score` → 0-100%
-- `ai_knowledge_level` → 'beginner', 'intermediate', 'advanced', 'expert'
-- `ai_knowledge_breakdown` → JSON con dettaglio punteggi
-- `team_name` → Nome squadra
-- `favorite_team` → Squadra del cuore
+- `ai_knowledge_score` → 0-100%, `ai_knowledge_level`, `ai_knowledge_breakdown`
+- Campi "Informazioni IA" (scritti dalla Palestra Coach): `platform`, `connection_quality`, `pass_level`, `smart_assist`, `input_delay`, `ai_weak_point`, `ai_learn_goals`, `ai_notes`
+
+### Tabella `user_tactical_feedback` (Palestra Coach)
+Sessioni di feedback raccolte dalla chat Palestra Coach. L'IA le usa per evitare errori e rinforzare cio che funziona.
+
+Campi:
+- `user_id`, `match_id` (FK nullable a matches)
+- `session_type` → 'profile_setup', 'feedback', 'update'
+- `formation_played`, `style_played`, `opponent_name`, `outcome`
+- `insights` → JSON: `[{"type": "weakness|strength|lesson", "text": "..."}]`
+- `profile_fields_updated` → JSON: campi profilo aggiornati in questa sessione
+
+Letta da: `diagnosticBuilder.js` (sezione ESPERIENZA COACH), `aiKnowledgeHelper.js` (componente coach_training 10%).
+
+Doc completa: `docs/PALESTRA_COACH_ARCHITETTURA.md`
 
 ---
 

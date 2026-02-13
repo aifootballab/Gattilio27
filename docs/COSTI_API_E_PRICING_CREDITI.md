@@ -20,6 +20,8 @@ Tutti i costi attuali vengono da **OpenAI Chat/Completions** (modello `gpt-4o`).
 | **POST /api/extract-coach** | Estrazione allenatore da screenshot | 1 | 2000 | Vision: immagine + prompt. `fetch` diretto (non openaiHelper). |
 | **POST /api/extract-match-data** | Estrazione dati partita (per sezione) | **1 per sezione** | 2000 | 5 sezioni: `player_ratings`, `team_stats`, `attack_areas`, `ball_recovery_zones`, `formation_style`. Wizard match = fino a 5 chiamate. |
 | **POST /api/extract-player** | Estrazione giocatore da screenshot | 1 | 2500 | Vision: immagine + prompt. |
+| **POST /api/coach-feedback-chat** | Palestra Coach: messaggio chat | 1 per messaggio | 400 | Prompt leggero (no RAG, no engine). Input ~1k-3k token. |
+| **POST /api/save-coach-feedback** | Palestra Coach: estrazione duale al salvataggio | 1 | 800 | Estrae profile_updates + tactical_insights dalla conversazione. json_object mode. |
 
 **Non generano costo OpenAI:**
 - `/api/ai-knowledge` (GET) – solo Supabase
