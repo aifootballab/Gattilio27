@@ -130,10 +130,17 @@ export default function ManualPlayerModal({ show, onClose, onSaved, slotIndex = 
 
     const loadStyles = async () => {
       const { data } = await supabase.from('playing_styles').select('id, name, compatible_positions, category')
-      if (data) setPlayingStyles(data)
+      if (data) {
+        setPlayingStyles(data)
+        // Se in edit il giocatore ha playing_style_id ma non role (es. creato da foto), mostra lo stile nel dropdown
+        if (existingPlayer?.playing_style_id && !existingPlayer.role) {
+          const style = data.find(s => s.id === existingPlayer.playing_style_id)
+          if (style?.name) setForm(prev => ({ ...prev, playing_style: style.name }))
+        }
+      }
     }
     loadStyles()
-  }, [show])
+  }, [show, existingPlayer?.id, existingPlayer?.playing_style_id, existingPlayer?.role])
 
   // Filtra stili per posizione selezionata
   const filteredStyles = useMemo(() => {

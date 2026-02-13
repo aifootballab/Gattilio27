@@ -2709,6 +2709,11 @@ export default function GestioneFormazionePage() {
             setUploadImages([])
             setSelectedSlot(null)
           }}
+          onSwitchToManual={() => {
+            setShowUploadPlayerModal(false)
+            setUploadImages([])
+            setShowManualPlayerModal(true)
+          }}
           uploading={uploadingPlayer}
         />
       )}
@@ -3850,8 +3855,9 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
 const UPLOAD_MODAL_ICONS = { card: BarChart3, stats: Zap, skills: Gift }
 
 // 🎨 Upload Player Modal - Design unificato (stessi colori/icone della pagina giocatore)
-function UploadPlayerModal({ slot, images, onImagesChange, onUpload, onClose, uploading }) {
-  const { t } = useTranslation()
+// onSwitchToManual: opzionale; se presente e slot è per il campo (slot_index != null), mostra link per passare a inserimento manuale
+function UploadPlayerModal({ slot, images, onImagesChange, onUpload, onClose, uploading, onSwitchToManual }) {
+  const { t, lang } = useTranslation()
   const labelByKey = {
     card: t('photoStats'),
     stats: t('photoSkills'),
@@ -4110,17 +4116,41 @@ function UploadPlayerModal({ slot, images, onImagesChange, onUpload, onClose, up
           gap: '12px', 
           justifyContent: 'flex-end',
           alignItems: 'center',
+          flexWrap: 'wrap',
           borderTop: '1px solid rgba(255,255,255,0.1)',
           paddingTop: '20px'
         }}>
-          <div style={{ marginRight: 'auto', fontSize: '13px', opacity: 0.7 }}>
-            {images.length === 0 ? (
-              t('noPhotosSelected')
-            ) : (
-              <span style={{ color: 'var(--neon-green)' }}>
-                {images.length} {images.length === 1 ? t('photoSelected') : t('photosSelected')}
-              </span>
+          <div style={{ marginRight: 'auto', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+            {slot && slot.slot_index != null && typeof onSwitchToManual === 'function' && (
+              <button
+                type="button"
+                onClick={() => { if (!uploading) onSwitchToManual() }}
+                disabled={uploading}
+                className="btn"
+                style={{
+                  padding: '8px 14px',
+                  borderColor: 'var(--neon-blue)',
+                  color: 'var(--neon-blue)',
+                  background: 'transparent',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontSize: '13px'
+                }}
+              >
+                <Pencil size={14} />
+                {lang === 'en' ? 'Manual entry instead' : 'Inserimento manuale'}
+              </button>
             )}
+            <span style={{ fontSize: '13px', opacity: 0.7 }}>
+              {images.length === 0 ? (
+                t('noPhotosSelected')
+              ) : (
+                <span style={{ color: 'var(--neon-green)' }}>
+                  {images.length} {images.length === 1 ? t('photoSelected') : t('photosSelected')}
+                </span>
+              )}
+            </span>
           </div>
           <button 
             onClick={onClose} 
