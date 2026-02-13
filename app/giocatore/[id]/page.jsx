@@ -462,6 +462,7 @@ export default function PlayerDetailPage() {
           onToggle={() => toggleSection('stats')}
           onFileSelect={(e) => handleFileSelect(e, 'stats')}
           uploading={uploading}
+          onEdit={() => setShowEditModal(true)}
         />
 
         {/* Abilità */}
@@ -581,8 +582,8 @@ const SECTION_CARD_STYLE = (style) => ({
 })
 
 // Componente Sezione Statistiche (design unificato: card = Statistiche, colore neon-blue)
-function StatsSection({ player, photoSlots, isExpanded, onToggle, onFileSelect, uploading }) {
-  const { t } = useTranslation()
+function StatsSection({ player, photoSlots, isExpanded, onToggle, onFileSelect, uploading, onEdit }) {
+  const { t, lang } = useTranslation()
   const style = getPhotoTypeStyle('card')
   if (!player) return null
   
@@ -718,31 +719,57 @@ function StatsSection({ player, photoSlots, isExpanded, onToggle, onFileSelect, 
             </div>
           )}
 
-          {/* Pulsante upload: stile unificato (stesso bordo/colore del modal Upload) */}
-          <label style={{
-            display: 'block',
-            padding: '12px 16px',
-            border: `2px solid ${style.borderColor}`,
-            borderRadius: '8px',
-            textAlign: 'center',
-            cursor: uploading ? 'not-allowed' : 'pointer',
-            background: style.bgColor,
-            opacity: uploading ? 0.6 : 1
-          }}>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={onFileSelect}
-              style={{ display: 'none' }}
-              disabled={uploading}
-            />
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-              <Upload size={18} color={style.color} />
-              <span style={{ fontSize: '14px', fontWeight: 600, color: style.color }}>
-                {photoSlots.statistiche ? t('updateStats') : t('uploadStats')}
-              </span>
-            </div>
-          </label>
+          {/* Pulsanti: Aggiorna Statistiche + Modifica affiancati (come in Upload modal) */}
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'stretch', flexWrap: 'wrap' }}>
+            <label style={{
+              flex: '1',
+              minWidth: '140px',
+              padding: '12px 16px',
+              border: `2px solid ${style.borderColor}`,
+              borderRadius: '8px',
+              textAlign: 'center',
+              cursor: uploading ? 'not-allowed' : 'pointer',
+              background: style.bgColor,
+              opacity: uploading ? 0.6 : 1
+            }}>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={onFileSelect}
+                style={{ display: 'none' }}
+                disabled={uploading}
+              />
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                <Upload size={18} color={style.color} />
+                <span style={{ fontSize: '14px', fontWeight: 600, color: style.color }}>
+                  {photoSlots.statistiche ? t('updateStats') : t('uploadStats')}
+                </span>
+              </div>
+            </label>
+            {typeof onEdit === 'function' && (
+              <button
+                type="button"
+                onClick={(e) => { e.preventDefault(); onEdit() }}
+                style={{
+                  padding: '12px 16px',
+                  border: '2px solid var(--neon-blue)',
+                  borderRadius: '8px',
+                  background: 'transparent',
+                  color: 'var(--neon-blue)',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px'
+                }}
+              >
+                <Pencil size={18} />
+                {lang === 'en' ? 'Edit' : 'Modifica'}
+              </button>
+            )}
+          </div>
         </>
       )}
     </div>

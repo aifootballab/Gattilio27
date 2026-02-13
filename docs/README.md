@@ -31,10 +31,13 @@
 
 ---
 
-## 📋 Documenti Chiave per Argomento
+## 📚 Guida Utente Completa (NUOVA)
+
+→ **[GUIDA_UTENTE_COMPLETA.md](./GUIDA_UTENTE_COMPLETA.md)** — Tutto quello che devi sapere per usare la piattaforma
 
 ### 🎯 Palestra Coach (Feature Principale)
-- Architettura: [PALESTRA_COACH_ARCHITETTURA.md](./02-FUNZIONALITA/PALESTRA_COACH_ARCHITETTURA.md)
+- **Guida Utente**: Sezione "Palestra Coach" in [GUIDA_UTENTE_COMPLETA.md](./GUIDA_UTENTE_COMPLETA.md#5-palestra-coach-nuovo)
+- Architettura Tecnica: [PALESTRA_COACH_ARCHITETTURA.md](./02-FUNZIONALITA/PALESTRA_COACH_ARCHITETTURA.md)
 - Componente: `components/CoachFeedbackChat.jsx`
 - API: `app/api/save-coach-feedback/route.js`
 - Database: `user_tactical_feedback` (v. migrations/)
