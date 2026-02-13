@@ -433,7 +433,7 @@ export default function CoachFeedbackChat({ show, onClose, userProfile: external
               transition: 'background 0.2s'
             }}
           >
-            <span>{lang === 'en' ? 'My data (free, 0 credits)' : 'I miei dati (gratis, 0 crediti)'}
+            <span>{lang === 'en' ? 'My gaming profile' : 'Il mio profilo di gioco'}
               {formSaved && <span style={{ color: '#4caf50', marginLeft: '8px' }}>{lang === 'en' ? 'Saved!' : 'Salvato!'}</span>}
             </span>
             <span style={{ fontSize: '16px' }}>{formExpanded ? '\u25B2' : '\u25BC'}</span>
