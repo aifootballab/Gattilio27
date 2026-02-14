@@ -22,6 +22,7 @@ import {
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 const MONTH_REGEX = /^\d{4}-(0[1-9]|1[0-2])$/
 const MONTH_MAX_LENGTH = 7
@@ -272,9 +273,10 @@ export async function GET(req) {
     body,
     {
       headers: {
-        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0, private',
         'Pragma': 'no-cache',
         'Expires': '0',
+        'Surrogate-Control': 'no-store',
         'X-RateLimit-Remaining': String(Math.max(0, rateLimit.remaining - 1))
       }
     }

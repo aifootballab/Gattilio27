@@ -27,9 +27,17 @@ export default function ClassificaPage() {
       const headers = { 'Content-Type': 'application/json' }
       if (token) headers.Authorization = `Bearer ${token}`
 
-      const params = new URLSearchParams({ month: getCurrentMonth(), _: String(Date.now()) })
+      const params = new URLSearchParams({
+        month: getCurrentMonth(),
+        _: String(Date.now()),
+        t: String(Date.now())
+      })
       const res = await fetch('/api/leaderboard?' + params, {
-        headers,
+        headers: {
+          ...headers,
+          'Cache-Control': 'no-cache, no-store',
+          'Pragma': 'no-cache'
+        },
         cache: 'no-store',
         ...(signal && { signal })
       })
