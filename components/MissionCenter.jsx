@@ -74,13 +74,15 @@ export default function MissionCenter({
     // 1. Task settimanale attivo e incompleto
     if (activeTask) {
       const progress = (activeTask.current_value / activeTask.target_value) * 100
+      const lastMatchId = recentMatches.length > 0 ? recentMatches[0].id : null
+      const taskActionHref = lastMatchId ? `/match/${lastMatchId}` : '/match/new'
       return {
         type: 'task',
         icon: Target,
         title: activeTask.goal_description,
         message: `${activeTask.current_value || 0} / ${activeTask.target_value} ${t('completed') || 'completati'}`,
         progress,
-        primaryAction: { label: t('viewDetails') || 'Vedi dettagli', href: '/match' },
+        primaryAction: { label: t('viewDetails') || 'Vedi dettagli', href: taskActionHref },
         chatMessage: t('taskHelpMessage', { task: activeTask.goal_description }) || `Aiutami con: ${activeTask.goal_description}`
       }
     }
