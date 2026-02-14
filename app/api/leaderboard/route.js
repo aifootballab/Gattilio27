@@ -1,7 +1,11 @@
 /**
  * GET /api/leaderboard?month=YYYY-MM
  * Classifica mensile From Zero to Hero.
- * Nome in classifica: solo da user_profiles (nickname, fallback first_name). Nessun'altra tabella.
+ *
+ * Nome in classifica: solo da user_profiles (nickname, fallback first_name). Nessun trigger Supabase
+ * modifica nickname; leaderboard_snapshots non contiene nickname. Mese corrente: nickname dall'array
+ * computed (stessa richiesta). Mesi passati: fetch user_profiles o RPC che fa JOIN user_profiles.
+ *
  * Sicurezza: in classifica solo rank, nickname, punti. Nessun user_id né breakdown per altri.
  * Se Authorization presente: aggiunge currentUser (rank, points, pointsBreakdown) solo per l'utente loggato.
  */
