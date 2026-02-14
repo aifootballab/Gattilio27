@@ -17,6 +17,7 @@ export default function ClassificaPage() {
   const [data, setData] = React.useState({ month: '', rankings: [], currentUser: null, daysLeftInMonth: null })
   const [showBreakdown, setShowBreakdown] = React.useState(false)
 
+  // Leaderboard sempre aggiornata: fetch con URL univoco (no cache), refetch su visibility e su evento dopo save profilo
   const fetchLeaderboard = React.useCallback(async (signal) => {
     setLoading(true)
     setError(null)
@@ -65,6 +66,13 @@ export default function ClassificaPage() {
     }
     document.addEventListener('visibilitychange', onVisibility)
     return () => document.removeEventListener('visibilitychange', onVisibility)
+  }, [fetchLeaderboard])
+
+  // Refetch quando il profilo (es. nickname) viene salvato da un'altra pagina/stesso tab
+  React.useEffect(() => {
+    const onLeaderboardUpdated = () => fetchLeaderboard()
+    window.addEventListener('leaderboard-updated', onLeaderboardUpdated)
+    return () => window.removeEventListener('leaderboard-updated', onLeaderboardUpdated)
   }, [fetchLeaderboard])
 
   function getCurrentMonth() {
