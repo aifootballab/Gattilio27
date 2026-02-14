@@ -126,19 +126,50 @@ export default function ImpostazioniProfiloPage() {
 
       const data = await response.json()
       if (data.profile) {
+        const p = data.profile
         setProfileData(prev => prev ? {
           ...prev,
-          profile_completion_score: data.profile.profile_completion_score,
-          profile_completion_level: data.profile.profile_completion_level,
-          nickname: data.profile.nickname ?? prev.nickname
+          profile_completion_score: p.profile_completion_score,
+          profile_completion_level: p.profile_completion_level,
+          first_name: p.first_name ?? prev.first_name,
+          last_name: p.last_name ?? prev.last_name,
+          current_division: p.current_division ?? prev.current_division,
+          favorite_team: p.favorite_team ?? prev.favorite_team,
+          team_name: p.team_name ?? prev.team_name,
+          ai_name: p.ai_name ?? prev.ai_name,
+          how_to_remember: p.how_to_remember ?? prev.how_to_remember,
+          hours_per_week: p.hours_per_week ?? prev.hours_per_week,
+          common_problems: p.common_problems ?? prev.common_problems,
+          leaderboard_consent: p.leaderboard_consent ?? prev.leaderboard_consent,
+          nickname: p.nickname ?? prev.nickname
         } : {
-          profile_completion_score: data.profile.profile_completion_score,
-          profile_completion_level: data.profile.profile_completion_level,
-          nickname: data.profile.nickname ?? null
+          profile_completion_score: p.profile_completion_score,
+          profile_completion_level: p.profile_completion_level,
+          first_name: p.first_name ?? null,
+          last_name: p.last_name ?? null,
+          current_division: p.current_division ?? null,
+          favorite_team: p.favorite_team ?? null,
+          team_name: p.team_name ?? null,
+          ai_name: p.ai_name ?? null,
+          how_to_remember: p.how_to_remember ?? null,
+          hours_per_week: p.hours_per_week ?? null,
+          common_problems: p.common_problems ?? null,
+          leaderboard_consent: p.leaderboard_consent ?? false,
+          nickname: p.nickname ?? null
         })
         setProfile(prev => ({
           ...prev,
-          nickname: data.profile.nickname != null ? data.profile.nickname : prev.nickname
+          first_name: p.first_name != null ? p.first_name : prev.first_name,
+          last_name: p.last_name != null ? p.last_name : prev.last_name,
+          current_division: p.current_division != null ? p.current_division : prev.current_division,
+          favorite_team: p.favorite_team != null ? p.favorite_team : prev.favorite_team,
+          team_name: p.team_name != null ? p.team_name : prev.team_name,
+          ai_name: p.ai_name != null ? p.ai_name : prev.ai_name,
+          how_to_remember: p.how_to_remember != null ? p.how_to_remember : prev.how_to_remember,
+          hours_per_week: p.hours_per_week != null ? p.hours_per_week : prev.hours_per_week,
+          common_problems: Array.isArray(p.common_problems) ? p.common_problems : prev.common_problems,
+          leaderboard_consent: p.leaderboard_consent != null ? p.leaderboard_consent : prev.leaderboard_consent,
+          nickname: p.nickname != null ? p.nickname : prev.nickname
         }))
       }
       const successMsg = data.profile
