@@ -1,6 +1,7 @@
 /**
  * GET /api/leaderboard?month=YYYY-MM
  * Classifica mensile From Zero to Hero.
+ * Nome in classifica: solo da user_profiles (nickname, fallback first_name). Nessun'altra tabella.
  * Sicurezza: in classifica solo rank, nickname, punti. Nessun user_id né breakdown per altri.
  * Se Authorization presente: aggiunge currentUser (rank, points, pointsBreakdown) solo per l'utente loggato.
  */
@@ -193,7 +194,7 @@ export async function GET(req) {
     } else {
       const { data: profiles, error: profError } = await admin
         .from('user_profiles')
-        .select('user_id, nickname')
+        .select('user_id, nickname, first_name')
         .in('user_id', snapshotsToUse.map(s => s.user_id))
       if (profError) {
         console.error('[leaderboard] profiles error:', profError.message)
@@ -202,13 +203,16 @@ export async function GET(req) {
           { status: 500 }
         )
       }
-      const nicknameByUser = {}
-      ;(profiles || []).forEach(p => { nicknameByUser[p.user_id] = p.nickname || null })
+      const displayNameByUser = {}
+      ;(profiles || []).forEach(p => {
+        const name = (p.nickname && p.nickname.trim()) || (p.first_name && p.first_name.trim()) || null
+        displayNameByUser[p.user_id] = name
+      })
       rankings = snapshotsToUse.map((s, idx) => {
         snapshotByUserForCurrent[s.user_id] = { rank: idx + 1, points: s.points, points_breakdown: s.points_breakdown || {} }
         return {
           rank: idx + 1,
-          nickname: nicknameByUser[s.user_id] ?? '—',
+          nickname: displayNameByUser[s.user_id] ?? '—',
           points: s.points
         }
       })

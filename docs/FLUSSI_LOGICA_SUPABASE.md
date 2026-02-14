@@ -77,6 +77,11 @@ Client: GET /api/leaderboard?month=YYYY-MM
 
 **Tabelle lette da computeLeaderboardForMonth:** `user_profiles`, `matches`, `weekly_goals` (completed nel mese), `credit_transactions` (type=usage nel mese). **Scrittura:** `leaderboard_snapshots`. Punti calcolati solo da partite + usage_ia + profilo (task/improvement = 0).
 
+**Nome mostrato in classifica (rankings[].nickname):** unica fonte è `user_profiles`:
+- **Scrittura:** solo `POST /api/supabase/save-profile` aggiorna `user_profiles.nickname`. La pagina Impostazioni profilo (sezione "Classifica mensile") invia `profile.nickname` nel body e dopo il save emette `leaderboard-updated`.
+- **Lettura:** `computeLeaderboardForMonth` legge `user_profiles` (user_id, nickname, first_name, profile_completion_score). Il nome esposto è `nickname` se valorizzato, altrimenti `first_name`, altrimenti "—". Per il mese corrente la risposta usa direttamente l’array computed (nessuna seconda fetch su profili). Mesi passati: nickname/first_name da `user_profiles` in base ai user_id negli snapshot.
+- **Nessun’altra tabella** contiene il nickname per la classifica (es. `leaderboard_snapshots` non ha nickname).
+
 ### 2.5 Task (lista e generazione)
 
 ```

@@ -129,11 +129,17 @@ export default function ImpostazioniProfiloPage() {
         setProfileData(prev => prev ? {
           ...prev,
           profile_completion_score: data.profile.profile_completion_score,
-          profile_completion_level: data.profile.profile_completion_level
+          profile_completion_level: data.profile.profile_completion_level,
+          nickname: data.profile.nickname ?? prev.nickname
         } : {
           profile_completion_score: data.profile.profile_completion_score,
-          profile_completion_level: data.profile.profile_completion_level
+          profile_completion_level: data.profile.profile_completion_level,
+          nickname: data.profile.nickname ?? null
         })
+        setProfile(prev => ({
+          ...prev,
+          nickname: data.profile.nickname != null ? data.profile.nickname : prev.nickname
+        }))
       }
       const successMsg = data.profile
         ? `${sectionName} ${t('profileSectionSaved')}`
