@@ -23,6 +23,7 @@
 | **Diagnostic / Chat** | Chat principale, refresh post-partita | `assistant-chat`, `refresh-diagnostic` | `user_diagnostic_cache` |
 | **Analisi partita / Upload** | Modal analisi, upload giocatori/allenatori | `extract-game-analysis`, `extract-match-data`, `extract-player`, `extract-formation` | `user_game_analysis`, `matches` (in wizard), `players`, `coaches` |
 | **Admin** | (solo API) | `admin/recalculate-patterns` | `team_tactical_patterns` (ricalcolo da `matches`) |
+| **Mission Center** | Dashboard (`/`) | Nessuna API dedicata | Lettura: `user_profiles` (ai_weak_point, platform, current_division), `matches` e `players` (via dashboard: stats, recentMatches), `weekly_goals` via `tasks/list`. Ordine missioni: task attivo → rosa < 11 → prima partita → profilo senza ai_weak_point → analisi eFootball → completo. |
 
 ---
 

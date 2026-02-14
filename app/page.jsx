@@ -10,6 +10,7 @@ import AIKnowledgeBar from '@/components/AIKnowledgeBar'
 import CoachFeedbackChat from '@/components/CoachFeedbackChat'
 import GameAnalysisModal from '@/components/GameAnalysisModal'
 import TaskWidget from '@/components/TaskWidget'
+import MissionCenter from '@/components/MissionCenter'
 import { safeJsonResponse } from '@/lib/fetchHelper'
 import { 
   LayoutDashboard, 
@@ -62,6 +63,8 @@ export default function DashboardPage() {
   const [hasActiveCoach, setHasActiveCoach] = React.useState(false)
   const [reminderRotationIndex, setReminderRotationIndex] = React.useState(0)
   const [leaderboardData, setLeaderboardData] = React.useState({ currentUser: null, daysLeftInMonth: null })
+  const [userProfile, setUserProfile] = React.useState(null)
+  const [coachChatInitialMessage, setCoachChatInitialMessage] = React.useState(null)
 
   // Banner setup: sempre visibile quando non in loading. Se manca qualcosa: link a rotazione; altrimenti "Setup completo"
   const hasMissingSetup = hasActiveCoach === false || !gameAnalysisLastCapture || stats.titolari < 11
@@ -213,6 +216,14 @@ export default function DashboardPage() {
           .eq('is_active', true)
           .maybeSingle()
         setHasActiveCoach(!!activeCoach)
+
+        // Profilo utente (per Mission Center: ai_weak_point e coerenza flussi)
+        const { data: profile } = await supabase
+          .from('user_profiles')
+          .select('ai_weak_point, platform, current_division')
+          .eq('user_id', userId)
+          .maybeSingle()
+        setUserProfile(profile || null)
 
         // Classifica mensile: stesso token già usato sopra; passare month (client) per allineare a pagina Classifica
         const token = session.session.access_token
@@ -608,7 +619,16 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <CoachFeedbackChat show={showCoachFeedback} onClose={() => setShowCoachFeedback(false)} userProfile={null} lastMatch={recentMatches?.[0] || null} />
+      <CoachFeedbackChat 
+        show={showCoachFeedback} 
+        onClose={() => {
+          setShowCoachFeedback(false)
+          setCoachChatInitialMessage(null)
+        }} 
+        userProfile={null} 
+        lastMatch={recentMatches?.[0] || null}
+        initialMessage={coachChatInitialMessage}
+      />
       <GameAnalysisModal show={showGameAnalysisModal} onClose={() => setShowGameAnalysisModal(false)} onSuccess={fetchGameAnalysisCapture} />
 
       {/* Credits Bar: montata in layout per aggiornamento immediato dopo ogni API (credits-consumed) */}
@@ -704,46 +724,24 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Statistiche di gioco - stesso stile card di Classifica/Obiettivi/Ultime partite */}
-        <div
-          role="button"
-          tabIndex={0}
-          onClick={() => setShowGameAnalysisModal(true)}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setShowGameAnalysisModal(true) } }}
-          style={{
-            marginBottom: 0,
-            width: '100%',
-            boxSizing: 'border-box',
-            background: 'linear-gradient(135deg, rgba(255,140,0,0.12), rgba(0,212,255,0.06))',
-            border: '1px solid rgba(255,165,0,0.4)',
-            borderRadius: '12px',
-            overflow: 'hidden',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '16px',
-            padding: '20px',
-            color: '#fff',
-            transition: 'opacity 0.2s ease'
+        {/* Mission Center - Unifica task, setup e progresso */}
+        <MissionCenter
+          recentMatches={recentMatches}
+          stats={stats}
+          hasActiveCoach={hasActiveCoach}
+          gameAnalysisLastCapture={gameAnalysisLastCapture}
+          userProfile={userProfile}
+          lang={lang}
+          t={t}
+          onOpenChat={(message) => {
+            if (message === '__OPEN_GAME_ANALYSIS__') {
+              setShowGameAnalysisModal(true)
+            } else {
+              setCoachChatInitialMessage(message)
+              setShowCoachFeedback(true)
+            }
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.95' }}
-          onMouseLeave={(e) => { e.currentTarget.style.opacity = '1' }}
-        >
-          <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(255,165,0,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <BarChart3 size={26} color="var(--neon-orange)" />
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontWeight: 700, marginBottom: '4px', fontSize: '18px' }}>
-              {t('gameAnalysisTitle')}
-            </div>
-            <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.85)' }}>
-              {gameAnalysisLastCapture
-                ? `${t('gameAnalysisLastCapture')}: ${gameAnalysisLastCapture}`
-                : t('gameAnalysisDescription')}
-            </div>
-          </div>
-          <ArrowRight size={22} color="var(--neon-orange)" style={{ flexShrink: 0 }} />
-        </div>
+        />
 
         {/* Quick Links */}
         <div data-tour-id="tour-dashboard-nav" className="card" style={{ padding: '24px' }}>
