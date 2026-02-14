@@ -23,7 +23,8 @@ export const dynamic = 'force-dynamic'
  *     patterns: number,
  *     coach: number,
  *     usage: number,
- *     success: number
+ *     success: number,
+ *     coach_training: number
  *   },
  *   last_calculated: string (ISO timestamp)
  * }
@@ -104,11 +105,13 @@ export async function GET(req) {
       (now - lastCalculated) < 5 * 60 * 1000 // 5 minuti
 
     if (profile?.ai_knowledge_score !== null && profile?.ai_knowledge_score !== undefined && cacheValid) {
-      // Restituisci score cached
+      // Restituisci score cached (breakdown sempre con coach_training per compatibilità)
+      const cachedBreakdown = profile.ai_knowledge_breakdown || {}
+      const breakdown = { ...cachedBreakdown, coach_training: cachedBreakdown.coach_training ?? 0 }
       return NextResponse.json({
         score: profile.ai_knowledge_score,
         level: profile.ai_knowledge_level || getAIKnowledgeLevel(profile.ai_knowledge_score),
-        breakdown: profile.ai_knowledge_breakdown || {},
+        breakdown,
         last_calculated: profile.ai_knowledge_last_calculated
       }, {
         headers: {
@@ -161,10 +164,12 @@ export async function GET(req) {
       
       // Fallback: restituisci score cached anche se scaduto, o default
       if (profile?.ai_knowledge_score !== null && profile?.ai_knowledge_score !== undefined) {
+        const cachedBreakdown = profile.ai_knowledge_breakdown || {}
+        const breakdown = { ...cachedBreakdown, coach_training: cachedBreakdown.coach_training ?? 0 }
         return NextResponse.json({
           score: profile.ai_knowledge_score,
           level: profile.ai_knowledge_level || getAIKnowledgeLevel(profile.ai_knowledge_score),
-          breakdown: profile.ai_knowledge_breakdown || {},
+          breakdown,
           last_calculated: profile.ai_knowledge_last_calculated
         }, {
           headers: {
@@ -187,7 +192,8 @@ export async function GET(req) {
           patterns: 0,
           coach: 0,
           usage: 0,
-          success: 0
+          success: 0,
+          coach_training: 0
         },
         last_calculated: null
       }, {
