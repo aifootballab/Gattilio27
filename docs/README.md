@@ -1,137 +1,128 @@
-# 📚 Documentazione eFootball AI Coach
+# eFootball AI Coach — Documentazione
 
-**Ultimo aggiornamento:** 2026-02-13  
-**Versione:** 1.0.0
-
----
-
-## 🗺️ Indice Rapido
-
-| Sezione | Descrizione | Link |
-|---------|-------------|------|
-| 🏗️ **Architettura** | Stack tecnico, database, API | [01-ARCHITETTURA/](./01-ARCHITETTURA/) |
-| ⚽ **Funzionalità** | Feature, UX, flussi utente | [02-FUNZIONALITA/](./02-FUNZIONALITA/) |
-| 💰 **Business** | Pricing, economia, monetizzazione | [03-BUSINESS/](./03-BUSINESS/) |
-| ⚖️ **Legale** | Termini, Privacy, Cookie (GDPR) | [03-BUSINESS/](#documenti-legali-obbligatori) |
-| 👨‍💻 **Guide Dev** | Guide sviluppatore, convenzioni | [04-GUIDE-DEV/](./04-GUIDE-DEV/) |
-| 🔍 **Analisi** | Audit, ricerche, valutazioni | [05-ANALISI-AUDIT/](./05-ANALISI-AUDIT/) |
-| 🗄️ **Archivio** | Documenti storici, obsoleti | [archivio/](./archivio/)
-
-## ⚖️ Documenti Legali (Obbligatori GDPR)
-
-| Documento | Scopo | Stato |
-|-----------|-------|-------|
-| **[Termini e Condizioni](./GUIDA_UTENTE_COMPLETA.md)** | Regole d'uso, pagamenti, rimborsi, classifiche | ✅ Pronto |
-| **[Privacy Policy](./PRIVACY_POLICY.md)** | Dati raccolti, diritti GDPR, terze parti | ✅ Pronto |
-| **[Cookie Policy](./COOKIE_POLICY.md)** | Cookie usati, gestione consenso | ✅ Pronto |
-
-**Nota:** Questi documenti devono essere linkati in footer sito e presentati al momento registrazione.
+**Piattaforma di coaching tattico personale per eFootball**
 
 ---
 
-## 🚀 Per Iniziare
+## 📚 Documentazione per Servizio
 
-### Sei uno sviluppatore?
-→ Leggi [04-GUIDE-DEV/GUIDA_PROGRAMMATORE_COMPLETA.md](./04-GUIDE-DEV/GUIDA_PROGRAMMATORE_COMPLETA.md)
+Ogni documento descrive un servizio completo: API, componenti, database, sicurezza.
 
-### Vuoi capire il pricing?
-→ Vedi [03-BUSINESS/VALUTAZIONE_ECONOMICA_PIATTAFORMA.md](./03-BUSINESS/VALUTAZIONE_ECONOMICA_PIATTAFORMA.md)
-
-### Ti interessa l'architettura?
-→ Parti da [01-ARCHITETTURA/PANORAMICA_PROGETTO.md](./01-ARCHITETTURA/PANORAMICA_PROGETTO.md)
-
----
-
-## 📚 Guida Utente Completa (NUOVA)
-
-→ **[GUIDA_UTENTE_COMPLETA.md](./GUIDA_UTENTE_COMPLETA.md)** — Tutto quello che devi sapere per usare la piattaforma
-
-### 🎯 Palestra Coach (Feature Principale)
-- **Guida Utente**: Sezione "Palestra Coach" in [GUIDA_UTENTE_COMPLETA.md](./GUIDA_UTENTE_COMPLETA.md#5-palestra-coach-nuovo)
-- Architettura Tecnica: [PALESTRA_COACH_ARCHITETTURA.md](./02-FUNZIONALITA/PALESTRA_COACH_ARCHITETTURA.md)
-- Componente: `components/CoachFeedbackChat.jsx`
-- API: `app/api/save-coach-feedback/route.js`
-- Database: `user_tactical_feedback` (v. migrations/)
-
-### 🤖 AI Knowledge Score
-- Implementazione: `lib/aiKnowledgeHelper.js`
-- Documentazione: [02-FUNZIONALITA/SISTEMA_CONOSCENZA_AI.md](./02-FUNZIONALITA/SISTEMA_CONOSCENZA_AI.md)
-
-### 💬 Chat Widget
-- Route: `app/api/assistant-chat/route.js`
-- Contesto RAG: `lib/ragHelper.js` + `info_rag.md`
-- Diagnostic/analisi: [01-ARCHITETTURA/IMPLEMENTAZIONE_DIAGNOSTIC_CHAT.md](./01-ARCHITETTURA/IMPLEMENTAZIONE_DIAGNOSTIC_CHAT.md)
-
-### ⚽ Gestione Rosa
-- Componente: `app/gestione-formazione/page.jsx`
-- Logica: `lib/diagnosticBuilder.js` (sezione rosa)
-
-### 🏆 Classifica Mensile (From Zero to Hero)
-- API: `GET /api/leaderboard?month=YYYY-MM`
-- Implementazione: [02-FUNZIONALITA/CLASSIFICA_MENSILE_IMPLEMENTAZIONE.md](./02-FUNZIONALITA/CLASSIFICA_MENSILE_IMPLEMENTAZIONE.md)
-- Calcolo punti: `lib/leaderboardHelper.js`
-- Pagine: Dashboard, `/classifica`
+| # | Servizio | Documento | Descrizione |
+|---|----------|-----------|-------------|
+| 1 | **Auth** | [servizi/01-AUTH.md](./servizi/01-AUTH.md) | Login, JWT, sessioni, RLS |
+| 2 | **Rosa** | [servizi/02-ROSA.md](./servizi/02-ROSA.md) | Giocatori, formazione, upload |
+| 3 | **Partite** | [servizi/03-PARTITE.md](./servizi/03-PARTITE.md) | Match, analisi, pattern |
+| 4 | **Chat AI** | [servizi/04-CHAT.md](./servizi/04-CHAT.md) | Assistant, RAG, prompt |
+| 5 | **Palestra Coach** | [servizi/05-PALESTRA-COACH.md](./servizi/05-PALESTRA-COACH.md) | Feedback, training AI |
+| 6 | **Classifica** | [servizi/06-CLASSIFICA.md](./servizi/06-CLASSIFICA.md) | Leaderboard, premi |
+| 7 | **Crediti** | [servizi/07-CREDITI.md](./servizi/07-CREDITI.md) | HP, Stripe, pagamenti |
 
 ---
 
-## 🔄 Flussi Principali
+## 📖 Altri Documenti
+
+| Ruolo | Documento |
+|-------|-----------|
+| 👤 **Utenti** | [GUIDA_UTENTE.md](./GUIDA_UTENTE.md) |
+| ⚖️ **Legale** | [LEGALE.md](./LEGALE.md) + [TERMINI.md](./TERMINI.md) + [PRIVACY.md](./PRIVACY.md) |
+| 👨‍💻 **Architettura** | [ARCHITETTURA.md](./ARCHITETTURA.md) |
+| 🔒 **Sicurezza** | [SICUREZZA.md](./SICUREZZA.md) |
+| 🚀 **Deploy** | [DEPLOY.md](./DEPLOY.md) |
+
+---
+
+## 🏗️ Stack (TL;DR)
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    ONBOARDING UTENTE                        │
-│  Registro → Profilo → Rosa (11 titolari) → Allenatore      │
-└─────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────┐
-│                      GIORNO TIPO                            │
-│  Partita → Analisi → Palestra Coach → Consigli AI          │
-└─────────────────────────────────────────────────────────────┘
+Next.js 14 + React 18 + Supabase (PostgreSQL) + OpenAI GPT-4o + Stripe + Vercel
 ```
 
 ---
 
-## 🗂️ Convenzioni Documentazione
+## 📂 Struttura Progetto
 
-### Struttura file
-- `01-` numerazione per ordinare le cartelle
-- Nomi in MAIUSCOLO_SNAKE_CASE.md
-- Un concetto = un file (evitare file >30KB)
+```
+app/                    # Next.js App Router
+├── api/               # API Routes (backend)
+│   ├── assistant-chat/
+│   ├── coach-feedback-chat/
+│   ├── save-coach-feedback/
+│   ├── supabase/      # CRUD operations
+│   └── ...
+├── classifica/
+├── gestione-formazione/
+└── ...
 
-### Stato documenti
-Ogni documento inizia con:
-```markdown
----
-Stato: [attivo | da aggiornare | obsoleto]
-Creato: YYYY-MM-DD
-Aggiornato: YYYY-MM-DD
-Autore: Nome
----
+components/            # React Components
+├── CoachFeedbackChat.jsx
+├── AssistantChat.jsx
+└── ...
+
+lib/                   # Business Logic
+├── aiKnowledgeHelper.js
+├── diagnosticBuilder.js
+├── ragHelper.js
+├── creditService.js
+└── ...
+
+migrations/            # SQL Supabase
+docs/                  # Questa cartella
+  ├── servizi/         # <-- Documentazione per servizio
+  ├── ARCHITETTURA.md
+  ├── SICUREZZA.md
+  └── ...
 ```
 
 ---
 
-## ⚠️ Documenti da tenere aggiornati
+## 🚀 Quick Start
 
-| Documento | Ultima verifica | Nota |
-|-----------|-----------------|------|
-| `03-BUSINESS/COSTI_API_E_PRICING_CREDITI.md` | 2026-02 | Verificare prezzi OpenAI su pricing page prima di stime commerciali |
-| `05-ANALISI-AUDIT/DIAGNOSTIC_DOCUMENTO_ANALISI_DIFFICOLTA.md` | 2026-02 | Schema DB allineato a Supabase public |
+```bash
+# Installa
+npm install
 
----
+# Configura
+cp .env.example .env.local
+# Modifica .env.local con le tue chiavi
 
-## 🗄️ Archivio
+# Avvia
+npm run dev
+```
 
-Documenti storici mantenuti per tracciabilità: [archivio/](./archivio/)
-
----
-
-## 📞 Riferimenti Rapidi
-
-- **Stack**: Next.js 14 + React 18 + Supabase + OpenAI GPT-4o
-- **Repo**: `Gattilio27-master/`
-- **Deploy**: Vercel
-- **Database**: Supabase PostgreSQL
+Vedi [DEPLOY.md](./DEPLOY.md) per produzione.
 
 ---
 
-*Per modifiche a questa struttura, aggiornare questo README e spostare i file di conseguenza.*
+## 🔐 Sicurezza (Priorità #1)
+
+Vedi [SICUREZZA.md](./SICUREZZA.md):
+- Pattern autenticazione
+- RLS su tutte le tabelle
+- Rate limiting
+- Gestione segreti
+
+**TODO critico:**
+- [ ] Rimuovere 12 Edge Functions obsolete
+- [ ] Implementare audit log
+- [ ] Redis per rate limiting
+
+---
+
+## ⚖️ Compliance Legale
+
+Vedi [LEGALE.md](./LEGALE.md):
+- [TERMINI.md](./TERMINI.md) — Condizioni d'uso
+- [PRIVACY.md](./PRIVACY.md) — GDPR
+- [COOKIE.md](./COOKIE.md) — Cookie Policy
+
+---
+
+## 📞 Supporto
+
+- Email: support@efootballaicoach.com
+- Docs: Questa cartella
+
+---
+
+*Documentazione aggiornata: 14/02/2026*

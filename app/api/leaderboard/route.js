@@ -76,13 +76,34 @@ export async function GET(req) {
     auth: { autoRefreshToken: false, persistSession: false }
   })
 
+  const isCurrentMonth = month === getCurrentMonth()
+
   let rankings = []
   let computedForCurrentUser = null
-  const { data: snapshots, error: snapError } = await admin
-    .from('leaderboard_snapshots')
-    .select('user_id, points, rank, points_breakdown')
-    .eq('month', month)
-    .order('rank', { ascending: true })
+  let snapshots = null
+  let snapError = null
+
+  // Per il mese corrente: ricalcoliamo sempre la classifica (tutti eleggibili, senza consenso) così lo snapshot non resta obsoleto.
+  if (isCurrentMonth) {
+    const computed = await computeLeaderboardForMonth(month, admin)
+    if (computed.length) {
+      await saveLeaderboardSnapshot(month, computed, admin)
+    }
+    snapshots = computed?.length ? computed.map(r => ({
+      user_id: r.user_id,
+      rank: r.rank,
+      points: r.points,
+      points_breakdown: r.points_breakdown || {}
+    })) : []
+  } else {
+    const res = await admin
+      .from('leaderboard_snapshots')
+      .select('user_id, points, rank, points_breakdown')
+      .eq('month', month)
+      .order('rank', { ascending: true })
+    snapshots = res.data
+    snapError = res.error
+  }
 
   if (snapError) {
     console.error('[leaderboard] snapshots error:', snapError.message)
@@ -94,7 +115,7 @@ export async function GET(req) {
 
   // Fallback: se la SELECT diretta restituisce 0 righe (es. anon key / RLS), usa RPC SECURITY DEFINER.
   // Se RPC non esiste o fallisce, restituiamo 200 con rankings vuoti (evitiamo di chiamare computeLeaderboardForMonth con anon e 500).
-  if ((snapshots || []).length === 0) {
+  if ((snapshots || []).length === 0 && !isCurrentMonth) {
     const supabaseProject = supabaseUrl ? (() => { try { return new URL(supabaseUrl).hostname.split('.')[0] } catch { return 'invalid-url' } })() : 'not-set'
     const { data: rpcRankings, error: rpcErr } = await admin.rpc('get_leaderboard_for_month', { month_param: month })
     if (rpcErr) {
@@ -140,9 +161,9 @@ export async function GET(req) {
   const snapshotUserIds = new Set((snapshots || []).map(s => s.user_id))
   const authUserNotInSnapshot = authUserId && snapshotUserIds.size > 0 && !snapshotUserIds.has(authUserId)
 
-  // Retroattivo: se l'utente loggato non è in classifica, ricalcola il mese per includerlo (tutti eleggibili, senza consenso)
+  // Retroattivo (solo mesi passati): se l'utente loggato non è in classifica, ricalcola il mese per includerlo. Per mese corrente abbiamo già ricalcolato sopra.
   let snapshotsToUse = snapshots
-  if (authUserNotInSnapshot) {
+  if (authUserNotInSnapshot && !isCurrentMonth) {
     const computed = await computeLeaderboardForMonth(month, admin)
     if (computed.length) {
       await saveLeaderboardSnapshot(month, computed, admin)
