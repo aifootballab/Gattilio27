@@ -535,14 +535,17 @@ export async function POST(req) {
     // Non blocchiamo la risposta se fallisce (non critico)
     calculateTacticalPatterns(admin, userId)
       .then(async () => {
-        // Pattern salvati, ora aggiorna AI Knowledge Score (sequenziale)
+        // Pattern salvati, ora aggiorna AI Knowledge Score e Task (stesso ordine di save-match)
         if (supabaseUrl && serviceKey) {
           try {
             const { updateAIKnowledgeScore } = await import('../../../../lib/aiKnowledgeHelper')
             await updateAIKnowledgeScore(userId, supabaseUrl, serviceKey)
             console.log('[update-match] AI Knowledge Score updated successfully')
+            const { updateTasksProgressAfterMatch } = await import('../../../../lib/taskHelper')
+            await updateTasksProgressAfterMatch(userId, supabaseUrl, serviceKey, updatedMatch)
+            console.log('[update-match] Tasks progress updated successfully')
           } catch (err) {
-            console.error('[update-match] Error updating AI knowledge score:', err)
+            console.error('[update-match] Error in sequential updates:', err)
           }
         }
       })

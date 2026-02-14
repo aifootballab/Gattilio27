@@ -196,9 +196,9 @@ export default function AIKnowledgeBar() {
     }
   }
 
-  /** CTA dinamica: primo componente sotto il massimo (ordine: profilo, rosa, partite, pattern, allenatore, utilizzo, successi) */
+  /** CTA dinamica: primo componente sotto il massimo (ordine allineato a aiKnowledgeHelper: profile 20, roster 25, matches 30, patterns 15, coach 10, usage 5, success 10, coach_training 10) */
   const getNextStepCtaKey = () => {
-    const max = { profile: 20, roster: 25, matches: 30, patterns: 15, coach: 10, usage: 10, success: 15 }
+    const max = { profile: 20, roster: 25, matches: 30, patterns: 15, coach: 10, usage: 5, success: 10, coach_training: 10 }
     const b = breakdown || {}
     if ((b.profile || 0) < max.profile) return 'ctaNextStepProfile'
     if ((b.roster || 0) < max.roster) return 'ctaNextStepRoster'
@@ -207,6 +207,7 @@ export default function AIKnowledgeBar() {
     if ((b.coach || 0) < max.coach) return 'ctaNextStepCoach'
     if ((b.usage || 0) < max.usage) return 'ctaNextStepUsage'
     if ((b.success || 0) < max.success) return 'ctaNextStepSuccess'
+    if ((b.coach_training || 0) < max.coach_training) return 'ctaNextStepCoachTraining'
     return 'completeProfileToIncreaseKnowledge'
   }
 

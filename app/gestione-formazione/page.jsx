@@ -621,7 +621,7 @@ export default function GestioneFormazionePage() {
       refreshDiagnosticAfterSave()
     } catch (err) {
       console.error('[GestioneFormazione] Assign error:', err)
-      const { message } = mapErrorToUserMessage(err, t('errorAssigningPlayer'))
+      const { message } = mapErrorToUserMessage(err, t('errorAssigningPlayer'), lang)
       setError(message)
       showToast(message, 'error')
     } finally {
@@ -724,7 +724,7 @@ export default function GestioneFormazionePage() {
       refreshDiagnosticAfterSave()
     } catch (err) {
       console.error('[GestioneFormazione] Remove error:', err)
-      const { message } = mapErrorToUserMessage(err, t('errorMovingPlayer'))
+      const { message } = mapErrorToUserMessage(err, t('errorMovingPlayer'), lang)
       setError(message)
       showToast(message, 'error')
     } finally {
@@ -764,7 +764,7 @@ export default function GestioneFormazionePage() {
       refreshDiagnosticAfterSave()
     } catch (err) {
       console.error('[GestioneFormazione] Delete error:', err)
-      const { message } = mapErrorToUserMessage(err, t('errorDeletingPlayer'))
+      const { message } = mapErrorToUserMessage(err, t('errorDeletingPlayer'), lang)
       setError(message)
       showToast(message, 'error')
     } finally {
@@ -1055,7 +1055,7 @@ export default function GestioneFormazionePage() {
 
     } catch (err) {
       console.error('[GestioneFormazione] Upload player error:', err)
-      const { message } = mapErrorToUserMessage(err, t('errorUploadingPhoto'))
+      const { message } = mapErrorToUserMessage(err, t('errorUploadingPhoto'), lang)
       setError(message)
       showToast(message, 'error')
       setUploadingPlayer(false)
@@ -1183,7 +1183,7 @@ export default function GestioneFormazionePage() {
               refreshDiagnosticAfterSave()
             } catch (err) {
               console.error('[GestioneFormazione] Confirm duplicate error:', err)
-              const { message } = mapErrorToUserMessage(err, t('errorUploadingPhoto'))
+              const { message } = mapErrorToUserMessage(err, t('errorUploadingPhoto'), lang)
               setError(message)
               showToast(message, 'error')
             } finally {
@@ -1232,7 +1232,7 @@ export default function GestioneFormazionePage() {
       refreshDiagnosticAfterSave()
     } catch (err) {
       console.error('[GestioneFormazione] Save player with positions error:', err)
-      const { message } = mapErrorToUserMessage(err, t('errorUploadingPhoto'))
+      const { message } = mapErrorToUserMessage(err, t('errorUploadingPhoto'), lang)
       setError(message)
       showToast(message, 'error')
     } finally {
@@ -1375,7 +1375,7 @@ export default function GestioneFormazionePage() {
       await doSelectManualFormation(formation, slotPositions)
     } catch (err) {
       console.error('[GestioneFormazione] Manual formation error:', err)
-      const { message } = mapErrorToUserMessage(err, t('errorSavingFormation'))
+      const { message } = mapErrorToUserMessage(err, t('errorSavingFormation'), lang)
       setError(message)
       showToast(message, 'error')
     } finally {
@@ -1424,7 +1424,7 @@ export default function GestioneFormazionePage() {
       refreshDiagnosticAfterSave()
     } catch (err) {
       console.error('[GestioneFormazione] Manual formation error:', err)
-      const { message } = mapErrorToUserMessage(err, t('errorSavingFormation'))
+      const { message } = mapErrorToUserMessage(err, t('errorSavingFormation'), lang)
       setError(message)
       showToast(message, 'error')
     } finally {
@@ -1658,7 +1658,7 @@ export default function GestioneFormazionePage() {
       showToast(t('positionsSavedSuccessfully'), 'success')
     } catch (err) {
       console.error('[GestioneFormazione] Save custom positions error:', err)
-      const { message } = mapErrorToUserMessage(err, t('errorSavingPositions'))
+      const { message } = mapErrorToUserMessage(err, t('errorSavingPositions'), lang)
       setError(message)
       showToast(message, 'error')
     } finally {

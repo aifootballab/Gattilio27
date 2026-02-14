@@ -253,7 +253,7 @@ export default function CoachFeedbackChat({ show, onClose, userProfile: external
     } catch (error) {
       if (error?.name === 'AbortError') return
       console.error('[CoachFeedbackChat] Error:', error)
-      const { message: friendlyMsg } = mapErrorToUserMessage(error, lang === 'en' ? 'Please try again.' : 'Riprova tra poco.')
+      const { message: friendlyMsg } = mapErrorToUserMessage(error, lang === 'en' ? 'Please try again.' : 'Riprova tra poco.', lang)
       setMessages(prev => [...prev, { role: 'assistant', content: friendlyMsg }])
     } finally {
       setLoading(false)

@@ -176,7 +176,7 @@ export default function AssistantChat() {
     } catch (error) {
       if (error?.name === 'AbortError' || sendAbortRef.current?.signal.aborted) return
       console.error('[AssistantChat] Error:', error)
-      const { message: friendlyMsg } = mapErrorToUserMessage(error, t('tryAgainInMoment'))
+      const { message: friendlyMsg } = mapErrorToUserMessage(error, t('tryAgainInMoment'), lang)
       const errorMsg = `${t('errorChatGeneric')} ${friendlyMsg} 😔`
       setMessages(prev => [...prev, { role: 'assistant', content: errorMsg }])
     } finally {

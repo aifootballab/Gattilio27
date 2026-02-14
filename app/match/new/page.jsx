@@ -331,7 +331,7 @@ export default function NewMatchPage() {
       }, 2000)
     } catch (err) {
       console.error('[NewMatch] Save error:', err)
-      const { message } = mapErrorToUserMessage(err, t('saveMatchError'))
+      const { message } = mapErrorToUserMessage(err, t('saveMatchError'), lang)
       setError(message)
     } finally {
       setSaving(false)
