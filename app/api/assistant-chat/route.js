@@ -979,11 +979,29 @@ export async function POST(req) {
     )
     
   } catch (error) {
-    console.error('[assistant-chat] Error:', error)
     const errLang = getPreferredLanguageFromRequest(req)
+    const msg = (error && error.message) ? String(error.message) : ''
+    const errType = error && error.type
+    console.error('[assistant-chat] Error:', errType || msg || error)
+    if (error && error.stack) console.error('[assistant-chat] Stack:', error.stack)
+
+    if (errType === 'rate_limit' || /rate limit|429/i.test(msg)) {
+      return NextResponse.json(
+        { error: getApiError('RATE_LIMIT', errLang) },
+        { status: 429, headers: { 'Content-Language': errLang } }
+      )
+    }
+    if (errType === 'timeout' || errType === 'network_error' || errType === 'server_error' || /timeout|openai|api key|invalid key|service.*unavailable|unable to complete/i.test(msg)) {
+      return NextResponse.json(
+        { error: getApiError('OPENAI_ERROR', errLang) },
+        { status: 503, headers: { 'Content-Language': errLang } }
+      )
+    }
+    const detail = (typeof process !== 'undefined' && process.env?.NODE_ENV === 'development' && msg) ? { detail: msg } : {}
+    const code = (!detail.detail && msg) ? (msg.includes('prompt') ? 'prompt_fail' : msg.includes('Invalid response') || msg.includes('JSON') ? 'openai_parse' : 'server_error') : undefined
     return NextResponse.json(
-      { error: getApiError('GENERIC_ERROR', errLang) },
-      { status: 500, headers: { 'Content-Language': errLang } }
+      { error: getApiError('GENERIC_ERROR', errLang), ...(code ? { code } : {}), ...detail },
+      { status: 500, headers: { 'Content-Language': errLang, ...(code ? { 'X-Error-Code': code } : {}) } }
     )
   }
 }

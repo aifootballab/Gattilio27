@@ -140,8 +140,14 @@ export default function AssistantChat() {
       if (signal.aborted) return
 
       if (!res.ok) {
-        const error = await res.json()
-        throw new Error(error.error || 'Error generating response')
+        let errorBody = {}
+        try {
+          errorBody = await res.json()
+        } catch (_) {
+          // Risposta non JSON (es. 502/503 da Vercel)
+        }
+        const errMsg = errorBody?.error || (res.status === 503 ? (lang === 'en' ? 'Service temporarily unavailable. Try again.' : 'Servizio temporaneamente non disponibile. Riprova.') : 'Error generating response')
+        throw new Error(errMsg)
       }
       
       const data = await res.json().catch((jsonError) => {
