@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { useTranslation } from '@/lib/i18n'
 import LanguageSwitch from '@/components/LanguageSwitch'
-import { ArrowLeft, Save, SkipForward, RefreshCw, User, Gamepad2, Brain, CheckCircle2, AlertCircle, BarChart3, X, Wallet, Trophy } from 'lucide-react'
+import { ArrowLeft, Save, SkipForward, RefreshCw, User, Gamepad2, Brain, CheckCircle2, AlertCircle, BarChart3, X, Wallet, Trophy, Zap } from 'lucide-react'
 import Link from 'next/link'
 
 export default function ImpostazioniProfiloPage() {
@@ -391,6 +391,55 @@ export default function ImpostazioniProfiloPage() {
         <div style={{ fontSize: '13px', color: '#666', fontStyle: 'italic' }}>
           {t('moreYouAnswer')}
         </div>
+      </div>
+
+      {/* Banner Palestra Coach - Dati Tecnici */}
+      <div style={{
+        background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(255, 140, 0, 0.05))',
+        border: '1px solid rgba(0, 212, 255, 0.3)',
+        borderRadius: '12px',
+        padding: '20px',
+        marginBottom: '24px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '16px'
+      }}>
+        <div style={{
+          width: '48px',
+          height: '48px',
+          borderRadius: '12px',
+          background: 'rgba(0, 212, 255, 0.15)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0
+        }}>
+          <Brain size={24} color="#00d4ff" />
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 600, marginBottom: '6px', fontSize: '16px' }}>
+            {t('coachDataSettingsTitle') || 'Dati tecnici di gioco'}
+          </div>
+          <div style={{ fontSize: '14px', color: '#888', lineHeight: 1.4 }}>
+            {t('coachDataSettingsDesc') || 'Per modificare piattaforma, connessione, livello passaggio e punto debole, usa la Palestra Coach.'}
+          </div>
+        </div>
+        <button 
+          onClick={() => router.push('/?openCoach=true')}
+          className="btn"
+          style={{ 
+            whiteSpace: 'nowrap',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            background: 'rgba(0, 212, 255, 0.1)',
+            borderColor: 'rgba(0, 212, 255, 0.3)',
+            color: '#00d4ff'
+          }}
+        >
+          <Zap size={16} />
+          {t('openCoachGym') || 'Apri Palestra Coach'}
+        </button>
       </div>
 
       {/* Messaggi Success/Error */}
