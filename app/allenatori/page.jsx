@@ -674,6 +674,7 @@ export default function AllenatoriPage() {
                 id="coach-file-input"
                 type="file"
                 accept="image/*"
+                capture="environment"
                 multiple
                 onChange={handleFileInputChange}
                 style={{ display: 'none' }}

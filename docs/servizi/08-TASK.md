@@ -26,7 +26,9 @@
 | 3 | `reduce_goals_conceded` | Riduci gol subiti del 20% | Medium | `team_stats.goals_conceded` o `result` |
 | 4 | `improve_possession` | Aumenta possesso del 10% | Medium | `team_stats.possession` |
 | 5 | `clean_sheet_matches` | Clean sheet (0 gol subiti) | Medium | `team_stats` o `result` |
-| 6 | `use_ai_recommendations` | Usa chat/analisi X volte | Easy | `credit_transactions` |
+| 6 | `use_ai_recommendations` | Usa chat/analisi X volte | Easy | `credit_transactions` (whitelist in `taskHelper.js`) |
+
+Per il task "usa IA X volte" contano tutte le operazioni in `AI_USAGE_DESCRIPTIONS_WHITELIST` (inclusi `extract-player`, `extract-coach`, chat, analisi, contromisure, estrazioni). Vedi [VERIFICA_COERENZA_HP_DEFALCATI.md](../VERIFICA_COERENZA_HP_DEFALCATI.md) §4.
 
 ### Task Deprecati/Rimossi
 
@@ -71,10 +73,13 @@ INSERT INTO weekly_goals
 ```
 
 ### Aggiornamento Progresso
+
+Il progresso viene aggiornato sia al **salvataggio** di una nuova partita (`POST /api/supabase/save-match`) sia alla **modifica** di una partita esistente (`POST /api/supabase/update-match`): entrambe le route chiamano `updateTasksProgressAfterMatch()`.
+
 ```
-Utente salva partita
+Utente salva o modifica partita
     ↓
-TRIGGER: updateTasksProgressAfterMatch()
+save-match o update-match → updateTasksProgressAfterMatch()
     ↓
 Per ogni task attivo:
     - Ricalcola current_value dai dati

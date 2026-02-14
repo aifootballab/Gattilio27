@@ -17,6 +17,7 @@ Ogni documento descrive un servizio completo: API, componenti, database, sicurez
 | 5 | **Palestra Coach** | [servizi/05-PALESTRA-COACH.md](./servizi/05-PALESTRA-COACH.md) | Feedback, training AI |
 | 6 | **Classifica** | [servizi/06-CLASSIFICA.md](./servizi/06-CLASSIFICA.md) | Leaderboard, premi |
 | 7 | **Crediti** | [servizi/07-CREDITI.md](./servizi/07-CREDITI.md) | HP, Stripe, pagamenti |
+| 8 | **Task** | [servizi/08-TASK.md](./servizi/08-TASK.md) | Obiettivi settimanali, use_ai_recommendations |
 
 ---
 
@@ -29,6 +30,19 @@ Ogni documento descrive un servizio completo: API, componenti, database, sicurez
 | 👨‍💻 **Architettura** | [ARCHITETTURA.md](./ARCHITETTURA.md) |
 | 🔒 **Sicurezza** | [SICUREZZA.md](./SICUREZZA.md) |
 | 🚀 **Deploy** | [DEPLOY.md](./DEPLOY.md) |
+
+### Audit e riferimenti tecnici
+
+| Documento | Contenuto |
+|-----------|-----------|
+| [FLUSSI.md](./FLUSSI.md) | Flussi principali (auth, partite, classifica, profilo) |
+| [FLUSSI_LOGICA_SUPABASE.md](./FLUSSI_LOGICA_SUPABASE.md) | Flussi per sezione e intersezioni con tabelle Supabase |
+| [REVISIONE_LOGICA_PIATTAFORMA.md](./REVISIONE_LOGICA_PIATTAFORMA.md) | Revisione logica e checklist |
+| [AUDIT_FLUSSO_RIDONDANZE_ALLINEAMENTO.md](./AUDIT_FLUSSO_RIDONDANZE_ALLINEAMENTO.md) | Audit ridondanze e allineamento |
+| [AUDIT_COERENZA_ENTERPRISE.md](./AUDIT_COERENZA_ENTERPRISE.md) | Coerenza dashboard enterprise |
+| [SICUREZZA_DOPPIA_LINGUA.md](./SICUREZZA_DOPPIA_LINGUA.md) | Messaggi errore/sessione IT/EN |
+| [COSTI_HP_USO_PIATTAFORMA.md](./COSTI_HP_USO_PIATTAFORMA.md) | Costi HP per uso piattaforma |
+| [VERIFICA_COERENZA_HP_DEFALCATI.md](./VERIFICA_COERENZA_HP_DEFALCATI.md) | Verifica coerenza HP defalcati e whitelist task |
 
 ---
 

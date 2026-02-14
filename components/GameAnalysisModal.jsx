@@ -3,9 +3,10 @@
 import React, { useState, useRef } from 'react'
 import { useTranslation } from '@/lib/i18n'
 import { supabase } from '@/lib/supabaseClient'
-import { BarChart3, X, Upload, Image as ImageIcon, RefreshCw, CheckCircle2 } from 'lucide-react'
+import { BarChart3, X, Upload, Image as ImageIcon, RefreshCw, CheckCircle2, Camera } from 'lucide-react'
+import CameraCaptureModal from '@/components/CameraCaptureModal'
+import { MAX_IMAGE_UPLOAD_BYTES } from '@/lib/uploadConstants'
 
-const MAX_SIZE_MB = 10
 const SLOTS = [
   { key: 'slot1', labelKey: 'gameAnalysisSlot1', descKey: 'gameAnalysisSlot1Desc' },
   { key: 'slot2', labelKey: 'gameAnalysisSlot2', descKey: 'gameAnalysisSlot2Desc' }
@@ -57,23 +58,34 @@ export default function GameAnalysisModal({ show, onClose, onSuccess }) {
   const inputRef1 = useRef(null)
   const inputRef2 = useRef(null)
 
+  const [cameraForSlot, setCameraForSlot] = useState(null)
   const getSlot = (key) => (key === 'slot1' ? slot1 : slot2)
   const setSlot = (key, value) => (key === 'slot1' ? setSlot1(value) : setSlot2(value))
 
-  const handleFileSelect = (e, key) => {
-    setError(null)
-    const file = e.target.files?.[0]
+  const processImageFile = (file, key) => {
     if (!file || !file.type.startsWith('image/')) return
-    if (file.size > MAX_SIZE_MB * 1024 * 1024) {
-      setError(lang === 'en' ? `Max ${MAX_SIZE_MB}MB per image.` : `Max ${MAX_SIZE_MB}MB per immagine.`)
+    if (file.size > MAX_IMAGE_UPLOAD_BYTES) {
+      setError(t('imageTooLarge'))
       return
     }
+    setError(null)
     const reader = new FileReader()
     reader.onload = (ev) => {
-      setSlot(key, { file, dataUrl: ev.target.result, name: file.name })
+      setSlot(key, { file, dataUrl: ev.target.result, name: file.name || 'camera.jpg' })
     }
     reader.readAsDataURL(file)
+  }
+
+  const handleFileSelect = (e, key) => {
+    const file = e.target.files?.[0]
+    if (file) processImageFile(file, key)
     e.target.value = ''
+  }
+
+  const handleCameraCapture = (blob, key) => {
+    const file = new File([blob], 'camera.jpg', { type: 'image/jpeg' })
+    processImageFile(file, key)
+    setCameraForSlot(null)
   }
 
   const removeSlot = (key) => {
@@ -225,19 +237,24 @@ export default function GameAnalysisModal({ show, onClose, onSuccess }) {
                       <span style={{ fontSize: '13px', opacity: 0.85 }}>{value.name}</span>
                     </>
                   ) : (
-                    <label style={{ display: 'block', cursor: loading ? 'not-allowed' : 'pointer' }}>
-                      <input type="file" accept="image/*" ref={ref} style={{ display: 'none' }} onChange={(e) => handleFileSelect(e, key)} disabled={loading} />
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <Upload size={22} style={{ color, flexShrink: 0, opacity: 0.8 }} />
-                          <div>
-                            <div style={{ fontSize: '15px', fontWeight: 700, marginBottom: '4px', color }}>{t(labelKey)}</div>
-                            <div style={{ fontSize: '13px', opacity: 0.8 }}>{t(descKey)}</div>
-                          </div>
-                        </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                        <label style={{ display: 'inline-flex', cursor: loading ? 'not-allowed' : 'pointer', alignItems: 'center', gap: '8px', padding: '10px 14px', border: `2px solid ${color}`, borderRadius: '8px', background: 'rgba(0,0,0,0.2)' }}>
+                          <input type="file" accept="image/*" capture="environment" ref={ref} style={{ display: 'none' }} onChange={(e) => handleFileSelect(e, key)} disabled={loading} />
+                          <Upload size={20} style={{ color, flexShrink: 0 }} />
+                          <span style={{ fontSize: '14px', fontWeight: 600, color }}>{lang === 'en' ? 'Choose file' : 'Sfoglia'}</span>
+                        </label>
+                        <button type="button" onClick={() => setCameraForSlot(key)} disabled={loading} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 14px', border: `2px solid ${color}`, borderRadius: '8px', background: 'rgba(0,0,0,0.2)', color, cursor: loading ? 'not-allowed' : 'pointer', fontSize: '14px', fontWeight: 600 }}>
+                          <Camera size={20} />
+                          {t('takePhoto')}
+                        </button>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{ fontSize: '15px', fontWeight: 700, color }}>{t(labelKey)}</div>
                         <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>{t('gameAnalysisSlotMissing')}</span>
                       </div>
-                    </label>
+                      <div style={{ fontSize: '13px', opacity: 0.8 }}>{t(descKey)}</div>
+                    </div>
                   )}
                 </div>
               )
@@ -289,6 +306,17 @@ export default function GameAnalysisModal({ show, onClose, onSuccess }) {
           </div>
         </form>
       </div>
+      <CameraCaptureModal
+        show={!!cameraForSlot}
+        onClose={() => setCameraForSlot(null)}
+        onCapture={(blob) => { if (cameraForSlot) handleCameraCapture(blob, cameraForSlot) }}
+        title={t('cameraCaptureTitle')}
+        captureLabel={t('cameraCaptureButton')}
+        closeLabel={t('cameraClose')}
+        startingLabel={t('cameraStarting')}
+        errorMessage={t('cameraNotAvailable')}
+        captureFailedMessage={t('cameraCaptureFailed')}
+      />
     </div>
   )
 }

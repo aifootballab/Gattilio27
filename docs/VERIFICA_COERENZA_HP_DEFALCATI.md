@@ -18,8 +18,8 @@
 - `app/api/generate-countermeasures` → `recordUsage(..., 3, 'generate-countermeasures')`
 - `app/api/analyze-match` → `recordUsage(..., 4, 'analyze-match')`
 
-Non esiste nessun altro punto nel codice che chiami l’API OpenAI (né `fetch` a api.openai.com né `callOpenAIWithRetry`).  
-**Conclusione: non c’è nessun posto in cui si spendano soldi (OpenAI) senza che venga registrato l’uso con `recordUsage`.**
+Non esiste nessun altro punto nel codice che chiami l'API OpenAI (né `fetch` a api.openai.com né `callOpenAIWithRetry`).
+**Conclusione: non c'è nessun posto in cui si spendano soldi (OpenAI) senza che venga registrato l'uso con `recordUsage`.**
 
 ---
 
@@ -46,14 +46,14 @@ Ogni route che chiama OpenAI e fa `recordUsage` usa **esattamente** il valore de
 
 - **assistant-chat:** `recordUsage` dopo risposta valida e sanitizedContent, prima del return. In caso di errore si va in catch → nessun addebito.
 - **coach-feedback-chat:** `recordUsage` dopo `response.json()` e prima del return. Se `callOpenAIWithRetry` lancia → catch → nessun addebito.
-- **save-coach-feedback:** `recordUsage` dopo insert in `user_tactical_feedback` (salvataggio riuscito). Se l’estrazione OpenAI fallisce si usa `extracted = {}` ma si procede al save; si addebita 1 HP quando il save va a buon fine (comportamento coerente: si paga per “salva feedback”, non per la sola chiamata OpenAI).
+- **save-coach-feedback:** `recordUsage` dopo insert in `user_tactical_feedback` (salvataggio riuscito). Se l'estrazione OpenAI fallisce si usa `extracted = {}` ma si procede al save; si addebita 1 HP quando il save va a buon fine (comportamento coerente: si paga per "salva feedback", non per la sola chiamata OpenAI).
 - **extract-match-data:** `recordUsage` dopo normalizzazione, prima del return. In caso di errore OpenAI si fa return con errore (righe 559–561) → nessun addebito.
 - **extract-player, extract-coach, extract-formation:** `recordUsage` solo dopo validazione/normalizzazione e prima del return. In caso di errore/return anticipato → nessun addebito.
 - **extract-game-analysis:** `recordUsage` dopo upsert su DB. In caso di errore nel try (parse/merge) si fa return con errore → nessun addebito.
 - **generate-countermeasures:** `recordUsage` dopo elaborazione contromisure, prima del return. In catch → nessun addebito.
 - **analyze-match:** `recordUsage` dopo costruzione dello summary, prima del return. In catch → nessun addebito.
 
-**Conclusione:** Gli HP vengono addebitati **solo quando l’operazione va a buon fine** (risposta utile e, dove previsto, salvataggio completato). Nessun addebito in caso di 4xx/5xx o errore OpenAI.
+**Conclusione:** Gli HP vengono addebitati **solo quando l'operazione va a buon fine** (risposta utile e, dove previsto, salvataggio completato). Nessun addebito in caso di 4xx/5xx o errore OpenAI.
 
 ---
 
@@ -64,21 +64,21 @@ Ogni route che chiama OpenAI e fa `recordUsage` usa **esattamente** il valore de
 
 ---
 
-## 4. Whitelist task “use_ai_recommendations” vs descrizioni transazioni
+## 4. Whitelist task "use_ai_recommendations" vs descrizioni transazioni
 
 In `recordUsage` si chiama `recordTransaction(..., operationType, null)` quindi in `credit_transactions` la colonna `description` contiene esattamente il tipo operazione (es. `assistant-chat`, `extract-player`).
 
-La whitelist in `lib/taskHelper.js` (riga 586) è:
+La whitelist in `lib/taskHelper.js` (`AI_USAGE_DESCRIPTIONS_WHITELIST`) include tutte le operazioni che consumano HP:
 
 ```js
-['assistant-chat', 'analyze-match', 'generate-countermeasures', 'extract-formation', 'extract-match-data', 'extract-game-analysis', 'coach-feedback-chat', 'save-coach-feedback']
+['assistant-chat', 'analyze-match', 'generate-countermeasures', 'extract-formation', 'extract-match-data', 'extract-game-analysis', 'extract-player', 'extract-coach', 'coach-feedback-chat', 'save-coach-feedback']
 ```
 
-**Mancano:** `extract-player`, `extract-coach`.
+**Nota:** `extract-player` e `extract-coach` sono in whitelist; ogni utilizzo IA conta per il task.
 
 Quindi:
-- **Classifica:** Tutte le transazioni `type = 'usage'` nel mese contano come “Utilizzo IA” (nessun filtro su `description`). Coerente.
-- **Task “usa IA almeno N volte”:** Contano solo le operazioni nella whitelist. **Estrazioni giocatore e allenatore (extract-player, extract-coach) non contano** per il task. Se l’intento è “qualsiasi uso IA conta”, andrebbero aggiunte alla whitelist; se l’intento è “solo chat/analisi/contromisure/estrazione partite/formazione”, va bene così.
+- **Classifica:** Tutte le transazioni `type = 'usage'` nel mese contano come "Utilizzo IA". Coerente.
+- **Task "usa IA almeno N volte":** Contano tutte le operazioni nella whitelist sopra. Coerente.
 
 ---
 
@@ -90,9 +90,9 @@ Quindi:
 | Addebito solo su successo (nessun addebito su errore) | Coerente |
 | Nessuna route OpenAI senza `recordUsage` | Coerente |
 | Nessuna route senza OpenAI con `recordUsage` | Coerente |
-| Whitelist task vs description | Coerente; extract-player e extract-coach non in whitelist (scelta da confermare) |
+| Whitelist task vs description | Coerente; whitelist include extract-player e extract-coach |
 
-**Conclusione:** Gli HP defalcati sono coerenti con i pesi definiti e con la logica “solo successo = addebito”. Unica scelta da chiarire: far contare anche `extract-player` e `extract-coach` per il task “use_ai_recommendations” (aggiungendoli alla whitelist) oppure no.
+**Conclusione:** Gli HP defalcati sono coerenti con i pesi definiti e con la logica "solo successo = addebito". La whitelist del task "use_ai_recommendations" include tutte le operazioni che consumano HP (inclusi extract-player e extract-coach).
 
 ---
 

@@ -288,6 +288,7 @@ export default function CountermeasuresPreMatchPage() {
               <input
                 type="file"
                 accept="image/*"
+                capture="environment"
                 onChange={handleImageSelect}
                 style={{ display: 'none' }}
                 disabled={extracting}

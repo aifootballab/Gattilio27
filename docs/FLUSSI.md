@@ -44,7 +44,7 @@ Login → Dashboard → (manca rosa/allenatore) → reminder banner
 | 2 | Wizard 5 step | Casa/trasferta, avversario/risultato, statistiche, voti, analisi AI |
 | 3 | Upload screenshot | `extract-match-data` (OpenAI Vision) per sezione |
 | 4 | Salvataggio | `POST /api/supabase/save-match` o `update-match` |
-| 5 | Backend | Scrive `matches`; chiama `calculateTacticalPatterns`; aggiorna `weekly_goals` (taskHelper); aggiorna AI Knowledge |
+| 5 | Backend | Scrive `matches`; chiama `calculateTacticalPatterns`; **sia save-match sia update-match** chiamano `updateTasksProgressAfterMatch()` (taskHelper); aggiorna AI Knowledge |
 
 - **Redirect dopo save:** `router.push('/')` (dashboard).
 
@@ -184,3 +184,5 @@ La pagina **Guida** (`/guida`) espone una card per ogni area dell’app. Tabella
 | **Gestione Profilo** | `/gestione-profilo` | §7; Hero Points, crediti, transazioni, link classifica |
 
 **Note:** Dettaglio partita e Dettaglio giocatore non hanno pagina diretta `/match` o `/giocatore`; il pulsante "Vai alla pagina" porta a dashboard o gestione formazione; i testi della guida indicano "dalla dashboard/ formazione clicca su...".
+
+Per flussi dettagliati e intersezioni con le tabelle Supabase vedi [FLUSSI_LOGICA_SUPABASE.md](./FLUSSI_LOGICA_SUPABASE.md).

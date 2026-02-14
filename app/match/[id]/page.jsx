@@ -500,6 +500,7 @@ export default function MatchDetailPage() {
                         <input
                           type="file"
                           accept="image/*"
+                          capture="environment"
                           onChange={handleImageSelect(step.id)}
                           style={{ display: 'none' }}
                           disabled={extracting}

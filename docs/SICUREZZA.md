@@ -147,6 +147,14 @@ import { sanitizeForPrompt } from '@/lib/diagnosticBuilder'
 const cleanName = sanitizeForPrompt(userInput, 255)
 ```
 
+### Upload immagini e fotocamera
+- **Stesso flusso API:** Le foto scattate dalla fotocamera (getUserMedia) vengono convertite in `File`/Blob e inviate alle stesse route degli upload da file (`extract-player`, `extract-coach`, `extract-game-analysis`, ecc.). Nessun endpoint dedicato; stessi limiti e validazione.
+- **Contesto sicuro:** `getUserMedia` è usato solo se `window.isSecureContext === true` (HTTPS o localhost). Controllo in `lib/cameraCapture.js` (`isSecureContext()`, `isCameraSupported()`).
+- **Limite dimensione frame:** In `captureFrame()` il canvas è limitato a 1920px sul lato lungo (MAX_CANVAS_DIMENSION) per evitare payload eccessivi e restare sotto i 10MB richiesti dalle API.
+- **Messaggi di errore:** Il modal fotocamera espone solo messaggi generici (i18n: `cameraNotAvailable`, `cameraCaptureFailed`). Nessun codice tecnico (es. VIDEO_NOT_READY) mostrato all’utente.
+- **Cleanup:** Alla chiusura del modal o dopo la cattura lo stream viene sempre fermato (`stopCamera` → `getTracks().stop()`).
+- **Rate limiting e auth:** Invariati; le chiamate da “Scatta foto” passano dalle stesse API (extract-player, extract-game-analysis) e rispettano rate limit e JWT.
+
 ---
 
 ## 6. Logging Sicuro

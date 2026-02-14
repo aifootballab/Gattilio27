@@ -6,9 +6,11 @@ import { supabase } from '@/lib/supabaseClient'
 import { useTranslation } from '@/lib/i18n'
 import { mapErrorToUserMessage } from '@/lib/errorHelper'
 import LanguageSwitch from '@/components/LanguageSwitch'
-import { ArrowLeft, Upload, AlertCircle, CheckCircle2, RefreshCw, BarChart3, Zap, Gift, ChevronDown, ChevronUp, Award, Pencil } from 'lucide-react'
+import { ArrowLeft, Upload, AlertCircle, CheckCircle2, RefreshCw, BarChart3, Zap, Gift, ChevronDown, ChevronUp, Award, Pencil, Camera } from 'lucide-react'
 import { getPhotoTypeStyle } from '@/lib/playerPhotoTypes'
+import { MAX_IMAGE_UPLOAD_BYTES } from '@/lib/uploadConstants'
 import ManualPlayerModal from '@/components/ManualPlayerModal'
+import CameraCaptureModal from '@/components/CameraCaptureModal'
 
 export default function PlayerDetailPage() {
   const { t, lang } = useTranslation()
@@ -30,6 +32,7 @@ export default function PlayerDetailPage() {
     skills: true,
     boosters: true
   })
+  const [cameraForType, setCameraForType] = React.useState(null) // 'stats' | 'skills' | 'booster'
 
   // Carica dati giocatore
   React.useEffect(() => {
@@ -88,33 +91,45 @@ export default function PlayerDetailPage() {
     fetchPlayer()
   }, [playerId, router, t])
 
-  const handleFileSelect = (e, type) => {
-    const files = Array.from(e.target.files)
-    const imageFiles = files.filter(file => file.type.startsWith('image/'))
-
-    if (imageFiles.length === 0) {
-      setError(t('selectAtLeastOneImage'))
+  const processImageFile = (file, type) => {
+    if (!file || !file.type.startsWith('image/')) return
+    if (file.size > MAX_IMAGE_UPLOAD_BYTES) {
+      setError(t('imageTooLarge'))
       return
     }
-
-    if (imageFiles.length > 1) {
-      setError(t('uploadOneImageOnly'))
-      return
-    }
-
-    const file = imageFiles[0]
+    setError(null)
     const reader = new FileReader()
     reader.onload = (e) => {
       setImages([{
         file,
         dataUrl: e.target.result,
-        name: file.name,
+        name: file.name || 'camera.jpg',
         type
       }])
       setUploadType(type)
-      setError(null)
     }
     reader.readAsDataURL(file)
+  }
+
+  const handleFileSelect = (e, type) => {
+    const files = Array.from(e.target.files || [])
+    const imageFiles = files.filter(file => file.type.startsWith('image/'))
+    if (imageFiles.length === 0) {
+      setError(t('selectAtLeastOneImage'))
+      return
+    }
+    if (imageFiles.length > 1) {
+      setError(t('uploadOneImageOnly'))
+      return
+    }
+    processImageFile(imageFiles[0], type)
+    e.target.value = ''
+  }
+
+  const handleCameraCapture = (blob, type) => {
+    const file = new File([blob], 'camera.jpg', { type: 'image/jpeg' })
+    processImageFile(file, type)
+    setCameraForType(null)
   }
 
   // Funzione per aggiornare il giocatore con i dati estratti
@@ -461,6 +476,7 @@ export default function PlayerDetailPage() {
           isExpanded={expandedSections.stats}
           onToggle={() => toggleSection('stats')}
           onFileSelect={(e) => handleFileSelect(e, 'stats')}
+          onTakePhoto={() => setCameraForType('stats')}
           uploading={uploading}
           onEdit={() => setShowEditModal(true)}
         />
@@ -472,6 +488,7 @@ export default function PlayerDetailPage() {
           isExpanded={expandedSections.skills}
           onToggle={() => toggleSection('skills')}
           onFileSelect={(e) => handleFileSelect(e, 'skills')}
+          onTakePhoto={() => setCameraForType('skills')}
           uploading={uploading}
         />
 
@@ -482,6 +499,7 @@ export default function PlayerDetailPage() {
           isExpanded={expandedSections.boosters}
           onToggle={() => toggleSection('boosters')}
           onFileSelect={(e) => handleFileSelect(e, 'booster')}
+          onTakePhoto={() => setCameraForType('booster')}
           uploading={uploading}
         />
       </div>
@@ -535,6 +553,18 @@ export default function PlayerDetailPage() {
         </div>
       )}
 
+      <CameraCaptureModal
+        show={!!cameraForType}
+        onClose={() => setCameraForType(null)}
+        onCapture={(blob) => { if (cameraForType) handleCameraCapture(blob, cameraForType) }}
+        title={t('cameraCaptureTitle')}
+        captureLabel={t('cameraCaptureButton')}
+        closeLabel={t('cameraClose')}
+        startingLabel={t('cameraStarting')}
+        errorMessage={t('cameraNotAvailable')}
+        captureFailedMessage={t('cameraCaptureFailed')}
+      />
+
       {/* Modal Conferma Aggiornamento */}
       {confirmModal && confirmModal.show && (
         <ConfirmUpdateModal
@@ -582,7 +612,7 @@ const SECTION_CARD_STYLE = (style) => ({
 })
 
 // Componente Sezione Statistiche (design unificato: card = Statistiche, colore neon-blue)
-function StatsSection({ player, photoSlots, isExpanded, onToggle, onFileSelect, uploading, onEdit }) {
+function StatsSection({ player, photoSlots, isExpanded, onToggle, onFileSelect, onTakePhoto, uploading, onEdit }) {
   const { t, lang } = useTranslation()
   const style = getPhotoTypeStyle('card')
   if (!player) return null
@@ -719,11 +749,11 @@ function StatsSection({ player, photoSlots, isExpanded, onToggle, onFileSelect, 
             </div>
           )}
 
-          {/* Pulsanti: Aggiorna Statistiche + Modifica affiancati (come in Upload modal) */}
+          {/* Pulsanti: Carica / Scatta foto + Modifica */}
           <div style={{ display: 'flex', gap: '12px', alignItems: 'stretch', flexWrap: 'wrap' }}>
             <label style={{
               flex: '1',
-              minWidth: '140px',
+              minWidth: '120px',
               padding: '12px 16px',
               border: `2px solid ${style.borderColor}`,
               borderRadius: '8px',
@@ -735,6 +765,7 @@ function StatsSection({ player, photoSlots, isExpanded, onToggle, onFileSelect, 
               <input
                 type="file"
                 accept="image/*"
+                capture="environment"
                 onChange={onFileSelect}
                 style={{ display: 'none' }}
                 disabled={uploading}
@@ -746,6 +777,12 @@ function StatsSection({ player, photoSlots, isExpanded, onToggle, onFileSelect, 
                 </span>
               </div>
             </label>
+            {typeof onTakePhoto === 'function' && (
+              <button type="button" onClick={onTakePhoto} disabled={uploading} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px 16px', border: `2px solid ${style.borderColor}`, borderRadius: '8px', background: style.bgColor, color: style.color, fontSize: '14px', fontWeight: 600, cursor: uploading ? 'not-allowed' : 'pointer', opacity: uploading ? 0.6 : 1 }}>
+                <Camera size={18} />
+                {t('takePhoto')}
+              </button>
+            )}
             {typeof onEdit === 'function' && (
               <button
                 type="button"
@@ -777,7 +814,7 @@ function StatsSection({ player, photoSlots, isExpanded, onToggle, onFileSelect, 
 }
 
 // Componente Sezione Abilità (design unificato: stats = Abilità, colore neon-purple)
-function SkillsSection({ player, photoSlots, isExpanded, onToggle, onFileSelect, uploading }) {
+function SkillsSection({ player, photoSlots, isExpanded, onToggle, onFileSelect, onTakePhoto, uploading }) {
   const { t } = useTranslation()
   const style = getPhotoTypeStyle('stats')
   if (!player) return null
@@ -905,31 +942,30 @@ function SkillsSection({ player, photoSlots, isExpanded, onToggle, onFileSelect,
             </div>
           )}
 
-          {/* Pulsante upload: stile unificato */}
-          <label style={{
-            display: 'block',
-            padding: '12px 16px',
-            border: `2px solid ${style.borderColor}`,
-            borderRadius: '8px',
-            textAlign: 'center',
-            cursor: uploading ? 'not-allowed' : 'pointer',
-            background: style.bgColor,
-            opacity: uploading ? 0.6 : 1
-          }}>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={onFileSelect}
-              style={{ display: 'none' }}
-              disabled={uploading}
-            />
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-              <Upload size={18} color={style.color} />
-              <span style={{ fontSize: '14px', fontWeight: 600, color: style.color }}>
-                {photoSlots.abilita ? t('updateSkills') : t('uploadSkills')}
-              </span>
-            </div>
-          </label>
+          {/* Pulsanti upload + Scatta foto */}
+          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+            <label style={{
+              padding: '12px 16px',
+              border: `2px solid ${style.borderColor}`,
+              borderRadius: '8px',
+              textAlign: 'center',
+              cursor: uploading ? 'not-allowed' : 'pointer',
+              background: style.bgColor,
+              opacity: uploading ? 0.6 : 1
+            }}>
+              <input type="file" accept="image/*" capture="environment" onChange={onFileSelect} style={{ display: 'none' }} disabled={uploading} />
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                <Upload size={18} color={style.color} />
+                <span style={{ fontSize: '14px', fontWeight: 600, color: style.color }}>{photoSlots.abilita ? t('updateSkills') : t('uploadSkills')}</span>
+              </div>
+            </label>
+            {typeof onTakePhoto === 'function' && (
+              <button type="button" onClick={onTakePhoto} disabled={uploading} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px 16px', border: `2px solid ${style.borderColor}`, borderRadius: '8px', background: style.bgColor, color: style.color, fontSize: '14px', fontWeight: 600, cursor: uploading ? 'not-allowed' : 'pointer', opacity: uploading ? 0.6 : 1 }}>
+                <Camera size={18} />
+                {t('takePhoto')}
+              </button>
+            )}
+          </div>
         </>
       )}
     </div>
@@ -937,7 +973,7 @@ function SkillsSection({ player, photoSlots, isExpanded, onToggle, onFileSelect,
 }
 
 // Componente Sezione Booster (design unificato: skills = Booster, colore neon-orange)
-function BoostersSection({ player, photoSlots, isExpanded, onToggle, onFileSelect, uploading }) {
+function BoostersSection({ player, photoSlots, isExpanded, onToggle, onFileSelect, onTakePhoto, uploading }) {
   const { t } = useTranslation()
   const style = getPhotoTypeStyle('skills')
   if (!player) return null
@@ -1013,31 +1049,30 @@ function BoostersSection({ player, photoSlots, isExpanded, onToggle, onFileSelec
             </div>
           )}
 
-          {/* Pulsante upload: stile unificato */}
-          <label style={{
-            display: 'block',
-            padding: '12px 16px',
-            border: `2px solid ${style.borderColor}`,
-            borderRadius: '8px',
-            textAlign: 'center',
-            cursor: uploading ? 'not-allowed' : 'pointer',
-            background: style.bgColor,
-            opacity: uploading ? 0.6 : 1
-          }}>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={onFileSelect}
-              style={{ display: 'none' }}
-              disabled={uploading}
-            />
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-              <Upload size={18} color={style.color} />
-              <span style={{ fontSize: '14px', fontWeight: 600, color: style.color }}>
-                {photoSlots.booster ? t('updateBoosters') : t('uploadBoosters')}
-              </span>
-            </div>
-          </label>
+          {/* Pulsanti upload + Scatta foto */}
+          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+            <label style={{
+              padding: '12px 16px',
+              border: `2px solid ${style.borderColor}`,
+              borderRadius: '8px',
+              textAlign: 'center',
+              cursor: uploading ? 'not-allowed' : 'pointer',
+              background: style.bgColor,
+              opacity: uploading ? 0.6 : 1
+            }}>
+              <input type="file" accept="image/*" capture="environment" onChange={onFileSelect} style={{ display: 'none' }} disabled={uploading} />
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                <Upload size={18} color={style.color} />
+                <span style={{ fontSize: '14px', fontWeight: 600, color: style.color }}>{photoSlots.booster ? t('updateBoosters') : t('uploadBoosters')}</span>
+              </div>
+            </label>
+            {typeof onTakePhoto === 'function' && (
+              <button type="button" onClick={onTakePhoto} disabled={uploading} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px 16px', border: `2px solid ${style.borderColor}`, borderRadius: '8px', background: style.bgColor, color: style.color, fontSize: '14px', fontWeight: 600, cursor: uploading ? 'not-allowed' : 'pointer', opacity: uploading ? 0.6 : 1 }}>
+                <Camera size={18} />
+                {t('takePhoto')}
+              </button>
+            )}
+          </div>
         </>
       )}
     </div>

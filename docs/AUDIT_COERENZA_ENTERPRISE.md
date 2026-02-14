@@ -31,8 +31,8 @@
 
 ### 2.2 Task “use_ai_recommendations” vs classifica: Palestra Coach conta solo in classifica
 
-- **Dove:** `lib/taskHelper.js` → `AI_USAGE_DESCRIPTIONS_WHITELIST = ['assistant-chat', 'analyze-match', 'generate-countermeasures', 'extract-formation', 'extract-match-data', 'extract-game-analysis']`.
-- **Manca:** `coach-feedback-chat`, `save-coach-feedback`.
+- **Dove:** `lib/taskHelper.js` → `AI_USAGE_DESCRIPTIONS_WHITELIST` include tutte le usage (inclusi extract-player, extract-coach, coach-feedback-chat, save-coach-feedback).
+- **Stato:** Whitelist ora include anche `coach-feedback-chat`, `save-coach-feedback`, `extract-player`, `extract-coach` (vedi VERIFICA_COERENZA_HP_DEFALCATI.md §4).
 - **Effetto:** Per il task “Usa AI X volte a settimana” non conta la Palestra Coach. In classifica invece tutte le `credit_transactions` type=usage del mese contano (inclusa Palestra).
 - **Problema:** Stesso tipo di azione (uso IA) ha regole diverse nei due sistemi. Non enterprise.
 - **Cosa fare:** Decidere: (A) includere `coach-feedback-chat` e `save-coach-feedback` nella whitelist del task (allineamento a classifica), oppure (B) documentare esplicitamente che “use_ai_recommendations” = solo chat/analisi/contromisure/estrazioni e non Palestra. Per coerenza si consiglia (A).

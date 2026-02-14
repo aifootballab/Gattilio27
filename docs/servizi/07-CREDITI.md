@@ -14,6 +14,8 @@
 | **Consumo** | Per utilizzo servizi |
 | **Validità** | 12 mesi dall'acquisto |
 
+**Riferimenti:** [COSTI_HP_USO_PIATTAFORMA.md](../COSTI_HP_USO_PIATTAFORMA.md) (costi per operazione), [VERIFICA_COERENZA_HP_DEFALCATI.md](../VERIFICA_COERENZA_HP_DEFALCATI.md) (verifica coerenza addebiti e whitelist task).
+
 ---
 
 ## 2. Flusso Acquisto

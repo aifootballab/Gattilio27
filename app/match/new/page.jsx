@@ -656,6 +656,7 @@ export default function NewMatchPage() {
             <input
               type="file"
               accept="image/*"
+              capture="environment"
               onChange={handleImageSelect(currentSection)}
               style={{ display: 'none' }}
               disabled={extracting || saving}
