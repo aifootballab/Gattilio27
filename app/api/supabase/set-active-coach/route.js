@@ -6,6 +6,13 @@ import { checkRateLimit, RATE_LIMIT_CONFIG } from '../../../../lib/rateLimiter'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
+function getLang(req) {
+  const accept = req?.headers?.get?.('accept-language') || ''
+  return accept.toLowerCase().startsWith('it') || accept.includes('it') ? 'it' : 'en'
+}
+
+const SERVER_ERROR = { it: 'Errore server', en: 'Server error' }
+
 export async function POST(req) {
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -105,9 +112,10 @@ export async function POST(req) {
     })
   } catch (e) {
     console.error('[set-active-coach] Error:', e)
+    const lang = getLang(req)
     return NextResponse.json(
-      { error: e?.message || 'Errore server' },
-      { status: 500 }
+      { error: e?.message || SERVER_ERROR[lang] },
+      { status: 500, headers: { 'Content-Language': lang } }
     )
   }
 }

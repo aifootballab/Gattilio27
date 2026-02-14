@@ -241,7 +241,7 @@ export default function DashboardPage() {
     const timeoutId = setTimeout(() => {
       if (mountedRef.current) {
         setLoading((prev) => {
-          if (prev) setError(t('coachDataLoadError') || 'Caricamento troppo lento. Riprova.')
+          if (prev) setError(t('coachDataLoadError'))
           return false
         })
       }
@@ -528,10 +528,10 @@ export default function DashboardPage() {
           className="btn secondary"
           onClick={() => setShowCoachFeedback(true)}
           style={{ whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '6px', borderColor: 'var(--neon-orange)', color: 'var(--neon-orange)' }}
-          title={t('palestraCoachTitle') || 'Palestra Coach'}
+          title={t('palestraCoachTitle')}
         >
           <Info size={16} />
-          {t('palestraCoachTitle') || 'Palestra Coach'}
+          {t('palestraCoachTitle')}
         </button>
       </div>
 
@@ -1126,10 +1126,10 @@ export default function DashboardPage() {
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontWeight: 700, marginBottom: '4px', fontSize: 'clamp(16px, 4vw, 18px)' }}>
-              {t('recentMatches') || 'Ultime Partite'}
+              {t('recentMatches')}
             </div>
             <div style={{ fontSize: 'clamp(13px, 3vw, 14px)', color: 'rgba(255,255,255,0.85)' }}>
-              {recentMatches.length === 0 ? t('noMatchesSaved') : `${recentMatches.length} ${recentMatches.length === 1 ? (t('match') || 'partita') : (t('matches') || 'partite')}`}
+              {recentMatches.length === 0 ? t('noMatchesSaved') : `${recentMatches.length} ${recentMatches.length === 1 ? t('match') : t('matches')}`}
             </div>
           </div>
           {matchesExpanded ? (

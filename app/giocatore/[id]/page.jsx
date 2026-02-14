@@ -243,7 +243,12 @@ export default function PlayerDetailPage() {
         body: JSON.stringify({ imageDataUrl: img.dataUrl })
       })
 
-      const extractData = await extractRes.json()
+      let extractData
+      try {
+        extractData = await extractRes.json()
+      } catch (_) {
+        throw new Error(mapErrorToUserMessage('500', t('errorExtractingData'), lang).message)
+      }
       if (!extractRes.ok) {
         const { message } = mapErrorToUserMessage(extractData?.error || '', t('errorExtractingData'), lang)
         throw new Error(message)
@@ -490,6 +495,7 @@ export default function PlayerDetailPage() {
           onFileSelect={(e) => handleFileSelect(e, 'skills')}
           onTakePhoto={() => setCameraForType('skills')}
           uploading={uploading}
+          onEdit={() => setShowEditModal(true)}
         />
 
         {/* Booster */}
@@ -504,6 +510,28 @@ export default function PlayerDetailPage() {
         />
       </div>
 
+      {/* Errore in-context quando c'è upload in corso */}
+      {error && images.length > 0 && (
+        <div
+          role="alert"
+          style={{
+            marginTop: '24px',
+            marginBottom: '0',
+            padding: '12px',
+            background: 'rgba(239, 68, 68, 0.15)',
+            border: '1px solid rgba(239, 68, 68, 0.4)',
+            borderRadius: '8px',
+            color: '#fca5a5',
+            fontSize: '14px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}
+        >
+          <AlertCircle size={18} />
+          {error}
+        </div>
+      )}
       {/* Upload Button */}
       {images.length > 0 && (
         <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'center' }}>
@@ -814,8 +842,8 @@ function StatsSection({ player, photoSlots, isExpanded, onToggle, onFileSelect, 
 }
 
 // Componente Sezione Abilità (design unificato: stats = Abilità, colore neon-purple)
-function SkillsSection({ player, photoSlots, isExpanded, onToggle, onFileSelect, onTakePhoto, uploading }) {
-  const { t } = useTranslation()
+function SkillsSection({ player, photoSlots, isExpanded, onToggle, onFileSelect, onTakePhoto, uploading, onEdit }) {
+  const { t, lang } = useTranslation()
   const style = getPhotoTypeStyle('stats')
   if (!player) return null
   
@@ -942,9 +970,11 @@ function SkillsSection({ player, photoSlots, isExpanded, onToggle, onFileSelect,
             </div>
           )}
 
-          {/* Pulsanti upload + Scatta foto */}
-          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+          {/* Pulsanti: Carica / Scatta foto + Modifica */}
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'stretch', flexWrap: 'wrap' }}>
             <label style={{
+              flex: '1',
+              minWidth: '120px',
               padding: '12px 16px',
               border: `2px solid ${style.borderColor}`,
               borderRadius: '8px',
@@ -963,6 +993,29 @@ function SkillsSection({ player, photoSlots, isExpanded, onToggle, onFileSelect,
               <button type="button" onClick={onTakePhoto} disabled={uploading} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px 16px', border: `2px solid ${style.borderColor}`, borderRadius: '8px', background: style.bgColor, color: style.color, fontSize: '14px', fontWeight: 600, cursor: uploading ? 'not-allowed' : 'pointer', opacity: uploading ? 0.6 : 1 }}>
                 <Camera size={18} />
                 {t('takePhoto')}
+              </button>
+            )}
+            {typeof onEdit === 'function' && (
+              <button
+                type="button"
+                onClick={(e) => { e.preventDefault(); onEdit() }}
+                style={{
+                  padding: '12px 16px',
+                  border: `2px solid ${style.borderColor}`,
+                  borderRadius: '8px',
+                  background: 'transparent',
+                  color: style.color,
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px'
+                }}
+              >
+                <Pencil size={18} />
+                {lang === 'en' ? 'Edit' : 'Modifica'}
               </button>
             )}
           </div>

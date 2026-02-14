@@ -76,7 +76,7 @@ export default function ClassificaPage() {
   const rankings = rankingsRaw.length > 0
     ? rankingsRaw
     : currentUser
-      ? [{ rank: currentUser.rank, nickname: t('you') || 'Tu', points: currentUser.points }]
+      ? [{ rank: currentUser.rank, nickname: t('you'), points: currentUser.points }]
       : []
 
   return (
@@ -253,7 +253,7 @@ export default function ClassificaPage() {
               </div>
               {rankings.length > 0 && (
                 <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)' }}>
-                  {rankings.length} {rankings.length === 1 ? (t('leaderboardParticipant') || 'iscritto') : (t('leaderboardParticipants') || 'iscritti')}
+                  {rankings.length} {rankings.length === 1 ? t('leaderboardParticipant') : t('leaderboardParticipants')}
                 </span>
               )}
             </div>

@@ -237,7 +237,7 @@ export default function CoachFeedbackChat({ show, onClose, userProfile: external
 
       if (!res.ok) {
         const error = await res.json()
-        throw new Error(error.error || 'Error')
+        throw new Error(error.error || t('error'))
       }
 
       const data = await res.json()

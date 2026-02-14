@@ -59,7 +59,7 @@ export default function MatchDetailPage() {
         if (queryError) {
           // Se errore RLS o permessi, mostra errore specifico
           if (queryError.code === 'PGRST116' || queryError.message?.includes('permission') || queryError.message?.includes('row-level')) {
-            throw new Error(t('matchNotFound') || 'Partita non trovata o accesso negato')
+            throw new Error(t('matchNotFoundOrDenied'))
           }
           // Altri errori: mostra errore ma permette comunque di provare a caricare
           console.error('[MatchDetail] Query error:', queryError)
@@ -131,12 +131,25 @@ export default function MatchDetailPage() {
       })
 
       if (!extractRes.ok) {
-        const errorData = await extractRes.json()
-        const { message } = mapErrorToUserMessage(errorData?.error || '', t('extractDataError'), lang)
-        throw new Error(message)
+        let errorMessage = t('extractDataError')
+        try {
+          const errorData = await extractRes.json()
+          const { message } = mapErrorToUserMessage(errorData?.error || '', t('extractDataError'), lang)
+          errorMessage = message
+        } catch (_) {
+          // Risposta 500 può essere HTML o corpo non-JSON
+          const { message } = mapErrorToUserMessage('500', t('extractDataError'), lang)
+          errorMessage = message
+        }
+        throw new Error(errorMessage)
       }
 
-      const extractData = await extractRes.json()
+      let extractData
+      try {
+        extractData = await extractRes.json()
+      } catch (_) {
+        throw new Error(mapErrorToUserMessage('invalid json', t('extractDataError'), lang).message)
+      }
       if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('credits-consumed'))
 
       // 2. Aggiorna match
@@ -267,7 +280,7 @@ export default function MatchDetailPage() {
       <main style={{ padding: '32px 24px', minHeight: '100vh' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <RefreshCw size={20} className="spin" />
-          <span>{t('loading') || 'Caricamento...'}</span>
+          <span>{t('loadingShort')}</span>
         </div>
       </main>
     )
@@ -415,6 +428,26 @@ export default function MatchDetailPage() {
                             style={{ maxWidth: '100%', maxHeight: '200px', borderRadius: '8px' }}
                           />
                         </div>
+                        {error && uploadSection === step.id && (
+                          <div
+                            role="alert"
+                            style={{
+                              marginBottom: '12px',
+                              padding: '12px',
+                              background: 'rgba(239, 68, 68, 0.15)',
+                              border: '1px solid rgba(239, 68, 68, 0.4)',
+                              borderRadius: '8px',
+                              color: '#fca5a5',
+                              fontSize: '14px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px'
+                            }}
+                          >
+                            <AlertCircle size={18} />
+                            {error}
+                          </div>
+                        )}
                         <div style={{ display: 'flex', gap: '8px' }}>
                           <button
                             onClick={handleExtractAndUpdate}
@@ -438,6 +471,7 @@ export default function MatchDetailPage() {
                             onClick={() => {
                               setUploadImage(null)
                               setUploadSection(null)
+                              setError(null)
                             }}
                             className="btn"
                             disabled={extracting}

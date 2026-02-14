@@ -412,7 +412,7 @@ export default function ImpostazioniProfiloPage() {
             type="text"
             value={profile.first_name}
             onChange={(e) => setProfile(prev => ({ ...prev, first_name: e.target.value }))}
-            placeholder="Il tuo nome"
+            placeholder={t('placeholderYourName')}
             maxLength={255}
             style={{
               width: '100%',
@@ -574,7 +574,7 @@ export default function ImpostazioniProfiloPage() {
             type="text"
             value={profile.team_name}
             onChange={(e) => setProfile(prev => ({ ...prev, team_name: e.target.value }))}
-            placeholder="Es: Naturalborngamers.it, AC Milan..."
+            placeholder={t('placeholderTeamExample')}
             maxLength={255}
             style={{
               width: '100%',

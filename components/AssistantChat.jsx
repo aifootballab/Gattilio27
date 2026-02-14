@@ -253,7 +253,7 @@ export default function AssistantChat() {
           <Sparkles size={20} color="white" />
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 700, color: 'white', fontSize: '16px' }}>
-              {userProfile?.ai_name || t('yourCoach') || 'Il tuo Coach AI'}
+              {userProfile?.ai_name || t('yourCoach') || t('yourCoachAI')}
             </div>
             {userProfile?.first_name && (
               <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.9)' }}>

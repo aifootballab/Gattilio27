@@ -302,10 +302,15 @@ export default function NewMatchPage() {
         body: JSON.stringify({ matchData })
       })
 
-      const saveData = await saveRes.json()
+      let saveData
+      try {
+        saveData = await saveRes.json()
+      } catch (_) {
+        throw new Error(mapErrorToUserMessage('500', t('saveMatchError'), lang).message)
+      }
 
       if (!saveRes.ok) {
-        throw new Error(saveData.error || t('saveMatchError'))
+        throw new Error(saveData?.error || t('saveMatchError'))
       }
 
       setSuccess(true)
@@ -627,6 +632,27 @@ export default function NewMatchPage() {
             </div>
           ) : (
             <>
+          {/* Errore in-context (estrazione o salvataggio) */}
+          {error && (
+            <div
+              role="alert"
+              style={{
+                marginBottom: '16px',
+                padding: '12px',
+                background: 'rgba(239, 68, 68, 0.15)',
+                border: '1px solid rgba(239, 68, 68, 0.4)',
+                borderRadius: '8px',
+                color: '#fca5a5',
+                fontSize: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              <AlertCircle size={20} />
+              <span>{error}</span>
+            </div>
+          )}
           {/* Image Preview */}
           {currentImage && (
             <div style={{

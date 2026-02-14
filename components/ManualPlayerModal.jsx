@@ -165,13 +165,13 @@ export default function ManualPlayerModal({ show, onClose, onSaved, slotIndex = 
 
   const handleSave = async () => {
     setError('')
-    if (!form.player_name.trim()) { setError(lang === 'en' ? 'Player name is required' : 'Nome giocatore obbligatorio'); return }
-    if (!form.position) { setError(lang === 'en' ? 'Position is required' : 'Posizione obbligatoria'); return }
+    if (!form.player_name.trim()) { setError(t('playerNameRequired')); return }
+    if (!form.position) { setError(t('positionRequired')); return }
 
     setSaving(true)
     try {
       const { data: session } = await supabase.auth.getSession()
-      if (!session?.session?.access_token) throw new Error('Session expired')
+      if (!session?.session?.access_token) throw new Error(t('sessionExpired'))
 
       // Struttura base_stats coerente con extract-player (attacking/defending/athleticism)
       const attacking = {}
@@ -275,7 +275,7 @@ export default function ManualPlayerModal({ show, onClose, onSaved, slotIndex = 
 
         if (!res.ok) {
           const errData = await res.json().catch(() => ({}))
-          throw new Error(errData.error || 'Save failed')
+          throw new Error(errData.error || t('saveFailed'))
         }
 
         var data = await res.json()
@@ -287,7 +287,7 @@ export default function ManualPlayerModal({ show, onClose, onSaved, slotIndex = 
       }, 1200)
     } catch (err) {
       console.error('[ManualPlayerModal] Save error:', err)
-      setError(err.message || (lang === 'en' ? 'Error saving player' : 'Errore nel salvataggio'))
+      setError(err.message || t('aiInfoError'))
     } finally {
       setSaving(false)
     }
@@ -315,14 +315,10 @@ export default function ManualPlayerModal({ show, onClose, onSaved, slotIndex = 
             <User size={20} color="white" />
             <div>
               <div style={{ fontWeight: 700, color: 'white', fontSize: '15px' }}>
-                {isEditMode
-                  ? (lang === 'en' ? 'Edit Player' : 'Modifica Giocatore')
-                  : (lang === 'en' ? 'New Player' : 'Nuovo Giocatore')}
+                {isEditMode ? t('editPlayer') : t('newPlayer')}
               </div>
               <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)' }}>
-                {isEditMode
-                  ? (lang === 'en' ? 'Complete or edit data' : 'Completa o modifica dati')
-                  : (lang === 'en' ? 'Manual entry' : 'Inserimento manuale')}
+                {isEditMode ? t('completeOrEditData') : t('manualEntry')}
               </div>
             </div>
           </div>
@@ -338,8 +334,8 @@ export default function ManualPlayerModal({ show, onClose, onSaved, slotIndex = 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {/* Nome */}
             <div>
-              <label style={labelStyle}>{lang === 'en' ? 'Player name *' : 'Nome giocatore *'}</label>
-              <input type="text" style={inputStyle} maxLength={100} placeholder="es. Kylian Mbappé"
+              <label style={labelStyle}>{t('playerNameLabel')}</label>
+              <input type="text" style={inputStyle} maxLength={100} placeholder={t('placeholderPlayerNameExample')}
                 value={form.player_name} onChange={e => updateForm('player_name', e.target.value)}
                 onFocus={e => { e.target.style.borderColor = cardColor }}
                 onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.12)' }} />
@@ -348,12 +344,12 @@ export default function ManualPlayerModal({ show, onClose, onSaved, slotIndex = 
             {/* Posizione + Overall (2 colonne) */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
               <div>
-                <label style={labelStyle}>{lang === 'en' ? 'Position *' : 'Posizione *'}</label>
+                <label style={labelStyle}>{t('positionLabel')}</label>
                 <select className="mp-select" style={selectStyle} value={form.position}
                   onChange={e => { updateForm('position', e.target.value); updateForm('playing_style', '') }}>
                   <option value="">--</option>
-                  {['Portiere', 'Difesa', 'Centrocampo', 'Attacco'].map(group => (
-                    <optgroup key={group} label={group}>
+                  {[{ i18nKey: 'positionGroupPortiere', group: 'Portiere' }, { i18nKey: 'positionGroupDefense', group: 'Difesa' }, { i18nKey: 'positionGroupMidfield', group: 'Centrocampo' }, { i18nKey: 'positionGroupAttack', group: 'Attacco' }].map(({ i18nKey, group }) => (
+                    <optgroup key={i18nKey} label={t(i18nKey)}>
                       {POSITIONS.filter(p => p.group === group).map(p => (
                         <option key={p.value} value={p.value}>{p.label}</option>
                       ))}

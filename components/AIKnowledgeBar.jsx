@@ -223,7 +223,7 @@ export default function AIKnowledgeBar() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <RefreshCw size={20} color="#00d4ff" style={{ animation: 'spin 1s linear infinite' }} />
           <span style={{ fontSize: 'clamp(14px, 3vw, 16px)', color: '#888' }}>
-            {t('loading') || 'Loading...'}
+            {t('loadingShort')}
           </span>
         </div>
       </div>
@@ -270,7 +270,7 @@ export default function AIKnowledgeBar() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <Brain size={22} style={{ color: 'var(--neon-blue, #00d4ff)', filter: 'drop-shadow(0 0 8px rgba(0,212,255,0.3))' }} />
           <h2 style={{ margin: 0, fontSize: 'clamp(17px, 4vw, 19px)', fontWeight: '600', letterSpacing: '-0.02em' }}>
-            {t('aiKnowledge') || 'Conoscenza AI'}
+            {t('aiKnowledge')}
           </h2>
         </div>
         <span style={{
@@ -291,7 +291,7 @@ export default function AIKnowledgeBar() {
         aria-valuenow={Math.round(score)}
         aria-valuemin={0}
         aria-valuemax={100}
-        aria-label={`${t('aiKnowledge') || 'Conoscenza AI'}: ${Math.round(score)}%`}
+        aria-label={`${t('aiKnowledge')}: ${Math.round(score)}%`}
         style={{
           width: '100%',
           height: '28px',

@@ -40,13 +40,13 @@ export default function CountermeasuresPreMatchPage() {
 
     // Validazione dimensione (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
-      setError(t('errorImageTooLarge') || 'Immagine troppo grande (max 10MB)')
+      setError(t('errorImageTooLarge'))
       return
     }
 
     // Validazione tipo
     if (!file.type.startsWith('image/')) {
-      setError(t('errorInvalidImage') || 'File non è un\'immagine valida')
+      setError(t('errorInvalidImage'))
       return
     }
 
@@ -115,7 +115,7 @@ export default function CountermeasuresPreMatchPage() {
           is_pre_match: true
         })
       })
-      const saveData = await safeJsonResponse(saveRes, 'Errore salvataggio formazione')
+      const saveData = await safeJsonResponse(saveRes, t('errorSaveFormation'))
       const formationForState = {
         id: saveData.formation?.id,
         formation_name: extractData.formation,
@@ -146,11 +146,11 @@ export default function CountermeasuresPreMatchPage() {
         setCountermeasures(generateData.countermeasures)
         if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('credits-consumed'))
       } else {
-        throw new Error(t('errorGeneratingCountermeasures') || 'Errore generazione contromisure')
+        throw new Error(t('errorGeneratingCountermeasures'))
       }
     } catch (err) {
       console.error('[CountermeasuresPreMatch] Pipeline error:', err)
-      setError(err.message || t('errorGeneratingCountermeasures') || 'Errore')
+      setError(err.message || t('errorGeneratingCountermeasures'))
     } finally {
       setExtracting(false)
       setGenerating(false)
@@ -159,7 +159,7 @@ export default function CountermeasuresPreMatchPage() {
 
   const handleGenerateCountermeasures = async () => {
     if (!extractedFormation?.id) {
-      setError(t('noFormationUploaded') || 'Estrai prima la formazione avversaria')
+      setError(t('noFormationUploaded'))
       return
     }
 
@@ -193,7 +193,7 @@ export default function CountermeasuresPreMatchPage() {
         setCountermeasures(generateData.countermeasures)
         if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('credits-consumed'))
       } else {
-        throw new Error(t('errorGeneratingCountermeasures') || 'Errore generazione contromisure')
+        throw new Error(t('errorGeneratingCountermeasures'))
       }
     } catch (err) {
       console.error('[CountermeasuresPreMatch] Generate error:', err)
@@ -259,7 +259,7 @@ export default function CountermeasuresPreMatchPage() {
             {t('back')}
           </button>
           <h1 className="neon-text" style={{ fontSize: 'clamp(18px, 4vw, 24px)', fontWeight: 700, margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {t('countermeasuresLive') || 'Contromisure pre-partita'}
+            {t('countermeasuresLive')}
           </h1>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
@@ -280,7 +280,7 @@ export default function CountermeasuresPreMatchPage() {
         <div data-tour-id="tour-counter-upload" className="card" style={{ padding: 'clamp(16px, 4vw, 24px)', marginBottom: '24px' }}>
           <h2 style={{ fontSize: 'clamp(18px, 4vw, 20px)', fontWeight: 700, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Shield size={24} color="var(--neon-orange)" />
-            {t('uploadOpponentFormation') || 'Carica Formazione Avversaria'}
+            {t('uploadOpponentFormation')}
           </h2>
           
           {!uploadImage ? (
@@ -319,13 +319,13 @@ export default function CountermeasuresPreMatchPage() {
               >
                 <Camera size={48} style={{ marginBottom: '16px', color: 'var(--neon-orange)' }} />
                 <div style={{ fontSize: 'clamp(14px, 3vw, 16px)', fontWeight: 600, marginBottom: '8px' }}>
-                  {t('uploadPhoto') || 'Carica Screenshot'}
+                  {t('uploadPhoto')}
                 </div>
                 <div style={{ fontSize: 'clamp(12px, 2.5vw, 14px)', opacity: 0.8 }}>
-                  {t('uploadPhotoDescription') || 'Carica uno screenshot della formazione avversaria'}
+                  {t('uploadPhotoDescription')}
                 </div>
                 <div style={{ fontSize: 'clamp(11px, 2vw, 12px)', opacity: 0.6, marginTop: '6px' }}>
-                  {t('countermeasuresAutoStart') || 'Estrazione e contromisure partono automaticamente'}
+                  {t('countermeasuresAutoStart')}
                 </div>
               </div>
             </label>
@@ -342,7 +342,7 @@ export default function CountermeasuresPreMatchPage() {
                 {extracting ? (
                   <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '8px', minHeight: '44px' }}>
                     <RefreshCw size={20} style={{ animation: 'spin 1s linear infinite', color: 'var(--neon-orange)' }} />
-                    <span>{t('extracting') || 'Estrazione formazione in corso...'}</span>
+                    <span>{t('extracting')}</span>
                   </div>
                 ) : (
                   <button
@@ -351,7 +351,7 @@ export default function CountermeasuresPreMatchPage() {
                     style={{ flex: 1, minWidth: '200px' }}
                   >
                     <RefreshCw size={16} />
-                    {t('retry') || 'Riprova'}
+                    {t('retry')}
                   </button>
                 )}
                 <button
@@ -378,7 +378,7 @@ export default function CountermeasuresPreMatchPage() {
         <div data-tour-id="tour-counter-extracted" className="card" style={{ padding: 'clamp(16px, 4vw, 24px)', marginBottom: '24px' }}>
           <h2 style={{ fontSize: 'clamp(18px, 4vw, 20px)', fontWeight: 700, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <CheckCircle2 size={24} color="#22C55E" />
-            {t('formationExtracted') || 'Formazione Estratta'}
+            {t('formationExtracted')}
           </h2>
           
           <div style={{ 
@@ -390,16 +390,16 @@ export default function CountermeasuresPreMatchPage() {
           }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
               <div>
-                <strong>{t('formation') || 'Formazione'}:</strong> {extractedFormation.formation_name || 'N/A'}
+                <strong>{t('formation')}:</strong> {extractedFormation.formation_name || 'N/A'}
               </div>
               {extractedFormation.playing_style && (
                 <div>
-                  <strong>{t('playingStyle') || 'Stile'}:</strong> {extractedFormation.playing_style}
+                  <strong>{t('playingStyle')}:</strong> {extractedFormation.playing_style}
                 </div>
               )}
               {extractedFormation.overall_strength && (
                 <div>
-                  <strong>{t('overallStrength') || 'Forza'}:</strong> {extractedFormation.overall_strength}
+                  <strong>{t('overallStrength')}:</strong> {extractedFormation.overall_strength}
                 </div>
               )}
             </div>
@@ -412,8 +412,8 @@ export default function CountermeasuresPreMatchPage() {
                 borderRadius: '6px',
                 fontSize: 'clamp(12px, 2.5vw, 14px)'
               }}>
-                <strong style={{ color: 'var(--neon-blue)' }}>✓ {t('coach') || 'Allenatore'} estratto:</strong> {extractedFormation.coach.coach_name || 'N/A'}
-                {extractedFormation.coach.age && ` (${extractedFormation.coach.age} ${t('years') || 'anni'})`}
+                <strong style={{ color: 'var(--neon-blue)' }}>✓ {t('coach')} estratto:</strong> {extractedFormation.coach.coach_name || 'N/A'}
+                {extractedFormation.coach.age && ` (${extractedFormation.coach.age} ${t('years')})`}
               </div>
             )}
           </div>
@@ -427,12 +427,12 @@ export default function CountermeasuresPreMatchPage() {
             {generating ? (
               <>
                 <RefreshCw size={18} style={{ animation: 'spin 1s linear infinite' }} />
-                {t('generatingCountermeasures') || 'Generazione contromisure...'}
+                {t('generatingCountermeasures')}
               </>
             ) : (
               <>
                 <Brain size={18} />
-                {t('generateCountermeasures') || 'Genera Contromisure'}
+                {t('generateCountermeasures')}
               </>
             )}
           </button>
@@ -443,7 +443,7 @@ export default function CountermeasuresPreMatchPage() {
       {countermeasures && (
         <>
           <p style={{ fontSize: 'clamp(13px, 2.5vw, 14px)', color: 'rgba(255,255,255,0.7)', marginBottom: '20px', marginTop: 0 }}>
-            {t('countermeasuresPreMatchContext') || 'Consigli pre-partita basati sulla formazione avversaria caricata.'}
+            {t('countermeasuresPreMatchContext')}
           </p>
           {/* Analisi Formazione Avversaria */}
           <div data-tour-id="tour-counter-result" className="card" style={{ padding: 'clamp(16px, 4vw, 24px)', marginBottom: '24px' }}>
@@ -459,7 +459,7 @@ export default function CountermeasuresPreMatchPage() {
             >
               <h2 style={{ fontSize: 'clamp(18px, 4vw, 20px)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
                 <Target size={24} color="var(--neon-blue)" />
-                {t('opponentFormationAnalysis') || 'Analisi Formazione Avversaria'}
+                {t('opponentFormationAnalysis')}
               </h2>
               {expandedSections.analysis ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
             </div>
@@ -478,7 +478,7 @@ export default function CountermeasuresPreMatchPage() {
                     gap: '8px'
                   }}>
                     <AlertCircle size={18} color="var(--neon-orange)" />
-                    <strong>{t('metaFormation') || 'Formazione Meta'}:</strong> {pickLang(countermeasures.analysis.meta_type, lang)}
+                    <strong>{t('metaFormation')}:</strong> {pickLang(countermeasures.analysis.meta_type, lang)}
                   </div>
                 )}
 
@@ -488,7 +488,7 @@ export default function CountermeasuresPreMatchPage() {
 
                 {countermeasures.analysis.strengths && countermeasures.analysis.strengths.length > 0 && (
                   <div style={{ marginBottom: '16px' }}>
-                    <strong style={{ color: 'var(--neon-orange)' }}>{t('formationStrengths') || 'Punti di Forza'}:</strong>
+                    <strong style={{ color: 'var(--neon-orange)' }}>{t('formationStrengths')}:</strong>
                     <ul style={{ marginTop: '8px', paddingLeft: '20px' }}>
                       {countermeasures.analysis.strengths.map((strength, idx) => (
                         <li key={idx} style={{ marginBottom: '4px' }}>{pickLang(strength, lang)}</li>
@@ -499,7 +499,7 @@ export default function CountermeasuresPreMatchPage() {
 
                 {countermeasures.analysis.weaknesses && countermeasures.analysis.weaknesses.length > 0 && (
                   <div>
-                    <strong style={{ color: 'var(--neon-blue)' }}>{t('formationWeaknesses') || 'Punti Deboli'}:</strong>
+                    <strong style={{ color: 'var(--neon-blue)' }}>{t('formationWeaknesses')}:</strong>
                     <ul style={{ marginTop: '8px', paddingLeft: '20px' }}>
                       {countermeasures.analysis.weaknesses.map((weakness, idx) => (
                         <li key={idx} style={{ marginBottom: '4px' }}>{pickLang(weakness, lang)}</li>
@@ -510,7 +510,7 @@ export default function CountermeasuresPreMatchPage() {
 
                 {countermeasures.analysis.why_weaknesses && (
                   <div style={{ marginTop: '16px', padding: '12px', background: 'rgba(0, 212, 255, 0.1)', borderRadius: '8px', fontSize: 'clamp(13px, 3vw, 14px)' }}>
-                    <strong>{t('reason') || 'Motivazione'}:</strong> {pickLang(countermeasures.analysis.why_weaknesses, lang)}
+                    <strong>{t('reason')}:</strong> {pickLang(countermeasures.analysis.why_weaknesses, lang)}
                   </div>
                 )}
               </div>
@@ -533,7 +533,7 @@ export default function CountermeasuresPreMatchPage() {
               >
                 <h2 style={{ fontSize: 'clamp(18px, 4vw, 20px)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
                   <Shield size={24} color="var(--neon-orange)" />
-                  {t('tacticalCountermeasures') || 'Contromisure Tattiche'}
+                  {t('tacticalCountermeasures')}
                 </h2>
                 {expandedSections.tactical ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
               </div>
@@ -618,7 +618,7 @@ export default function CountermeasuresPreMatchPage() {
               >
                 <h2 style={{ fontSize: 'clamp(18px, 4vw, 20px)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
                   <Users size={24} color="var(--neon-blue)" />
-                  {t('playerSuggestions') || 'Suggerimenti Giocatori'}
+                  {t('playerSuggestions')}
                 </h2>
                 {expandedSections.players ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
               </div>
@@ -647,7 +647,7 @@ export default function CountermeasuresPreMatchPage() {
                         <div style={{ fontWeight: 600, marginBottom: '8px', fontSize: 'clamp(14px, 3vw, 16px)' }}>
                           {suggestion.action === 'add_to_starting_xi'
                             ? (suggestion.replace_player_name || suggestion.replace_player_id)
-                              ? (t('replaceInStartingXI') || 'Sostituisci ${replacePlayerName} con ${playerName} (${position})')
+                              ? t('replaceInStartingXI')
                                     .replace('${replacePlayerName}', suggestion.replace_player_name || '?')
                                     .replace('${playerName}', suggestion.player_name || '')
                                     .replace('${position}', suggestion.position || '')
@@ -679,7 +679,7 @@ export default function CountermeasuresPreMatchPage() {
               >
                 <h2 style={{ fontSize: 'clamp(18px, 4vw, 20px)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
                   <Settings size={24} color="var(--neon-blue)" />
-                  {t('individualInstructions') || 'Istruzioni Individuali'}
+                  {t('individualInstructions')}
                 </h2>
                 {expandedSections.instructions ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
               </div>
@@ -722,7 +722,7 @@ export default function CountermeasuresPreMatchPage() {
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontWeight: 600 }}>
                 <AlertCircle size={18} color="var(--neon-orange)" />
-                {t('warnings') || 'Avvertimenti'}
+                {t('warnings')}
               </div>
               <ul style={{ marginLeft: '24px' }}>
                 {countermeasures.warnings.map((warning, idx) => (
@@ -746,10 +746,10 @@ export default function CountermeasuresPreMatchPage() {
             gap: '8px'
           }}>
             <span>
-              <strong>{t('confidence') || 'Affidabilità'}:</strong> {countermeasures.confidence}%
+              <strong>{t('confidence')}:</strong> {countermeasures.confidence}%
             </span>
             <span>
-              <strong>{t('dataQuality') || 'Qualità Dati'}:</strong> {countermeasures.data_quality || 'N/A'}
+              <strong>{t('dataQuality')}:</strong> {countermeasures.data_quality || 'N/A'}
             </span>
           </div>
 

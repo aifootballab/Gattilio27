@@ -204,7 +204,7 @@ export default function GestioneFormazionePage() {
         .filter(p => p && p.id && p.player_name)
         .map(p => ({
           id: p.id,
-          player_name: String(p.player_name || 'Unknown').trim(),
+          player_name: String(p.player_name || t('unknownPlayer')).trim(),
           position: p.position ? String(p.position).trim() : null,
           overall_rating: p.overall_rating != null ? Number(p.overall_rating) : null,
           team: p.team ? String(p.team).trim() : null,
@@ -658,7 +658,7 @@ export default function GestioneFormazionePage() {
       try {
         data = await res.json()
       } catch (jsonError) {
-        throw new Error(`Errore server: ${res.status} ${res.statusText}`)
+        throw new Error(`${t('errorServer')}: ${res.status} ${res.statusText}`)
       }
       
       if (!res.ok) {
@@ -675,8 +675,8 @@ export default function GestioneFormazionePage() {
               title: t('duplicatePlayerTitle'),
               message: confirmMsg,
               variant: 'warning',
-              confirmLabel: t('deleteAndProceed') || 'Elimina e Procedi',
-              cancelLabel: t('cancel') || 'Annulla'
+              confirmLabel: t('deleteAndProceed'),
+              cancelLabel: t('cancel')
             },
             setConfirmModal
           })
@@ -892,7 +892,7 @@ export default function GestioneFormazionePage() {
         try {
           extractData = await extractRes.json()
         } catch (jsonError) {
-          const errorMsg = `Errore server: ${extractRes.status} ${extractRes.statusText}`
+          const errorMsg = `${t('errorServer')}: ${extractRes.status} ${extractRes.statusText}`
           console.warn('[UploadPlayer] Errore estrazione (JSON invalido):', errorMsg)
           errors.push(errorMsg)
           continue
@@ -1701,7 +1701,7 @@ export default function GestioneFormazionePage() {
         try {
           extractData = await extractRes.json()
         } catch (jsonError) {
-          const errorMsg = `Errore server: ${extractRes.status} ${extractRes.statusText}`
+          const errorMsg = `${t('errorServer')}: ${extractRes.status} ${extractRes.statusText}`
           console.warn('[UploadReserve] Errore estrazione (JSON invalido):', errorMsg)
           errors.push(errorMsg)
           continue
@@ -1886,8 +1886,8 @@ export default function GestioneFormazionePage() {
               title: t('duplicateReserveTitle'),
               message: confirmMsg,
               variant: 'warning',
-              confirmLabel: t('replace') || 'Sostituisci',
-              cancelLabel: t('cancel') || 'Annulla'
+              confirmLabel: t('replace'),
+              cancelLabel: t('cancel')
             },
             setConfirmModal
           })
@@ -4140,7 +4140,7 @@ function UploadPlayerModal({ slot, images, onImagesChange, onUpload, onClose, up
                 }}
               >
                 <Pencil size={14} />
-                {lang === 'en' ? 'Manual entry instead' : 'Inserimento manuale'}
+                {t('manualEntryInstead')}
               </button>
             )}
             <span style={{ fontSize: '13px', opacity: 0.7 }}>

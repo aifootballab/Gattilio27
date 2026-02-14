@@ -207,7 +207,8 @@ export default function AllenatoriPage() {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Accept-Language': lang === 'en' ? 'en' : 'it'
         },
         body: JSON.stringify({ coach: finalCoachData })
       })
@@ -250,7 +251,8 @@ export default function AllenatoriPage() {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Accept-Language': lang === 'en' ? 'en' : 'it'
         },
         body: JSON.stringify({ coach_id: coachId })
       })
@@ -279,7 +281,7 @@ export default function AllenatoriPage() {
   const handleDelete = async (coachId) => {
     // Trova nome allenatore per messaggio
     const coach = coaches.find(c => c.id === coachId)
-    const coachName = coach?.coach_name || 'questo allenatore'
+    const coachName = coach?.coach_name || t('thisCoach')
     
     // Mostra modal conferma invece di window.confirm()
     setDeleteConfirmModal({
@@ -848,8 +850,8 @@ export default function AllenatoriPage() {
           details={t('confirmDeleteCoachDetails')}
           variant="error"
           confirmVariant="danger"
-          confirmLabel={t('delete') || 'Elimina'}
-          cancelLabel={t('cancel') || 'Annulla'}
+          confirmLabel={t('delete')}
+          cancelLabel={t('cancel')}
           onConfirm={deleteConfirmModal.onConfirm || (() => {})}
           onCancel={deleteConfirmModal.onCancel || (() => {})}
         />
