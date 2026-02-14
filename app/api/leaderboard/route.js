@@ -80,12 +80,14 @@ export async function GET(req) {
 
   let rankings = []
   let computedForCurrentUser = null
+  let computedCurrentMonth = null
   let snapshots = null
   let snapError = null
 
   // Per il mese corrente: ricalcoliamo sempre la classifica (tutti eleggibili, senza consenso) così lo snapshot non resta obsoleto.
   if (isCurrentMonth) {
     const computed = await computeLeaderboardForMonth(month, admin)
+    computedCurrentMonth = computed?.length ? computed : null
     if (computed.length) {
       await saveLeaderboardSnapshot(month, computed, admin)
     }
@@ -178,27 +180,39 @@ export async function GET(req) {
 
   const snapshotByUserForCurrent = {}
   if (snapshotsToUse?.length) {
-    const { data: profiles, error: profError } = await admin
-      .from('user_profiles')
-      .select('user_id, nickname')
-      .in('user_id', snapshotsToUse.map(s => s.user_id))
-    if (profError) {
-      console.error('[leaderboard] profiles error:', profError.message)
-      return NextResponse.json(
-        { error: 'Leaderboard unavailable', _debug: { step: 'profiles', message: profError.message } },
-        { status: 500 }
-      )
-    }
-    const nicknameByUser = {}
-    ;(profiles || []).forEach(p => { nicknameByUser[p.user_id] = p.nickname || null })
-    rankings = snapshotsToUse.map((s, idx) => {
-      snapshotByUserForCurrent[s.user_id] = { rank: idx + 1, points: s.points, points_breakdown: s.points_breakdown || {} }
-      return {
-        rank: idx + 1,
-        nickname: nicknameByUser[s.user_id] ?? '—',
-        points: s.points
+    // Mese corrente: usa i nickname già presenti in computedCurrentMonth (stessa richiesta, niente seconda fetch potenzialmente stale)
+    if (isCurrentMonth && computedCurrentMonth?.length) {
+      rankings = computedCurrentMonth.map(r => ({
+        rank: r.rank,
+        nickname: r.nickname ?? '—',
+        points: r.points
+      }))
+      computedCurrentMonth.forEach(r => {
+        snapshotByUserForCurrent[r.user_id] = { rank: r.rank, points: r.points, points_breakdown: r.points_breakdown || {} }
+      })
+    } else {
+      const { data: profiles, error: profError } = await admin
+        .from('user_profiles')
+        .select('user_id, nickname')
+        .in('user_id', snapshotsToUse.map(s => s.user_id))
+      if (profError) {
+        console.error('[leaderboard] profiles error:', profError.message)
+        return NextResponse.json(
+          { error: 'Leaderboard unavailable', _debug: { step: 'profiles', message: profError.message } },
+          { status: 500 }
+        )
       }
-    })
+      const nicknameByUser = {}
+      ;(profiles || []).forEach(p => { nicknameByUser[p.user_id] = p.nickname || null })
+      rankings = snapshotsToUse.map((s, idx) => {
+        snapshotByUserForCurrent[s.user_id] = { rank: idx + 1, points: s.points, points_breakdown: s.points_breakdown || {} }
+        return {
+          rank: idx + 1,
+          nickname: nicknameByUser[s.user_id] ?? '—',
+          points: s.points
+        }
+      })
+    }
   } else {
     const computed = await computeLeaderboardForMonth(month, admin)
     if (computed.length) {
