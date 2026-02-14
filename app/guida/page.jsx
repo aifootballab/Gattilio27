@@ -25,7 +25,8 @@ import {
   Compass,
   Shield,
   UserRound,
-  Wallet
+  Wallet,
+  Dumbbell
 } from 'lucide-react'
 
 export default function GuidaPage() {
@@ -143,7 +144,7 @@ export default function GuidaPage() {
       id: 'dettaglio-partita',
       icon: Trophy,
       color: 'var(--neon-pink)',
-      path: '/match',
+      path: '/',
       title: t('guideMatchDetailTitle'),
       description: t('guideMatchDetailDesc'),
       steps: [
@@ -157,7 +158,7 @@ export default function GuidaPage() {
       id: 'dettaglio-giocatore',
       icon: User,
       color: 'var(--neon-cyan)',
-      path: '/giocatore',
+      path: '/gestione-formazione',
       title: t('guidePlayerDetailTitle'),
       description: t('guidePlayerDetailDesc'),
       steps: [
@@ -181,10 +182,23 @@ export default function GuidaPage() {
       ]
     },
     {
-      id: 'contromisure-live',
+      id: 'palestra-coach',
+      icon: Dumbbell,
+      color: 'var(--neon-orange)',
+      path: '/',
+      title: t('guidePalestraCoachTitle'),
+      description: t('guidePalestraCoachDesc'),
+      steps: [
+        t('guidePalestraCoachStep1'),
+        t('guidePalestraCoachStep2'),
+        t('guidePalestraCoachStep3')
+      ]
+    },
+    {
+      id: 'contromisure-pre-partita',
       icon: Shield,
       color: 'var(--neon-orange)',
-      path: '/contromisure-live',
+      path: '/contromisure-pre-partita',
       title: t('guideCountermeasuresTitle'),
       description: t('guideCountermeasuresDesc'),
       steps: [

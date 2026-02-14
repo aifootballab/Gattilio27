@@ -13,7 +13,7 @@
 | `/giocatore/[id]` | `giocatore/[id]/page.jsx` | Scheda giocatore |
 | `/impostazioni-profilo` | `impostazioni-profilo/page.jsx` | Profilo utente |
 | `/guida` | `guida/page.jsx` | Guida interattiva |
-| `/contromisure-live` | `contromisure-live/page.jsx` | Contromisure vs avversario |
+| `/contromisure-pre-partita` | `contromisure-pre-partita/page.jsx` | Contromisure pre-partita vs avversario |
 | `/allenatori` | `allenatori/page.jsx` | Gestione allenatori |
 | `/login` | `login/page.jsx` | Login Supabase Auth |
 

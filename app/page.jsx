@@ -753,7 +753,7 @@ export default function DashboardPage() {
           </h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <button
-              onClick={() => router.push('/contromisure-live')}
+              onClick={() => router.push('/contromisure-pre-partita')}
               className="btn primary"
               style={{ 
                 width: '100%', 

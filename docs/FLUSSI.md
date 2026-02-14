@@ -14,7 +14,7 @@
 | 3 | Redirect | `router.push('/')` → Dashboard |
 | 4 | Pagine protette | `getSession()` → se assente `router.push('/login')` |
 
-**Pagine che controllano sessione:** `page.jsx` (dashboard), `gestione-formazione`, `giocatore/[id]`, `allenatori`, `match/[id]`, `match/new`, `gestione-profilo`, `impostazioni-profilo`, `guida`, `contromisure-live`, `classifica` (opzionale: può mostrare classifica anche anonimo).
+**Pagine che controllano sessione:** `page.jsx` (dashboard), `gestione-formazione`, `giocatore/[id]`, `allenatori`, `match/[id]`, `match/new`, `gestione-profilo`, `impostazioni-profilo`, `guida`, `contromisure-pre-partita`, `classifica` (opzionale: può mostrare classifica anche anonimo).
 
 **API:** Tutte le API che scrivono dati usano `extractBearerToken` + `validateToken`; lo user_id viene sempre dal token, mai dal body.
 
@@ -92,6 +92,7 @@ Login → Dashboard → (manca rosa/allenatore) → reminder banner
 | 4 | Salva e chiudi | `POST /api/save-coach-feedback` → estrae insight + campi profilo → scrive `user_tactical_feedback` + aggiorna `user_profiles` |
 
 - **Dati letti da:** `user_profiles`, ultima partita (dashboard passa `lastMatch`), `user_tactical_feedback` (per diagnosticBuilder).
+- **Scopo unico (blindato):** solo raccolta profilo di gioco e feedback post-partita. Richieste fuori contesto (consigli tattici, formazioni, analisi) → risposta fissa di redirect alla chat principale. Vedi system prompt in `app/api/coach-feedback-chat/route.js`.
 
 ---
 
@@ -110,7 +111,7 @@ Login → Dashboard → (manca rosa/allenatore) → reminder banner
 
 | Step | Dove | API |
 |------|------|-----|
-| 1 | Dashboard | "Contromisure" → `router.push('/contromisure-live')` |
+| 1 | Dashboard | "Contromisure pre-partita" → `router.push('/contromisure-pre-partita')` |
 | 2 | Upload formazione avversario | `POST /api/extract-formation` → `save-opponent-formation` |
 | 3 | Generazione | `POST /api/generate-countermeasures` (OpenAI, JSON strict) |
 | 4 | UI | Mostra analisi + suggerimenti (con `pickLang` per bilingue) |
@@ -160,3 +161,26 @@ Login → Dashboard → (manca rosa/allenatore) → reminder banner
 - Palestra Coach: `components/CoachFeedbackChat.jsx`, `app/api/coach-feedback-chat`, `save-coach-feedback`
 - Profilo: `app/gestione-profilo/page.jsx`, `app/impostazioni-profilo/page.jsx`, `app/api/supabase/save-profile/route.js`
 - Crediti / webhook: `app/api/credits/accredit/route.js` (auth: `CREDITS_ACCREDIT_API_KEY`)
+- Guida: `app/guida/page.jsx`, chiavi i18n `guide*` in `lib/i18n.js`
+
+---
+
+## 12. Guida utente: coerenza con le sezioni
+
+La pagina **Guida** (`/guida`) espone una card per ogni area dell’app. Tabella di allineamento con route e flussi:
+
+| Sezione Guida | Route / Dove | FLUSSI / Coerenza |
+|---------------|---------------|-------------------|
+| **Dashboard** | `/` | §2 onboarding, §4 classifica (link), §6 Palestra Coach (pulsante), obiettivi, Conoscenza AI |
+| **Gestione Formazione** | `/gestione-formazione` | §5 Gestione rosa; slot, riserve, formazione, tattica; link a dettaglio giocatore |
+| **Aggiungi Partita** | `/match/new` | §3 Flusso partita; wizard, save-match |
+| **Dettaglio Partita** | `/` → da dashboard clic su partita → `/match/[id]` | §3; analisi, riassunto AI, suggerimenti |
+| **Dettaglio Giocatore** | `/gestione-formazione` → clic su giocatore → `/giocatore/[id]` | §5; dettaglio da card formazione |
+| **Impostazioni Profilo** | `/impostazioni-profilo` | §7; save-profile, dati personali e preferenze |
+| **Palestra Coach** | `/` → modal da dashboard | §6; solo profilo di gioco + feedback partita; consigli tattici → chat principale |
+| **Contromisure pre-partita** | `/contromisure-pre-partita` | §8; upload formazione avversario, generate-countermeasures (pre-partita) |
+| **Allenatori** | `/allenatori` | §2; almeno 1 attivo, estrazione da foto |
+| **Classifica** | `/classifica` | §4; eleggibilità ≥1 partita nel mese + profilo ≥50% (nessun consenso) |
+| **Gestione Profilo** | `/gestione-profilo` | §7; Hero Points, crediti, transazioni, link classifica |
+
+**Note:** Dettaglio partita e Dettaglio giocatore non hanno pagina diretta `/match` o `/giocatore`; il pulsante "Vai alla pagina" porta a dashboard o gestione formazione; i testi della guida indicano "dalla dashboard/ formazione clicca su...".

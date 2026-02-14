@@ -607,7 +607,7 @@ export default function MatchDetailPage() {
           }
 
           // Helper per estrarre testo bilingue (supporta formato {it, en} e retrocompatibilità)
-          // Stesso pattern di contromisure-live pickLang: stringa o { it, en } → sempre stringa (mai oggetto in JSX)
+          // Stesso pattern di contromisure-pre-partita pickLang: stringa o { it, en } → sempre stringa (mai oggetto in JSX)
           const getBilingualText = (text) => {
             if (text == null) return ''
             if (typeof text === 'string') return text

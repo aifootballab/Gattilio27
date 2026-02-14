@@ -17,7 +17,7 @@ function pickLang(val, lang) {
   return String(val)
 }
 
-export default function CountermeasuresLivePage() {
+export default function CountermeasuresPreMatchPage() {
   const { t, lang } = useTranslation()
   const router = useRouter()
   
@@ -149,7 +149,7 @@ export default function CountermeasuresLivePage() {
         throw new Error(t('errorGeneratingCountermeasures') || 'Errore generazione contromisure')
       }
     } catch (err) {
-      console.error('[CountermeasuresLive] Pipeline error:', err)
+      console.error('[CountermeasuresPreMatch] Pipeline error:', err)
       setError(err.message || t('errorGeneratingCountermeasures') || 'Errore')
     } finally {
       setExtracting(false)
@@ -196,7 +196,7 @@ export default function CountermeasuresLivePage() {
         throw new Error(t('errorGeneratingCountermeasures') || 'Errore generazione contromisure')
       }
     } catch (err) {
-      console.error('[CountermeasuresLive] Generate error:', err)
+      console.error('[CountermeasuresPreMatch] Generate error:', err)
       setError(err.message || t('errorGeneratingCountermeasures'))
     } finally {
       setGenerating(false)
@@ -247,7 +247,7 @@ export default function CountermeasuresLivePage() {
             {t('back')}
           </button>
           <h1 className="neon-text" style={{ fontSize: 'clamp(24px, 5vw, 32px)', fontWeight: 700, margin: 0 }}>
-            {t('countermeasuresLive') || 'Contromisure Live'}
+            {t('countermeasuresLive') || 'Contromisure pre-partita'}
           </h1>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>

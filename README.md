@@ -90,7 +90,7 @@ lib/
 ## 🔌 Endpoint API
 
 **Formazione e giocatori**:
-- `POST /api/extract-formation` - Estrae formazione avversaria da screenshot (usato in contromisure-live e match/new)
+- `POST /api/extract-formation` - Estrae formazione avversaria da screenshot (usato in contromisure-pre-partita e match/new)
 - `POST /api/extract-player` - Estrae dati giocatore da screenshot
 - `POST /api/supabase/save-formation-layout` - Salva layout formazione propria
 - `POST /api/supabase/save-player` - Salva/aggiorna giocatore

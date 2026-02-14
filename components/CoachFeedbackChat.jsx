@@ -382,11 +382,9 @@ export default function CoachFeedbackChat({ show, onClose, userProfile: external
                 {lang === 'en' ? 'Coach Gym' : 'Palestra Coach'}
               </div>
               <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.8)' }}>
-                {sessionMode === 'profile_setup'
-                  ? (lang === 'en' ? 'Tell me about yourself' : 'Raccontami di te')
-                  : sessionMode === 'feedback'
-                    ? (lang === 'en' ? 'Post-match feedback' : 'Feedback post-partita')
-                    : (lang === 'en' ? 'Update your info' : 'Aggiorna le tue info')}
+                {lang === 'en'
+                  ? 'Profile & match feedback only. For tactical advice use the main chat.'
+                  : 'Solo profilo e feedback partite. Per consigli tattici usa la chat principale.'}
               </div>
             </div>
           </div>
@@ -626,7 +624,7 @@ export default function CoachFeedbackChat({ show, onClose, userProfile: external
             onKeyPress={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() }
             }}
-            placeholder={lang === 'en' ? 'Tell me...' : 'Raccontami...'}
+            placeholder={lang === 'en' ? 'Profile or match feedback...' : 'Profilo o feedback partita...'}
             disabled={loading || saving}
             style={{
               flex: 1, padding: '12px',
