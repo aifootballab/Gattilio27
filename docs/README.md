@@ -12,9 +12,20 @@
 | 🏗️ **Architettura** | Stack tecnico, database, API | [01-ARCHITETTURA/](./01-ARCHITETTURA/) |
 | ⚽ **Funzionalità** | Feature, UX, flussi utente | [02-FUNZIONALITA/](./02-FUNZIONALITA/) |
 | 💰 **Business** | Pricing, economia, monetizzazione | [03-BUSINESS/](./03-BUSINESS/) |
+| ⚖️ **Legale** | Termini, Privacy, Cookie (GDPR) | [03-BUSINESS/](#documenti-legali-obbligatori) |
 | 👨‍💻 **Guide Dev** | Guide sviluppatore, convenzioni | [04-GUIDE-DEV/](./04-GUIDE-DEV/) |
 | 🔍 **Analisi** | Audit, ricerche, valutazioni | [05-ANALISI-AUDIT/](./05-ANALISI-AUDIT/) |
-| 🗄️ **Archivio** | Documenti storici, obsoleti | [archivio/](./archivio/) |
+| 🗄️ **Archivio** | Documenti storici, obsoleti | [archivio/](./archivio/)
+
+## ⚖️ Documenti Legali (Obbligatori GDPR)
+
+| Documento | Scopo | Stato |
+|-----------|-------|-------|
+| **[Termini e Condizioni](./GUIDA_UTENTE_COMPLETA.md)** | Regole d'uso, pagamenti, rimborsi, classifiche | ✅ Pronto |
+| **[Privacy Policy](./PRIVACY_POLICY.md)** | Dati raccolti, diritti GDPR, terze parti | ✅ Pronto |
+| **[Cookie Policy](./COOKIE_POLICY.md)** | Cookie usati, gestione consenso | ✅ Pronto |
+
+**Nota:** Questi documenti devono essere linkati in footer sito e presentati al momento registrazione.
 
 ---
 
@@ -54,6 +65,12 @@
 ### ⚽ Gestione Rosa
 - Componente: `app/gestione-formazione/page.jsx`
 - Logica: `lib/diagnosticBuilder.js` (sezione rosa)
+
+### 🏆 Classifica Mensile (From Zero to Hero)
+- API: `GET /api/leaderboard?month=YYYY-MM`
+- Implementazione: [02-FUNZIONALITA/CLASSIFICA_MENSILE_IMPLEMENTAZIONE.md](./02-FUNZIONALITA/CLASSIFICA_MENSILE_IMPLEMENTAZIONE.md)
+- Calcolo punti: `lib/leaderboardHelper.js`
+- Pagine: Dashboard, `/classifica`
 
 ---
 

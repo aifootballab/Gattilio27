@@ -653,18 +653,7 @@ export default function ImpostazioniProfiloPage() {
           <Trophy size={20} color="var(--neon-orange)" />
           <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>{t('classificaMensile')}</h2>
         </div>
-        <div style={{ marginBottom: '16px' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', marginBottom: '8px' }}>
-            <input
-              type="checkbox"
-              checked={!!profile.leaderboard_consent}
-              onChange={(e) => setProfile(prev => ({ ...prev, leaderboard_consent: e.target.checked }))}
-              style={{ width: '20px', height: '20px', accentColor: 'var(--neon-orange)' }}
-            />
-            <span style={{ fontSize: '15px', color: '#fff' }}>{t('leaderboardConsent')}</span>
-          </label>
-          <p style={{ margin: 0, fontSize: '13px', color: '#888', marginLeft: '32px' }}>{t('leaderboardConsentHint')}</p>
-        </div>
+        {/* Consenso classifica rimosso: tutti gli eleggibili entrano in classifica */}
         <div style={{ marginBottom: '20px' }}>
           <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#888' }}>
             {t('nickname')}

@@ -138,40 +138,29 @@ export async function GET(req) {
   }
 
   const snapshotUserIds = new Set((snapshots || []).map(s => s.user_id))
-  const authUserHasConsentButNotInSnapshot = authUserId &&
-    snapshotUserIds.size > 0 &&
-    !snapshotUserIds.has(authUserId)
+  const authUserNotInSnapshot = authUserId && snapshotUserIds.size > 0 && !snapshotUserIds.has(authUserId)
 
-  // Retroattivo: se l'utente loggato ha consenso ma non è in classifica, ricalcola il mese per includerlo
+  // Retroattivo: se l'utente loggato non è in classifica, ricalcola il mese per includerlo (tutti eleggibili, senza consenso)
   let snapshotsToUse = snapshots
-  if (authUserHasConsentButNotInSnapshot) {
-    const { data: profile } = await admin
-      .from('user_profiles')
-      .select('leaderboard_consent')
-      .eq('user_id', authUserId)
-      .maybeSingle()
-    if (profile?.leaderboard_consent) {
-      const computed = await computeLeaderboardForMonth(month, admin)
-      if (computed.length) {
-        await saveLeaderboardSnapshot(month, computed, admin)
-        snapshotsToUse = computed.map(r => ({
-          user_id: r.user_id,
-          rank: r.rank,
-          points: r.points,
-          points_breakdown: r.points_breakdown || {}
-        }))
-      }
+  if (authUserNotInSnapshot) {
+    const computed = await computeLeaderboardForMonth(month, admin)
+    if (computed.length) {
+      await saveLeaderboardSnapshot(month, computed, admin)
+      snapshotsToUse = computed.map(r => ({
+        user_id: r.user_id,
+        rank: r.rank,
+        points: r.points,
+        points_breakdown: r.points_breakdown || {}
+      }))
     }
   }
 
-  const snapshotByUserForCurrent = {} // rank/points per currentUser dopo eventuale filtro consenso
-  let profilesWithConsent = 0
+  const snapshotByUserForCurrent = {}
   if (snapshotsToUse?.length) {
     const { data: profiles, error: profError } = await admin
       .from('user_profiles')
       .select('user_id, nickname')
       .in('user_id', snapshotsToUse.map(s => s.user_id))
-      .eq('leaderboard_consent', true)
     if (profError) {
       console.error('[leaderboard] profiles error:', profError.message)
       return NextResponse.json(
@@ -179,12 +168,9 @@ export async function GET(req) {
         { status: 500 }
       )
     }
-    const consentedIds = new Set((profiles || []).map(p => p.user_id))
-    profilesWithConsent = consentedIds.size
     const nicknameByUser = {}
     ;(profiles || []).forEach(p => { nicknameByUser[p.user_id] = p.nickname || null })
-    const filtered = snapshotsToUse.filter(s => consentedIds.has(s.user_id))
-    rankings = filtered.map((s, idx) => {
+    rankings = snapshotsToUse.map((s, idx) => {
       snapshotByUserForCurrent[s.user_id] = { rank: idx + 1, points: s.points, points_breakdown: s.points_breakdown || {} }
       return {
         rank: idx + 1,
@@ -234,7 +220,6 @@ export async function GET(req) {
     body._debug = {
       month,
       snapshotsFound: (snapshotsToUse || snapshots || []).length,
-      ...((snapshotsToUse || []).length > 0 && { profilesWithConsent }),
       supabaseProject,
       expectedProject: 'zliuuorrwdetylollrua'
     }
