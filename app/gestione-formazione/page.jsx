@@ -4065,7 +4065,7 @@ function UploadPlayerModal({ slot, images, onImagesChange, onUpload, onClose, up
                       }}
                     />
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '13px', opacity: 0.8 }}>{image.name}</span>
+                      <span style={{ fontSize: '13px', opacity: 0.8 }}>{t('uploadedPhotoLabel')}</span>
                       <span style={{ fontSize: '11px', padding: '2px 8px', background: color, color: '#000', borderRadius: '4px', fontWeight: 700 }}>
                         ✓
                       </span>

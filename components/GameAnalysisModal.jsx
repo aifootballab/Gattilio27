@@ -234,7 +234,7 @@ export default function GameAnalysisModal({ show, onClose, onSuccess }) {
                         </button>
                       </div>
                       <img src={value.dataUrl} alt={t(labelKey)} style={{ width: '100%', maxHeight: '140px', objectFit: 'cover', borderRadius: '8px', marginBottom: '8px' }} />
-                      <span style={{ fontSize: '13px', opacity: 0.85 }}>{value.name}</span>
+                      <span style={{ fontSize: '13px', opacity: 0.85 }}>{t('uploadedPhotoLabel')}</span>
                     </>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
