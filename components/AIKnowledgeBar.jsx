@@ -23,7 +23,6 @@ export default function AIKnowledgeBar() {
   const [breakdown, setBreakdown] = useState({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [showDetails, setShowDetails] = useState(false)
 
   const scoreRef = React.useRef(score)
   const previousScoreRef = React.useRef(score)
@@ -187,7 +186,7 @@ export default function AIKnowledgeBar() {
   const getDescriptionText = (level) => {
     switch (level) {
       case 'expert':
-        return t('aiKnowledgeDescriptionExpert') || t('aiKnowledgeDescription') || 'Abbiamo un quadro completo: i consigli sono al massimo su misura.'
+        return t('aiKnowledgeDescriptionExpert') || t('aiKnowledgeDescription') || 'Livello esperto: i consigli sono molto su misura. Più partite e utilizzo aiutano a raggiungere il 100%.'
       case 'advanced':
         return t('aiKnowledgeDescriptionAdvanced') || t('aiKnowledgeDescription') || 'Ti conosciamo bene: i consigli riflettono il tuo modo di giocare.'
       case 'intermediate':
@@ -349,20 +348,6 @@ export default function AIKnowledgeBar() {
       }}>
         {getLevelText(level)} — {getDescriptionText(level)}
       </p>
-
-      {/* Dettagli compatti: una riga, espandibile */}
-      <details
-        style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}
-        open={showDetails}
-        onToggle={(e) => setShowDetails(e.target.open)}
-      >
-        <summary style={{ cursor: 'pointer', userSelect: 'none', marginBottom: '6px' }}>
-          {t('viewDetails') || 'Vedi dettagli'}
-        </summary>
-        <p style={{ margin: '6px 0 0 0', fontSize: '11px', lineHeight: 1.5 }}>
-          {t('aiKnowledgeProfile')} {Math.round(breakdown.profile || 0)}/20 · {t('aiKnowledgeRoster')} {Math.round(breakdown.roster || 0)}/25 · {t('aiKnowledgeMatches')} {Math.round(breakdown.matches || 0)}/30 · {t('aiKnowledgePatterns')} {Math.round(breakdown.patterns || 0)}/15 · {t('aiKnowledgeCoach')} {Math.round(breakdown.coach || 0)}/10 · {t('aiKnowledgeUsage')} {Math.round(breakdown.usage || 0)}/10 · {t('aiKnowledgeSuccess')} {Math.round(breakdown.success || 0)}/15
-        </p>
-      </details>
 
       {/* CTA una riga, solo se score < 50 */}
       {score < 50 && (
