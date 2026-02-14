@@ -42,11 +42,10 @@ Utente visita /classifica
     ↓
 GET /api/leaderboard?month=2026-02
     ↓
-Query leaderboard_snapshots
+Mese corrente: computeLeaderboardForMonth (tutti eleggibili, nessun filtro consenso) → saveLeaderboardSnapshot
+Mese passato: lettura leaderboard_snapshots
     ↓
-Filtra per utenti con leaderboard_consent=true (TODO: rimuovere, spostare su T&C)
-    ↓
-Join user_profiles per nickname
+Join user_profiles per nickname (nessun filtro leaderboard_consent)
     ↓
 Return: rankings[], currentUser, daysLeftInMonth
 ```
@@ -117,7 +116,6 @@ export async function GET(req) {
     .from('user_profiles')
     .select('user_id, nickname')
     .in('user_id', userIds)
-    .eq('leaderboard_consent', true)  // TODO: rimuovere questo filtro
   
   // 3. Build rankings
   const nicknameMap = Object.fromEntries(
@@ -346,19 +344,10 @@ CREATE POLICY "Service role write leaderboard"
 
 ## 8. Modifiche Richieste (TODO)
 
-### Rimuovere leaderboard_consent
-Attualmente c'è un check `leaderboard_consent = true` nel filtro.
+### leaderboard_consent (stato)
+**Fatto:** Filtro `leaderboard_consent` rimosso da API route e da RPC (`get_leaderboard_for_month`, `get_leaderboard_current_user`). Tutti gli eleggibili (≥1 partita nel mese, profilo ≥50%) compaiono in classifica. Checkbox rimosso da Impostazioni profilo. La colonna in DB è mantenuta per eventuale uso futuro; non è usata per la classifica.
 
-**Da fare:**
-1. Spostare consenso nei Termini e Condizioni (generale)
-2. Rimuovere filtro `leaderboard_consent` dalla query
-3. Mostrare tutti gli utenti con nickname
-
-**SQL:**
-```sql
--- Opzionale: rimuovere colonna
-ALTER TABLE user_profiles DROP COLUMN leaderboard_consent;
-```
+La colonna `leaderboard_consent` non viene usata per la classifica; non è stata rimossa da DB (eventuale uso futuro).
 
 ---
 

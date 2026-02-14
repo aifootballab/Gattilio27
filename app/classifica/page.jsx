@@ -230,10 +230,8 @@ export default function ClassificaPage() {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '12px' }}>
                 {[
                   { key: 'matches', label: t('daPartite') },
-                  { key: 'tasks', label: t('daObiettivi') },
                   { key: 'usage_ia', label: t('daUtilizzoIA') },
-                  { key: 'profile', label: t('daProfilo') },
-                  { key: 'improvement', label: t('daMiglioramento') }
+                  { key: 'profile', label: t('daProfilo') }
                 ].map(({ key, label }) => (
                   <div key={key} style={{ textAlign: 'center', padding: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px' }}>
                     <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)' }}>{label}</div>

@@ -109,7 +109,7 @@ ai_knowledge_level VARCHAR       -- beginner|intermediate|advanced|expert
 ai_knowledge_breakdown JSONB     -- {profile: 15, roster: 25, ...}
 
 -- Classifica
-leaderboard_consent BOOLEAN      -- DA RIMUOVERE (spostare su T&C)
+leaderboard_consent BOOLEAN      -- Deprecato per classifica (non usato); colonna mantenuta per eventuale uso futuro
 
 -- Timestamp
 created_at, updated_at TIMESTAMPTZ
