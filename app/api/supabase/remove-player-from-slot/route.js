@@ -6,6 +6,11 @@ import { checkRateLimit, RATE_LIMIT_CONFIG } from '../../../../lib/rateLimiter'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
+function getLang(req) {
+  const accept = req?.headers?.get?.('accept-language') || ''
+  return accept.toLowerCase().startsWith('it') || accept.includes('it') ? 'it' : 'en'
+}
+
 export async function PATCH(req) {
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -55,6 +60,20 @@ export async function PATCH(req) {
 
     if (fetchError || !player) {
       return NextResponse.json({ error: 'Player not found or access denied' }, { status: 404 })
+    }
+
+    // Limite riserve: non spostare in panchina se già 12
+    const MAX_RESERVES = 12
+    const { count, error: countErr } = await admin
+      .from('players')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .is('slot_index', null)
+    if (!countErr && count >= MAX_RESERVES) {
+      const msg = getLang(req) === 'en'
+        ? 'Maximum 12 reserves reached. Remove a reserve first.'
+        : 'Massimo 12 riserve raggiunto. Rimuovi una riserva prima.'
+      return NextResponse.json({ error: msg }, { status: 400 })
     }
 
     // Validazione duplicati riserve: verifica se stesso giocatore (nome+età) già presente nelle riserve

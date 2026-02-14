@@ -13,6 +13,9 @@ function getLang(req) {
 
 const SERVER_ERROR = { it: 'Errore server', en: 'Server error' }
 
+/** Massimo riserve consentite (eFootball: 11 titolari + 12 in panchina) */
+const MAX_RESERVES = 12
+
 function toInt(v) {
   if (v === null || v === undefined) return null
   const n = Number(v)
@@ -378,6 +381,19 @@ export async function POST(req) {
             { status: 400 }
           )
         }
+      }
+    }
+
+    // Limite riserve: non inserire nuova riserva se già 12
+    if (playerData.slot_index === null) {
+      const { count, error: countErr } = await admin
+        .from('players')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .is('slot_index', null)
+      if (!countErr && count >= MAX_RESERVES) {
+        const msg = getLang(req) === 'en' ? 'Maximum 12 reserves reached.' : 'Massimo 12 riserve raggiunto.'
+        return NextResponse.json({ error: msg, code: 'max_reserves' }, { status: 400 })
       }
     }
 

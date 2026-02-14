@@ -24,6 +24,9 @@ import { PHOTO_TYPE_KEYS, getPhotoTypeConfig } from '@/lib/playerPhotoTypes'
 const USE_CONFIRM_MODAL = true
 // =====================================================
 
+/** Massimo numero di riserve consentite (eFootball: 11 titolari + 12 in panchina) */
+const MAX_RESERVES = 12
+
 /**
  * Helper per conferma sicura con feature flag
  * Permette rollback istantaneo cambiando USE_CONFIRM_MODAL a false
@@ -633,6 +636,10 @@ export default function GestioneFormazionePage() {
 
   const handleRemoveFromSlot = async (playerId) => {
     if (!supabase) return
+    if (riserve.length >= MAX_RESERVES) {
+      showToast(t('maxReservesReached'), 'error')
+      return
+    }
 
     setAssigning(true)
     setError(null)
@@ -1113,12 +1120,12 @@ export default function GestioneFormazionePage() {
           playerAge: playerAgeStr,
           slotIndex: duplicatePlayer.slot_index,
           duplicatePlayerId: duplicatePlayer.id,
-          onConfirm: async () => {
+            onConfirm: async () => {
             setDuplicateConfirmModal(null)
             setUploadingPlayer(true)
             
             try {
-              // Verifica duplicati riserve prima di rimuovere vecchio titolare
+              // Limite riserve: se non stiamo eliminando un duplicato, non possiamo aggiungere il titolare in panchina
               const duplicateReserve = currentRiserve.find(p => {
                 const pName = String(p.player_name || '').trim().toLowerCase()
                 const pAge = p.age != null ? Number(p.age) : null
@@ -1126,7 +1133,11 @@ export default function GestioneFormazionePage() {
                        (playerAge ? pAge === playerAge : true) &&
                        p.id !== duplicatePlayerId
               })
-              
+              if (!duplicateReserve && currentRiserve.length >= MAX_RESERVES) {
+                setUploadingPlayer(false)
+                showToast(t('maxReservesReached'), 'error')
+                return
+              }
               if (duplicateReserve) {
                 // Elimina duplicato riserva prima di rimuovere titolare
                 const deleteRes = await fetch('/api/supabase/delete-player', {
@@ -1668,6 +1679,10 @@ export default function GestioneFormazionePage() {
 
   const handleUploadReserve = async () => {
     if (uploadReserveImages.length === 0) return
+    if (riserve.length >= MAX_RESERVES) {
+      showToast(t('maxReservesReached'), 'error')
+      return
+    }
 
     setUploadingReserve(true)
     setError(null)
@@ -2539,7 +2554,7 @@ export default function GestioneFormazionePage() {
       </>
       )}
 
-      {/* Riserve */}
+      {/* Riserve (max 12) */}
       <div data-tour-id="tour-formation-reserves" style={{ marginBottom: '24px' }}>
         <div style={{ 
           display: 'flex', 
@@ -2553,35 +2568,42 @@ export default function GestioneFormazionePage() {
             color: 'var(--neon-purple)',
             margin: 0
           }}>
-            {t('riserve')} ({riserve.length})
+            {t('riserve')} ({riserve.length}/{MAX_RESERVES})
           </h2>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+            {riserve.length >= MAX_RESERVES && (
+              <span style={{ fontSize: '13px', color: 'var(--neon-orange)', marginRight: '4px' }}>{t('maxReservesReached')}</span>
+            )}
             <button
               data-tour-id="tour-formation-upload"
-              onClick={() => setShowUploadReserveModal(true)}
+              onClick={() => riserve.length < MAX_RESERVES && setShowUploadReserveModal(true)}
               className="btn"
+              disabled={riserve.length >= MAX_RESERVES}
               style={{ 
                 display: 'inline-flex', 
                 alignItems: 'center', 
                 gap: '8px',
-                background: 'rgba(168, 85, 247, 0.2)',
-                borderColor: 'var(--neon-purple)',
-                color: 'var(--neon-purple)'
+                background: riserve.length >= MAX_RESERVES ? 'rgba(128,128,128,0.2)' : 'rgba(168, 85, 247, 0.2)',
+                borderColor: riserve.length >= MAX_RESERVES ? 'rgba(255,255,255,0.3)' : 'var(--neon-purple)',
+                color: riserve.length >= MAX_RESERVES ? 'rgba(255,255,255,0.5)' : 'var(--neon-purple)',
+                cursor: riserve.length >= MAX_RESERVES ? 'not-allowed' : 'pointer'
               }}
             >
               <Upload size={16} />
               {t('loadReserve')}
             </button>
             <button
-              onClick={() => setShowManualPlayerModal(true)}
+              onClick={() => riserve.length < MAX_RESERVES && setShowManualPlayerModal(true)}
               className="btn"
+              disabled={riserve.length >= MAX_RESERVES}
               style={{ 
                 display: 'inline-flex', 
                 alignItems: 'center', 
                 gap: '8px',
-                background: 'rgba(0, 212, 255, 0.1)',
-                borderColor: 'var(--neon-blue)',
-                color: 'var(--neon-blue)'
+                background: riserve.length >= MAX_RESERVES ? 'rgba(128,128,128,0.2)' : 'rgba(0, 212, 255, 0.1)',
+                borderColor: riserve.length >= MAX_RESERVES ? 'rgba(255,255,255,0.3)' : 'var(--neon-blue)',
+                color: riserve.length >= MAX_RESERVES ? 'rgba(255,255,255,0.5)' : 'var(--neon-blue)',
+                cursor: riserve.length >= MAX_RESERVES ? 'not-allowed' : 'pointer'
               }}
             >
               <Pencil size={16} />
@@ -2629,6 +2651,7 @@ export default function GestioneFormazionePage() {
             <button
               onClick={() => setShowUploadReserveModal(true)}
               className="btn"
+              disabled={riserve.length >= MAX_RESERVES}
               style={{ 
                 display: 'inline-flex', 
                 alignItems: 'center', 

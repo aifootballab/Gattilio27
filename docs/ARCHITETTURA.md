@@ -165,7 +165,7 @@ player_name VARCHAR
 position VARCHAR              -- Portiere, DC, DD, etc.
 overall_rating INT
 playing_style_id UUID FK -> playing_styles
-slot_index INT                -- 0-10 titolari, NULL riserve
+slot_index INT                -- 0-10 titolari, NULL riserve (max 12 riserve per user)
 skills JSONB                  -- Array abilità
 com_skills JSONB              -- Abilità COM
 form VARCHAR                  -- ↑ → ↓
