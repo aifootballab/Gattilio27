@@ -32,7 +32,7 @@ const { userId } = req.body  // Chiunque può impersonare!
 | Endpoint | Auth | Esempio |
 |----------|------|---------|
 | Pubblico | Nessuna | `/api/leaderboard` (solo GET; in risposta: rank, nickname, points; mai user_id né points_breakdown per altri) |
-| Protetto | JWT | `/api/assistant-chat`, `/api/supabase/*` — user_id sempre da token |
+| Protetto | JWT | `/api/assistant-chat`, `/api/supabase/*`, `/api/generate-countermeasures` — user_id sempre da token; generate-countermeasures: opponent_formation_id validato (UUID), formazione avversaria filtrata per user_id |
 | Admin | JWT + Check | `/api/admin/recalculate-patterns` |
 | Webhook | API Key | `/api/credits/accredit` — body può contenere user_id/email; protetto da `CREDITS_ACCREDIT_API_KEY` |
 
@@ -109,7 +109,8 @@ export async function checkRateLimit(key, endpoint, max, windowMs) {
 '/api/supabase/save-match': { maxRequests: 20, windowMs: 60000 },   // 20/min
 '/api/supabase/save-player': { maxRequests: 30, windowMs: 60000 },  // 30/min
 '/api/extract-player': { maxRequests: 15, windowMs: 60000 },        // 15/min
-'/api/save-coach-feedback': { maxRequests: 5, windowMs: 60000 }     // 5/min
+'/api/save-coach-feedback': { maxRequests: 5, windowMs: 60000 },   // 5/min
+'/api/generate-countermeasures': { maxRequests: 5, windowMs: 60000 }  // 5/min (OpenAI)
 ```
 
 ---
@@ -132,6 +133,11 @@ function validateInput(key, value) {
   return value
 }
 ```
+
+### Esempio: generate-countermeasures
+- `opponent_formation_id`: obbligatorio, formato UUID (regex); formazione letta da DB con `.eq('user_id', userId)`.
+- `language`: whitelist `'it' | 'en'`, default `'it'`.
+- Suggerimenti giocatori dall’AI: `replace_player_id` validato contro i titolari della formazione utente (solo ID presenti in formazione); altrimenti suggerimento scartato.
 
 ### Sanitizzazione
 ```javascript

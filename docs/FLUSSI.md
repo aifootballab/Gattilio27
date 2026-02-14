@@ -114,7 +114,7 @@ Login → Dashboard → (manca rosa/allenatore) → reminder banner
 | 1 | Dashboard | "Contromisure pre-partita" → `router.push('/contromisure-pre-partita')` |
 | 2 | Upload formazione avversario | `POST /api/extract-formation` → `save-opponent-formation` |
 | 3 | Generazione | `POST /api/generate-countermeasures` (OpenAI, JSON strict) |
-| 4 | UI | Mostra analisi + suggerimenti (con `pickLang` per bilingue) |
+| 4 | UI | Mostra analisi + suggerimenti (con `pickLang` per bilingue). Suggerimenti giocatori "aggiungi ai titolari" mostrano sempre **chi sostituire** ("Sostituisci X con Y") tramite `replace_player_id` / `replace_player_name` (validati lato API). |
 
 ---
 

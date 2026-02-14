@@ -226,31 +226,43 @@ export default function CountermeasuresPreMatchPage() {
       minHeight: '100vh', 
       background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%)',
       padding: 'clamp(16px, 4vw, 24px)',
+      paddingTop: '80px',
       color: '#fff'
     }}>
-      {/* Header */}
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        marginBottom: '24px',
-        flexWrap: 'wrap',
-        gap: '16px'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      {/* Header sticky: resta visibile su mobile quando si scrolla, così il contesto "Contromisure pre-partita" non si perde */}
+      <div
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 50,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '12px',
+          padding: '12px clamp(16px, 4vw, 24px)',
+          background: 'linear-gradient(180deg, rgba(10,10,10,0.98) 0%, rgba(10,10,10,0.95) 70%, transparent 100%)',
+          backdropFilter: 'saturate(180%) blur(12px)',
+          borderBottom: '1px solid rgba(255, 140, 0, 0.2)',
+          boxSizing: 'border-box'
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
           <button
             onClick={() => router.push('/')}
             className="btn"
-            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}
           >
             <ArrowLeft size={18} />
             {t('back')}
           </button>
-          <h1 className="neon-text" style={{ fontSize: 'clamp(24px, 5vw, 32px)', fontWeight: 700, margin: 0 }}>
+          <h1 className="neon-text" style={{ fontSize: 'clamp(18px, 4vw, 24px)', fontWeight: 700, margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {t('countermeasuresLive') || 'Contromisure pre-partita'}
           </h1>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
           <LanguageSwitch />
         </div>
       </div>
@@ -429,6 +441,9 @@ export default function CountermeasuresPreMatchPage() {
       {/* Contromisure Generate */}
       {countermeasures && (
         <>
+          <p style={{ fontSize: 'clamp(13px, 2.5vw, 14px)', color: 'rgba(255,255,255,0.7)', marginBottom: '20px', marginTop: 0 }}>
+            {t('countermeasuresPreMatchContext') || 'Consigli pre-partita basati sulla formazione avversaria caricata.'}
+          </p>
           {/* Analisi Formazione Avversaria */}
           <div data-tour-id="tour-counter-result" className="card" style={{ padding: 'clamp(16px, 4vw, 24px)', marginBottom: '24px' }}>
             <div 
@@ -629,7 +644,14 @@ export default function CountermeasuresPreMatchPage() {
                           </span>
                         </div>
                         <div style={{ fontWeight: 600, marginBottom: '8px', fontSize: 'clamp(14px, 3vw, 16px)' }}>
-                          {suggestion.action === 'add_to_starting_xi' ? t('addToStartingXI') : t('removeFromStartingXI')}: {suggestion.player_name} ({suggestion.position})
+                          {suggestion.action === 'add_to_starting_xi'
+                            ? (suggestion.replace_player_name || suggestion.replace_player_id)
+                              ? (t('replaceInStartingXI') || 'Sostituisci ${replacePlayerName} con ${playerName} (${position})')
+                                    .replace('${replacePlayerName}', suggestion.replace_player_name || '?')
+                                    .replace('${playerName}', suggestion.player_name || '')
+                                    .replace('${position}', suggestion.position || '')
+                              : `${t('addToStartingXI')}: ${suggestion.player_name} (${suggestion.position || ''})`
+                            : `${t('removeFromStartingXI')}: ${suggestion.player_name} (${suggestion.position || ''})`}
                         </div>
                         <div style={{ fontSize: 'clamp(13px, 3vw, 14px)', lineHeight: '1.6', opacity: 0.9 }}>
                           {pickLang(suggestion.reason, lang)}

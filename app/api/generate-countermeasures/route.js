@@ -529,13 +529,27 @@ export async function POST(req) {
             isValid = false
             reason = `Giocatore ${suggestion.player_name || playerId} non è una riserva`
           }
+          // Deve indicare CHI sostituire (titolare da mettere in panchina)
+          else {
+            const replaceId = suggestion.replace_player_id
+            const replaceName = suggestion.replace_player_name
+            if (!replaceId || !titolariMap.has(replaceId)) {
+              isValid = false
+              reason = `Suggerimento "aggiungi ${suggestion.player_name}" non indica un titolare da sostituire (replace_player_id mancante o non in formazione)`
+            } else {
+              // Arricchisci replace_player_name se mancante
+              if (!replaceName && titolariMap.has(replaceId)) {
+                suggestion.replace_player_name = titolariMap.get(replaceId).player_name || titolariMap.get(replaceId).name || '?'
+              }
+            }
+          }
           // Se è portiere, deve esserci riserva portiere
-          else if (isGK && !hasGKReserve) {
+          if (isValid && isGK && !hasGKReserve) {
             isValid = false
             reason = `Nessuna riserva portiere disponibile per sostituire il portiere titolare`
           }
           // Se non ci sono riserve, non può aggiungere
-          else if (riserve.length === 0) {
+          if (isValid && riserve.length === 0) {
             isValid = false
             reason = `Nessuna riserva disponibile in panchina`
           }
