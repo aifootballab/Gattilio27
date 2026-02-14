@@ -26,7 +26,8 @@ export default function ClassificaPage() {
       const headers = { 'Content-Type': 'application/json' }
       if (token) headers.Authorization = `Bearer ${token}`
 
-      const res = await fetch('/api/leaderboard?' + new URLSearchParams({ month: getCurrentMonth() }), {
+      const params = new URLSearchParams({ month: getCurrentMonth(), _: String(Date.now()) })
+      const res = await fetch('/api/leaderboard?' + params, {
         headers,
         cache: 'no-store',
         ...(signal && { signal })
@@ -56,6 +57,14 @@ export default function ClassificaPage() {
     const ac = new AbortController()
     fetchLeaderboard(ac.signal)
     return () => ac.abort()
+  }, [fetchLeaderboard])
+
+  React.useEffect(() => {
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') fetchLeaderboard()
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => document.removeEventListener('visibilitychange', onVisibility)
   }, [fetchLeaderboard])
 
   function getCurrentMonth() {

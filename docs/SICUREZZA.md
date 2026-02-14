@@ -285,6 +285,46 @@ CREATE INDEX idx_audit_user ON audit_log(user_id, created_at DESC);
 
 ---
 
+## 12. Controllo sicurezza e coerenza enterprise
+
+**Verifica:** Auth, isolamento dati, API pubbliche, rate limit, Supabase advisor.
+
+### 12.1 Auth e user_id
+
+| Aspetto | Stato | Dettaglio |
+|--------|--------|-----------|
+| **user_id da token** | ✅ | Tutte le API che scrivono dati usano `extractBearerToken` + `validateToken`; `userId` è sempre `userData.user.id`. Nessun `user_id` dal body per autorizzazione. |
+| **Eccezione webhook** | ✅ | `POST /api/credits/accredit`: accetta `user_id`/`email` nel body **solo** se `Authorization: Bearer <CREDITS_ACCREDIT_API_KEY>` o `X-Webhook-Secret` è valido. Validazione UUID su `user_id`. |
+| **Admin API** | ✅ | `POST /api/admin/recalculate-patterns`: JWT obbligatorio; se il body contiene `user_id`, deve coincidere con l’utente del token (`requestedUserId !== userId` → 403). |
+
+### 12.2 Dati esposti (privacy)
+
+| Endpoint | Espone | Non espone |
+|----------|--------|------------|
+| **GET /api/leaderboard** | `rank`, `nickname`, `points` per ogni riga; per l’utente loggato anche `currentUser.rank`, `points`, `pointsBreakdown`. | `user_id` in classifica; `points_breakdown` per altri utenti. |
+| **Risposta API generiche** | Messaggi di errore localizzati (IT/EN), nessun stack trace in produzione. | Log senza PII in prod (controllo `NODE_ENV`). |
+
+### 12.3 Coerenza applicativa
+
+- **Rosa:** limite 12 riserve applicato in UI e in API (`save-player`, `remove-player-from-slot`); sostituzione titolare da upload controllata.
+- **Classifica:** nickname letti da `user_profiles` a ogni richiesta; header no-cache; frontend con cache-busting e refetch su `visibilitychange`.
+- **Flussi:** documentati in `docs/FLUSSI_LOGICA_SUPABASE.md` e `docs/FLUSSI.md`; tabelle e API allineate.
+
+### 12.4 Supabase Security Advisor (avvisi)
+
+| Avviso | Entità | Azione consigliata |
+|--------|--------|---------------------|
+| **Function search_path mutable** | Funzioni `update_*_updated_at`, `set_initial_division`, `atomic_slot_assignment`, `calculate_profile_completion_score`, `cleanup_orphan_individual_instructions` | Impostare `search_path` nelle funzioni (es. `SET search_path = public`) per evitare manipolazioni. [Remediation](https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable) |
+| **Leaked password protection disabled** | Auth | Abilitare la protezione password compromesse (HaveIBeenPwned) in Supabase Auth. [Remediation](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection) |
+
+### 12.5 Rate limiting
+
+- **Stato:** in-memory (`lib/rateLimiter.js`); su Vercel multi-istanza il limite è per istanza, non globale.
+- **Config:** endpoint critici (assistant-chat, save-match, save-player, extract-player, save-coach-feedback, generate-countermeasures, ecc.) hanno `RATE_LIMIT_CONFIG`; vedi §4.
+- **Produzione:** per limite globale considerare Redis/Upstash (vedi §4 TODO).
+
+---
+
 ## Riferimenti
 
 - [OWASP Top 10](https://owasp.org/www-project-top-ten/)
