@@ -737,8 +737,10 @@ export default function DashboardPage() {
             if (message === '__OPEN_GAME_ANALYSIS__') {
               setShowGameAnalysisModal(true)
             } else {
-              setCoachChatInitialMessage(message)
-              setShowCoachFeedback(true)
+              // Apri chat principale (AssistantChat) con messaggio precompilato, non Palestra Coach
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('open-assistant-chat', { detail: { message } }))
+              }
             }
           }}
         />

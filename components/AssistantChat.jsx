@@ -26,6 +26,17 @@ export default function AssistantChat() {
     return () => { sendAbortRef.current?.abort() }
   }, [])
 
+  // Apertura da Mission Center / link esterni: apri chat principale con messaggio precompilato
+  useEffect(() => {
+    const handler = (e) => {
+      const message = (e.detail && e.detail.message) ? String(e.detail.message) : ''
+      setIsOpen(true)
+      if (message) setInput(message)
+    }
+    window.addEventListener('open-assistant-chat', handler)
+    return () => window.removeEventListener('open-assistant-chat', handler)
+  }, [])
+
   // Suggerimenti utili: analisi vs rosa, uso comandi/abilità, priorità concrete
   const initialSuggestions = useMemo(() => {
     const page = (currentPage || '').toLowerCase()
