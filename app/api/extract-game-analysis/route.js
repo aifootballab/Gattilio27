@@ -127,13 +127,17 @@ export async function GET(req) {
       .eq('user_id', userData.user.id)
       .maybeSingle()
     const hasStats = row?.stats && typeof row.stats === 'object' && Object.keys(row.stats).length > 0
+    const headers = {
+      'Content-Language': lang,
+      'Cache-Control': 'private, no-store, max-age=0'
+    }
     return NextResponse.json(
       {
         captured_at: row?.captured_at || null,
         has_stats: !!hasStats,
         stats: hasStats ? row.stats : null
       },
-      { headers: { 'Content-Language': lang } }
+      { headers }
     )
   } catch (e) {
     console.error('[extract-game-analysis] GET error:', e)

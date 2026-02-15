@@ -8,7 +8,7 @@ import { useTranslation } from '@/lib/i18n'
 import { getBenchmarkComparison, BENCHMARK_CATEGORIES } from '@/lib/gameAnalysisBenchmark'
 import GameAnalysisModal from '@/components/GameAnalysisModal'
 import LanguageSwitch from '@/components/LanguageSwitch'
-import { ArrowLeft, BarChart3, MessageCircle, RefreshCw } from 'lucide-react'
+import { ArrowLeft, BarChart3, MessageCircle, RefreshCw, TrendingUp } from 'lucide-react'
 
 const CATEGORY_KEYS = {
   shot_usage: 'chartsCategoryShot',
@@ -18,140 +18,171 @@ const CATEGORY_KEYS = {
   special_commands: 'chartsCategorySpecialCommands'
 }
 
-const CHART_HEIGHT = 200
-const BAR_GROUP_GAP = 12
-const Y_AXIS_WIDTH = 36
+/** Indice 0-100 per categoria: per % è la media, per special_commands normalizzato su max della categoria. */
+function getCategorySummary(comparison, categoryKeys) {
+  if (!comparison) return []
+  return BENCHMARK_CATEGORIES.map((cat) => {
+    const series = comparison[cat]
+    if (!series?.length) return { categoryKey: cat, categoryLabel: categoryKeys[cat], tuIndex: 0, topIndex: 0 }
+    const isPercent = cat !== 'special_commands'
+    let tuSum = 0
+    let topSum = 0
+    let count = 0
+    if (isPercent) {
+      series.forEach(({ tu, div1 }) => {
+        if (tu != null) { tuSum += tu; count++ }
+        topSum += div1
+      })
+      const n = series.length
+      return {
+        categoryKey: cat,
+        categoryLabel: categoryKeys[cat],
+        tuIndex: count ? Math.round((tuSum / count) * 10) / 10 : 0,
+        topIndex: Math.round((topSum / n) * 10) / 10
+      }
+    }
+    const maxVal = Math.max(...series.flatMap(({ tu, div1 }) => [tu ?? 0, div1]), 1)
+    series.forEach(({ tu, div1 }) => {
+      tuSum += (tu != null ? tu : 0) / maxVal * 100
+      topSum += (div1 / maxVal) * 100
+      count++
+    })
+    const n = series.length
+    return {
+      categoryKey: cat,
+      categoryLabel: categoryKeys[cat],
+      tuIndex: n ? Math.round((tuSum / n) * 10) / 10 : 0,
+      topIndex: n ? Math.round((topSum / n) * 10) / 10 : 0
+    }
+  }).filter((s) => s.tuIndex > 0 || s.topIndex > 0)
+}
 
-function ChartCard({ title, series, isPercent }) {
-  const maxVal = Math.max(
-    ...series.flatMap(({ tu, div1 }) => [tu ?? 0, div1]),
-    1
-  )
-  const scaleMax = isPercent ? 100 : Math.ceil(maxVal * 1.1)
-  const formatVal = (v) => (v == null ? '—' : isPercent ? `${Math.round(v)}%` : String(Math.round(v)))
+const SUMMARY_CHART_HEIGHT = 220
+const LINE_CHART_HEIGHT = 200
+const PADDING = { top: 12, right: 12, bottom: 32, left: 44 }
+
+/** Grafico a linee riassuntivo: Tu vs Top sulle 5 categorie (indice 0-100). */
+function SummaryLineChart({ summary, categoryLabels, t }) {
+  const width = 320
+  const height = SUMMARY_CHART_HEIGHT
+  const innerW = width - PADDING.left - PADDING.right
+  const innerH = height - PADDING.top - PADDING.bottom
+  const n = summary.length
+  const scaleX = (i) => PADDING.left + (n > 1 ? (i / (n - 1)) * innerW : innerW / 2)
+  const scaleY = (v) => PADDING.top + innerH - (v / 100) * innerH
+
+  const tuPoints = summary.map((s, i) => `${scaleX(i)},${scaleY(s.tuIndex)}`).join(' ')
+  const topPoints = summary.map((s, i) => `${scaleX(i)},${scaleY(s.topIndex)}`).join(' ')
 
   return (
     <div className="card" style={{
-      padding: '20px',
+      padding: 'clamp(12px, 3vw, 20px)',
       background: 'rgba(255,255,255,0.03)',
-      border: '1px solid rgba(255,255,255,0.08)',
-      borderRadius: '12px'
+      border: '1px solid rgba(255,255,255,0.1)',
+      borderRadius: '12px',
+      minWidth: 0,
+      maxWidth: '100%'
     }}>
-      <h3 style={{ margin: '0 0 16px', fontSize: '16px', fontWeight: 600, color: 'rgba(255,255,255,0.95)' }}>{title}</h3>
-      {/* Legenda */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+        <TrendingUp size={20} style={{ color: 'var(--neon-blue)' }} />
+        <h2 style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: 'rgba(255,255,255,0.95)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          {t('chartsAndComparisonOverview') || 'Panoramica'}
+        </h2>
+      </div>
       <div style={{ display: 'flex', gap: '20px', marginBottom: '12px', fontSize: '12px', color: 'rgba(255,255,255,0.7)' }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ width: 12, height: 12, borderRadius: '3px', background: 'var(--neon-blue, #00d4ff)' }} />
+          <span style={{ width: 14, height: 2, background: 'var(--neon-blue, #00d4ff)', borderRadius: 1 }} />
           Tu
         </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ width: 12, height: 12, borderRadius: '3px', background: 'rgba(34, 197, 94, 0.85)' }} />
+          <span style={{ width: 14, height: 2, background: 'rgba(34, 197, 94, 0.9)', borderRadius: 1 }} />
           Top
         </span>
       </div>
-      {/* Grafico a barre verticali con asse Y */}
-      <div style={{ display: 'flex', alignItems: 'stretch', gap: 0, minHeight: CHART_HEIGHT + 48 }}>
+      <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} style={{ overflow: 'visible' }} preserveAspectRatio="xMidYMid meet">
+        {/* Griglia */}
+        {[25, 50, 75].map((p) => (
+          <line key={p} x1={PADDING.left} x2={width - PADDING.right} y1={scaleY(p)} y2={scaleY(p)} stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
+        ))}
         {/* Asse Y */}
-        <div style={{
-          width: Y_AXIS_WIDTH,
-          flexShrink: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'space-between',
-          paddingRight: '8px',
-          fontSize: '10px',
-          color: 'rgba(255,255,255,0.5)',
-          textAlign: 'right'
-        }}>
-          {[scaleMax, Math.round(scaleMax * 0.75), Math.round(scaleMax * 0.5), Math.round(scaleMax * 0.25), 0].map((tick) => (
-            <span key={tick}>{isPercent ? `${tick}%` : tick}</span>
-          ))}
-        </div>
-        {/* Area grafico + griglia */}
-        <div style={{
-          flex: 1,
-          minWidth: 0,
-          position: 'relative',
-          borderLeft: '1px solid rgba(255,255,255,0.12)',
-          borderBottom: '1px solid rgba(255,255,255,0.12)'
-        }}>
-          {/* Linee di griglia orizzontali */}
-          {[0.25, 0.5, 0.75].map((p) => (
-            <div
-              key={p}
-              style={{
-                position: 'absolute',
-                left: 0,
-                right: 0,
-                top: `${(1 - p) * 100}%`,
-                height: '1px',
-                background: 'rgba(255,255,255,0.06)'
-              }}
-            />
-          ))}
-          {/* Barre: una colonna per metrica, due barre (Tu, Top) affiancate */}
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-around',
-            alignItems: 'flex-end',
-            gap: BAR_GROUP_GAP,
-            height: CHART_HEIGHT,
-            padding: '0 8px 0 12px'
-          }}>
-            {series.map(({ label, tu, div1 }) => {
-              const tuH = scaleMax > 0 && tu != null ? (tu / scaleMax) * CHART_HEIGHT : 0
-              const topH = scaleMax > 0 ? (div1 / scaleMax) * CHART_HEIGHT : 0
-              return (
-                <div
-                  key={label}
-                  style={{
-                    flex: 1,
-                    minWidth: 0,
-                    maxWidth: 80,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}
-                >
-                  <div style={{ display: 'flex', gap: '4px', alignItems: 'flex-end', height: CHART_HEIGHT, width: '100%', justifyContent: 'center' }}>
-                    <div
-                      style={{
-                        width: '50%',
-                        minWidth: '16px',
-                        height: `${Math.max(0, tuH)}px`,
-                        minHeight: tu != null && tu > 0 ? '4px' : 0,
-                        background: 'var(--neon-blue, #00d4ff)',
-                        borderRadius: '4px 4px 0 0'
-                      }}
-                      title={formatVal(tu)}
-                    />
-                    <div
-                      style={{
-                        width: '50%',
-                        minWidth: '16px',
-                        height: `${Math.max(0, topH)}px`,
-                        minHeight: div1 > 0 ? '4px' : 0,
-                        background: 'rgba(34, 197, 94, 0.85)',
-                        borderRadius: '4px 4px 0 0'
-                      }}
-                      title={formatVal(div1)}
-                    />
-                  </div>
-                  <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.7)', textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block', width: '100%' }}>{label}</span>
-                </div>
-              )
-            })}
-          </div>
-        </div>
+        {[0, 25, 50, 75, 100].map((tick) => (
+          <text key={tick} x={PADDING.left - 6} y={scaleY(tick) + 4} textAnchor="end" fill="rgba(255,255,255,0.5)" fontSize="10">{tick}</text>
+        ))}
+        <line x1={PADDING.left} y1={PADDING.top} x2={PADDING.left} y2={height - PADDING.bottom} stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
+        <line x1={PADDING.left} y1={height - PADDING.bottom} x2={width - PADDING.right} y2={height - PADDING.bottom} stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
+        {/* Linee */}
+        <polyline points={tuPoints} fill="none" stroke="var(--neon-blue, #00d4ff)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <polyline points={topPoints} fill="none" stroke="rgba(34, 197, 94, 0.9)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        {/* Punti e etichette X */}
+        {summary.map((s, i) => (
+          <g key={s.categoryKey}>
+            <circle cx={scaleX(i)} cy={scaleY(s.tuIndex)} r="4" fill="var(--neon-blue, #00d4ff)" />
+            <circle cx={scaleX(i)} cy={scaleY(s.topIndex)} r="4" fill="rgba(34, 197, 94, 0.9)" />
+            <text x={scaleX(i)} y={height - 8} textAnchor="middle" fill="rgba(255,255,255,0.6)" fontSize="9">{String(categoryLabels[s.categoryKey] ?? s.categoryKey).slice(0, 10)}</text>
+          </g>
+        ))}
+      </svg>
+    </div>
+  )
+}
+
+/** Grafico a linee per categoria: due linee Tu e Top sulle voci (asse X = voci, Y = valore). */
+function LineChartCard({ title, series, isPercent }) {
+  const maxVal = Math.max(...series.flatMap(({ tu, div1 }) => [tu ?? 0, div1]), 1)
+  const scaleMax = isPercent ? 100 : Math.ceil(maxVal * 1.1)
+  const formatVal = (v) => (v == null ? '—' : isPercent ? `${Math.round(v)}%` : String(Math.round(v)))
+  const n = series.length
+  const width = 400
+  const height = LINE_CHART_HEIGHT
+  const innerW = width - PADDING.left - PADDING.right
+  const innerH = height - PADDING.top - PADDING.bottom
+  const scaleX = (i) => PADDING.left + (n > 1 ? (i / (n - 1)) * innerW : innerW / 2)
+  const scaleY = (v) => PADDING.top + innerH - (v / scaleMax) * innerH
+
+  const tuPoints = series.map((s, i) => `${scaleX(i)},${scaleY(s.tu ?? 0)}`).join(' ')
+  const topPoints = series.map((s, i) => `${scaleX(i)},${scaleY(s.div1)}`).join(' ')
+
+  return (
+    <div className="card" style={{
+      padding: 'clamp(12px, 3vw, 20px)',
+      background: 'rgba(255,255,255,0.03)',
+      border: '1px solid rgba(255,255,255,0.08)',
+      borderRadius: '12px',
+      minWidth: 0,
+      maxWidth: '100%'
+    }}>
+      <h3 style={{ margin: '0 0 12px', fontSize: 'clamp(14px, 3vw, 15px)', fontWeight: 600, color: 'rgba(255,255,255,0.95)' }}>{title}</h3>
+      <div style={{ display: 'flex', gap: '16px', marginBottom: '8px', fontSize: '11px', color: 'rgba(255,255,255,0.6)' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <span style={{ width: 10, height: 2, background: 'var(--neon-blue)' }} /> Tu
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <span style={{ width: 10, height: 2, background: 'rgba(34, 197, 94, 0.85)' }} /> Top
+        </span>
       </div>
-      {/* Valori sotto le barre (opzionale, per leggibilità) */}
-      <div style={{ display: 'flex', justifyContent: 'space-around', gap: BAR_GROUP_GAP, marginTop: '8px', paddingLeft: Y_AXIS_WIDTH + 8, fontSize: '11px', color: 'rgba(255,255,255,0.5)' }}>
+      <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} style={{ overflow: 'visible' }} preserveAspectRatio="xMidYMid meet">
+        {[0.25, 0.5, 0.75].map((p) => (
+          <line key={p} x1={PADDING.left} x2={width - PADDING.right} y1={PADDING.top + innerH * (1 - p)} y2={PADDING.top + innerH * (1 - p)} stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
+        ))}
+        {[0, Math.round(scaleMax * 0.25), Math.round(scaleMax * 0.5), Math.round(scaleMax * 0.75), scaleMax].map((tick) => (
+          <text key={tick} x={PADDING.left - 6} y={PADDING.top + innerH - (tick / scaleMax) * innerH + 4} textAnchor="end" fill="rgba(255,255,255,0.5)" fontSize="10">{isPercent ? `${tick}%` : tick}</text>
+        ))}
+        <line x1={PADDING.left} y1={PADDING.top} x2={PADDING.left} y2={height - PADDING.bottom} stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
+        <line x1={PADDING.left} y1={height - PADDING.bottom} x2={width - PADDING.right} y2={height - PADDING.bottom} stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
+        <polyline points={tuPoints} fill="none" stroke="var(--neon-blue, #00d4ff)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <polyline points={topPoints} fill="none" stroke="rgba(34, 197, 94, 0.85)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        {series.map((s, i) => (
+          <g key={s.label}>
+            <circle cx={scaleX(i)} cy={scaleY(s.tu ?? 0)} r="3" fill="var(--neon-blue)" />
+            <circle cx={scaleX(i)} cy={scaleY(s.div1)} r="3" fill="rgba(34, 197, 94, 0.85)" />
+          </g>
+        ))}
+      </svg>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 16px', marginTop: '8px', fontSize: 'clamp(10px, 2.5vw, 11px)', color: 'rgba(255,255,255,0.5)' }}>
         {series.map(({ label, tu, div1 }) => (
-          <div key={label} style={{ flex: 1, minWidth: 0, maxWidth: 80, display: 'flex', gap: '4px', justifyContent: 'center' }}>
-            <span style={{ width: '50%', textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{formatVal(tu)}</span>
-            <span style={{ width: '50%', textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{formatVal(div1)}</span>
-          </div>
+          <span key={String(label)} style={{ display: 'inline-flex', gap: '6px' }}>
+            <strong style={{ color: 'rgba(255,255,255,0.7)' }}>{String(label)}:</strong> Tu {formatVal(tu)} · Top {formatVal(div1)}
+          </span>
         ))}
       </div>
     </div>
@@ -209,7 +240,7 @@ export default function GraficiComparazionePage() {
   const isPercentCategories = { shot_usage: true, passing: true, dribbling: true, defense: true, special_commands: false }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-dark, #0a0a0f)', color: '#fff' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-dark, #0a0a0f)', color: '#fff', overflowX: 'hidden' }}>
       <header style={{
         display: 'flex',
         alignItems: 'center',
@@ -231,13 +262,13 @@ export default function GraficiComparazionePage() {
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <BarChart3 size={22} style={{ color: 'var(--neon-blue)' }} />
-            <h1 style={{ margin: 0, fontSize: '18px', fontWeight: 600 }}>{t('chartsAndComparisonTitle')}</h1>
+            <h1 style={{ margin: 0, fontSize: 'clamp(16px, 4vw, 18px)', fontWeight: 600, wordBreak: 'break-word' }}>{t('chartsAndComparisonTitle')}</h1>
           </div>
         </div>
         <LanguageSwitch />
       </header>
 
-      <main style={{ maxWidth: '900px', margin: '0 auto', padding: 'clamp(16px, 4vw, 24px) clamp(16px, 4vw, 20px)' }}>
+      <main style={{ maxWidth: '900px', width: '100%', minWidth: 0, margin: '0 auto', padding: 'clamp(16px, 4vw, 24px) clamp(16px, 4vw, 20px)', boxSizing: 'border-box' }}>
         {loading ? (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px', color: 'rgba(255,255,255,0.5)' }}>
             <RefreshCw size={24} className="grafici-comparazione-spinner" />
@@ -278,12 +309,24 @@ export default function GraficiComparazionePage() {
                 <span style={{ marginLeft: '8px', opacity: 0.8 }}> · {t('gameAnalysisLastCapture')}: {capturedAt}</span>
               )}
             </p>
+            {/* Panoramica: grafico a linee Tu vs Top sulle 5 categorie */}
+            {(() => {
+              const summary = getCategorySummary(comparison, CATEGORY_KEYS)
+              const categoryLabels = summary.length ? Object.fromEntries(summary.map((s) => [s.categoryKey, t(s.categoryLabel)])) : {}
+              return summary.length > 0 ? (
+                <SummaryLineChart summary={summary} categoryLabels={categoryLabels} t={t} />
+              ) : null
+            })()}
+            {/* Dettaglio per categoria: grafici a linee */}
+            <h3 style={{ margin: '24px 0 12px', fontSize: '13px', fontWeight: 600, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              {t('chartsAndComparisonDetail') || 'Dettaglio per categoria'}
+            </h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
               {BENCHMARK_CATEGORIES.map((cat) => {
                 const series = comparison?.[cat]
                 if (!series?.length) return null
                 return (
-                  <ChartCard
+                  <LineChartCard
                     key={cat}
                     title={t(CATEGORY_KEYS[cat] || cat)}
                     series={series}
