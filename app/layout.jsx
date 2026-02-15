@@ -6,8 +6,8 @@ import AppHeader from '@/components/AppHeader'
 // Layout unico: usare solo questo file. Non creare layout.tsx (conflitti / layout sbagliato = dashboard non carica).
 // Title/description: default IT; client can set document.title by lang via LanguageProviderWrapper
 export const metadata = {
-  title: 'Gattilio27 - Rosa (Production)',
-  description: 'Carica screenshot giocatori → estrazione dati → salvataggio in Supabase',
+  title: 'From Zero to Hero - eFootball AI Coach',
+  description: 'Coach AI per eFootball: rosa, partite, analisi e consigli tattici personalizzati.',
 }
 
 export default function RootLayout({ children }) {

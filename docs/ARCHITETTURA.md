@@ -1,5 +1,6 @@
-# Architettura Enterprise — eFootball AI Coach
+# Architettura Enterprise — From Zero to Hero
 
+**Prodotto:** From Zero to Hero (eFootball AI Coach)  
 **Documentazione Tecnica per Sviluppatori**  
 **Versione:** 2.0 Enterprise  
 **Data:** 14/02/2026  
@@ -30,6 +31,8 @@
 ---
 
 ## 2. Struttura Progetto
+
+*(Nome prodotto: **From Zero to Hero**. Cartella repo: `gattilio27-master`.)*
 
 ```
 gattilio27-master/

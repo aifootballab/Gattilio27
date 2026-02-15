@@ -1,6 +1,6 @@
-# eFootball AI Coach — Documentazione
+# From Zero to Hero — Documentazione
 
-**Piattaforma di coaching tattico personale per eFootball**
+**Prodotto:** From Zero to Hero (eFootball AI Coach). Piattaforma di coaching tattico personale per eFootball.
 
 ---
 
