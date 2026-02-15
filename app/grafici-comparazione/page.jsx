@@ -18,66 +18,18 @@ const CATEGORY_KEYS = {
   special_commands: 'chartsCategorySpecialCommands'
 }
 
-function ComparisonBar({ label, tu, top, maxVal, isPercent }) {
-  const formatVal = (v) => (v == null ? '—' : isPercent ? `${Math.round(v)}%` : String(Math.round(v)))
-  const tuWidth = maxVal > 0 && tu != null ? Math.min(100, (tu / maxVal) * 100) : 0
-  const topWidth = maxVal > 0 ? Math.min(100, (top / maxVal) * 100) : 0
-  return (
-    <div style={{
-      display: 'grid',
-      gridTemplateColumns: 'minmax(0,1fr) minmax(70px,100px) minmax(70px,100px)',
-      gap: 'clamp(8px, 2vw, 12px)',
-      alignItems: 'center',
-      padding: '8px 0',
-      borderBottom: '1px solid rgba(255,255,255,0.06)',
-      fontSize: 'clamp(12px, 2.5vw, 13px)'
-    }}>
-      <span style={{ color: 'rgba(255,255,255,0.9)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <div style={{
-          flex: 1,
-          height: '20px',
-          background: 'rgba(255,255,255,0.08)',
-          borderRadius: '4px',
-          overflow: 'hidden'
-        }}>
-          <div style={{
-            width: `${tuWidth}%`,
-            height: '100%',
-            background: 'var(--neon-blue, #00d4ff)',
-            borderRadius: '4px',
-            minWidth: tu != null && tu > 0 ? '4px' : 0
-          }} />
-        </div>
-        <span style={{ width: '36px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: 'rgba(255,255,255,0.85)' }}>{formatVal(tu)}</span>
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <div style={{
-          flex: 1,
-          height: '20px',
-          background: 'rgba(255,255,255,0.05)',
-          borderRadius: '4px',
-          overflow: 'hidden'
-        }}>
-          <div style={{
-            width: `${topWidth}%`,
-            height: '100%',
-            background: 'rgba(34, 197, 94, 0.6)',
-            borderRadius: '4px',
-            minWidth: top > 0 ? '4px' : 0
-          }} />
-        </div>
-        <span style={{ width: '36px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: 'rgba(255,255,255,0.6)' }}>{formatVal(top)}</span>
-      </div>
-    </div>
-  )
-}
+const CHART_HEIGHT = 200
+const BAR_GROUP_GAP = 12
+const Y_AXIS_WIDTH = 36
 
 function ChartCard({ title, series, isPercent }) {
   const maxVal = Math.max(
     ...series.flatMap(({ tu, div1 }) => [tu ?? 0, div1]),
     1
   )
+  const scaleMax = isPercent ? 100 : Math.ceil(maxVal * 1.1)
+  const formatVal = (v) => (v == null ? '—' : isPercent ? `${Math.round(v)}%` : String(Math.round(v)))
+
   return (
     <div className="card" style={{
       padding: '20px',
@@ -86,14 +38,122 @@ function ChartCard({ title, series, isPercent }) {
       borderRadius: '12px'
     }}>
       <h3 style={{ margin: '0 0 16px', fontSize: '16px', fontWeight: 600, color: 'rgba(255,255,255,0.95)' }}>{title}</h3>
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(70px,100px) minmax(70px,100px)', gap: 'clamp(8px, 2vw, 12px)', paddingBottom: '8px', borderBottom: '1px solid rgba(255,255,255,0.1)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'rgba(255,255,255,0.5)' }}>
-        <span> </span>
-        <span>Tu</span>
-        <span>Top</span>
+      {/* Legenda */}
+      <div style={{ display: 'flex', gap: '20px', marginBottom: '12px', fontSize: '12px', color: 'rgba(255,255,255,0.7)' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span style={{ width: 12, height: 12, borderRadius: '3px', background: 'var(--neon-blue, #00d4ff)' }} />
+          Tu
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span style={{ width: 12, height: 12, borderRadius: '3px', background: 'rgba(34, 197, 94, 0.85)' }} />
+          Top
+        </span>
       </div>
-      {series.map(({ label, tu, div1 }) => (
-        <ComparisonBar key={label} label={label} tu={tu} top={div1} maxVal={maxVal} isPercent={isPercent} />
-      ))}
+      {/* Grafico a barre verticali con asse Y */}
+      <div style={{ display: 'flex', alignItems: 'stretch', gap: 0, minHeight: CHART_HEIGHT + 48 }}>
+        {/* Asse Y */}
+        <div style={{
+          width: Y_AXIS_WIDTH,
+          flexShrink: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          paddingRight: '8px',
+          fontSize: '10px',
+          color: 'rgba(255,255,255,0.5)',
+          textAlign: 'right'
+        }}>
+          {[scaleMax, Math.round(scaleMax * 0.75), Math.round(scaleMax * 0.5), Math.round(scaleMax * 0.25), 0].map((tick) => (
+            <span key={tick}>{isPercent ? `${tick}%` : tick}</span>
+          ))}
+        </div>
+        {/* Area grafico + griglia */}
+        <div style={{
+          flex: 1,
+          minWidth: 0,
+          position: 'relative',
+          borderLeft: '1px solid rgba(255,255,255,0.12)',
+          borderBottom: '1px solid rgba(255,255,255,0.12)'
+        }}>
+          {/* Linee di griglia orizzontali */}
+          {[0.25, 0.5, 0.75].map((p) => (
+            <div
+              key={p}
+              style={{
+                position: 'absolute',
+                left: 0,
+                right: 0,
+                top: `${(1 - p) * 100}%`,
+                height: '1px',
+                background: 'rgba(255,255,255,0.06)'
+              }}
+            />
+          ))}
+          {/* Barre: una colonna per metrica, due barre (Tu, Top) affiancate */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-around',
+            alignItems: 'flex-end',
+            gap: BAR_GROUP_GAP,
+            height: CHART_HEIGHT,
+            padding: '0 8px 0 12px'
+          }}>
+            {series.map(({ label, tu, div1 }) => {
+              const tuH = scaleMax > 0 && tu != null ? (tu / scaleMax) * CHART_HEIGHT : 0
+              const topH = scaleMax > 0 ? (div1 / scaleMax) * CHART_HEIGHT : 0
+              return (
+                <div
+                  key={label}
+                  style={{
+                    flex: 1,
+                    minWidth: 0,
+                    maxWidth: 80,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  <div style={{ display: 'flex', gap: '4px', alignItems: 'flex-end', height: CHART_HEIGHT, width: '100%', justifyContent: 'center' }}>
+                    <div
+                      style={{
+                        width: '50%',
+                        minWidth: '16px',
+                        height: `${Math.max(0, tuH)}px`,
+                        minHeight: tu != null && tu > 0 ? '4px' : 0,
+                        background: 'var(--neon-blue, #00d4ff)',
+                        borderRadius: '4px 4px 0 0'
+                      }}
+                      title={formatVal(tu)}
+                    />
+                    <div
+                      style={{
+                        width: '50%',
+                        minWidth: '16px',
+                        height: `${Math.max(0, topH)}px`,
+                        minHeight: div1 > 0 ? '4px' : 0,
+                        background: 'rgba(34, 197, 94, 0.85)',
+                        borderRadius: '4px 4px 0 0'
+                      }}
+                      title={formatVal(div1)}
+                    />
+                  </div>
+                  <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.7)', textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block', width: '100%' }}>{label}</span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </div>
+      {/* Valori sotto le barre (opzionale, per leggibilità) */}
+      <div style={{ display: 'flex', justifyContent: 'space-around', gap: BAR_GROUP_GAP, marginTop: '8px', paddingLeft: Y_AXIS_WIDTH + 8, fontSize: '11px', color: 'rgba(255,255,255,0.5)' }}>
+        {series.map(({ label, tu, div1 }) => (
+          <div key={label} style={{ flex: 1, minWidth: 0, maxWidth: 80, display: 'flex', gap: '4px', justifyContent: 'center' }}>
+            <span style={{ width: '50%', textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{formatVal(tu)}</span>
+            <span style={{ width: '50%', textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{formatVal(div1)}</span>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
@@ -234,7 +294,7 @@ export default function GraficiComparazionePage() {
             </div>
             <div style={{ marginTop: '32px', textAlign: 'center' }}>
               <Link
-                href="/?openCoach=1"
+                href="/?openAssistantChat=1"
                 className="btn"
                 style={{
                   display: 'inline-flex',

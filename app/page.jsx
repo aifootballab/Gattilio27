@@ -37,12 +37,16 @@ import {
   Info
 } from 'lucide-react'
 
-/** Legge ?openCoach=1 dall'URL e apre la chat coach; in Suspense per useSearchParams (Next.js). */
-function OpenCoachListener({ onOpenCoach }) {
+/** Legge query URL: openCoach=1 → Palestra Coach; openAssistantChat=1 → chat principale (Assistant) con messaggio grafici. */
+function OpenCoachListener({ onOpenCoach, onOpenAssistantChat }) {
   const searchParams = useSearchParams()
   React.useEffect(() => {
+    if (searchParams?.get('openAssistantChat') === '1') {
+      onOpenAssistantChat?.()
+      return
+    }
     if (searchParams?.get('openCoach') === '1') onOpenCoach()
-  }, [searchParams, onOpenCoach])
+  }, [searchParams, onOpenCoach, onOpenAssistantChat])
   return null
 }
 
@@ -500,7 +504,15 @@ export default function DashboardPage() {
   return (
     <main data-tour-id="tour-dashboard-intro" style={{ padding: '24px', minHeight: '100vh', maxWidth: '1400px', margin: '0 auto' }}>
       <Suspense fallback={null}>
-        <OpenCoachListener onOpenCoach={() => setShowCoachFeedback(true)} />
+        <OpenCoachListener
+          onOpenCoach={() => setShowCoachFeedback(true)}
+          onOpenAssistantChat={() => {
+            if (typeof window !== 'undefined') {
+              const msg = t('chartsAndComparisonAskCoachContext')
+              window.dispatchEvent(new CustomEvent('open-assistant-chat', { detail: { message: msg } }))
+            }
+          }}
+        />
       </Suspense>
       {/* Header */}
       <div style={{ 
