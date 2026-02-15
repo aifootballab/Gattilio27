@@ -51,7 +51,13 @@ export default function NewMatchPage() {
           loadedStepData[HOME_AWAY_STEP_ID] = true
         }
         setStepData(loadedStepData)
-        setStepImages(parsed.stepImages || {})
+        // Normalizza player_ratings: da stringa a array (retrocompat)
+        const rawImages = parsed.stepImages || {}
+        const stepImagesNorm = { ...rawImages }
+        if (rawImages.player_ratings != null && typeof rawImages.player_ratings === 'string') {
+          stepImagesNorm.player_ratings = [rawImages.player_ratings]
+        }
+        setStepImages(stepImagesNorm)
         if (parsed.opponentName) {
           setOpponentName(parsed.opponentName)
         }
@@ -99,7 +105,7 @@ export default function NewMatchPage() {
     }
   }
 
-  const handleImageSelect = (section) => (e) => {
+  const handleImageSelect = (section, slotIndex = null) => (e) => {
     const file = e.target.files?.[0]
     if (!file || !file.type.startsWith('image/')) {
       setError(t('selectValidImage'))
@@ -113,19 +119,45 @@ export default function NewMatchPage() {
     }
 
     const reader = new FileReader()
-    reader.onload = (e) => {
-      const dataUrl = e.target.result
-      setStepImages(prev => ({ ...prev, [section]: dataUrl }))
+    reader.onload = (ev) => {
+      const dataUrl = ev.target.result
+      setStepImages(prev => {
+        if (section === 'player_ratings' && (slotIndex === 0 || slotIndex === 1)) {
+          const arr = Array.isArray(prev.player_ratings) ? [...prev.player_ratings] : []
+          arr[slotIndex] = dataUrl
+          return { ...prev, player_ratings: arr }
+        }
+        return { ...prev, [section]: dataUrl }
+      })
       setError(null)
     }
     reader.readAsDataURL(file)
-    // Reset input
     e.target.value = ''
   }
 
+  /** Merge due (o più) oggetti player_ratings da extract-match-data in uno solo (titolari + riserve). */
+  const mergePlayerRatings = (listOfData) => {
+    if (!listOfData || listOfData.length === 0) return null
+    const cliente = {}
+    const avversario = {}
+    listOfData.forEach(d => {
+      if (!d || typeof d !== 'object') return
+      if (d.cliente && typeof d.cliente === 'object') Object.assign(cliente, d.cliente)
+      if (d.avversario && typeof d.avversario === 'object') Object.assign(avversario, d.avversario)
+    })
+    if (Object.keys(cliente).length === 0 && Object.keys(avversario).length === 0) return listOfData[0] || null
+    return {
+      ...(Object.keys(cliente).length > 0 ? { cliente } : {}),
+      ...(Object.keys(avversario).length > 0 ? { avversario } : {})
+    }
+  }
+
   const handleExtract = async (section) => {
-    const imageDataUrl = stepImages[section]
-    if (!imageDataUrl) {
+    const isPlayerRatings = section === 'player_ratings'
+    const images = isPlayerRatings
+      ? (Array.isArray(stepImages.player_ratings) ? stepImages.player_ratings : stepImages.player_ratings ? [stepImages.player_ratings] : []).filter(Boolean)
+      : [stepImages[section]].filter(Boolean)
+    if (images.length === 0) {
       setError(t('loadImageFirst'))
       return
     }
@@ -140,49 +172,53 @@ export default function NewMatchPage() {
       }
 
       const token = session.session.access_token
+      const results = []
 
-      const extractRes = await fetch('/api/extract-match-data', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-          'Accept-Language': lang === 'en' ? 'en' : 'it'
-        },
-        body: JSON.stringify({
-          imageDataUrl,
-          section,
-          is_home: isHome
+      for (let i = 0; i < images.length; i++) {
+        const imageDataUrl = images[i]
+        const extractRes = await fetch('/api/extract-match-data', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'Accept-Language': lang === 'en' ? 'en' : 'it'
+          },
+          body: JSON.stringify({
+            imageDataUrl,
+            section,
+            is_home: isHome
+          })
         })
-      })
 
-      const extractData = await extractRes.json()
+        const extractData = await extractRes.json()
 
-      if (!extractRes.ok) {
-        const { message } = mapErrorToUserMessage(extractData?.error || '', t('extractDataError'), lang)
-        throw new Error(message)
+        if (!extractRes.ok) {
+          const { message } = mapErrorToUserMessage(extractData?.error || '', t('extractDataError'), lang)
+          throw new Error(message)
+        }
+        if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('credits-consumed'))
+
+        results.push(extractData.data)
+        if (extractData.result && typeof extractData.result === 'string' && extractData.result.trim()) {
+          results._result = extractData.result.trim()
+        }
       }
-      if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('credits-consumed'))
 
-      // Salva dati estratti
+      const merged = isPlayerRatings && results.length > 0 ? mergePlayerRatings(results) : results[0]
+      const resultToSave = results._result
+
       setStepData(prev => ({
         ...prev,
-        [section]: extractData.data
+        [section]: isPlayerRatings && merged && typeof merged === 'object' ? { cliente: merged.cliente || null, avversario: merged.avversario || null } : merged
       }))
 
-      // Salva risultato se presente (può essere estratto da qualsiasi sezione)
-      if (extractData.result && typeof extractData.result === 'string' && extractData.result.trim()) {
-        setStepData(prev => ({
-          ...prev,
-          result: extractData.result.trim()
-        }))
+      if (resultToSave) {
+        setStepData(prev => ({ ...prev, result: resultToSave }))
       }
 
-      // Avanza automaticamente allo step successivo se c'è
       const currentIndex = STEPS.findIndex(s => s.id === section)
       if (currentIndex < STEPS.length - 1) {
-        setTimeout(() => {
-          setCurrentStep(currentIndex + 1)
-        }, 500)
+        setTimeout(() => setCurrentStep(currentIndex + 1), 500)
       }
     } catch (err) {
       console.error('[NewMatch] Extract error:', err)
@@ -345,7 +381,10 @@ export default function NewMatchPage() {
 
   const currentStepInfo = STEPS[currentStep]
   const currentSection = currentStepInfo?.id
-  const currentImage = stepImages[currentSection]
+  const isPlayerRatingsStep = currentSection === 'player_ratings'
+  const playerRatingsImages = isPlayerRatingsStep && Array.isArray(stepImages.player_ratings) ? stepImages.player_ratings : (stepImages.player_ratings ? [stepImages.player_ratings] : [])
+  const currentImage = isPlayerRatingsStep ? (playerRatingsImages[0] || null) : stepImages[currentSection]
+  const hasImageForExtract = isPlayerRatingsStep ? playerRatingsImages.filter(Boolean).length >= 1 : !!stepImages[currentSection]
   const currentData = stepData[currentSection]
   const progress = ((currentStep + 1) / STEPS.length) * 100
   const extractedResult = stepData.result || null
@@ -653,67 +692,88 @@ export default function NewMatchPage() {
               <span>{error}</span>
             </div>
           )}
-          {/* Image Preview */}
-          {currentImage && (
-            <div style={{
-              marginBottom: '16px',
-              borderRadius: '8px',
-              overflow: 'hidden',
-              border: '1px solid rgba(255, 255, 255, 0.2)'
-            }}>
-              <img
-                src={currentImage}
-                alt="Preview"
-                style={{
-                  width: '100%',
-                  height: 'auto',
-                  display: 'block'
-                }}
-              />
+          {/* Image Preview(s) */}
+          {isPlayerRatingsStep ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '16px' }}>
+              {[0, 1].map(slot => (
+                <div key={slot} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ fontSize: '13px', opacity: 0.9 }}>
+                    {slot === 0 ? t('stepPlayerRatingsPhoto1') : t('stepPlayerRatingsPhoto2')}
+                  </div>
+                  {playerRatingsImages[slot] ? (
+                    <div style={{ borderRadius: '8px', overflow: 'hidden', border: '1px solid rgba(255, 255, 255, 0.2)' }}>
+                      <img src={playerRatingsImages[slot]} alt="" style={{ width: '100%', height: 'auto', display: 'block' }} />
+                    </div>
+                  ) : null}
+                  <label style={{ display: 'block' }}>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageSelect(currentSection, slot)}
+                      style={{ display: 'none' }}
+                      disabled={extracting || saving}
+                    />
+                    <div style={{
+                      background: playerRatingsImages[slot] ? 'rgba(0, 212, 255, 0.1)' : 'rgba(0, 212, 255, 0.2)',
+                      border: `1px solid ${playerRatingsImages[slot] ? 'rgba(0, 212, 255, 0.5)' : 'rgba(0, 212, 255, 0.3)'}`,
+                      borderRadius: '8px',
+                      padding: '12px',
+                      textAlign: 'center',
+                      cursor: extracting || saving ? 'not-allowed' : 'pointer',
+                      opacity: extracting || saving ? 0.5 : 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      color: '#00d4ff'
+                    }}>
+                      <Camera size={18} />
+                      <span>{playerRatingsImages[slot] ? t('changeImage') : t('loadImage')}</span>
+                    </div>
+                  </label>
+                </div>
+              ))}
             </div>
+          ) : currentImage ? (
+            <div style={{ marginBottom: '16px', borderRadius: '8px', overflow: 'hidden', border: '1px solid rgba(255, 255, 255, 0.2)' }}>
+              <img src={currentImage} alt="Preview" style={{ width: '100%', height: 'auto', display: 'block' }} />
+            </div>
+          ) : null}
+
+          {/* Upload Button (solo per step non pagelle) */}
+          {!isPlayerRatingsStep && (
+            <label style={{ display: 'block', width: '100%', marginBottom: '12px' }}>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageSelect(currentSection)}
+                style={{ display: 'none' }}
+                disabled={extracting || saving}
+              />
+              <div style={{
+                background: currentImage ? 'rgba(0, 212, 255, 0.1)' : 'rgba(0, 212, 255, 0.2)',
+                border: `1px solid ${currentImage ? 'rgba(0, 212, 255, 0.5)' : 'rgba(0, 212, 255, 0.3)'}`,
+                borderRadius: '8px',
+                padding: '16px',
+                textAlign: 'center',
+                cursor: extracting || saving ? 'not-allowed' : 'pointer',
+                opacity: extracting || saving ? 0.5 : 1,
+                transition: 'all 0.2s ease',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                color: '#00d4ff'
+              }}>
+                <Camera size={20} />
+                <span>{currentImage ? t('changeImage') : t('loadImage')}</span>
+              </div>
+            </label>
           )}
 
-          {/* Upload Button */}
-          <label style={{
-            display: 'block',
-            width: '100%',
-            marginBottom: '12px'
-          }}>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleImageSelect(currentSection)}
-              style={{ display: 'none' }}
-              disabled={extracting || saving}
-            />
-            <div style={{
-              background: currentImage
-                ? 'rgba(0, 212, 255, 0.1)'
-                : 'rgba(0, 212, 255, 0.2)',
-              border: `1px solid ${currentImage ? 'rgba(0, 212, 255, 0.5)' : 'rgba(0, 212, 255, 0.3)'}`,
-              borderRadius: '8px',
-              padding: '16px',
-              textAlign: 'center',
-              cursor: extracting || saving ? 'not-allowed' : 'pointer',
-              opacity: extracting || saving ? 0.5 : 1,
-              transition: 'all 0.2s ease',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              color: '#00d4ff'
-            }}>
-              <Camera size={20} />
-              <span>{currentImage ? t('changeImage') : t('loadImage')}</span>
-            </div>
-          </label>
-
           {/* Action Buttons */}
-          <div style={{
-            display: 'flex',
-            gap: '12px'
-          }}>
-            {currentImage && (
+          <div style={{ display: 'flex', gap: '12px' }}>
+            {hasImageForExtract && (
               <button
                 onClick={() => handleExtract(currentSection)}
                 disabled={extracting || saving || !!currentData}
@@ -758,7 +818,7 @@ export default function NewMatchPage() {
               onClick={() => handleSkip(currentSection)}
               disabled={extracting || saving}
               style={{
-                flex: currentImage ? 0.5 : 1,
+                flex: hasImageForExtract ? 0.5 : 1,
                 background: 'rgba(156, 163, 175, 0.2)',
                 border: '1px solid rgba(156, 163, 175, 0.5)',
                 borderRadius: '8px',
