@@ -793,7 +793,6 @@ function StatsSection({ player, photoSlots, isExpanded, onToggle, onFileSelect, 
               <input
                 type="file"
                 accept="image/*"
-                capture="environment"
                 onChange={onFileSelect}
                 style={{ display: 'none' }}
                 disabled={uploading}
@@ -983,7 +982,7 @@ function SkillsSection({ player, photoSlots, isExpanded, onToggle, onFileSelect,
               background: style.bgColor,
               opacity: uploading ? 0.6 : 1
             }}>
-              <input type="file" accept="image/*" capture="environment" onChange={onFileSelect} style={{ display: 'none' }} disabled={uploading} />
+              <input type="file" accept="image/*" onChange={onFileSelect} style={{ display: 'none' }} disabled={uploading} />
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                 <Upload size={18} color={style.color} />
                 <span style={{ fontSize: '14px', fontWeight: 600, color: style.color }}>{photoSlots.abilita ? t('updateSkills') : t('uploadSkills')}</span>
@@ -1113,7 +1112,7 @@ function BoostersSection({ player, photoSlots, isExpanded, onToggle, onFileSelec
               background: style.bgColor,
               opacity: uploading ? 0.6 : 1
             }}>
-              <input type="file" accept="image/*" capture="environment" onChange={onFileSelect} style={{ display: 'none' }} disabled={uploading} />
+              <input type="file" accept="image/*" onChange={onFileSelect} style={{ display: 'none' }} disabled={uploading} />
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                 <Upload size={18} color={style.color} />
                 <span style={{ fontSize: '14px', fontWeight: 600, color: style.color }}>{photoSlots.booster ? t('updateBoosters') : t('uploadBoosters')}</span>

@@ -240,7 +240,7 @@ export default function GameAnalysisModal({ show, onClose, onSuccess }) {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                       <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                         <label style={{ display: 'inline-flex', cursor: loading ? 'not-allowed' : 'pointer', alignItems: 'center', gap: '8px', padding: '10px 14px', border: `2px solid ${color}`, borderRadius: '8px', background: 'rgba(0,0,0,0.2)' }}>
-                          <input type="file" accept="image/*" capture="environment" ref={ref} style={{ display: 'none' }} onChange={(e) => handleFileSelect(e, key)} disabled={loading} />
+                          <input type="file" accept="image/*" ref={ref} style={{ display: 'none' }} onChange={(e) => handleFileSelect(e, key)} disabled={loading} />
                           <Upload size={20} style={{ color, flexShrink: 0 }} />
                           <span style={{ fontSize: '14px', fontWeight: 600, color }}>{lang === 'en' ? 'Choose file' : 'Sfoglia'}</span>
                         </label>

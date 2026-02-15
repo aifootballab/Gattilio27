@@ -183,19 +183,6 @@ export default function AIKnowledgeBar() {
     }
   }
 
-  const getDescriptionText = (level) => {
-    switch (level) {
-      case 'expert':
-        return t('aiKnowledgeDescriptionExpert') || t('aiKnowledgeDescription') || 'Livello esperto: i consigli sono molto su misura. Più partite e utilizzo aiutano a raggiungere il 100%.'
-      case 'advanced':
-        return t('aiKnowledgeDescriptionAdvanced') || t('aiKnowledgeDescription') || 'Ti conosciamo bene: i consigli riflettono il tuo modo di giocare.'
-      case 'intermediate':
-        return t('aiKnowledgeDescriptionIntermediate') || t('aiKnowledgeDescription') || 'Ti conosciamo abbastanza bene: i consigli sono già personalizzati.'
-      default:
-        return t('aiKnowledgeDescriptionBeginner') || t('aiKnowledgeDescription') || 'Stiamo imparando a conoscerti.'
-    }
-  }
-
   if (loading) {
     return (
       <div style={{
@@ -325,14 +312,13 @@ export default function AIKnowledgeBar() {
         </div>
       </div>
 
-      {/* Livello + descrizione. Suggerimenti prioritari (Rosa, Allenatore, Statistiche) sono nel banner setup sopra. */}
       <p style={{
         fontSize: 'clamp(12px, 2.8vw, 14px)',
         color: 'rgba(255,255,255,0.7)',
         margin: 0,
         lineHeight: 1.4
       }}>
-        {getLevelText(level)} — {getDescriptionText(level)}
+        {getLevelText(level)}
       </p>
     </div>
   )

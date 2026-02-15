@@ -4103,7 +4103,6 @@ function UploadPlayerModal({ slot, images, onImagesChange, onUpload, onClose, up
                     <input
                       type="file"
                       accept="image/*"
-                      capture="environment"
                       onChange={(e) => handleFileSelect(e, key)}
                       style={{ display: 'none' }}
                       disabled={uploading}
