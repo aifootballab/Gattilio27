@@ -128,7 +128,11 @@ export async function GET(req) {
       .maybeSingle()
     const hasStats = row?.stats && typeof row.stats === 'object' && Object.keys(row.stats).length > 0
     return NextResponse.json(
-      { captured_at: row?.captured_at || null, has_stats: !!hasStats },
+      {
+        captured_at: row?.captured_at || null,
+        has_stats: !!hasStats,
+        stats: hasStats ? row.stats : null
+      },
       { headers: { 'Content-Language': lang } }
     )
   } catch (e) {

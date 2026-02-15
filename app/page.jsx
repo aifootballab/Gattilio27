@@ -1,7 +1,7 @@
 'use client'
 
-import React from 'react'
-import { useRouter } from 'next/navigation'
+import React, { Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase, getValidAccessToken } from '@/lib/supabaseClient'
 import { useTranslation } from '@/lib/i18n'
 import LanguageSwitch from '@/components/LanguageSwitch'
@@ -36,6 +36,15 @@ import {
   BookOpen,
   Info
 } from 'lucide-react'
+
+/** Legge ?openCoach=1 dall'URL e apre la chat coach; in Suspense per useSearchParams (Next.js). */
+function OpenCoachListener({ onOpenCoach }) {
+  const searchParams = useSearchParams()
+  React.useEffect(() => {
+    if (searchParams?.get('openCoach') === '1') onOpenCoach()
+  }, [searchParams, onOpenCoach])
+  return null
+}
 
 export default function DashboardPage() {
   const { t, lang } = useTranslation()
@@ -490,6 +499,9 @@ export default function DashboardPage() {
 
   return (
     <main data-tour-id="tour-dashboard-intro" style={{ padding: '24px', minHeight: '100vh', maxWidth: '1400px', margin: '0 auto' }}>
+      <Suspense fallback={null}>
+        <OpenCoachListener onOpenCoach={() => setShowCoachFeedback(true)} />
+      </Suspense>
       {/* Header */}
       <div style={{ 
         display: 'flex', 
@@ -862,6 +874,35 @@ export default function DashboardPage() {
                 </span>
               )}
             </button>
+            <Link
+              href="/grafici-comparazione"
+              className="btn"
+              style={{
+                width: '100%',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '12px 16px',
+                background: 'rgba(0, 212, 255, 0.06)',
+                borderColor: 'rgba(0, 212, 255, 0.25)',
+                color: 'var(--neon-blue)',
+                marginTop: '10px'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(0, 212, 255, 0.1)'
+                e.currentTarget.style.boxShadow = '0 0 12px rgba(0, 212, 255, 0.2)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(0, 212, 255, 0.06)'
+                e.currentTarget.style.boxShadow = 'none'
+              }}
+            >
+              <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <BarChart3 size={18} />
+                {t('chartsAndComparisonTitle')}
+              </span>
+              <ArrowRight size={18} />
+            </Link>
             <button
               data-tour-id="tour-dashboard-add-match"
               onClick={() => router.push('/match/new')}
