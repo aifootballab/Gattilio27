@@ -29,52 +29,49 @@ export default function RoadmapPage() {
         return
       }
 
-      // Carica statistiche rosa
+      // Carica statistiche rosa (stesso schema della dashboard: slot_index 0-10 = titolari, null = riserve)
       const { data: players } = await supabase
         .from('players')
-        .select('*')
+        .select('id, slot_index')
         .eq('user_id', user.id)
-        .is('deleted_at', null)
 
-      const titolari = players?.filter(p => p.is_starter && !p.is_in_jury).length || 0
-      const riserve = players?.filter(p => !p.is_starter && !p.is_in_jury).length || 0
+      const playersList = players || []
+      const titolari = playersList.filter(p => p.slot_index != null && p.slot_index >= 0 && p.slot_index <= 10).length
+      const riserve = playersList.filter(p => p.slot_index == null).length
 
       setStats({
-        totalPlayers: players?.length || 0,
+        totalPlayers: playersList.length,
         titolari,
         riserve
       })
 
-      // Carica partite recenti
+      // Carica partite recenti (matches usa match_date, non played_at; nessun deleted_at)
       const { data: matches } = await supabase
         .from('matches')
-        .select('*')
+        .select('id, match_date, result')
         .eq('user_id', user.id)
-        .is('deleted_at', null)
-        .order('played_at', { ascending: false })
+        .order('match_date', { ascending: false })
         .limit(10)
 
       setRecentMatches(matches || [])
 
-      // Carica profilo utente
+      // Carica profilo utente (platform, ai_weak_point per step "Racconta chi sei")
       const { data: profile } = await supabase
         .from('user_profiles')
         .select('*')
         .eq('user_id', user.id)
-        .single()
+        .maybeSingle()
 
-      setUserProfile(profile)
+      setUserProfile(profile || null)
 
-      // Carica ultima analisi
+      // Carica ultima analisi (tabella reale: user_game_analysis, una riga per utente)
       const { data: analysis } = await supabase
-        .from('game_analysis_captures')
-        .select('*')
+        .from('user_game_analysis')
+        .select('stats, captured_at')
         .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single()
+        .maybeSingle()
 
-      setGameAnalysisLastCapture(analysis)
+      setGameAnalysisLastCapture(analysis ? { captured_at: analysis.captured_at } : null)
 
     } catch (err) {
       console.error('Error loading roadmap data:', err)
@@ -93,7 +90,7 @@ export default function RoadmapPage() {
         dataPhilosophy: 'Gattilio non è un oracolo che indovina. È un coach che impara chi sei. Più dati dai, più i consigli diventano TUOI.',
         stepByStep: 'Passo dopo passo',
         stepByStepDesc: 'Non devi fare tutto subito. Ogni passo sblocca il prossimo livello di consigli. Nessuna fretta, ma ogni dato aiuta.',
-        loading: 'Caricamento...',
+         loading: 'Caricamento...',
         roadmapTitle: 'Il tuo percorso da Zero a Hero',
         roadmapSubtitle: 'Ogni passo aggiunge dati. Più dati hai, più i consigli sono tuoi.',
         roadmapRosterTitle: 'Costruisci la tua Rosa',
