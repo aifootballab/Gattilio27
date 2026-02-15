@@ -200,11 +200,24 @@ export async function POST(req) {
     let stats = emptyStats()
     try {
       if (urls.length === 2) {
-        const [a, b] = await Promise.all([
-          extractFromOneImage(apiKey, urls[0], lang),
-          extractFromOneImage(apiKey, urls[1], lang)
-        ])
-        stats = mergeStats(a, b)
+        // Estrazione sequenziale per evitare timeout (2 Vision in parallelo possono fallire)
+        let a
+        try {
+          a = await extractFromOneImage(apiKey, urls[0], lang)
+        } catch (err1) {
+          console.error('[extract-game-analysis] First image error:', err1)
+          return NextResponse.json(
+            { error: L.parse },
+            { status: 422, headers: { 'Content-Language': lang } }
+          )
+        }
+        let b = null
+        try {
+          b = await extractFromOneImage(apiKey, urls[1], lang)
+        } catch (err2) {
+          console.error('[extract-game-analysis] Second image error (saving first only):', err2)
+        }
+        stats = b ? mergeStats(a, b) : a
       } else if (urls.length === 1) {
         stats = await extractFromOneImage(apiKey, urls[0], lang)
       }

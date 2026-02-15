@@ -11,12 +11,38 @@ const SLOTS = [
   { key: 'slot2', labelKey: 'gameAnalysisSlot2', descKey: 'gameAnalysisSlot2Desc' }
 ]
 
-function fileToDataUrl(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(reader.result)
-    reader.onerror = reject
-    reader.readAsDataURL(file)
+const MAX_DATAURL_BYTES = 1.8 * 1024 * 1024 // ~1.8MB per immagine per stare sotto limite body con 2 foto
+const RESIZE_MAX_WIDTH = 1200
+const RESIZE_QUALITY = 0.82
+
+function resizeDataUrlIfNeeded(dataUrl) {
+  if (!dataUrl || typeof dataUrl !== 'string' || !dataUrl.startsWith('data:image')) return Promise.resolve(dataUrl)
+  const base64 = dataUrl.split(',')[1]
+  if (!base64 || (base64.length * 3) / 4 <= MAX_DATAURL_BYTES) return Promise.resolve(dataUrl)
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      let w = img.width
+      let h = img.height
+      if (w > RESIZE_MAX_WIDTH) {
+        h = Math.round((h * RESIZE_MAX_WIDTH) / w)
+        w = RESIZE_MAX_WIDTH
+      }
+      canvas.width = w
+      canvas.height = h
+      const ctx = canvas.getContext('2d')
+      if (!ctx) { resolve(dataUrl); return }
+      ctx.drawImage(img, 0, 0, w, h)
+      try {
+        const resized = canvas.toDataURL('image/jpeg', RESIZE_QUALITY)
+        resolve(resized)
+      } catch {
+        resolve(dataUrl)
+      }
+    }
+    img.onerror = () => resolve(dataUrl)
+    img.src = dataUrl
   })
 }
 
@@ -48,7 +74,7 @@ const boxStyle = {
   boxSizing: 'border-box'
 }
 
-export default function GameAnalysisModal({ show, onClose, onSuccess }) {
+export default function GameAnalysisModal({ show, onClose, onSuccess, lastCaptureDate = null }) {
   const { t, lang } = useTranslation()
   const [slot1, setSlot1] = useState(null) // { file, dataUrl, name }
   const [slot2, setSlot2] = useState(null)
@@ -69,8 +95,10 @@ export default function GameAnalysisModal({ show, onClose, onSuccess }) {
     }
     setError(null)
     const reader = new FileReader()
-    reader.onload = (ev) => {
-      setSlot(key, { file, dataUrl: ev.target.result, name: file.name || 'camera.jpg' })
+    reader.onload = async (ev) => {
+      let dataUrl = ev.target.result
+      dataUrl = await resizeDataUrlIfNeeded(dataUrl)
+      setSlot(key, { file, dataUrl, name: file.name || 'camera.jpg' })
     }
     reader.readAsDataURL(file)
   }
@@ -92,7 +120,7 @@ export default function GameAnalysisModal({ show, onClose, onSuccess }) {
     e.preventDefault()
     const urls = [slot1?.dataUrl, slot2?.dataUrl].filter(Boolean)
     if (urls.length === 0) {
-      setError(lang === 'en' ? 'Select at least one image.' : 'Seleziona almeno un\'immagine.')
+      setError(t('gameAnalysisNoImage'))
       return
     }
     setLoading(true)
@@ -117,7 +145,9 @@ export default function GameAnalysisModal({ show, onClose, onSuccess }) {
       const data = await res.json().catch(() => ({}))
       if (res.ok && data.success) {
         setSuccess(true)
-        onSuccess?.()
+        try {
+          if (typeof onSuccess === 'function') await Promise.resolve(onSuccess())
+        } catch (_) { /* non bloccare */ }
         try {
           await fetch('/api/refresh-diagnostic', {
             method: 'POST',
@@ -136,7 +166,7 @@ export default function GameAnalysisModal({ show, onClose, onSuccess }) {
           setSlot1(null)
           setSlot2(null)
           onClose?.()
-        }, 1800)
+        }, 1500)
       } else {
         setError(data.error || t('gameAnalysisError'))
       }
@@ -177,6 +207,11 @@ export default function GameAnalysisModal({ show, onClose, onSuccess }) {
         <div style={{ fontSize: '14px', opacity: 0.9, marginBottom: '20px', textAlign: 'center', lineHeight: 1.5 }}>
           {t('gameAnalysisUploadHint')}
         </div>
+        {lastCaptureDate && (
+          <div style={{ fontSize: '13px', color: 'var(--neon-green)', marginBottom: '16px', textAlign: 'center' }}>
+            {t('gameAnalysisLastCapture')}: {lastCaptureDate}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit}>
           {/* Due slot distinti come gestione rosa: il cliente vede sempre quale ha caricato e quale manca */}

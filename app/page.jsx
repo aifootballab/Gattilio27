@@ -629,7 +629,7 @@ export default function DashboardPage() {
         lastMatch={recentMatches?.[0] || null}
         initialMessage={coachChatInitialMessage}
       />
-      <GameAnalysisModal show={showGameAnalysisModal} onClose={() => setShowGameAnalysisModal(false)} onSuccess={fetchGameAnalysisCapture} />
+      <GameAnalysisModal show={showGameAnalysisModal} onClose={() => setShowGameAnalysisModal(false)} onSuccess={fetchGameAnalysisCapture} lastCaptureDate={gameAnalysisLastCapture} />
 
       {/* Credits Bar: montata in layout per aggiornamento immediato dopo ogni API (credits-consumed) */}
 
@@ -832,8 +832,9 @@ export default function DashboardPage() {
               style={{ 
                 width: '100%', 
                 display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center',
+                flexDirection: 'column',
+                alignItems: 'stretch',
+                gap: '4px',
                 padding: '12px 16px',
                 background: 'rgba(34, 197, 94, 0.08)',
                 borderColor: 'rgba(34, 197, 94, 0.3)',
@@ -848,11 +849,18 @@ export default function DashboardPage() {
                 e.currentTarget.style.boxShadow = 'none'
               }}
             >
-              <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <BarChart3 size={18} />
-                {t('gameAnalysisTitle')}
+              <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <BarChart3 size={18} />
+                  {t('gameAnalysisTitle')}
+                </span>
+                <ArrowRight size={18} />
               </span>
-              <ArrowRight size={18} />
+              {gameAnalysisLastCapture && (
+                <span style={{ fontSize: '12px', opacity: 0.9, textAlign: 'left' }}>
+                  {t('gameAnalysisLastCapture')}: {gameAnalysisLastCapture}
+                </span>
+              )}
             </button>
             <button
               data-tour-id="tour-dashboard-add-match"
