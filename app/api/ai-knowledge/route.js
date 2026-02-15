@@ -80,19 +80,16 @@ export async function GET(req) {
       auth: { autoRefreshToken: false, persistSession: false }
     })
 
-    // Prova a leggere score dal database (cache) + campi base per suggerimento coerente
+    // Prova a leggere score dal database (cache)
     const { data: profile, error: profileError } = await admin
       .from('user_profiles')
-      .select('ai_knowledge_score, ai_knowledge_level, ai_knowledge_breakdown, ai_knowledge_last_calculated, first_name, team_name, current_division')
+      .select('ai_knowledge_score, ai_knowledge_level, ai_knowledge_breakdown, ai_knowledge_last_calculated')
       .eq('user_id', userId)
       .maybeSingle()
 
     if (profileError) {
       console.error('[AIKnowledge API] Error fetching profile:', profileError)
     }
-
-    const hasBasics = (v) => v != null && String(v).trim() !== ''
-    const profile_basics_ok = !!(hasBasics(profile?.first_name) && hasBasics(profile?.team_name) && hasBasics(profile?.current_division))
 
     // Forza ricalcolo se ?refresh=1 (es. dopo salvataggio profilo/rosa da UI)
     const url = new URL(req.url || '', 'http://localhost')
@@ -115,8 +112,7 @@ export async function GET(req) {
         score: profile.ai_knowledge_score,
         level: profile.ai_knowledge_level || getAIKnowledgeLevel(profile.ai_knowledge_score),
         breakdown,
-        last_calculated: profile.ai_knowledge_last_calculated,
-        profile_basics_ok
+        last_calculated: profile.ai_knowledge_last_calculated
       }, {
         headers: {
           'Cache-Control': 'private, max-age=300', // 5 minuti
@@ -154,8 +150,7 @@ export async function GET(req) {
         score: result.score,
         level: result.level,
         breakdown: result.breakdown,
-        last_calculated: new Date().toISOString(),
-        profile_basics_ok
+        last_calculated: new Date().toISOString()
       }, {
         headers: {
           'Cache-Control': 'private, max-age=300', // 5 minuti
@@ -175,8 +170,7 @@ export async function GET(req) {
           score: profile.ai_knowledge_score,
           level: profile.ai_knowledge_level || getAIKnowledgeLevel(profile.ai_knowledge_score),
           breakdown,
-          last_calculated: profile.ai_knowledge_last_calculated,
-          profile_basics_ok
+          last_calculated: profile.ai_knowledge_last_calculated
         }, {
           headers: {
             'Cache-Control': 'private, max-age=60', // 1 minuto (fallback)
@@ -201,8 +195,7 @@ export async function GET(req) {
           success: 0,
           coach_training: 0
         },
-        last_calculated: null,
-        profile_basics_ok
+        last_calculated: null
       }, {
         status: 200, // 200 OK anche se errore (fallback graceful)
         headers: {

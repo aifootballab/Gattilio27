@@ -57,7 +57,7 @@ gattilio27-master/
 ├── components/                   # React Components
 │   ├── CoachFeedbackChat.jsx     # Palestra Coach (feature principale)
 │   ├── AssistantChat.jsx         # Chat widget globale
-│   ├── AIKnowledgeBar.jsx        # Progress bar AI Score
+│   ├── AIKnowledgeBar.jsx        # Barra Conoscenza AI (score %, livello, descrizione). Suggerimenti prioritari nel banner setup.
 │   ├── TaskWidget.jsx            # Obiettivi settimanali
 │   ├── ManualPlayerModal.jsx     # Inserimento manuale
 │   └── ...

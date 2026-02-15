@@ -21,7 +21,6 @@ export default function AIKnowledgeBar() {
   const [score, setScore] = useState(0)
   const [level, setLevel] = useState('beginner')
   const [breakdown, setBreakdown] = useState({})
-  const [profileBasicsOk, setProfileBasicsOk] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -73,7 +72,6 @@ export default function AIKnowledgeBar() {
             setScore(newScore)
             setLevel(data.level || 'beginner')
             setBreakdown(data.breakdown || {})
-            setProfileBasicsOk(!!data.profile_basics_ok)
             return // Successo, ferma retry
           }
           
@@ -146,7 +144,6 @@ export default function AIKnowledgeBar() {
       setScore(data.score || 0)
       setLevel(data.level || 'beginner')
       setBreakdown(data.breakdown || {})
-      setProfileBasicsOk(!!data.profile_basics_ok)
     } catch (err) {
       if (err?.name === 'AbortError' || signal?.aborted) return
       const msg = err?.message || ''
@@ -197,21 +194,6 @@ export default function AIKnowledgeBar() {
       default:
         return t('aiKnowledgeDescriptionBeginner') || t('aiKnowledgeDescription') || 'Stiamo imparando a conoscerti.'
     }
-  }
-
-  /** CTA dinamica: primo componente sotto il massimo (ordine allineato a aiKnowledgeHelper: profile 20, roster 25, matches 30, patterns 15, coach 10, usage 5, success 10, coach_training 10) */
-  const getNextStepCtaKey = () => {
-    const max = { profile: 20, roster: 25, matches: 30, patterns: 15, coach: 10, usage: 5, success: 10, coach_training: 10 }
-    const b = breakdown || {}
-    if ((b.profile || 0) < max.profile) return 'ctaNextStepProfile'
-    if ((b.roster || 0) < max.roster) return 'ctaNextStepRoster'
-    if ((b.matches || 0) < max.matches) return 'ctaNextStepMatches'
-    if ((b.patterns || 0) < max.patterns) return 'ctaNextStepPattern'
-    if ((b.coach || 0) < max.coach) return 'ctaNextStepCoach'
-    if ((b.usage || 0) < max.usage) return 'ctaNextStepUsage'
-    if ((b.success || 0) < max.success) return 'ctaNextStepSuccess'
-    if ((b.coach_training || 0) < max.coach_training) return 'ctaNextStepCoachTraining'
-    return 'completeProfileToIncreaseKnowledge'
   }
 
   if (loading) {
@@ -343,31 +325,15 @@ export default function AIKnowledgeBar() {
         </div>
       </div>
 
-      {/* Una sola riga: livello + messaggio breve */}
+      {/* Livello + descrizione. Suggerimenti prioritari (Rosa, Allenatore, Statistiche) sono nel banner setup sopra. */}
       <p style={{
         fontSize: 'clamp(12px, 2.8vw, 14px)',
         color: 'rgba(255,255,255,0.7)',
-        margin: '0 0 10px 0',
+        margin: 0,
         lineHeight: 1.4
       }}>
         {getLevelText(level)} — {getDescriptionText(level)}
       </p>
-
-      {/* CTA una riga, solo se score < 50. Se profilo base è già ok ma profile < 20, messaggio diverso. */}
-      {score < 50 && (() => {
-        const ctaKey = getNextStepCtaKey()
-        const showProfileDetails = ctaKey === 'ctaNextStepProfile' && profileBasicsOk
-        return (
-          <p style={{
-            marginTop: '10px',
-            fontSize: '12px',
-            color: 'rgba(255, 193, 7, 0.95)',
-            fontWeight: '500'
-          }}>
-            💡 {t(showProfileDetails ? 'ctaNextStepProfileDetails' : ctaKey)}
-          </p>
-        )
-      })()}
     </div>
   )
 }
