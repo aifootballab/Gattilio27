@@ -104,13 +104,13 @@ function isLoss(result) {
  */
 async function calculateTacticalPatterns(admin, userId) {
   try {
-    // Recupera ultime 50 partite
+    // Recupera ultime 20 partite (per pattern formazione/stile)
     const { data: matches, error: matchesError } = await admin
       .from('matches')
       .select('formation_played, playing_style_played, result')
       .eq('user_id', userId)
       .order('match_date', { ascending: false })
-      .limit(50)
+      .limit(20)
 
     if (matchesError) {
       console.error('[save-match] Error loading matches for pattern calculation:', matchesError)

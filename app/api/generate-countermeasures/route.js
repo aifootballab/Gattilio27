@@ -152,13 +152,13 @@ export async function POST(req) {
       .eq('is_active', true)
       .maybeSingle()
 
-    // 6. Recupera storico match completo (ultimi 50 per analisi approfondita)
+    // 6. Recupera storico match completo (ultime 20 per analisi)
     const { data: matchHistory, error: historyError } = await admin
       .from('matches')
       .select('id, opponent_name, result, formation_played, playing_style_played, opponent_formation_id, player_ratings, team_stats, match_date')
       .eq('user_id', userId)
       .order('match_date', { ascending: false })
-      .limit(50)
+      .limit(20)
 
     // 6.1 Analizza match con formazioni simili all'avversario
     const similarFormationMatches = []

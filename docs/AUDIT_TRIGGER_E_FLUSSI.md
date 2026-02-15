@@ -55,7 +55,7 @@ La tabella **leaderboard_snapshots** non ha trigger. Scrittura solo da **codice 
 ### 3.3 matches — trg_refresh_player_performance (AFTER INSERT/UPDATE)
 
 - **Effetto:** Se `user_id` e `player_ratings` sono valorizzati, chiama `refresh_player_performance_for_user(NEW.user_id)`.
-- **refresh_player_performance_for_user:** Per ogni giocatore dell’utente, legge le ultime 50 partite con `player_ratings`, estrae i rating per nome giocatore, calcola media e trend (ultimi 10), fa UPSERT su **player_performance_aggregates**.
+- **refresh_player_performance_for_user:** Per ogni giocatore dell’utente, legge le ultime **20** partite con `player_ratings`, estrae i rating per nome giocatore, calcola media e trend (ultimi 10), fa UPSERT su **player_performance_aggregates**. (Migrazione `refresh_player_performance_limit_20_matches`: LIMIT 50 → 20.)
 - **Non tocca:** leaderboard_snapshots, user_profiles, weekly_goals.
 
 ### 3.4 Altri trigger

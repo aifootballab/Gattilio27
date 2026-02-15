@@ -128,13 +128,13 @@ export async function POST(req) {
 #### Calcolo Pattern (`lib/tacticalPatterns.js`)
 ```javascript
 export async function calculateTacticalPatterns(userId, admin) {
-  // Recupera ultime 50 partite
+  // Recupera ultime 20 partite (finestra per pattern)
   const { data: matches } = await admin
     .from('matches')
     .select('formation_played, playing_style_played, result')
     .eq('user_id', userId)
     .order('match_date', { ascending: false })
-    .limit(50)
+    .limit(20)
   
   // Aggregazione formazioni
   const formationUsage = {}
@@ -235,7 +235,7 @@ CREATE TABLE team_tactical_patterns (
   attack_areas_avg JSONB DEFAULT '{}',     -- Medie zone attacco
   recovery_zones_avg JSONB DEFAULT '{}',   -- Medie zone recupero
   
-  last_50_matches_count INTEGER DEFAULT 0,
+  last_50_matches_count INTEGER DEFAULT 0,  -- N partite considerate (max 20; nome colonna legacy)
   last_updated TIMESTAMPTZ DEFAULT NOW()
 );
 ```
