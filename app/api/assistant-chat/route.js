@@ -220,6 +220,7 @@ const CONTEXT_LABELS = {
     advisableStyles: 'Consigliabili (>=70)',
     notAdvisableStyles: 'Non consigliabili (<70)',
     noneLabel: 'nessuno',
+    dispositionInField: 'Disposizione in campo',
   },
   en: {
     formationNotSet: 'not set',
@@ -246,6 +247,7 @@ const CONTEXT_LABELS = {
     advisableStyles: 'Advisable (>=70)',
     notAdvisableStyles: 'Not advisable (<70)',
     noneLabel: 'none',
+    dispositionInField: 'Lineup on pitch',
   }
 }
 
@@ -273,8 +275,6 @@ async function buildPersonalContext(userId, lang = 'it') {
       .select('formation, slot_positions')
       .eq('user_id', userId)
       .maybeSingle()
-    const formation = formationRow?.formation || L.formationNotSet
-
     // Players (titolari + riserve) - include skills, forma, altezza/peso per ragionamento enterprise
     const { data: playersData, error: playersError } = await admin
       .from('players')
@@ -381,6 +381,27 @@ async function buildPersonalContext(userId, lang = 'it') {
     }
     if (riserve.length > 15) rosterLines.push(`  ... altri ${riserve.length - 15} riserve`)
 
+    // Disposizione reale in campo (da titolari per slot), non dal nome modulo formation
+    const positionsOrdered = titolari.map(p => (p.position || '?').trim() || '?').join(', ')
+    const DEF = ['DC', 'TD', 'TS']
+    const MID = ['MED', 'CC', 'TRQ', 'CLS', 'CLD']
+    const FWD = ['P', 'SP', 'CF']
+    const counts = { pt: 0, def: 0, mid: 0, fwd: 0 }
+    titolari.forEach(p => {
+      const pos = (p.position || '').toUpperCase().trim()
+      if (pos === 'PT') counts.pt += 1
+      else if (DEF.includes(pos)) counts.def += 1
+      else if (MID.includes(pos)) counts.mid += 1
+      else if (FWD.includes(pos)) counts.fwd += 1
+    })
+    const summaryParts = []
+    if (counts.pt) summaryParts.push(lang === 'en' ? '1 GK' : '1 PT')
+    if (counts.def) summaryParts.push(lang === 'en' ? `${counts.def} defenders` : `${counts.def} difensori`)
+    if (counts.mid) summaryParts.push(lang === 'en' ? `${counts.mid} midfield` : `${counts.mid} centrocampo`)
+    if (counts.fwd) summaryParts.push(lang === 'en' ? `${counts.fwd} forwards` : `${counts.fwd} attaccanti`)
+    const dispositionSummary = summaryParts.length ? ` (${summaryParts.join(', ')})` : ''
+    const dispositionLine = `${L.dispositionInField}: ${positionsOrdered || L.formationNotSet}.${dispositionSummary}`
+
     // Matches (ultime 10) - con formazione avversario, voti, zone attacco (enterprise)
     const { data: matchesData } = await admin
       .from('matches')
@@ -481,7 +502,7 @@ async function buildPersonalContext(userId, lang = 'it') {
       `?  ${L.boxTitle}                                                       ?`,
       `?  ${L.boxSubtitle}                                                    ?`,
       '????????????????????????????????????????????????????????????????????',
-      `Formazione attuale: ${formation}.`,
+      dispositionLine,
       '',
       L.positionNote,
       '',
