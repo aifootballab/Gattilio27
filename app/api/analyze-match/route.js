@@ -1172,9 +1172,9 @@ export async function POST(req) {
     // ✅ FIX: Passa activeCoach e tacticalSettings alla funzione generateAnalysisPrompt
     const prompt = await generateAnalysisPrompt(sanitizedMatchData, confidence, missingSections, userProfile, players, opponentFormation, playersInMatch, matchHistory, tacticalPatterns, activeCoach, tacticalSettings)
     
-    // Validazione dimensione prompt (max 50KB per sicurezza)
+    // Validazione dimensione prompt (max 120KB: foto/contesto possono pesare di più)
     const promptSize = prompt.length
-    const MAX_PROMPT_SIZE = 50 * 1024 // 50KB
+    const MAX_PROMPT_SIZE = 120 * 1024 // 120KB
     if (promptSize > MAX_PROMPT_SIZE) {
       return NextResponse.json({ 
         error: 'Match data too large to analyze. Please reduce data size.' 

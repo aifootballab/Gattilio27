@@ -361,9 +361,9 @@ export async function POST(req) {
       )
     }
 
-    // Validazione dimensione prompt (max 50KB)
+    // Validazione dimensione prompt (max 120KB: foto/contesto possono pesare di più)
     const promptSize = prompt.length
-    const MAX_PROMPT_SIZE = 50 * 1024
+    const MAX_PROMPT_SIZE = 120 * 1024
     if (promptSize > MAX_PROMPT_SIZE) {
       return NextResponse.json(
         { error: 'Countermeasures data too large. Please reduce data size.' },
