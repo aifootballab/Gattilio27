@@ -21,6 +21,7 @@ export default function AIKnowledgeBar() {
   const [score, setScore] = useState(0)
   const [level, setLevel] = useState('beginner')
   const [breakdown, setBreakdown] = useState({})
+  const [profileBasicsOk, setProfileBasicsOk] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -72,6 +73,7 @@ export default function AIKnowledgeBar() {
             setScore(newScore)
             setLevel(data.level || 'beginner')
             setBreakdown(data.breakdown || {})
+            setProfileBasicsOk(!!data.profile_basics_ok)
             return // Successo, ferma retry
           }
           
@@ -144,6 +146,7 @@ export default function AIKnowledgeBar() {
       setScore(data.score || 0)
       setLevel(data.level || 'beginner')
       setBreakdown(data.breakdown || {})
+      setProfileBasicsOk(!!data.profile_basics_ok)
     } catch (err) {
       if (err?.name === 'AbortError' || signal?.aborted) return
       const msg = err?.message || ''
@@ -350,17 +353,21 @@ export default function AIKnowledgeBar() {
         {getLevelText(level)} — {getDescriptionText(level)}
       </p>
 
-      {/* CTA una riga, solo se score < 50 */}
-      {score < 50 && (
-        <p style={{
-          marginTop: '10px',
-          fontSize: '12px',
-          color: 'rgba(255, 193, 7, 0.95)',
-          fontWeight: '500'
-        }}>
-          💡 {t(getNextStepCtaKey())}
-        </p>
-      )}
+      {/* CTA una riga, solo se score < 50. Se profilo base è già ok ma profile < 20, messaggio diverso. */}
+      {score < 50 && (() => {
+        const ctaKey = getNextStepCtaKey()
+        const showProfileDetails = ctaKey === 'ctaNextStepProfile' && profileBasicsOk
+        return (
+          <p style={{
+            marginTop: '10px',
+            fontSize: '12px',
+            color: 'rgba(255, 193, 7, 0.95)',
+            fontWeight: '500'
+          }}>
+            💡 {t(showProfileDetails ? 'ctaNextStepProfileDetails' : ctaKey)}
+          </p>
+        )
+      })()}
     </div>
   )
 }

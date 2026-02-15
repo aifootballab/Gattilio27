@@ -237,24 +237,26 @@ export default function ImpostazioniProfiloPage() {
 
   return (
     <main data-tour-id="tour-profile-intro" style={{ 
-      padding: '16px', 
+      padding: 'clamp(12px, 4vw, 24px)', 
       minHeight: '100vh', 
       backgroundColor: '#0a0a0a',
       color: '#ffffff',
-      maxWidth: '600px',
-      margin: '0 auto'
+      maxWidth: 'min(600px, 100%)',
+      margin: '0 auto',
+      boxSizing: 'border-box'
     }}>
-      {/* Header */}
+      {/* Header (responsive) */}
       <div style={{ 
         display: 'flex', 
         alignItems: 'center', 
-        gap: '16px', 
+        gap: 'clamp(8px, 2vw, 16px)',
         marginBottom: '24px',
         position: 'sticky',
         top: 0,
         backgroundColor: '#0a0a0a',
-        padding: '16px 0',
-        zIndex: 10
+        padding: 'clamp(12px, 3vw, 16px) 0',
+        zIndex: 10,
+        flexWrap: 'wrap'
       }}>
         <button
           onClick={() => router.back()}
@@ -270,7 +272,7 @@ export default function ImpostazioniProfiloPage() {
         >
           <ArrowLeft size={24} />
         </button>
-        <h1 style={{ margin: 0, fontSize: '20px', fontWeight: '600' }}>{t('profileSettings')}</h1>
+        <h1 style={{ margin: 0, fontSize: 'clamp(17px, 4vw, 20px)', fontWeight: '600', flex: '1 1 auto', minWidth: 0 }}>{t('profileSettings')}</h1>
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '12px' }}>
           <Link
             href="/gestione-profilo"
@@ -344,17 +346,18 @@ export default function ImpostazioniProfiloPage() {
         </div>
       )}
 
-      {/* Barra Profilazione */}
+      {/* Barra Profilazione (stile allineato a Dashboard / AIKnowledgeBar) */}
       <div style={{
-        backgroundColor: '#1a1a1a',
-        borderRadius: '12px',
-        padding: '20px',
+        backgroundColor: '#1a1d24',
+        borderRadius: '16px',
+        padding: 'clamp(16px, 4vw, 24px)',
         marginBottom: '24px',
-        border: '1px solid #2a2a2a'
+        border: '1px solid rgba(255,255,255,0.06)',
+        boxShadow: '0 4px 24px rgba(0,0,0,0.2)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
           <BarChart3 size={20} color="#00d4ff" />
-          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>{t('profiling')}</h2>
+          <h2 style={{ margin: 0, fontSize: 'clamp(16px, 4vw, 18px)', fontWeight: '600' }}>{t('profiling')}</h2>
         </div>
         
         {/* Progress Bar */}
@@ -385,7 +388,9 @@ export default function ImpostazioniProfiloPage() {
         </div>
         
         <div style={{ fontSize: '14px', color: '#888', marginBottom: '8px' }}>
-          {getLevelText(completionLevel)} - {t('completeFor100')}
+          {completionScore >= 100
+            ? getLevelText(completionLevel)
+            : `${Math.round(completionScore)}% — ${t('completeFor100')}`}
         </div>
         
         <div style={{ fontSize: '13px', color: '#666', fontStyle: 'italic' }}>
@@ -393,14 +398,15 @@ export default function ImpostazioniProfiloPage() {
         </div>
       </div>
 
-      {/* Banner Palestra Coach - Dati Tecnici */}
+      {/* Banner Palestra Coach - Dati Tecnici (responsive: stack su mobile) */}
       <div style={{
         background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(255, 140, 0, 0.05))',
         border: '1px solid rgba(0, 212, 255, 0.3)',
-        borderRadius: '12px',
-        padding: '20px',
+        borderRadius: '16px',
+        padding: 'clamp(16px, 4vw, 24px)',
         marginBottom: '24px',
         display: 'flex',
+        flexWrap: 'wrap',
         alignItems: 'center',
         gap: '16px'
       }}>
@@ -416,13 +422,13 @@ export default function ImpostazioniProfiloPage() {
         }}>
           <Brain size={24} color="#00d4ff" />
         </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 600, marginBottom: '6px', fontSize: '16px' }}>
+        <div style={{ flex: '1 1 200px', minWidth: 0 }}>
+          <h3 style={{ fontWeight: 600, margin: '0 0 6px', fontSize: 'clamp(15px, 3.5vw, 17px)', lineHeight: 1.3 }}>
             {t('coachDataSettingsTitle') || 'Dati tecnici di gioco'}
-          </div>
-          <div style={{ fontSize: '14px', color: '#888', lineHeight: 1.4 }}>
+          </h3>
+          <p style={{ fontSize: 'clamp(13px, 2.5vw, 14px)', color: '#888', lineHeight: 1.45, margin: 0 }}>
             {t('coachDataSettingsDesc') || 'Per modificare piattaforma, connessione, livello passaggio e punto debole, usa la Palestra Coach.'}
-          </div>
+          </p>
         </div>
         <button 
           onClick={() => router.push('/?openCoach=true')}
@@ -434,7 +440,8 @@ export default function ImpostazioniProfiloPage() {
             gap: '8px',
             background: 'rgba(0, 212, 255, 0.1)',
             borderColor: 'rgba(0, 212, 255, 0.3)',
-            color: '#00d4ff'
+            color: '#00d4ff',
+            flexShrink: 0
           }}
         >
           <Zap size={16} />
@@ -477,17 +484,18 @@ export default function ImpostazioniProfiloPage() {
         </div>
       )}
 
-      {/* Sezione: Dati Personali */}
+      {/* Sezione: Dati Personali (stile allineato a Dashboard) */}
       <div data-tour-id="tour-profile-personal" style={{
-        backgroundColor: '#1a1a1a',
-        borderRadius: '12px',
-        padding: '20px',
+        backgroundColor: '#1a1d24',
+        borderRadius: '16px',
+        padding: 'clamp(16px, 4vw, 24px)',
         marginBottom: '24px',
-        border: '1px solid #2a2a2a'
+        border: '1px solid rgba(255,255,255,0.06)',
+        boxShadow: '0 4px 24px rgba(0,0,0,0.2)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
           <User size={20} color="#00d4ff" />
-          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>{t('personalData')}</h2>
+          <h2 style={{ margin: 0, fontSize: 'clamp(16px, 4vw, 18px)', fontWeight: '600' }}>{t('personalData')}</h2>
         </div>
 
         <div style={{ marginBottom: '16px' }}>
@@ -502,12 +510,13 @@ export default function ImpostazioniProfiloPage() {
             maxLength={255}
             style={{
               width: '100%',
+              boxSizing: 'border-box',
               padding: '12px',
               backgroundColor: '#0a0a0a',
               border: '1px solid #2a2a2a',
               borderRadius: '8px',
               color: '#ffffff',
-              fontSize: '16px'
+              fontSize: 'clamp(16px, 4vw, 16px)'
             }}
           />
         </div>
@@ -524,12 +533,13 @@ export default function ImpostazioniProfiloPage() {
             maxLength={255}
             style={{
               width: '100%',
+              boxSizing: 'border-box',
               padding: '12px',
               backgroundColor: '#0a0a0a',
               border: '1px solid #2a2a2a',
               borderRadius: '8px',
               color: '#ffffff',
-              fontSize: '16px'
+              fontSize: 'clamp(16px, 4vw, 16px)'
             }}
           />
         </div>
