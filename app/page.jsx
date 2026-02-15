@@ -11,6 +11,7 @@ import CoachFeedbackChat from '@/components/CoachFeedbackChat'
 import GameAnalysisModal from '@/components/GameAnalysisModal'
 import TaskWidget from '@/components/TaskWidget'
 import MissionCenter from '@/components/MissionCenter'
+import RoadmapMini from '@/components/RoadmapMini'
 import { safeJsonResponse } from '@/lib/fetchHelper'
 import { 
   LayoutDashboard, 
@@ -748,26 +749,41 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Mission Center - Unifica task, setup e progresso */}
-        <MissionCenter
-          recentMatches={recentMatches}
-          stats={stats}
-          hasActiveCoach={hasActiveCoach}
-          gameAnalysisLastCapture={gameAnalysisLastCapture}
-          userProfile={userProfile}
-          lang={lang}
-          t={t}
-          onOpenChat={(message) => {
-            if (message === '__OPEN_GAME_ANALYSIS__') {
-              setShowGameAnalysisModal(true)
-            } else {
-              // Apri chat principale (AssistantChat) con messaggio precompilato, non Palestra Coach
-              if (typeof window !== 'undefined') {
-                window.dispatchEvent(new CustomEvent('open-assistant-chat', { detail: { message } }))
+        {/* Mission Center + Roadmap - Grid responsive */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 400px), 1fr))',
+          gap: '24px',
+          marginBottom: '8px'
+        }}>
+          <MissionCenter
+            recentMatches={recentMatches}
+            stats={stats}
+            hasActiveCoach={hasActiveCoach}
+            gameAnalysisLastCapture={gameAnalysisLastCapture}
+            userProfile={userProfile}
+            lang={lang}
+            t={t}
+            onOpenChat={(message) => {
+              if (message === '__OPEN_GAME_ANALYSIS__') {
+                setShowGameAnalysisModal(true)
+              } else {
+                // Apri chat principale (AssistantChat) con messaggio precompilato, non Palestra Coach
+                if (typeof window !== 'undefined') {
+                  window.dispatchEvent(new CustomEvent('open-assistant-chat', { detail: { message } }))
+                }
               }
-            }
-          }}
-        />
+            }}
+          />
+          
+          <RoadmapMini
+            stats={stats}
+            recentMatches={recentMatches}
+            userProfile={userProfile}
+            gameAnalysisLastCapture={gameAnalysisLastCapture}
+            t={t}
+          />
+        </div>
 
         {/* Quick Links */}
         <div data-tour-id="tour-dashboard-nav" className="card" style={{ padding: '24px' }}>
