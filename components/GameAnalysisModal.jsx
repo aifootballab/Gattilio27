@@ -36,11 +36,12 @@ const overlayStyle = {
 }
 
 const boxStyle = {
-  maxWidth: '520px',
+  maxWidth: 'min(520px, calc(100vw - 32px))',
   width: '100%',
+  minWidth: 0,
   maxHeight: '90vh',
   overflowY: 'auto',
-  padding: 'clamp(16px, 4vw, 24px)',
+  padding: 'clamp(12px, 3vw, 24px)',
   background: 'rgba(10, 14, 39, 0.95)',
   border: '2px solid var(--neon-blue)',
   borderRadius: '12px',
@@ -234,7 +235,7 @@ export default function GameAnalysisModal({ show, onClose, onSuccess }) {
                         <label style={{ display: 'inline-flex', cursor: loading ? 'not-allowed' : 'pointer', alignItems: 'center', gap: '8px', padding: '10px 14px', border: `2px solid ${color}`, borderRadius: '8px', background: 'rgba(0,0,0,0.2)' }}>
                           <input type="file" accept="image/*" ref={ref} style={{ display: 'none' }} onChange={(e) => handleFileSelect(e, key)} disabled={loading} />
                           <Upload size={20} style={{ color, flexShrink: 0 }} />
-                          <span style={{ fontSize: '14px', fontWeight: 600, color }}>{lang === 'en' ? 'Choose file' : 'Carica'}</span>
+                          <span style={{ fontSize: '14px', fontWeight: 600, color }}>{t('gameAnalysisChooseFile')}</span>
                         </label>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -267,8 +268,8 @@ export default function GameAnalysisModal({ show, onClose, onSuccess }) {
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', alignItems: 'center', flexWrap: 'wrap', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '20px', marginTop: '20px' }}>
             <div style={{ marginRight: 'auto', fontSize: '13px', opacity: 0.7 }}>
               {!hasAny
-                ? (lang === 'en' ? 'No image selected' : 'Nessuna immagine selezionata')
-                : <span style={{ color: 'var(--neon-green)' }}>{[slot1, slot2].filter(Boolean).length} / 2 {(lang === 'en' ? 'screens' : 'schermate')}</span>}
+                ? t('gameAnalysisNoImage')
+                : <span style={{ color: 'var(--neon-green)' }}>{[slot1, slot2].filter(Boolean).length} / 2 {t('gameAnalysisScreensLabel')}</span>}
             </div>
             <button type="button" className="btn" onClick={onClose} disabled={loading} style={{ padding: '12px 24px', minHeight: 44 }}>
               {t('close')}

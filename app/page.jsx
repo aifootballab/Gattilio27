@@ -826,6 +826,35 @@ export default function DashboardPage() {
               <ArrowRight size={18} />
             </button>
             <button
+              type="button"
+              onClick={() => setShowGameAnalysisModal(true)}
+              className="btn"
+              style={{ 
+                width: '100%', 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                padding: '12px 16px',
+                background: 'rgba(34, 197, 94, 0.08)',
+                borderColor: 'rgba(34, 197, 94, 0.3)',
+                color: 'var(--neon-green, #22c55e)'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(34, 197, 94, 0.15)'
+                e.currentTarget.style.boxShadow = '0 0 12px rgba(34, 197, 94, 0.25)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(34, 197, 94, 0.08)'
+                e.currentTarget.style.boxShadow = 'none'
+              }}
+            >
+              <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <BarChart3 size={18} />
+                {t('gameAnalysisTitle')}
+              </span>
+              <ArrowRight size={18} />
+            </button>
+            <button
               data-tour-id="tour-dashboard-add-match"
               onClick={() => router.push('/match/new')}
               className="btn"
