@@ -2,16 +2,14 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { supabase } from '@/lib/supabaseClient'
 import { ArrowLeft, BookOpen } from 'lucide-react'
 import RoadmapVisualizer from '@/components/RoadmapVisualizer'
-import Header from '@/components/Header'
-import { useLanguage } from '@/contexts/LanguageContext'
+import { useTranslation } from '@/lib/i18n'
 
 export default function RoadmapPage() {
   const router = useRouter()
-  const supabase = createClientComponentClient()
-  const { language: lang } = useLanguage()
+  const { lang } = useTranslation()
   
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({ totalPlayers: 0, titolari: 0, riserve: 0 })
@@ -113,20 +111,15 @@ export default function RoadmapPage() {
 
   if (loading) {
     return (
-      <>
-        <Header />
-        <div style={styles.loadingContainer}>
+      <div style={styles.loadingContainer}>
           <div style={styles.spinner} />
           <p>{t('loading')}</p>
-        </div>
-      </>
+      </div>
     )
   }
 
   return (
-    <>
-      <Header />
-      <div style={styles.page}>
+    <div style={styles.page}>
         <div style={styles.container}>
           {/* Header */}
           <div style={styles.header}>
@@ -171,8 +164,7 @@ export default function RoadmapPage() {
             t={t}
           />
         </div>
-      </div>
-    </>
+    </div>
   )
 }
 
