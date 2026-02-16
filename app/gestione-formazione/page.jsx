@@ -1633,9 +1633,11 @@ export default function GestioneFormazionePage() {
         showToast(t('formationSavedWithWarnings'), 'error')
       }
       
-      // 1. Salva prima il layout (assign-player-to-slot legge slot_positions dal DB)
+      // 1. Salva il layout: il modulo deve riflettere la disposizione reale dopo personalizzazioni
+      const { getFormationNameFromSlotPositions } = await import('../../lib/validateFormationLimits')
+      const effectiveFormation = getFormationNameFromSlotPositions(updatedSlotPositions)
       await handleSelectManualFormation(
-        layout.formation || t('formationCustom'),
+        effectiveFormation || layout.formation || t('formationCustom'),
         updatedSlotPositions
       )
       
@@ -2684,6 +2686,10 @@ export default function GestioneFormazionePage() {
             setSelectedSlot(null)
             setSelectedReserve(null)
           }}
+          onOpenManualEntry={() => {
+            setShowAssignModal(false)
+            setShowManualPlayerModal(true)
+          }}
           assigning={assigning}
         />
       )}
@@ -3209,7 +3215,7 @@ function ReserveCard({ player, onClick, disabled, onDelete }) {
 }
 
 // Assign Modal Component
-function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUploadPhoto, onRemove, onDelete, onClose, assigning }) {
+function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUploadPhoto, onRemove, onDelete, onClose, onOpenManualEntry, assigning }) {
   const { t, lang } = useTranslation()
   const router = useRouter()
   const [expandedSections, setExpandedSections] = React.useState({
@@ -3827,7 +3833,7 @@ function AssignModal({ slot, currentPlayer, riserve, onAssignFromReserve, onUplo
                 {t('uploadPlayerPhoto')}
               </button>
               <button
-                onClick={() => { onClose?.(); setShowManualPlayerModal(true) }}
+                onClick={() => { onOpenManualEntry?.() }}
                 className="btn"
                 style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center', borderColor: 'var(--neon-blue)', color: 'var(--neon-blue)' }}
               >
