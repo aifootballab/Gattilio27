@@ -912,7 +912,28 @@ export async function POST(req) {
       }
     } catch (retryError) {
       console.error('[assistant-chat] callOpenAIWithRetry error:', retryError)
-      // Se è un oggetto errore con message, usa quello
+      // Se il modello non è disponibile (es. gpt-5 non abilitato), riprova con gpt-4o
+      if (retryError?.type === 'model_not_found') {
+        try {
+          requestBody.model = 'gpt-4o'
+          const fallbackResponse = await callOpenAIWithRetry(apiKey, requestBody, 'assistant-chat')
+          if (fallbackResponse?.ok) {
+            const fallbackData = await fallbackResponse.json().catch(() => ({}))
+            const fallbackMsg = lang === 'en' ? "Sorry, I didn't get that. Can you repeat?" : 'Mi dispiace, non ho capito. Puoi ripetere?'
+            const raw = fallbackData.choices?.[0]?.message?.content || fallbackMsg
+            const { cleanContent: fc, suggestions: fs } = parseSuggestionsFromContent(raw)
+            const finalSuggestions = (Array.isArray(fs) && fs.length > 0) ? fs : getDefaultSuggestions(lang, safeCurrentPage)
+            return NextResponse.json({
+              response: fc,
+              suggestions: finalSuggestions,
+              remaining: rateLimit.remaining,
+              resetAt: rateLimit.resetAt
+            })
+          }
+        } catch (fallbackErr) {
+          console.error('[assistant-chat] Fallback gpt-4o error:', fallbackErr)
+        }
+      }
       const errorMsg = retryError?.message || retryError?.type || 'Error calling OpenAI API'
       throw new Error(errorMsg)
     }
