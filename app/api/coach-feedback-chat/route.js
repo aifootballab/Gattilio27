@@ -238,13 +238,35 @@ export async function POST(req) {
       { role: 'user', content: message }
     ]
 
-    // 7. Call OpenAI
-    const response = await callOpenAIWithRetry(openaiApiKey, {
-      model: process.env.OPENAI_MODEL || 'gpt-5',
-      messages,
-      max_tokens: 400,
-      temperature: 0.7
-    }, 'coach-feedback-chat')
+    // 7. Call OpenAI (stesso default gpt-5 di assistant-chat; fallback a gpt-4o se modello non disponibile)
+    const model = process.env.OPENAI_MODEL || 'gpt-5'
+    const requestBody = { model, messages, max_tokens: 400, temperature: 0.7 }
+    let response
+    try {
+      response = await callOpenAIWithRetry(openaiApiKey, requestBody, 'coach-feedback-chat')
+    } catch (openaiErr) {
+      const isModelError = openaiErr?.type === 'model_not_found' || model === 'gpt-5'
+      if (isModelError) {
+        try {
+          requestBody.model = 'gpt-4o'
+          response = await callOpenAIWithRetry(openaiApiKey, requestBody, 'coach-feedback-chat')
+          if (response?.ok) {
+            const data = await response.json()
+            const assistantResponse = data?.choices?.[0]?.message?.content || (lang === 'it' ? 'Non ho capito, puoi ripetere?' : 'I didn\'t understand, can you repeat?')
+            recordUsage(admin, userId, 1, 'coach-feedback-chat').catch(() => {})
+            return NextResponse.json({
+              response: assistantResponse,
+              remaining: rateLimit.remaining,
+              resetAt: rateLimit.resetAt,
+              matchId: lastMatch?.id || null
+            })
+          }
+        } catch (fallbackErr) {
+          console.error('[coach-feedback-chat] Fallback gpt-4o failed:', fallbackErr?.message || fallbackErr)
+        }
+      }
+      throw openaiErr
+    }
 
     const data = await response.json()
     const assistantResponse = data?.choices?.[0]?.message?.content || (lang === 'it' ? 'Non ho capito, puoi ripetere?' : 'I didn\'t understand, can you repeat?')
@@ -260,7 +282,7 @@ export async function POST(req) {
     })
 
   } catch (error) {
-    console.error('[coach-feedback-chat] Error:', error)
+    console.error('[coach-feedback-chat] Error:', error?.message || error, 'type:', error?.type)
     return NextResponse.json({ error: ERRORS.SERVER[lang] }, { status: 500 })
   }
 }
