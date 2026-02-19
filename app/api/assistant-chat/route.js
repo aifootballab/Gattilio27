@@ -887,6 +887,7 @@ export async function POST(req) {
     // Se OpenAI rifiuta (model not found / non disponibile per l'account), fallback automatico a gpt-4o.
     const rawModel = (process.env.OPENAI_MODEL || 'gpt-5.2').trim()
     const model = rawModel || 'gpt-5.2'
+    console.log('[assistant-chat] Request model:', model, '(OPENAI_MODEL=' + (process.env.OPENAI_MODEL ? 'set' : 'unset') + ')')
     
     const systemContent = buildSystemContentV2(lang)
 
