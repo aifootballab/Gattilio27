@@ -36,7 +36,13 @@ Se nei log vedi `status=429` → rate limit; `status=401` → chiave API non val
    ```
    La risposta JSON conterrà l’eventuale errore (es. `"code":"model_not_found"` o messaggio sul billing).
 
+## Come sapere quale modello ha risposto
+
+- **In chat (UI):** sotto ogni risposta dell’assistente compare una riga tipo «Modello: gpt-5» o «Modello: gpt-4o». Se vedi **gpt-4o** significa che è stato usato il fallback (es. gpt-5 non disponibile per l’account).
+- **Nei log Vercel:** cerca `[assistant-chat] Success, model_used: gpt-5` oppure `Success (fallback ...), model_used: gpt-4o`.
+- **Nella risposta API:** il JSON include il campo `model_used` (es. `"gpt-5"` o `"gpt-4o"`).
+
 ## Comportamento dell’app
 
-- Se OpenAI risponde con **model not found** (404 / `model_not_found`), l’app riprova automaticamente con **gpt-4o** e la chat funziona ugualmente.
+- Se OpenAI risponde con **model not found** (404) o **400** con messaggio sul modello, l’app riprova automaticamente con **gpt-4o** e la chat funziona ugualmente; in quel caso vedrai «Modello: gpt-4o».
 - Per usare davvero GPT-5 serve che il tuo account OpenAI abbia accesso al modello (tier e billing corretti).

@@ -923,11 +923,13 @@ export async function POST(req) {
             const raw = fallbackData.choices?.[0]?.message?.content || fallbackMsg
             const { cleanContent: fc, suggestions: fs } = parseSuggestionsFromContent(raw)
             const finalSuggestions = (Array.isArray(fs) && fs.length > 0) ? fs : getDefaultSuggestions(lang, safeCurrentPage)
+            console.log('[assistant-chat] Success (fallback from model_not_found), model_used: gpt-4o')
             return NextResponse.json({
               response: fc,
               suggestions: finalSuggestions,
               remaining: rateLimit.remaining,
-              resetAt: rateLimit.resetAt
+              resetAt: rateLimit.resetAt,
+              model_used: 'gpt-4o'
             })
           }
         } catch (fallbackErr) {
@@ -957,18 +959,20 @@ export async function POST(req) {
                 const raw = fallbackData.choices?.[0]?.message?.content || fallbackMsg
                 const { cleanContent: fc, suggestions: fs } = parseSuggestionsFromContent(raw)
                 const finalSuggestions = (Array.isArray(fs) && fs.length > 0) ? fs : getDefaultSuggestions(lang, safeCurrentPage)
+                console.log('[assistant-chat] Success (fallback from !response.ok), model_used: gpt-4o')
                 return NextResponse.json({
                   response: fc,
                   suggestions: finalSuggestions,
                   remaining: rateLimit.remaining,
-                  resetAt: rateLimit.resetAt
+                  resetAt: rateLimit.resetAt,
+                  model_used: 'gpt-4o'
                 })
               }
             } catch (fallbackError) {
               console.error('[assistant-chat] Fallback error:', fallbackError)
             }
           }
-          
+
           errorMessage = errorData.error?.message || errorMessage
         }
       } catch (parseError) {
@@ -1010,12 +1014,14 @@ export async function POST(req) {
     }
 
     const finalSuggestions = (Array.isArray(suggestions) && suggestions.length > 0) ? suggestions : getDefaultSuggestions(lang, safeCurrentPage)
+    console.log(`[assistant-chat] Success, model_used: ${model}`)
     return NextResponse.json(
       {
         response: sanitizedContent,
         suggestions: finalSuggestions,
         remaining: rateLimit.remaining,
-        resetAt: rateLimit.resetAt
+        resetAt: rateLimit.resetAt,
+        model_used: model
       },
       { headers: { 'Content-Language': lang } }
     )
