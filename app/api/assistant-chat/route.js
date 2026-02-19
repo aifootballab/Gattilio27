@@ -901,7 +901,7 @@ export async function POST(req) {
       model: model,
       messages: openAIMessages,
       temperature: 0.7,
-      max_tokens: 800 // Aumentato da 450 per evitare risposte troncate; response_format rimosso (default OpenAI è text)
+      max_completion_tokens: 800 // gpt-5.2 richiede max_completion_tokens (max_tokens deprecato)
     }
     
     // Chiama OpenAI con retry (gestisce anche fallback GPT-4o se GPT-5 non disponibile)

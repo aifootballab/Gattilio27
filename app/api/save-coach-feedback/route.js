@@ -208,7 +208,7 @@ export async function POST(req) {
           { role: 'system', content: 'You extract structured data from conversations. Respond ONLY with valid JSON, no markdown, no backticks.' },
           { role: 'user', content: extractionPrompt }
         ],
-        max_tokens: 800,
+        max_completion_tokens: 800,
         temperature: 0.1,
         response_format: { type: 'json_object' }
       }, 'save-coach-feedback')

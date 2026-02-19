@@ -246,7 +246,7 @@ export async function POST(req) {
 
     // 7. Call OpenAI (default gpt-5.2, come assistant-chat; fallback a gpt-4o se modello non disponibile)
     const model = process.env.OPENAI_MODEL || 'gpt-5.2'
-    const requestBody = { model, messages, max_tokens: 400, temperature: 0.7 }
+    const requestBody = { model, messages, max_completion_tokens: 400, temperature: 0.7 }
     let response
     try {
       response = await callOpenAIWithRetry(openaiApiKey, requestBody, 'coach-feedback-chat')
