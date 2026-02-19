@@ -244,14 +244,14 @@ export async function POST(req) {
       { role: 'user', content: message }
     ]
 
-    // 7. Call OpenAI (stesso default gpt-5 di assistant-chat; fallback a gpt-4o se modello non disponibile)
-    const model = process.env.OPENAI_MODEL || 'gpt-5'
+    // 7. Call OpenAI (default gpt-5.2, come assistant-chat; fallback a gpt-4o se modello non disponibile)
+    const model = process.env.OPENAI_MODEL || 'gpt-5.2'
     const requestBody = { model, messages, max_tokens: 400, temperature: 0.7 }
     let response
     try {
       response = await callOpenAIWithRetry(openaiApiKey, requestBody, 'coach-feedback-chat')
     } catch (openaiErr) {
-      const isModelError = openaiErr?.type === 'model_not_found' || model === 'gpt-5'
+      const isModelError = openaiErr?.type === 'model_not_found' || model === 'gpt-5.2'
       if (isModelError) {
         try {
           requestBody.model = 'gpt-4o'

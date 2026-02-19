@@ -883,10 +883,10 @@ export async function POST(req) {
       )
     }
     
-    // Modello: OPENAI_MODEL in env (es. gpt-5, gpt-5.2, gpt-5-chat-latest) oppure default gpt-5.
+    // Modello: OPENAI_MODEL in env (es. gpt-5.2, gpt-5.1) oppure default gpt-5.2 (alias gpt-5 deprecato da OpenAI).
     // Se OpenAI rifiuta (model not found / non disponibile per l'account), fallback automatico a gpt-4o.
-    const rawModel = (process.env.OPENAI_MODEL || 'gpt-5').trim()
-    const model = rawModel || 'gpt-5'
+    const rawModel = (process.env.OPENAI_MODEL || 'gpt-5.2').trim()
+    const model = rawModel || 'gpt-5.2'
     
     const systemContent = buildSystemContentV2(lang)
 

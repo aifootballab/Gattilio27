@@ -371,8 +371,8 @@ export async function POST(req) {
       )
     }
 
-    // 10. Default gpt-5, override con OPENAI_MODEL; fallback gpt-4o, gpt-4-turbo, gpt-4 (tutti supportano JSON mode)
-    const preferredModel = process.env.OPENAI_MODEL || 'gpt-5'
+    // 10. Default gpt-5.2 (alias gpt-5 deprecato), override con OPENAI_MODEL; fallback gpt-4o, gpt-4-turbo, gpt-4
+    const preferredModel = process.env.OPENAI_MODEL || 'gpt-5.2'
     const models = [preferredModel, 'gpt-4o', 'gpt-4-turbo', 'gpt-4']
     let lastError = null
     let response = null

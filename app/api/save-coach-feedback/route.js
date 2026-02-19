@@ -203,7 +203,7 @@ export async function POST(req) {
 
     try {
       const response = await callOpenAIWithRetry(openaiApiKey, {
-        model: process.env.OPENAI_MODEL || 'gpt-5',
+        model: process.env.OPENAI_MODEL || 'gpt-5.2',
         messages: [
           { role: 'system', content: 'You extract structured data from conversations. Respond ONLY with valid JSON, no markdown, no backticks.' },
           { role: 'user', content: extractionPrompt }
