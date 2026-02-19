@@ -346,11 +346,6 @@ export default function AssistantChat() {
             }}
           >
             {msg.content}
-            {msg.role === 'assistant' && msg.model_used && (
-              <div style={{ marginTop: '8px', fontSize: '11px', opacity: 0.7 }}>
-                {lang === 'en' ? 'Model' : 'Modello'}: {msg.model_used}
-              </div>
-            )}
           </div>
         ))}
         
