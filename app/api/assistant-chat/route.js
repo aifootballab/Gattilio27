@@ -883,9 +883,10 @@ export async function POST(req) {
       )
     }
     
-    // Usa il modello configurato (default: GPT-4o stabile)
-    // Se configurato un modello non disponibile (es. GPT-5), il fallback gestir? l'errore.
-    const model = process.env.OPENAI_MODEL || 'gpt-5'
+    // Modello: OPENAI_MODEL in env (es. gpt-5, gpt-5.2, gpt-5-chat-latest) oppure default gpt-5.
+    // Se OpenAI rifiuta (model not found / non disponibile per l'account), fallback automatico a gpt-4o.
+    const rawModel = (process.env.OPENAI_MODEL || 'gpt-5').trim()
+    const model = rawModel || 'gpt-5'
     
     const systemContent = buildSystemContentV2(lang)
 

@@ -15,6 +15,15 @@ In **chat** vedi sotto ogni risposta dell’assistente la riga «Modello: gpt-5�
 
 Per forzare un modello diverso dal default: in `.env` / Vercel imposta ad esempio `OPENAI_MODEL=gpt-5` oppure `OPENAI_MODEL=gpt-4o`.
 
+### Cosa fa il codice (assistant-chat)
+
+1. Legge il modello: `model = (process.env.OPENAI_MODEL || 'gpt-5').trim()` → se la variabile non c’è o è vuota, usa **gpt-5**.
+2. Invia a OpenAI la richiesta con `model: model` (es. gpt-5).
+3. Se OpenAI risponde **404** o **400** con messaggio tipo “model not found” / “not available”, l’app **non** restituisce errore: riprova una sola volta con **gpt-4o** e restituisce quella risposta con `model_used: 'gpt-4o'`.
+4. Se la prima richiesta (gpt-5) va a buon fine, restituisce la risposta con `model_used: model` (es. gpt-5).
+
+Quindi **se vedi «Modello: gpt-4o»** significa che la richiesta con il modello scelto (gpt-5 o quanto in `OPENAI_MODEL`) è stata **rifiutata da OpenAI** e l’app ha usato il fallback. La causa è lato OpenAI (modello non disponibile per l’account, nome errato, billing).
+
 ---
 
 ## Perché GPT-5 potrebbe non funzionare
@@ -35,12 +44,13 @@ Nella [documentazione OpenAI](https://platform.openai.com/docs/models/gpt-5), GP
 - **Cosa fare:** vai su [Usage](https://platform.openai.com/usage), aggiungi un metodo di pagamento e assicurati di avere un tier che supporta GPT-5.
 
 ### 2. **Nome modello errato**
-L’API accetta ad esempio:
+L’API accetta ad esempio (verifica su [OpenAI Models](https://platform.openai.com/docs/models)):
 - `gpt-5` (modello principale)
-- `gpt-5-mini`, `gpt-5-nano`
+- `gpt-5-mini`, `gpt-5-nano`, `gpt-5-chat-latest`
+- `gpt-5.1`, `gpt-5.2`, `gpt-5.2-chat-latest` (varianti più recenti)
 - Snapshot tipo `gpt-5-2025-08-07`
 
-Se in `OPENAI_MODEL` hai un typo (es. `gpt5`, `gpt-5.0`) OpenAI risponde con `model_not_found` / 404.
+Se in `OPENAI_MODEL` hai un typo (es. `gpt5`, `gpt-5.0`) OpenAI risponde con `model_not_found` / 404. Se `gpt-5` non è disponibile per il tuo account, puoi provare `gpt-5-chat-latest` o `gpt-5.2` in `OPENAI_MODEL` (stesso flusso e fallback a gpt-4o).
 
 ### 3. **Errore diverso da “model not found”**
 Se nei log vedi `status=429` → rate limit; `status=401` → chiave API non valida; `status=500` → problema lato OpenAI. In questi casi il fallback automatico a gpt-4o non viene usato (è solo per `model_not_found`).
