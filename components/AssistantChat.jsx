@@ -389,7 +389,7 @@ export default function AssistantChat() {
             type="button"
             onClick={() => setSuggestionsExpanded(s => !s)}
             aria-expanded={suggestionsExpanded}
-            aria-label={lang === 'en' ? 'Show or hide suggested questions' : 'Mostra o nascondi domande suggerite'}
+            aria-label={lang === 'en' ? 'Show or hide suggestions' : 'Mostra o nascondi suggerimenti'}
             style={{
               width: '100%',
               padding: '8px 12px',
@@ -409,7 +409,7 @@ export default function AssistantChat() {
             onFocus={(e) => { e.currentTarget.style.outline = '2px solid var(--neon-blue)'; e.currentTarget.style.outlineOffset = '2px' }}
             onBlur={(e) => { e.currentTarget.style.outline = 'none' }}
           >
-            <span>💡 {lang === 'en' ? 'Suggested questions (3)' : 'Domande suggerite (3)'}</span>
+            <span>💡 {lang === 'en' ? 'Suggestions (3)' : 'Suggerimenti (3)'}</span>
             {suggestionsExpanded ? <ChevronUp size={16} color="var(--neon-blue)" /> : <ChevronDown size={16} color="var(--neon-blue)" />}
           </button>
           {suggestionsExpanded && (
@@ -452,7 +452,7 @@ export default function AssistantChat() {
             type="button"
             onClick={() => setSuggestionsExpanded(s => !s)}
             aria-expanded={suggestionsExpanded}
-            aria-label={lang === 'en' ? 'Show or hide follow-up questions' : 'Mostra o nascondi altre domande'}
+            aria-label={lang === 'en' ? 'Show or hide suggestions' : 'Mostra o nascondi suggerimenti'}
             style={{
               width: '100%',
               padding: '8px 12px',
@@ -472,7 +472,7 @@ export default function AssistantChat() {
             onFocus={(e) => { e.currentTarget.style.outline = '2px solid var(--neon-blue)'; e.currentTarget.style.outlineOffset = '2px' }}
             onBlur={(e) => { e.currentTarget.style.outline = 'none' }}
           >
-            <span>💡 {lang === 'en' ? 'Follow-up (3)' : 'Altre domande (3)'}</span>
+            <span>💡 {lang === 'en' ? 'Suggestions (3)' : 'Suggerimenti (3)'}</span>
             {suggestionsExpanded ? <ChevronUp size={16} color="var(--neon-blue)" /> : <ChevronDown size={16} color="var(--neon-blue)" />}
           </button>
           {suggestionsExpanded && (

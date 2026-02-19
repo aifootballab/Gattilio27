@@ -110,7 +110,7 @@ export default function CoachFeedbackChat({ show, onClose, userProfile: external
     setFormSaving(true)
     try {
       const { data: session } = await supabase.auth.getSession()
-      if (!session?.session?.access_token) { setStep('chat'); return }
+      if (!session?.session?.access_token) return
 
       const body = {}
       for (const [k, v] of Object.entries(formData)) {

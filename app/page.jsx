@@ -13,6 +13,7 @@ import TaskWidget from '@/components/TaskWidget'
 import MissionCenter from '@/components/MissionCenter'
 import RoadmapMini from '@/components/RoadmapMini'
 import { safeJsonResponse } from '@/lib/fetchHelper'
+import { getCurrentMonth } from '@/lib/leaderboardHelper'
 import { 
   LayoutDashboard, 
   Users, 
@@ -239,13 +240,12 @@ export default function DashboardPage() {
           .maybeSingle()
         setUserProfile(profile || null)
 
-        // Classifica mensile: stesso token già usato sopra; passare month (client) per allineare a pagina Classifica
+        // Classifica mensile: stesso token già usato sopra; month da getCurrentMonth (allineato a classifica e API)
         const token = session.session.access_token
         if (token) {
           try {
-            const y = new Date().getFullYear()
-            const m = String(new Date().getMonth() + 1).padStart(2, '0')
-            const lbRes = await fetch(`/api/leaderboard?month=${y}-${m}`, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' })
+            const month = getCurrentMonth()
+            const lbRes = await fetch(`/api/leaderboard?month=${month}`, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' })
             const lbPayload = await lbRes.json().catch(() => ({}))
             if (Array.isArray(lbPayload.rankings)) {
               setLeaderboardData({
@@ -319,38 +319,14 @@ export default function DashboardPage() {
   }, [loading, supabase, fetchGameAnalysisCapture])
 
   React.useEffect(() => {
-    if (loading || !supabase) return
-    let cancelled = false
-    ;(async () => {
-      try {
-        const { data: session } = await supabase.auth.getSession()
-        const token = session?.session?.access_token
-        if (!token) return
-        const y = new Date().getFullYear()
-        const m = String(new Date().getMonth() + 1).padStart(2, '0')
-        const res = await fetch(`/api/leaderboard?month=${y}-${m}`, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' })
-        const payload = await res.json().catch(() => ({}))
-        if (!cancelled && Array.isArray(payload.rankings)) {
-          setLeaderboardData({
-            currentUser: payload.currentUser || null,
-            daysLeftInMonth: payload.daysLeftInMonth ?? null
-          })
-        }
-      } catch (_) {}
-    })()
-    return () => { cancelled = true }
-  }, [loading, supabase])
-
-  React.useEffect(() => {
     if (typeof window === 'undefined' || !supabase) return
     const onLeaderboardUpdated = async () => {
       try {
         const { data: session } = await supabase.auth.getSession()
         const token = session?.session?.access_token
         if (!token) return
-        const y = new Date().getFullYear()
-        const m = String(new Date().getMonth() + 1).padStart(2, '0')
-        const res = await fetch(`/api/leaderboard?month=${y}-${m}`, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' })
+        const month = getCurrentMonth()
+        const res = await fetch(`/api/leaderboard?month=${month}`, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' })
         const payload = await res.json().catch(() => ({}))
         if (Array.isArray(payload.rankings)) {
           setLeaderboardData({

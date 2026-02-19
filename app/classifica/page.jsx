@@ -8,6 +8,7 @@ import { useTranslation } from '@/lib/i18n'
 import LanguageSwitch from '@/components/LanguageSwitch'
 import { ArrowLeft, Trophy, Zap, ChevronDown, ChevronUp, Target } from 'lucide-react'
 import { safeJsonResponse } from '@/lib/fetchHelper'
+import { getCurrentMonth } from '@/lib/leaderboardHelper'
 
 export default function ClassificaPage() {
   const { t, lang } = useTranslation()
@@ -82,11 +83,6 @@ export default function ClassificaPage() {
     window.addEventListener('leaderboard-updated', onLeaderboardUpdated)
     return () => window.removeEventListener('leaderboard-updated', onLeaderboardUpdated)
   }, [fetchLeaderboard])
-
-  function getCurrentMonth() {
-    const now = new Date()
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-  }
 
   function formatMonth(ym) {
     if (!ym) return ''

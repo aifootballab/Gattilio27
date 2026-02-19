@@ -84,15 +84,16 @@ function getDefaultSuggestions(lang, currentPage = '') {
 }
 
 /**
- * Estrae dal contenuto AI il blocco SUGGERIMENTI (3 domande cliccabili) e restituisce testo pulito + array.
- * Parser robusto: accetta SUGGERIMENTI:/Suggerimenti:, con "---" opzionale, numerazione 1. 1) - ecc.
+ * Estrae dal contenuto AI il blocco SUGGERIMENTI (3 consigli cliccabili) e restituisce testo pulito + array.
+ * Parser robusto: accetta SUGGERIMENTI/Suggerimenti/Domande per approfondire, numerazione 1. 1) - ecc.
+ * Rimuove dal testo visibile tutto dal marker in poi, così l'utente vede solo i 3 cliccabili.
  * @param {string} content - Testo completo risposta AI
  * @returns {{ cleanContent: string, suggestions: string[] }}
  */
 function parseSuggestionsFromContent(content) {
   if (!content || typeof content !== 'string') return { cleanContent: (content || '').trim(), suggestions: [] }
   const normalized = content.trim()
-  const suggMarkerMatch = normalized.match(/\b(SUGGERIMENTI|Suggerimenti)\s*:?\s*/i)
+  const suggMarkerMatch = normalized.match(/\b(SUGGERIMENTI|Suggerimenti|Domande per approfondire)\s*:?\s*/i)
   const idx = suggMarkerMatch ? normalized.indexOf(suggMarkerMatch[0]) + suggMarkerMatch[0].length : -1
   if (idx <= 0) return { cleanContent: normalized, suggestions: [] }
   const beforeMarker = normalized.slice(0, idx - (suggMarkerMatch ? suggMarkerMatch[0].length : 0)).trim()
@@ -583,9 +584,9 @@ OUTPUT: 2-4 imperative sentences; answer the specific question (e.g. shot/pass/d
 
   const capsule = language === 'en' ? capsuleEn : capsuleIt
 
-  // Suggerimenti: diversificare; almeno uno di approfondimento sulla leva/dati citati; evitare sempre le stesse 3 (priorità, compattezza, prossimo passo).
-  const suggRulesIt = `SUGGERIMENTI (3 domande, obbligatori): DIVERSIFICA: non proporre sempre le stesse 3 (priorità, compattezza, prossimo passo). (1) Almeno una domanda di approfondimento sulla leva o sui dati che hai appena citato (es. percentuali tiro/passaggio, abilità in rosa, nomi giocatori). (2) Una su gameplay/rosa/partite legata alla risposta. (3) Una su prossimo passo concreto. NON aprire con "Quale modulo/formazione". VIETATO: meta, "perché ho perso", "migliorare un giocatore", domande vaghe. Niente uso app, niente tasti.`
-  const suggRulesEn = `SUGGESTIONS (3 questions, required): DIVERSIFY: do not always suggest the same 3 (priorities, compactness, next step). (1) At least one follow-up on the lever or data you just mentioned (e.g. shot/pass percentages, roster skills, player names). (2) One on gameplay/roster/matches tied to your answer. (3) One concrete next step. Do NOT lead with "Which formation/module". FORBIDDEN: meta, "why did I lose", "improve a player", vague questions. No app usage, no buttons.`
+  // La coach dà CONSIGLI; i 3 punti sono SUGGERIMENTI OPERATIVI della coach (cliccabili), non domande che il cliente deve fare.
+  const suggRulesIt = `SUGGERIMENTI (3, obbligatori): sono CONSIGLI della coach su cosa approfondire o fare dopo (testi brevi cliccabili). (1) Un suggerimento operativo su quanto hai appena detto (es. approfondisci marcatura per i centrali, sfrutta Ibra e Nedvěd per i tiri). (2) Uno su gameplay/rosa/partite legato alla risposta. (3) Un prossimo passo concreto. Scrivi come inviti della coach: es. "Approfondisci la marcatura per Maldini e Nesta", "Variare i tiri con i tuoi finisher", "Prossimo passo: copertura". NON sono domande che il cliente deve porre: sei tu che consigli. VIETATO: "Quale modulo/formazione", meta, "perché ho perso", "migliorare un giocatore". Niente uso app, niente tasti.`
+  const suggRulesEn = `SUGGESTIONS (3, required): these are the COACH'S recommendations on what to explore or do next (short clickable texts). (1) One operational suggestion on what you just said (e.g. deepen marking for your centre-backs, use your finishers for shot variety). (2) One on gameplay/roster/matches tied to your answer. (3) One concrete next step. Phrase as the coach's prompts: e.g. "Explore marking for Maldini and Nesta", "Vary shots with your finishers", "Next step: coverage". These are NOT questions the client should ask: you are giving advice. FORBIDDEN: "Which formation/module", meta, "why did I lose", "improve a player". No app usage, no buttons.`
   const suggRules = language === 'en' ? suggRulesEn : suggRulesIt
 
   // Solo dati da Informazioni IA: niente lista "Problemi" da citare; se togli la spunta, l'IA non vede più quel problema
@@ -605,7 +606,7 @@ ${profileLines.join('\n')}`
     header,
     personalContextSummary ? `\n■ ${contextBlockLabel}:\n${personalContextSummary}` : '',
     efootballKnowledge ? `\n■ MECCANICHE eFootball (RAG):\n${efootballKnowledge}` : '',
-    `\n${capsule}\n\nFORMATO RISPOSTA:\n[2-4 frasi operative. "In sintesi" / "In summary" solo se utile per riassumere più punti; altrimenti chiudi con la raccomandazione principale.]\n\n---\nSUGGERIMENTI:\n1. ...\n2. ...\n3. ...\n\n${suggRules}\n\nDOMANDA CLIENTE: "${userMessage}"\nRispondi come ${aiName} in ${language === 'it' ? 'italiano' : 'inglese'}.`
+    `\n${capsule}\n\nFORMATO RISPOSTA:\n[2-4 frasi operative con i TUOI consigli. "In sintesi" / "In summary" solo se utile; altrimenti chiudi con la raccomandazione principale.]\n\n---\nSUGGERIMENTI:\n1. [consiglio breve cliccabile]\n2. [consiglio breve cliccabile]\n3. [consiglio breve cliccabile]\n\n${suggRules}\n\nDOMANDA CLIENTE: "${userMessage}"\nRispondi come ${aiName} in ${language === 'it' ? 'italiano' : 'inglese'}.`
   ].filter(Boolean)
 
   return blocks.join('\n')

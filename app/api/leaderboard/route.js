@@ -17,7 +17,8 @@ import { checkRateLimit, RATE_LIMIT_CONFIG } from '@/lib/rateLimiter'
 import {
   computeLeaderboardForMonth,
   saveLeaderboardSnapshot,
-  getMonthBounds
+  getMonthBounds,
+  getCurrentMonth
 } from '@/lib/leaderboardHelper'
 
 export const runtime = 'nodejs'
@@ -26,13 +27,6 @@ export const revalidate = 0
 
 const MONTH_REGEX = /^\d{4}-(0[1-9]|1[0-2])$/
 const MONTH_MAX_LENGTH = 7
-
-function getCurrentMonth() {
-  const now = new Date()
-  const y = now.getFullYear()
-  const m = String(now.getMonth() + 1).padStart(2, '0')
-  return `${y}-${m}`
-}
 
 export async function GET(req) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
