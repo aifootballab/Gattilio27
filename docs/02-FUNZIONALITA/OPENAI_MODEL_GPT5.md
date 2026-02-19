@@ -15,6 +15,15 @@ In **chat** vedi sotto ogni risposta dell’assistente la riga «Modello: gpt-5.
 
 Per forzare un modello: in `.env` / Vercel imposta `OPENAI_MODEL=gpt-5.2` (consigliato), `OPENAI_MODEL=gpt-5.1`, oppure `OPENAI_MODEL=gpt-4o`. L'alias **gpt-5** è deprecato: usare **gpt-5.2** o **gpt-5.1**.
 
+### Locale vs Vercel — cosa impostare
+
+| Dove | Cosa serve |
+|------|------------|
+| **Locale** | Copia `.env.example` in `.env.local`. Imposta **`OPENAI_API_KEY`** (obbligatorio: senza non parte la chat, ritorna OPENAI_KEY_MISSING). Opzionale: **`OPENAI_MODEL=gpt-5.2`** (se non la metti, il codice usa già gpt-5.2). |
+| **Vercel** | In **Settings → Environment Variables** imposta **`OPENAI_API_KEY`** (la chiave da OpenAI). Opzionale: **`OPENAI_MODEL=gpt-5.2`** (o lascia vuoto per il default). Dopo aver cambiato le variabili fai **Redeploy**. |
+
+Se in locale la chat dà subito errore tipo "Chiave API OpenAI non configurata", manca `OPENAI_API_KEY` in `.env.local`. Se vedi «Modello: gpt-4o» in risposta, il modello richiesto (gpt-5.2 o quello in `OPENAI_MODEL`) è stato rifiutato da OpenAI e l’app ha usato il fallback; controlla i log (locale o Vercel) per il messaggio di errore OpenAI.
+
 ### Cosa fa il codice (assistant-chat)
 
 1. Legge il modello: `model = (process.env.OPENAI_MODEL || 'gpt-5.2').trim()` → se la variabile non c’è o è vuota, usa **gpt-5**.
