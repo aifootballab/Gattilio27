@@ -884,7 +884,7 @@ export async function POST(req) {
     
     // Usa il modello configurato (default: GPT-4o stabile)
     // Se configurato un modello non disponibile (es. GPT-5), il fallback gestir? l'errore.
-    const model = process.env.OPENAI_MODEL || 'gpt-4o'
+    const model = process.env.OPENAI_MODEL || 'gpt-5'
     
     const systemContent = buildSystemContentV2(lang)
 
@@ -924,9 +924,9 @@ export async function POST(req) {
         if (response) {
           const errorData = await response.json().catch(() => ({ error: { message: 'Unknown error' } }))
           
-          // Se GPT-5 non disponibile, fallback a GPT-4o
-          if (errorData.error?.code === 'model_not_found' && model === 'gpt-5') {
-            console.log('[assistant-chat] GPT-5 non disponibile, fallback a GPT-4o')
+          // Se il modello configurato non è disponibile, fallback a GPT-4o
+          if (errorData.error?.code === 'model_not_found') {
+            console.log(`[assistant-chat] Model ${model} not available, fallback to gpt-4o`)
             requestBody.model = 'gpt-4o'
             try {
               const fallbackResponse = await callOpenAIWithRetry(apiKey, requestBody, 'assistant-chat')

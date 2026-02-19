@@ -240,7 +240,7 @@ export async function POST(req) {
 
     // 7. Call OpenAI
     const response = await callOpenAIWithRetry(openaiApiKey, {
-      model: process.env.OPENAI_MODEL || 'gpt-4o',
+      model: process.env.OPENAI_MODEL || 'gpt-5',
       messages,
       max_tokens: 400,
       temperature: 0.7

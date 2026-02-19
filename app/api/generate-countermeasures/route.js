@@ -371,10 +371,9 @@ export async function POST(req) {
       )
     }
 
-    // 10. Chiama GPT-4o (modello principale) con fallback ad altri modelli
-    // GPT-4o è il modello principale, fallback ad altri se non disponibile
-    // Tutti supportano JSON mode
-    const models = ['gpt-4o', 'gpt-4-turbo', 'gpt-4']
+    // 10. Default gpt-5, override con OPENAI_MODEL; fallback gpt-4o, gpt-4-turbo, gpt-4 (tutti supportano JSON mode)
+    const preferredModel = process.env.OPENAI_MODEL || 'gpt-5'
+    const models = [preferredModel, 'gpt-4o', 'gpt-4-turbo', 'gpt-4']
     let lastError = null
     let response = null
     let lastErrorDetails = null
