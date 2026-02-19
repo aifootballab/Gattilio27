@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { validateToken, extractBearerToken } from '../../../../lib/authHelper'
-import { validateIndividualInstruction } from '../../../../lib/tacticalInstructions'
-import { checkRateLimit, RATE_LIMIT_CONFIG } from '../../../../lib/rateLimiter'
+import { validateToken, extractBearerToken } from '@/lib/authHelper'
+import { validateIndividualInstruction } from '@/lib/tacticalInstructions'
+import { checkRateLimit, RATE_LIMIT_CONFIG } from '@/lib/rateLimiter'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -14,7 +14,7 @@ export async function POST(req) {
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
     
     if (!supabaseUrl || !serviceKey || !anonKey) {
-      return NextResponse.json({ error: 'Supabase server env missing' }, { status: 500 })
+      return NextResponse.json({ error: 'Server not configured' }, { status: 500 })
     }
 
     const token = extractBearerToken(req)

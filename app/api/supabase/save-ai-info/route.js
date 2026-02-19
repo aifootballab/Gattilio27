@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { validateToken, extractBearerToken } from '../../../../lib/authHelper'
-import { checkRateLimit, RATE_LIMIT_CONFIG } from '../../../../lib/rateLimiter'
+import { validateToken, extractBearerToken } from '@/lib/authHelper'
+import { checkRateLimit, RATE_LIMIT_CONFIG } from '@/lib/rateLimiter'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'

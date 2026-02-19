@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { validateToken, extractBearerToken } from '../../../lib/authHelper'
-import { checkRateLimit, RATE_LIMIT_CONFIG } from '../../../lib/rateLimiter'
-import { callOpenAIWithRetry, parseOpenAIResponse } from '../../../lib/openaiHelper'
+import { validateToken, extractBearerToken } from '@/lib/authHelper'
+import { checkRateLimit, RATE_LIMIT_CONFIG } from '@/lib/rateLimiter'
+import { callOpenAIWithRetry, parseOpenAIResponse } from '@/lib/openaiHelper'
 import { recordUsage } from '@/lib/creditService'
 
 export const runtime = 'nodejs'

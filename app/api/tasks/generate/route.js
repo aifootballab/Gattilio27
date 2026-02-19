@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
-import { validateToken, extractBearerToken } from '../../../../lib/authHelper'
-import { checkRateLimit } from '../../../../lib/rateLimiter'
-import { generateWeeklyTasksForUser, getCurrentWeek } from '../../../../lib/taskHelper'
+import { validateToken, extractBearerToken } from '@/lib/authHelper'
+import { checkRateLimit } from '@/lib/rateLimiter'
+import { generateWeeklyTasksForUser, getCurrentWeek } from '@/lib/taskHelper'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'

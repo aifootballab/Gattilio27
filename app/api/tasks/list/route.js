@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { validateToken, extractBearerToken } from '../../../../lib/authHelper'
-import { checkRateLimit, RATE_LIMIT_CONFIG } from '../../../../lib/rateLimiter'
-import { getCurrentWeek, generateWeeklyTasksForUser, updateTasksProgressAfterMatch } from '../../../../lib/taskHelper'
+import { validateToken, extractBearerToken } from '@/lib/authHelper'
+import { checkRateLimit, RATE_LIMIT_CONFIG } from '@/lib/rateLimiter'
+import { getCurrentWeek, generateWeeklyTasksForUser, updateTasksProgressAfterMatch } from '@/lib/taskHelper'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'

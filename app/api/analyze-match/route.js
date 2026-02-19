@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { validateToken, extractBearerToken } from '../../../lib/authHelper'
-import { callOpenAIWithRetry } from '../../../lib/openaiHelper'
-import { checkRateLimit, RATE_LIMIT_CONFIG } from '../../../lib/rateLimiter'
-import { getRelevantSectionsForContext } from '../../../lib/ragHelper'
+import { validateToken, extractBearerToken } from '@/lib/authHelper'
+import { callOpenAIWithRetry } from '@/lib/openaiHelper'
+import { checkRateLimit, RATE_LIMIT_CONFIG } from '@/lib/rateLimiter'
+import { getRelevantSectionsForContext } from '@/lib/ragHelper'
 import { recordUsage } from '@/lib/creditService'
 
 export const runtime = 'nodejs'
@@ -897,7 +897,7 @@ export async function POST(req) {
     const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
     
     if (!supabaseUrl || !anonKey) {
-      return NextResponse.json({ error: 'Supabase server env missing' }, { status: 500 })
+      return NextResponse.json({ error: 'Server not configured' }, { status: 500 })
     }
 
     const token = extractBearerToken(req)

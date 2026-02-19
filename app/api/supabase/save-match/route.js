@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { validateToken, extractBearerToken } from '../../../../lib/authHelper'
-import { checkRateLimit, RATE_LIMIT_CONFIG } from '../../../../lib/rateLimiter'
+import { validateToken, extractBearerToken } from '@/lib/authHelper'
+import { checkRateLimit, RATE_LIMIT_CONFIG } from '@/lib/rateLimiter'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -80,23 +80,34 @@ function calculatePhotosUploaded(matchData) {
 }
 
 /**
- * Determina se un risultato è una vittoria
+ * Determina se un risultato è una vittoria per l'utente.
+ * result: "home_goals-away_goals". Se is_home=true l'utente è in casa (primo numero), se false in trasferta (secondo numero).
  */
-function isWin(result) {
+function isWin(result, is_home = true) {
   if (!result || typeof result !== 'string') return false
   const upper = result.toUpperCase()
-  return upper.includes('W') || upper.includes('VITTORIA') || upper.includes('WIN') || 
-         /^\d+-\d+$/.test(result) && parseInt(result.split('-')[0]) > parseInt(result.split('-')[1])
+  if (upper.includes('W') || upper.includes('VITTORIA') || upper.includes('WIN')) return true
+  if (upper.includes('L') || upper.includes('SCONFITTA') || upper.includes('LOSS')) return false
+  const m = result.trim().match(/^(\d+)-(\d+)$/)
+  if (!m) return false
+  const home = parseInt(m[1], 10)
+  const away = parseInt(m[2], 10)
+  return is_home ? home > away : away > home
 }
 
 /**
- * Determina se un risultato è una sconfitta
+ * Determina se un risultato è una sconfitta per l'utente (stessa convenzione di isWin).
  */
-function isLoss(result) {
+function isLoss(result, is_home = true) {
   if (!result || typeof result !== 'string') return false
   const upper = result.toUpperCase()
-  return upper.includes('L') || upper.includes('SCONFITTA') || upper.includes('LOSS') ||
-         /^\d+-\d+$/.test(result) && parseInt(result.split('-')[0]) < parseInt(result.split('-')[1])
+  if (upper.includes('L') || upper.includes('SCONFITTA') || upper.includes('LOSS')) return true
+  if (upper.includes('W') || upper.includes('VITTORIA') || upper.includes('WIN')) return false
+  const m = result.trim().match(/^(\d+)-(\d+)$/)
+  if (!m) return false
+  const home = parseInt(m[1], 10)
+  const away = parseInt(m[2], 10)
+  return is_home ? home < away : away < home
 }
 
 /**
@@ -107,7 +118,7 @@ async function calculateTacticalPatterns(admin, userId) {
     // Recupera ultime 20 partite (per pattern formazione/stile)
     const { data: matches, error: matchesError } = await admin
       .from('matches')
-      .select('formation_played, playing_style_played, result')
+      .select('formation_played, playing_style_played, result, is_home')
       .eq('user_id', userId)
       .order('match_date', { ascending: false })
       .limit(20)
@@ -132,9 +143,10 @@ async function calculateTacticalPatterns(admin, userId) {
       }
 
       formationUsage[formation].matches++
-      if (isWin(match.result)) {
+      const isHome = match.is_home !== false
+      if (isWin(match.result, isHome)) {
         formationUsage[formation].wins++
-      } else if (isLoss(match.result)) {
+      } else if (isLoss(match.result, isHome)) {
         formationUsage[formation].losses++
       } else {
         formationUsage[formation].draws++
@@ -158,9 +170,10 @@ async function calculateTacticalPatterns(admin, userId) {
       }
 
       playingStyleUsage[style].matches++
-      if (isWin(match.result)) {
+      const isHome = match.is_home !== false
+      if (isWin(match.result, isHome)) {
         playingStyleUsage[style].wins++
-      } else if (isLoss(match.result)) {
+      } else if (isLoss(match.result, isHome)) {
         playingStyleUsage[style].losses++
       } else {
         playingStyleUsage[style].draws++
@@ -212,7 +225,7 @@ export async function POST(req) {
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
     
     if (!supabaseUrl || !serviceKey || !anonKey) {
-      return NextResponse.json({ error: 'Supabase server env missing' }, { status: 500 })
+      return NextResponse.json({ error: 'Server not configured' }, { status: 500 })
     }
 
     const token = extractBearerToken(req)
