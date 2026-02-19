@@ -173,12 +173,13 @@ export default function AssistantChat() {
         throw new Error('Invalid response format')
       }
 
-      // Aggiungi risposta AI (fallback doppia lingua)
+      // Aggiungi risposta AI (fallback doppia lingua); mostra modello usato (es. gpt-5 / gpt-4o)
       const fallbackNoResponse = lang === 'en' ? "Sorry, I didn't receive a valid response." : 'Mi dispiace, non ho ricevuto una risposta valida.'
       setMessages(prev => [...prev, {
         role: 'assistant',
         content: data.response || fallbackNoResponse,
-        timestamp: new Date()
+        timestamp: new Date(),
+        model_used: data.model_used || null
       }])
       setLastSuggestions(Array.isArray(data.suggestions) ? data.suggestions : [])
       setSuggestionsExpanded(false) // nuove risposta = suggerimenti collassati per non restringere la chat
@@ -345,6 +346,11 @@ export default function AssistantChat() {
             }}
           >
             {msg.content}
+            {msg.role === 'assistant' && msg.model_used && (
+              <div style={{ marginTop: '8px', fontSize: '11px', opacity: 0.7 }}>
+                {lang === 'en' ? 'Model' : 'Modello'}: {msg.model_used}
+              </div>
+            )}
           </div>
         ))}
         

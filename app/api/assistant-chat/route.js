@@ -929,7 +929,8 @@ export async function POST(req) {
               response: fc,
               suggestions: finalSuggestions,
               remaining: rateLimit.remaining,
-              resetAt: rateLimit.resetAt
+              resetAt: rateLimit.resetAt,
+              model_used: 'gpt-4o'
             })
           }
         } catch (fallbackErr) {
@@ -964,7 +965,8 @@ export async function POST(req) {
                   response: fc,
                   suggestions: finalSuggestions,
                   remaining: rateLimit.remaining,
-                  resetAt: rateLimit.resetAt
+                  resetAt: rateLimit.resetAt,
+                  model_used: 'gpt-4o'
                 })
               }
             } catch (fallbackError) {
@@ -1019,7 +1021,8 @@ export async function POST(req) {
         response: sanitizedContent,
         suggestions: finalSuggestions,
         remaining: rateLimit.remaining,
-        resetAt: rateLimit.resetAt
+        resetAt: rateLimit.resetAt,
+        model_used: model
       },
       { headers: { 'Content-Language': lang } }
     )

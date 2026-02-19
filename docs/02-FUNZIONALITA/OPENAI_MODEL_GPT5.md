@@ -1,4 +1,23 @@
-# Perché GPT-5 potrebbe non funzionare
+# Modello OpenAI (GPT-5) e fallback
+
+## Cosa stai usando ora
+
+| Dove | Modello |
+|------|--------|
+| **Chat assistente** (AssistantChat) | `OPENAI_MODEL` in env, oppure default **gpt-5**. Se gpt-5 non è disponibile → fallback **gpt-4o**. |
+| **Palestra Coach** (coach-feedback-chat) | Stesso: `OPENAI_MODEL` o **gpt-5**, fallback **gpt-4o**. |
+| **Contromisure** (generate-countermeasures) | `OPENAI_MODEL` o **gpt-5**, poi fallback **gpt-4o** / gpt-4-turbo / gpt-4. |
+| **Salvataggio feedback** (save-coach-feedback) | `OPENAI_MODEL` o **gpt-5**. |
+| **Estrazione dati** (extract-player, extract-coach, extract-formation, extract-match-data, extract-game-analysis) | **gpt-4o** (fisso). |
+| **Analisi partita** (analyze-match) | **gpt-4o** (fisso). |
+
+In **chat** vedi sotto ogni risposta dell’assistente la riga «Modello: gpt-5» o «Modello: gpt-4o»: così sai subito se sta usando GPT-5 o il fallback.
+
+Per forzare un modello diverso dal default: in `.env` / Vercel imposta ad esempio `OPENAI_MODEL=gpt-5` oppure `OPENAI_MODEL=gpt-4o`.
+
+---
+
+## Perché GPT-5 potrebbe non funzionare
 
 OpenAI a volte restituisce **400 Bad Request** (non 404) quando il modello non è disponibile per l’account; l’app ora tratta anche questi casi e fa fallback a gpt-4o.
 
